@@ -88,7 +88,7 @@ for (const product of data.products) {
     mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 가격 확인";
     minePrices += 1;
   }
-}}
+}
 
 data.meta.snapshotAt = checkedAt;
 const latestChromeCheck = data.products
