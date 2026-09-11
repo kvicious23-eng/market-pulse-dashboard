@@ -4,7 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoUrl = "https://github.com/kvicious23-eng/market-pulse-dashboard.git"
-$taskName = "Market Pulse Coupang Price Scan"
+$taskName = "Market Pulse Chrome Start"
+$importTaskName = "Market Pulse Result Upload"
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   Write-Host "Git for Windows is not installed. Trying an automatic install..."
@@ -48,20 +49,36 @@ if (-not (Test-Path (Join-Path $InstallPath ".git"))) {
 git -C $InstallPath config user.name "market-pulse-local"
 git -C $InstallPath config user.email "market-pulse-local@users.noreply.github.com"
 
-$scanScript = Join-Path $InstallPath "scripts\local-coupang-scan.ps1"
 $powershell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$taskArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $scanScript + '" -RepoPath "' + $InstallPath + '"'
-$taskAction = New-ScheduledTaskAction -Execute $powershell -Argument $taskArguments
-$taskTrigger = New-ScheduledTaskTrigger -Daily -At "11:30"
+$chromeCandidates = @(
+  "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+  "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+  "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+)
+$chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if (-not $chrome) { throw "Google Chrome is required for the visible-browser scanner." }
+
+$taskAction = New-ScheduledTaskAction -Execute $chrome -Argument '--new-window https://www.coupang.com/'
+$taskTrigger = New-ScheduledTaskTrigger -Daily -At "11:28"
 $taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Daily Lenovo and Acer Coupang price scan" -Force | Out-Host
+Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Open Chrome before the daily Coupang scan" -Force | Out-Host
 if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
-  throw "Failed to create the daily 11:30 scheduled task."
+  throw "Failed to create the daily Chrome start task."
 }
 
-Write-Host "Starting the first test scan. If GitHub asks you to sign in, sign in once."
-& $powershell -NoProfile -ExecutionPolicy Bypass -File $scanScript -RepoPath $InstallPath
-if ($LASTEXITCODE -ne 0) { throw "The first test scan failed." }
+$importScript = Join-Path $InstallPath "scripts\import-extension-results.ps1"
+$importArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $importScript + '" -RepoPath "' + $InstallPath + '"'
+$importAction = New-ScheduledTaskAction -Execute $powershell -Argument $importArguments
+$importTrigger = New-ScheduledTaskTrigger -Daily -At "11:45"
+Register-ScheduledTask -TaskName $importTaskName -Action $importAction -Trigger $importTrigger -Settings $taskSettings -Description "Upload Chrome price scan results to GitHub" -Force | Out-Host
+if (-not (Get-ScheduledTask -TaskName $importTaskName -ErrorAction SilentlyContinue)) {
+  throw "Failed to create the daily result upload task."
+}
 
-Write-Host "Installation complete: Lenovo and Acer Coupang prices will be checked daily at 11:30."
-Write-Host "If the PC is off at 11:30, Windows will run the missed scan after the PC starts."
+Unregister-ScheduledTask -TaskName "Market Pulse Coupang Price Scan" -Confirm:$false -ErrorAction SilentlyContinue
+$extensionPath = Join-Path $InstallPath 'chrome-extension'
+Start-Process explorer.exe -ArgumentList $extensionPath
+Start-Process $chrome -ArgumentList 'chrome://extensions/'
+Write-Host "Setup files are ready. In Chrome, enable Developer mode and load this unpacked folder:"
+Write-Host $extensionPath
+Write-Host "After loading it, click the Market Pulse extension icon once for a test scan."

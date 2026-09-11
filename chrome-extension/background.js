@@ -1,0 +1,113 @@
+const TARGETS = [
+  {brand:'Lenovo',mtm:'83N30037KR',itemId:'27303279355',url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
+  {brand:'Lenovo',mtm:'83N3003DKR',itemId:'27303268765',url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
+  {brand:'Lenovo',mtm:'83N30046KR',itemId:'25515648568',url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
+  {brand:'Acer',mtm:'ANV16-I31-514Z',itemId:'28575928128',url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041'},
+  {brand:'Acer',mtm:'AG14-I71M-972S',itemId:'28951318769',url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514'},
+  {brand:'Acer',mtm:'AG14-I71M-96C5',itemId:'28951318771',url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515'},
+  {brand:'Acer',mtm:'PHN16S-71-949J',itemId:'26004597899',url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922'},
+  {brand:'Acer',mtm:'SFG14-I71-57P5',itemId:'28714706385',url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667'},
+  {brand:'Acer',mtm:'SFG14-75-508U',itemId:'28287192873',url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006'},
+  {brand:'Acer',mtm:'SFG16-74-7412',itemId:'28029585486',url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706'},
+  {brand:'Acer',mtm:'SFG16-I71-75Y2',itemId:'28237319655',url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758'},
+  {brand:'Acer',mtm:'SFG16-74-70E9',itemId:'28714706401',url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668'},
+  {brand:'Acer',mtm:'SF16-71T-7475',itemId:'28067081535',url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227'}
+];
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function localDay() {
+  return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
+}
+
+async function waitForComplete(tabId) {
+  for (let i = 0; i < 45; i++) {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab.status === 'complete') return;
+    await wait(1000);
+  }
+  throw new Error('page-timeout');
+}
+
+function readDisplayedPrice(expectedItemId) {
+  const params = new URL(location.href).searchParams;
+  const actualItemId = params.get('itemId');
+  const bodyText = document.body?.innerText || '';
+  if (actualItemId !== expectedItemId) return {ok:false, reason:'item-id-mismatch', actualItemId};
+  if (/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i.test(bodyText)) {
+    return {ok:false, reason:'access-check'};
+  }
+  const selectors = [
+    '.prod-sale-price .total-price strong',
+    '.prod-price .total-price strong',
+    '.total-price strong',
+    '[class*="price"] strong'
+  ];
+  for (const selector of selectors) {
+    for (const node of document.querySelectorAll(selector)) {
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0) continue;
+      const digits = (node.textContent || '').replace(/[^0-9]/g, '');
+      const price = Number(digits);
+      if (price >= 250000 && price <= 7000000) {
+        return {ok:true, price, title:document.title, selector};
+      }
+    }
+  }
+  return {ok:false, reason:'price-not-found', title:document.title};
+}
+
+async function scanAll() {
+  const lock = await chrome.storage.local.get(['running']);
+  if (lock.running) return;
+  await chrome.storage.local.set({running:true});
+  const results = [];
+  try {
+    for (const target of TARGETS) {
+      let tab;
+      try {
+        tab = await chrome.tabs.create({url:target.url, active:false});
+        await waitForComplete(tab.id);
+        await wait(3500);
+        const injected = await chrome.scripting.executeScript({
+          target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
+        });
+        results.push({...target, ...injected[0].result, checkedAt:new Date().toISOString()});
+      } catch (error) {
+        results.push({...target, ok:false, reason:String(error), checkedAt:new Date().toISOString()});
+      } finally {
+        if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+      }
+      await wait(4500);
+    }
+    const payload = {version:1, scannedAt:new Date().toISOString(), results};
+    const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+    await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
+    await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
+  } finally {
+    await chrome.storage.local.set({running:false});
+  }
+}
+
+async function schedule() {
+  await chrome.alarms.clear('daily-scan');
+  const now = new Date();
+  const kstParts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(now);
+  const p = Object.fromEntries(kstParts.map(x=>[x.type,x.value]));
+  const kstNowAsUtc = Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
+  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,11,30);
+  if (nextKst <= kstNowAsUtc) nextKst += 86400000;
+  const delay = nextKst - kstNowAsUtc;
+  await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
+}
+
+chrome.runtime.onInstalled.addListener(schedule);
+chrome.runtime.onStartup.addListener(async()=>{
+  await schedule();
+  const state=await chrome.storage.local.get(['lastRunDay']);
+  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()));
+  if (hour>=11 && state.lastRunDay!==localDay()) scanAll();
+});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='daily-scan') scanAll();});
+chrome.action.onClicked.addListener(scanAll);
