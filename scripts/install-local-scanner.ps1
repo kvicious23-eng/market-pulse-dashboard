@@ -59,7 +59,7 @@ $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-O
 if (-not $chrome) { throw "Google Chrome is required for the visible-browser scanner." }
 
 $taskAction = New-ScheduledTaskAction -Execute $chrome -Argument '--new-window https://www.coupang.com/'
-$taskTrigger = New-ScheduledTaskTrigger -Daily -At "11:28"
+$taskTrigger = New-ScheduledTaskTrigger -Daily -At "09:58"
 $taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Open Chrome before the daily Coupang scan" -Force | Out-Host
 if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
@@ -69,7 +69,7 @@ if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) 
 $importScript = Join-Path $InstallPath "scripts\import-extension-results.ps1"
 $importArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $importScript + '" -RepoPath "' + $InstallPath + '"'
 $importAction = New-ScheduledTaskAction -Execute $powershell -Argument $importArguments
-$importTrigger = New-ScheduledTaskTrigger -Daily -At "11:45"
+$importTrigger = New-ScheduledTaskTrigger -Daily -At "10:30"
 Register-ScheduledTask -TaskName $importTaskName -Action $importAction -Trigger $importTrigger -Settings $taskSettings -Description "Upload Chrome price scan results to GitHub" -Force | Out-Host
 if (-not (Get-ScheduledTask -TaskName $importTaskName -ErrorAction SilentlyContinue)) {
   throw "Failed to create the daily result upload task."
