@@ -37,25 +37,56 @@ function readDisplayedPrice(expectedItemId) {
   if (/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i.test(bodyText)) {
     return {ok:false, reason:'access-check'};
   }
+  const candidates = [];
+  const addCandidate = (value, source, text='') => {
+    const digits = String(value ?? '').replace(/[^0-9]/g, '');
+    const price = Number(digits);
+    if (price >= 250000 && price <= 7000000 && !candidates.some(x=>x.price===price && x.source===source)) {
+      candidates.push({price, source, text:String(text).trim().slice(0,160)});
+    }
+  };
+
+  for (const selector of ['meta[property="product:price:amount"]','meta[property="og:price:amount"]','meta[itemprop="price"]']) {
+    for (const node of document.querySelectorAll(selector)) addCandidate(node.content, selector, node.outerHTML);
+  }
+  for (const node of document.querySelectorAll('script[type="application/ld+json"]')) {
+    try {
+      const parsed=JSON.parse(node.textContent);
+      const walk=value=>{
+        if (!value || typeof value!=='object') return;
+        if (value.price) addCandidate(value.price,'json-ld',value.name||value['@type']||'');
+        for (const child of Object.values(value)) if (typeof child==='object') walk(child);
+      };
+      walk(parsed);
+    } catch (_) {}
+  }
+
   const selectors = [
+    'strong.price-value',
     '.prod-sale-price .total-price strong',
     '.prod-price .total-price strong',
     '.total-price strong',
-    '[class*="price"] strong'
+    '[class*="price"] strong',
+    '[class*="Price"] strong',
+    '[class*="price-value"]',
+    '[data-price]'
   ];
   for (const selector of selectors) {
     for (const node of document.querySelectorAll(selector)) {
       const style = getComputedStyle(node);
       const rect = node.getBoundingClientRect();
-      if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0) continue;
-      const digits = (node.textContent || '').replace(/[^0-9]/g, '');
-      const price = Number(digits);
-      if (price >= 250000 && price <= 7000000) {
-        return {ok:true, price, title:document.title, selector};
-      }
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      addCandidate(node.getAttribute('data-price') || node.textContent, selector, node.parentElement?.innerText || node.textContent);
     }
   }
-  return {ok:false, reason:'price-not-found', title:document.title};
+  const wonMatches = bodyText.match(/(?:[0-9]{1,3},){1,2}[0-9]{3}\s*원/g) || [];
+  for (const text of wonMatches.slice(0,40)) addCandidate(text,'visible-won-text',text);
+
+  const preferred = candidates.find(x=>/price-value|prod-sale-price|total-price/.test(x.source))
+    || candidates.find(x=>x.source==='json-ld')
+    || candidates.find(x=>x.source.startsWith('meta'));
+  if (preferred) return {ok:true, price:preferred.price, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
 async function scanAll() {
@@ -67,9 +98,9 @@ async function scanAll() {
     for (const target of TARGETS) {
       let tab;
       try {
-        tab = await chrome.tabs.create({url:target.url, active:false});
+        tab = await chrome.tabs.create({url:target.url, active:true});
         await waitForComplete(tab.id);
-        await wait(3500);
+        await wait(7000);
         const injected = await chrome.scripting.executeScript({
           target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
         });
@@ -79,7 +110,7 @@ async function scanAll() {
       } finally {
         if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
       }
-      await wait(4500);
+      await wait(10000);
     }
     const payload = {version:1, scannedAt:new Date().toISOString(), results};
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
