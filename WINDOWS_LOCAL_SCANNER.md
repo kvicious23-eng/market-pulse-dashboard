@@ -5,9 +5,8 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 ## 최초 1회 설치
 
 1. Windows PC에 Chrome 또는 Edge와 Git for Windows가 설치되어 있어야 합니다.
-2. 이 저장소의 `scripts/install-local-scanner.ps1` 파일을 다운로드합니다.
-3. 다운로드한 파일을 우클릭해 **PowerShell에서 실행**합니다.
-4. 첫 실행 중 GitHub 로그인 창이 뜨면 `kvicious23-eng` 계정으로 로그인합니다.
+2. 저장소의 `INSTALL_WINDOWS_SCANNER.cmd` 파일을 다운로드해 실행합니다.
+3. 첫 실행 중 GitHub 로그인 창이 뜨면 `kvicious23-eng` 계정으로 로그인합니다.
 
 설치가 끝나면 Windows 작업 스케줄러에 `Market Pulse Coupang Price Scan`이 등록되고 매일 오전 10시에 실행됩니다.
 
@@ -31,4 +30,3 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 설치 폴더에서 다음 파일을 PowerShell로 실행하면 즉시 다시 조사할 수 있습니다.
 
 `scripts\local-coupang-scan.ps1`
-
