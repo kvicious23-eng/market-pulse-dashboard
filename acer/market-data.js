@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-09-11T15:32:13+09:00",
+    "snapshotAt": "2026-09-11T15:33:23+09:00",
     "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "정확한 MTM·용량이 일치하는 개별 상품 페이지의 공개 판매가와 배송비 기준",
     "exclusions": "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
@@ -9,9 +9,9 @@ window.MARKET_DATA = {
       "quickWatch": "매일 10:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-09-11T15:32:13+09:00",
+      "lastAttemptAt": "2026-09-11T15:33:23+09:00",
       "lastAttemptStatus": "success",
-      "lastAttemptText": "Acer precision 조사 완료 · 30개 확인 중 10개 검증 · 나머지는 마지막 검증값 유지"
+      "lastAttemptText": "Acer precision 조사 완료 · 식별자 10/10 검증 · 개별 상품 현재가 10/10 확인 · 미확인 값은 비교 제외"
     }
   },
   "products": [
@@ -28,7 +28,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -52,9 +52,9 @@ window.MARKET_DATA = {
           "referencePrice": 1665630,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122672194"
         }
       ],
@@ -69,9 +69,9 @@ window.MARKET_DATA = {
           "referencePrice": 1665630,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122672194"
         },
         {
@@ -104,7 +104,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -128,9 +128,9 @@ window.MARKET_DATA = {
           "referencePrice": 1309000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=123650595"
         }
       ],
@@ -145,9 +145,9 @@ window.MARKET_DATA = {
           "referencePrice": 1309000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=123650595"
         },
         {
@@ -180,7 +180,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -204,9 +204,9 @@ window.MARKET_DATA = {
           "referencePrice": 1439000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=123763381"
         }
       ],
@@ -221,9 +221,9 @@ window.MARKET_DATA = {
           "referencePrice": 1439000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=123763381"
         },
         {
@@ -256,7 +256,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -275,14 +275,14 @@ window.MARKET_DATA = {
           "channel": "가격비교",
           "seller": "다나와 최저가",
           "status": "현재가 확인",
-          "displayPrice": 2350020,
-          "finalPrice": 2350020,
-          "referencePrice": 2350020,
+          "displayPrice": 3675000,
+          "finalPrice": 3675000,
+          "referencePrice": 3675000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=93445997"
         }
       ],
@@ -292,14 +292,14 @@ window.MARKET_DATA = {
           "channel": "가격비교",
           "seller": "다나와 최저가",
           "status": "현재가 확인",
-          "displayPrice": 2350020,
-          "finalPrice": 2350020,
-          "referencePrice": 2350020,
+          "displayPrice": 3675000,
+          "finalPrice": 3675000,
+          "referencePrice": 3675000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=93445997"
         },
         {
@@ -332,7 +332,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -356,9 +356,9 @@ window.MARKET_DATA = {
           "referencePrice": 1559000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122719782"
         }
       ],
@@ -373,9 +373,9 @@ window.MARKET_DATA = {
           "referencePrice": 1559000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122719782"
         },
         {
@@ -408,7 +408,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -432,9 +432,9 @@ window.MARKET_DATA = {
           "referencePrice": 1358810,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122636128"
         }
       ],
@@ -449,9 +449,9 @@ window.MARKET_DATA = {
           "referencePrice": 1358810,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122636128"
         },
         {
@@ -484,7 +484,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -508,9 +508,9 @@ window.MARKET_DATA = {
           "referencePrice": 1808080,
           "condition": "정확한 MTM 상품 페이지가 현재 일시 품절",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122702450"
         }
       ],
@@ -525,9 +525,9 @@ window.MARKET_DATA = {
           "referencePrice": 1808080,
           "condition": "정확한 MTM 상품 페이지가 현재 일시 품절",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122702450"
         },
         {
@@ -560,7 +560,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -584,9 +584,9 @@ window.MARKET_DATA = {
           "referencePrice": 2365000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122636236"
         }
       ],
@@ -601,9 +601,9 @@ window.MARKET_DATA = {
           "referencePrice": 2365000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122636236"
         },
         {
@@ -636,7 +636,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -660,9 +660,9 @@ window.MARKET_DATA = {
           "referencePrice": 1400000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122719720"
         }
       ],
@@ -677,9 +677,9 @@ window.MARKET_DATA = {
           "referencePrice": 1400000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=122719720"
         },
         {
@@ -712,7 +712,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "가격 확인 중",
+          "status": "접근 제한·가격 확인 중",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -736,9 +736,9 @@ window.MARKET_DATA = {
           "referencePrice": 2159000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=107769113"
         }
       ],
@@ -753,9 +753,9 @@ window.MARKET_DATA = {
           "referencePrice": 2159000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-11 15:32",
+          "checkedAt": "2026-09-11 15:33",
           "confidence": "B",
-          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "confidenceText": "정확한 MTM과 용량을 개별 상품 페이지에서 확인",
           "url": "https://prod.danawa.com/info/?pcode=107769113"
         },
         {
