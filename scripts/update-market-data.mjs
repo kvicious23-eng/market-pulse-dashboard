@@ -3,17 +3,21 @@ import fs from "node:fs/promises";
 const DATA_FILE = new URL("../dist/market-data.js", import.meta.url);
 const mode = process.env.SCAN_MODE || "daily";
 const now = new Date();
-const kst = new Intl.DateTimeFormat("sv-SE", {
+const checkedAt = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
   hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
 }).format(now).replace(" ", "T") + "+09:00";
+const displayTime = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hour12: false
+}).format(now);
 
-const text = await fs.readFile(DATA_FILE, "utf8");
-const jsonText = text.replace(/^window\.MARKET_PULSE_DATA\s*=\s*/, "").replace(/;\s*$/, "");
-const data = Function('"use strict";return (' + jsonText + ")")();
+const source = await fs.readFile(DATA_FILE, "utf8");
+const body = source.replace(/^window\.MARKET_DATA\s*=\s*/, "").replace(/;\s*$/, "");
+const data = Function('"use strict";return (' + body + ")")();
 
 async function fetchText(url) {
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     redirect: "follow",
     headers: {
       "user-agent": "Mozilla/5.0 (compatible; MarketPulseBot/1.0; +https://github.com/kvicious23-eng/market-pulse-dashboard)",
@@ -21,68 +25,72 @@ async function fetchText(url) {
     },
     signal: AbortSignal.timeout(25000)
   });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.text();
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.text();
 }
 
-function pricesNearModel(html, mtm) {
-  const clean = html.replace(/&quot;/g, '"').replace(/&#44;/g, ",");
-  const pos = clean.toUpperCase().indexOf(mtm.toUpperCase());
-  const scope = pos >= 0 ? clean.slice(Math.max(0, pos - 180000), pos + 350000) : clean;
+function verifiedPrices(html, mtm) {
+  const decoded = html.replace(/&quot;/g, '"').replace(/&#44;/g, ",");
+  const upper = decoded.toUpperCase();
+  const position = upper.indexOf(mtm.toUpperCase());
+  if (position < 0) return [];
+  const scope = decoded.slice(Math.max(0, position - 140000), position + 280000);
   const values = [];
-  for (const m of scope.matchAll(/(?:lowPrice|salePrice|price)["'\s:=]+["']?([0-9]{5,9})/gi)) {
-    const n = Number(m[1]);
-    if (n >= 300000 && n <= 5000000) values.push(n);
+  for (const match of scope.matchAll(/(?:lowPrice|salePrice|finalPrice|price)["'\s:=]+["']?([0-9]{5,9})/gi)) {
+    const value = Number(match[1]);
+    if (value >= 300000 && value <= 5000000) values.push(value);
   }
-  return [...new Set(values)].sort((a,b) => a-b);
+  return [...new Set(values)].sort((a, b) => a - b);
 }
 
+let successes = 0;
+let attempts = 0;
 for (const product of data.products) {
-  const sources = [...new Set(product.marketRows.map(r => r.url).filter(Boolean))];
-  const observations = [];
-  for (const url of sources) {
+  const candidates = product.offers.filter((offer) => offer.role === "competitor" && offer.url);
+  for (const offer of candidates) {
+    attempts += 1;
     try {
-      const html = await fetchText(url);
-      const found = pricesNearModel(html, product.mtm);
-      if (found.length) observations.push({url, price: found[0], checkedAt: kst});
-    } catch (error) {
-      observations.push({url, error: String(error.message || error), checkedAt: kst});
+      const html = await fetchText(offer.url);
+      const prices = verifiedPrices(html, product.mtm);
+      if (!prices.length) continue;
+      const price = prices[0];
+      offer.displayPrice = price;
+      offer.finalPrice = price + (offer.shipping || 0);
+      offer.checkedAt = displayTime;
+      offer.confidence = offer.url.includes("lenovo.com") ? "A" : "B";
+      offer.confidenceText = "자동 조사에서 MTM과 가격을 함께 재확인";
+      successes += 1;
+    } catch {
+      // 접근 제한 시 마지막 검증값을 보존합니다.
     }
-  }
-
-  product.automation = {
-    mode,
-    checkedAt: kst,
-    sourcesAttempted: sources.length,
-    sourcesSucceeded: observations.filter(x => x.price).length,
-    observations
-  };
-
-  const verified = observations.map(x => x.price).filter(Number.isFinite);
-  if (verified.length) {
-    product.marketLowest = Math.min(...verified);
-    product.marketLowestSeller = "자동 조사 확인 최저가";
   }
 
   if (mode === "precision") {
-    try {
-      const html = await fetchText(product.coupang.url);
-      const hasExactItem = html.includes(String(product.coupang.itemId));
-      product.coupang.verificationStatus = hasExactItem
-        ? "Exact itemId page reached; member/와우 price requires logged-in verification"
-        : "Coupang page reached but exact itemId was not visible in returned HTML";
-      product.coupang.checkedAt = kst;
-    } catch (error) {
-      product.coupang.verificationStatus = "Exact itemId check blocked: " + String(error.message || error);
-      product.coupang.checkedAt = kst;
+    const mine = product.offers.find((offer) => offer.role === "mine");
+    if (mine?.url) {
+      attempts += 1;
+      try {
+        const html = await fetchText(mine.url);
+        if (html.includes(String(product.itemId))) {
+          mine.checkedAt = displayTime;
+          mine.confidenceText = "동일 Item ID 페이지 접근 확인; 와우·회원가는 로그인 검증 없이 변경하지 않음";
+          successes += 1;
+        }
+      } catch {
+        // 쿠팡 접근 제한 시 기존 검증값과 조건부 와우가를 유지합니다.
+      }
     }
   }
 }
 
-data.updatedAt = kst;
-data.status = mode === "precision" ? "precision-market-check" : "daily-market-check";
-data.note = `${kst} automated ${mode} scan completed. Prices change only when a numeric value is re-verified; Coupang 와우 prices are never inferred.`;
+data.meta.snapshotAt = checkedAt;
+data.meta.monitoring.enabled = true;
+data.meta.monitoring.quickWatch = "매일 10:00 KST";
+data.meta.monitoring.fullResearch = "월·수·금 10:10 KST";
+data.meta.monitoring.dashboardSync = "GitHub Pages 자동 반영";
+data.meta.monitoring.lastAttemptAt = checkedAt;
+data.meta.monitoring.lastAttemptStatus = successes ? "success" : "partial";
+data.meta.monitoring.lastAttemptText = `${mode === "precision" ? "정밀" : "기본"} 조사 완료 · ${attempts}개 출처 중 ${successes}개 가격/상품 확인 · 접근 제한 출처는 마지막 검증값 유지`;
 
-const out = "window.MARKET_PULSE_DATA = " + JSON.stringify(data, null, 2) + ";\n";
-await fs.writeFile(DATA_FILE, out);
-console.log(`Updated ${DATA_FILE.pathname} at ${kst} (${mode})`);
+await fs.writeFile(DATA_FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
+console.log(`Market Pulse ${mode}: ${successes}/${attempts} verified at ${checkedAt}`);
