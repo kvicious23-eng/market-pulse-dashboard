@@ -117,7 +117,7 @@ function readDanawaSellers(expectedMtm) {
 async function scanAll() {
   const lock = await chrome.storage.local.get(['running','runningStartedAt']);
   const lockAge = Date.now() - Number(lock.runningStartedAt || 0);
-  if (lock.running && lock.runningStartedAt && lockAge < 30 * 60 * 1000) return;
+  if (lock.running && lock.runningStartedAt && lockAge < 5 * 60 * 1000) return;
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
   const results = [];
   try {
@@ -127,20 +127,10 @@ async function scanAll() {
         tab = await chrome.tabs.create({url:target.url, active:true});
         await waitForComplete(tab.id);
         await wait(7000);
-        let injected = await chrome.scripting.executeScript({
+        const injected = await chrome.scripting.executeScript({
           target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
         });
-        let priceScan=injected[0].result;
-        if (!priceScan.ok && priceScan.reason === 'access-check') {
-          await wait(45000);
-          await chrome.tabs.update(tab.id,{url:target.url,active:true});
-          await waitForComplete(tab.id);
-          await wait(10000);
-          injected=await chrome.scripting.executeScript({
-            target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
-          });
-          priceScan=injected[0].result;
-        }
+        const priceScan=injected[0].result;
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if (target.danawaUrl) {
           let danawaTab;
@@ -165,6 +155,25 @@ async function scanAll() {
         if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
       }
       // A slower cadence reduces Coupang's temporary access-check response.
+      await wait(20000);
+    }
+    // Retry blocked pages after the full pass. Processing the other targets
+    // creates cooldown time without a long idle timer that Chrome may stop.
+    for (const result of results.filter(x=>!x.ok && x.reason==='access-check')) {
+      let retryTab;
+      try {
+        retryTab=await chrome.tabs.create({url:result.url,active:true});
+        await waitForComplete(retryTab.id);
+        await wait(10000);
+        const retried=await chrome.scripting.executeScript({
+          target:{tabId:retryTab.id},func:readDisplayedPrice,args:[result.itemId]
+        });
+        const retryScan=retried[0].result;
+        if (retryScan.ok) Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+      } catch (_) {
+      } finally {
+        if (retryTab?.id) await chrome.tabs.remove(retryTab.id).catch(()=>{});
+      }
       await wait(20000);
     }
     const payload = {version:1, scannedAt:new Date().toISOString(), results};
