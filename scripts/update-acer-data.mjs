@@ -78,33 +78,14 @@ for (const product of data.products) {
   product.validation = "identifiers-verified";
   identifiers++;
 
-  attempts++;
-  try {
-    const html = await fetchText(mine.url);
-    const exactItem = html.includes(String(product.itemId));
-    const currentPrice = exactItem ? exactCoupangPrice(html, product.itemId) : null;
-    mine.availabilityCheckedAt = display;
-    if (currentPrice) {
-      mine.displayPrice = currentPrice;
-      mine.finalPrice = currentPrice + (mine.shipping || 0);
-      mine.priceCheckedAt = display;
-      mine.checkedAt = display;
-      mine.status = "현재가 직접 확인";
-      mine.confidence = "A";
-      mine.confidenceText = "동일 Item ID 주변의 공개 가격을 직접 확인";
-      minePrices++;
-    } else if (exactItem) {
-      mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 상품 확인" : "가격 미확인 · 상품 확인";
-      mine.confidenceText = Number.isFinite(mine.finalPrice)
-        ? "동일 Item ID 확인, 가격은 마지막 검증값(" + (mine.priceCheckedAt || mine.checkedAt) + ") 유지"
-        : "동일 Item ID 확인, 공개 가격은 확인되지 않음";
-    } else {
-      mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
-    }
-  } catch {
-    mine.availabilityCheckedAt = display;
-    mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
+  // Coupang prices are owned by the visible Chrome collector. GitHub only preserves them.
+  if (mine && Number.isFinite(mine.finalPrice) && mine.priceCheckedAt) {
+    mine.status = "현재가 직접 확인";
+    mine.confidence = "A";
+    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 가격 확인";
+    minePrices++;
   }
+
 
   const danawa = product.references.find((ref) => ref.sourceType === "다나와 개별 상품 페이지");
   if (!danawa) continue;
@@ -148,10 +129,18 @@ for (const product of data.products) {
 }
 
 data.meta.snapshotAt = stamp;
-data.meta.monitoring.lastAttemptAt = stamp;
+const latestChromeCheck = data.products
+  .map((product) => product.offers.find((offer) => offer.role === "mine")?.priceCheckedAt)
+  .filter(Boolean).sort().at(-1);
+data.meta.monitoring.quickWatch = "매일 11:30 KST";
+data.meta.monitoring.collectionRoute = "Windows PC · 일반 Chrome 확장프로그램";
+data.meta.monitoring.lastAttemptAt = latestChromeCheck
+  ? latestChromeCheck.replace(" ", "T") + ":00+09:00"
+  : data.meta.monitoring.lastAttemptAt;
 data.meta.monitoring.lastAttemptStatus = minePrices === data.products.length ? "success" : "partial";
 data.meta.monitoring.lastAttemptText =
-  `Acer ${mode} 조사 완료 · 식별자 ${identifiers}/${data.products.length} 검증 · 내 쿠팡 현재가 직접확인 ${minePrices}/${data.products.length} · 경쟁가 ${currentPrices}/${data.products.length} 확인 · 미확인 값은 비교 제외`;
+  `Acer Chrome 현재가 ${minePrices}/${data.products.length} 확인 · GitHub 경쟁가 ${currentPrices}/${data.products.length} 확인`;
+data.meta.monitoring.competitionLastAttemptAt = stamp;
 
 await fs.writeFile(FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
 console.log(`Acer exact scan: identifiers ${identifiers}/${data.products.length}, prices ${currentPrices}/${data.products.length}, attempts ${attempts}, ${stamp}`);
