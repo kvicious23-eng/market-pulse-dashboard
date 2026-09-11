@@ -112,7 +112,7 @@
       refs.heroSummary.textContent = "현재 가격이 확인된 모델의 공개 실구매가를 비교했습니다.";
     } else {
       refs.pageTitle.innerHTML = `10개 모델<br /><em>가격 확인 중.</em>`;
-      refs.heroSummary.textContent = "쿠팡 Item ID와 경쟁 판매처 가격을 순차 검증하고 있습니다.";
+      refs.heroSummary.textContent = "상품 식별자는 검증 완료했습니다. 내 쿠팡 가격은 직접 확인되거나 마지막으로 검증된 값만 표시합니다.";
     }
 
     $("#basisText").textContent = data.meta.comparisonBasis;
@@ -126,7 +126,7 @@
       <span><i></i>가격 감시 <b>${escapeHtml(monitoring.quickWatch)}</b></span>
       <span><i></i>전체 조사 <b>${escapeHtml(monitoring.fullResearch)}</b></span>
       <span><i></i><b>${escapeHtml(monitoring.dashboardSync)}</b></span>
-      ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · 일부 제한</b></span>` : ""}` : "";
+      ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · ${monitoring.lastAttemptStatus === "success" ? "완료" : "일부 제한"}</b></span>` : ""}` : "";
   }
 
   function watchForPublishedData() {
@@ -180,7 +180,7 @@
     const stats = productStats(product);
     const ready = Number.isFinite(stats.mine?.finalPrice) && Number.isFinite(stats.competitorBest?.finalPrice);
     if (!ready) {
-      refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>가격 검증이 진행 중입니다.</strong><span>MTM과 Item ID가 일치하는 값만 현재가로 반영합니다.</span></span></span></div>';
+      refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>내 쿠팡 가격을 확인하지 못했습니다.</strong><span>상품 식별자는 검증됐으며, 확인되지 않은 가격은 비교에서 제외합니다.</span></span></span></div>';
       return;
     }
     const alert = stats.undercutters.length > 0;
@@ -273,13 +273,16 @@
     const displayPrice = Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인";
     const finalValue = activeView === "current" ? offer.finalPrice : offer.referencePrice;
     refs.evidenceTitle.textContent = offer.seller;
+    const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
+    const accessCheckedAt = offer.availabilityCheckedAt || null;
     refs.evidenceContent.innerHTML = `
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>표시가격</span><strong>${displayPrice}</strong></div>
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
-      <div class="evidence__item"><span>확인 시각</span><strong>${escapeHtml(offer.checkedAt)} KST</strong></div>
+      <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
+      ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}
       <div class="evidence__item evidence__item--wide"><span>가격 조건</span><p>${escapeHtml(offer.condition)}</p></div>
       <div class="evidence__item evidence__item--wide"><span>확인 출처</span><p>${escapeHtml(offer.sourceType)}</p></div>`;
     refs.sourceLink.href = safeUrl(offer.url);

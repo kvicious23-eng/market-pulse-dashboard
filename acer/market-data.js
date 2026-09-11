@@ -10,8 +10,8 @@ window.MARKET_DATA = {
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
       "lastAttemptAt": "2026-09-11T15:33:23+09:00",
-      "lastAttemptStatus": "success",
-      "lastAttemptText": "Acer precision 조사 완료 · 식별자 10/10 검증 · 개별 상품 현재가 10/10 확인 · 미확인 값은 비교 제외"
+      "lastAttemptStatus": "partial",
+      "lastAttemptText": "Acer 자동조사 완료 · 상품 식별자 10/10 검증 · 내 쿠팡 현재가 직접확인 0/10 · 미확인 가격은 비교 제외"
     }
   },
   "products": [
@@ -28,7 +28,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -39,8 +39,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -104,7 +106,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -115,8 +117,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -180,7 +184,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -191,8 +195,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -256,7 +262,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -267,8 +273,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -332,7 +340,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -343,8 +351,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -408,7 +418,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -419,8 +429,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -484,7 +496,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -495,8 +507,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -560,7 +574,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -571,8 +585,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -636,7 +652,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -647,8 +663,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",
@@ -712,7 +730,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "접근 제한·가격 확인 중",
+          "status": "가격 미확인 · 자동접근 제한",
           "displayPrice": null,
           "instantDiscount": null,
           "couponDiscount": null,
@@ -723,8 +741,10 @@ window.MARKET_DATA = {
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "Item ID는 검증 완료, 공개 가격은 확인 대기",
-          "url": "https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227"
+          "confidenceText": "Item ID는 검증 완료, 공개 가격은 아직 확인되지 않음",
+          "url": "https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": null
         },
         {
           "role": "competitor",

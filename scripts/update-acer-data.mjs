@@ -53,9 +53,24 @@ function exactDanawaPrice(html, mtm) {
   return price >= 250000 && price <= 7000000 ? price : null;
 }
 
+function exactCoupangPrice(html, itemId) {
+  const decoded = html.replace(/&quot;/g, '"').replace(/&#44;/g, ",");
+  const prices = [];
+  let position = -1;
+  while ((position = decoded.indexOf(String(itemId), position + 1)) >= 0) {
+    const scope = decoded.slice(Math.max(0, position - 5000), position + 5000);
+    for (const match of scope.matchAll(/(?:salePrice|finalPrice|totalPrice|discountPrice)["'\s:=]+["']?([0-9]{5,9})/gi)) {
+      const value = Number(match[1]);
+      if (value >= 250000 && value <= 7000000) prices.push(value);
+    }
+  }
+  return prices.length ? Math.min(...prices) : null;
+}
+
 let attempts = 0;
 let identifiers = 0;
 let currentPrices = 0;
+let minePrices = 0;
 
 for (const product of data.products) {
   const mine = product.offers.find((offer) => offer.role === "mine");
@@ -66,19 +81,30 @@ for (const product of data.products) {
   attempts++;
   try {
     const html = await fetchText(mine.url);
-    if (html.includes(String(product.itemId))) {
-      mine.status = "상품 식별 확인·가격 제한";
+    const exactItem = html.includes(String(product.itemId));
+    const currentPrice = exactItem ? exactCoupangPrice(html, product.itemId) : null;
+    mine.availabilityCheckedAt = display;
+    if (currentPrice) {
+      mine.displayPrice = currentPrice;
+      mine.finalPrice = currentPrice + (mine.shipping || 0);
+      mine.priceCheckedAt = display;
       mine.checkedAt = display;
-      mine.confidence = "C";
-      mine.confidenceText = "동일 Item ID 확인, 로그인·와우 가격은 미반영";
+      mine.status = "현재가 직접 확인";
+      mine.confidence = "A";
+      mine.confidenceText = "동일 Item ID 주변의 공개 가격을 직접 확인";
+      minePrices++;
+    } else if (exactItem) {
+      mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 상품 확인" : "가격 미확인 · 상품 확인";
+      mine.confidenceText = Number.isFinite(mine.finalPrice)
+        ? "동일 Item ID 확인, 가격은 마지막 검증값(" + (mine.priceCheckedAt || mine.checkedAt) + ") 유지"
+        : "동일 Item ID 확인, 공개 가격은 확인되지 않음";
     } else {
-      mine.status = "가격 확인 중";
+      mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
     }
   } catch {
-    mine.status = "접근 제한·가격 확인 중";
+    mine.availabilityCheckedAt = display;
+    mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
   }
-  mine.displayPrice = null;
-  mine.finalPrice = null;
 
   const danawa = product.references.find((ref) => ref.sourceType === "다나와 개별 상품 페이지");
   if (!danawa) continue;
@@ -123,9 +149,9 @@ for (const product of data.products) {
 
 data.meta.snapshotAt = stamp;
 data.meta.monitoring.lastAttemptAt = stamp;
-data.meta.monitoring.lastAttemptStatus = currentPrices ? "success" : "partial";
+data.meta.monitoring.lastAttemptStatus = minePrices === data.products.length ? "success" : "partial";
 data.meta.monitoring.lastAttemptText =
-  `Acer ${mode} 조사 완료 · 식별자 ${identifiers}/${data.products.length} 검증 · 개별 상품 현재가 ${currentPrices}/${data.products.length} 확인 · 미확인 값은 비교 제외`;
+  `Acer ${mode} 조사 완료 · 식별자 ${identifiers}/${data.products.length} 검증 · 내 쿠팡 현재가 직접확인 ${minePrices}/${data.products.length} · 경쟁가 ${currentPrices}/${data.products.length} 확인 · 미확인 값은 비교 제외`;
 
 await fs.writeFile(FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
 console.log(`Acer exact scan: identifiers ${identifiers}/${data.products.length}, prices ${currentPrices}/${data.products.length}, attempts ${attempts}, ${stamp}`);

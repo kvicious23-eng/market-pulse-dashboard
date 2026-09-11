@@ -121,7 +121,7 @@
       <span><i></i>가격 감시 <b>${escapeHtml(monitoring.quickWatch)}</b></span>
       <span><i></i>전체 조사 <b>${escapeHtml(monitoring.fullResearch)}</b></span>
       <span><i></i><b>${escapeHtml(monitoring.dashboardSync)}</b></span>
-      ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · 일부 제한</b></span>` : ""}` : "";
+      ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · ${monitoring.lastAttemptStatus === "success" ? "완료" : "일부 제한"}</b></span>` : ""}` : "";
   }
 
   function watchForPublishedData() {
@@ -262,13 +262,16 @@
     const displayPrice = Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인";
     const finalValue = activeView === "current" ? offer.finalPrice : offer.referencePrice;
     refs.evidenceTitle.textContent = offer.seller;
+    const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
+    const accessCheckedAt = offer.availabilityCheckedAt || null;
     refs.evidenceContent.innerHTML = `
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>표시가격</span><strong>${displayPrice}</strong></div>
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
-      <div class="evidence__item"><span>확인 시각</span><strong>${escapeHtml(offer.checkedAt)} KST</strong></div>
+      <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
+      ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}
       <div class="evidence__item evidence__item--wide"><span>가격 조건</span><p>${escapeHtml(offer.condition)}</p></div>
       <div class="evidence__item evidence__item--wide"><span>확인 출처</span><p>${escapeHtml(offer.sourceType)}</p></div>`;
     refs.sourceLink.href = safeUrl(offer.url);

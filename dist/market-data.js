@@ -10,8 +10,8 @@ window.MARKET_DATA = {
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
       "lastAttemptAt": "2026-09-11T15:33:19+09:00",
-      "lastAttemptStatus": "success",
-      "lastAttemptText": "정밀 조사 완료 · 16개 출처 중 12개 가격/상품 확인 · 접근 제한 출처는 마지막 검증값 유지"
+      "lastAttemptStatus": "partial",
+      "lastAttemptText": "Lenovo 자동조사 완료 · 내 쿠팡 현재가 직접확인 0/3 · 마지막 검증가 3/3 유지 · 경쟁가는 별도 갱신"
     }
   },
   "products": [
@@ -27,7 +27,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "판매중",
+          "status": "최근 검증가 · 자동확인 실패",
           "displayPrice": 1109000,
           "instantDiscount": 0,
           "couponDiscount": 130000,
@@ -40,8 +40,10 @@ window.MARKET_DATA = {
           "sourceType": "쿠팡 검색 노출 + 다나와 가격비교(동일 Item ID)",
           "checkedAt": "2026-09-10 12:47",
           "confidence": "A",
-          "confidenceText": "현재 다나와 상세 페이지에서 당일 확인",
-          "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534"
+          "confidenceText": "동일 Item ID 가격 마지막 검증: 2026-09-10 12:47 KST",
+          "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": "2026-09-10 12:47"
         },
         {
           "role": "competitor",
@@ -230,7 +232,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "판매중",
+          "status": "최근 검증가 · 자동확인 실패",
           "displayPrice": 1159000,
           "instantDiscount": 0,
           "couponDiscount": 130000,
@@ -241,8 +243,10 @@ window.MARKET_DATA = {
           "sourceType": "쿠팡 검색 노출 + exact Item ID",
           "checkedAt": "2026-09-10 12:47",
           "confidence": "A",
-          "confidenceText": "정확 MTM과 쿠팡 최근 검색 노출",
-          "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535"
+          "confidenceText": "동일 Item ID 가격 마지막 검증: 2026-09-10 12:47 KST",
+          "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": "2026-09-10 12:47"
         },
         {
           "role": "competitor",
@@ -329,7 +333,7 @@ window.MARKET_DATA = {
           "role": "mine",
           "channel": "쿠팡",
           "seller": "내 쿠팡 상품",
-          "status": "판매중",
+          "status": "최근 검증가 · 자동확인 실패",
           "displayPrice": 1199000,
           "instantDiscount": 0,
           "couponDiscount": 130000,
@@ -340,8 +344,10 @@ window.MARKET_DATA = {
           "sourceType": "쿠팡 검색 노출 + exact Item ID",
           "checkedAt": "2026-09-10 12:47",
           "confidence": "A",
-          "confidenceText": "정확 Item ID·Vendor Item ID·MTM 확인",
-          "url": "https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536"
+          "confidenceText": "동일 Item ID 가격 마지막 검증: 2026-09-10 12:47 KST",
+          "url": "https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536",
+          "availabilityCheckedAt": "2026-09-11 15:33",
+          "priceCheckedAt": "2026-09-10 12:47"
         },
         {
           "role": "competitor",
