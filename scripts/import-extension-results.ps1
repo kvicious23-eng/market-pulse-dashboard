@@ -37,6 +37,20 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
     } else {
       $mine.status=if($null -ne $mine.finalPrice){'최근 검증가 · Chrome 확인 실패'}else{'가격 미확인 · Chrome 확인 실패'}
     }
+    if ($spec.Brand -eq 'Acer' -and $result.competitors -and @($result.competitors).Count -gt 0) {
+      $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
+      foreach ($entry in @($result.competitors)) {
+        $channel=if($entry.seller -match '11번가|옥션|G마켓|롯데ON|쿠팡|SSG|네이버'){'오픈마켓'}elseif($entry.seller -match 'Acer|에이서'){'제조사몰'}else{'전문몰'}
+        $product.offers += [pscustomobject]@{
+          role='competitor'; channel=$channel; seller=[string]$entry.seller; status='판매중'
+          displayPrice=[long]$entry.price; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
+          finalPrice=[long]$entry.price; shipping=0
+          condition='다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.'
+          sourceType='다나와 가격비교 판매처 목록'; checkedAt=$kst; confidence='B'
+          confidenceText='정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인'; url=[string]$result.danawaUrl
+        }
+      }
+    }
   }
   $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq $brandResults.Count){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) 일반 Chrome 조사 · 현재가 확인 $confirmed/$($brandResults.Count)"
