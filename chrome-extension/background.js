@@ -191,7 +191,7 @@ async function schedule() {
   const kstParts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(now);
   const p = Object.fromEntries(kstParts.map(x=>[x.type,x.value]));
   const kstNowAsUtc = Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
-  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,11,30);
+  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,10,0);
   if (nextKst <= kstNowAsUtc) nextKst += 86400000;
   const delay = nextKst - kstNowAsUtc;
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
