@@ -18,7 +18,7 @@ on:
       - "acer/**"
       - "scripts/update-acer-data.mjs"
   schedule:
-    - cron: "0 1 * * *"
+    - cron: "30 2 * * *"
 
 permissions:
   contents: write
@@ -47,14 +47,17 @@ jobs:
             echo "value=precision" >> "$GITHUB_OUTPUT"
           fi
       - name: Run market scan
+        if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'import Coupang prices from Chrome extension')
         env:
           SCAN_MODE: ${{ steps.mode.outputs.value }}
         run: node scripts/update-market-data.mjs
       - name: Run Acer market scan
+        if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'import Coupang prices from Chrome extension')
         env:
           SCAN_MODE: ${{ steps.mode.outputs.value }}
         run: node scripts/update-acer-data.mjs
       - name: Commit refreshed data
+        if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'import Coupang prices from Chrome extension')
         shell: bash
         run: |
           if git diff --quiet -- dist/market-data.js acer/market-data.js; then exit 0; fi
