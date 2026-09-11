@@ -1,233 +1,420 @@
-window.MARKET_PULSE_DATA = {
-  "updatedAt": "2026-09-11T13:15:52+09:00",
-  "timezone": "Asia/Seoul",
-  "status": "precision-market-check",
-  "methodology": {
-    "rule": "Exact MTM only. Old search indexes are not promoted to current prices. Coupang own-price is populated only when the exact itemId is re-verified.",
-    "ownPricePolicy": "Do not infer my Coupang price from another seller or generic MTM listing."
-  },
-  "products": [
-    {
-      "mtm": "83N30037KR",
-      "storage": "512GB",
-      "display": "15.3-inch WUXGA 1920x1200, 300nit",
-      "coupang": {
-        "productId": "9235110727",
-        "itemId": "27303279355",
-        "vendorItemId": "95415897534",
-        "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534",
-        "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
-        "checkedAt": "2026-09-11T13:15:52+09:00"
-      },
-      "marketLowest": 899000,
-      "marketLowestSeller": "자동 조사 확인 최저가",
-      "marketRows": [
-        {
-          "seller": "두리칸",
-          "price": 989000,
-          "shipping": "가격비교 표기",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "confidence": "B"
-        },
-        {
-          "seller": "피씨블랙",
-          "price": 988000,
-          "shipping": "가격비교 표기",
-          "paymentCondition": "현금",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "confidence": "B",
-          "note": "현금가이므로 일반 결제가와 분리"
-        },
-        {
-          "seller": "롯데ON",
-          "price": 1051340,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "confidence": "B"
-        },
-        {
-          "seller": "레노버 브랜드스토어 네이버페이",
-          "price": 1109000,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "confidence": "B"
-        },
-        {
-          "seller": "Lenovo Korea",
-          "price": 1262999,
-          "shipping": "무료배송",
-          "source": "Lenovo",
-          "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-high-performance-slim-laptops-with-windows-11-0acz00a",
-          "confidence": "A"
-        }
-      ],
-      "automation": {
-        "mode": "precision",
-        "checkedAt": "2026-09-11T13:15:52+09:00",
-        "sourcesAttempted": 2,
-        "sourcesSucceeded": 2,
-        "observations": [
-          {
-            "url": "https://prod.danawa.com/info/?pcode=95845739",
-            "price": 899000,
-            "checkedAt": "2026-09-11T13:15:52+09:00"
-          },
-          {
-            "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-high-performance-slim-laptops-with-windows-11-0acz00a",
-            "price": 1262999,
-            "checkedAt": "2026-09-11T13:15:52+09:00"
-          }
-        ]
-      }
-    },
-    {
-      "mtm": "83N3003DKR",
-      "storage": "1TB",
-      "display": "15.3-inch WUXGA family",
-      "coupang": {
-        "productId": "9235110727",
-        "itemId": "27303268765",
-        "vendorItemId": "95415897535",
-        "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535",
-        "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
-        "checkedAt": "2026-09-11T13:15:52+09:00"
-      },
-      "marketLowest": 949000,
-      "marketLowestSeller": "자동 조사 확인 최저가",
-      "marketRows": [
-        {
-          "seller": "다나와 최저가",
-          "price": 1046000,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "confidence": "B"
-        },
-        {
-          "seller": "피씨블랙",
-          "price": 1046000,
-          "shipping": "무료배송",
-          "paymentCondition": "현금",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "confidence": "B"
-        },
-        {
-          "seller": "쿠팡(다나와 연결 항목)",
-          "price": 1069000,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "confidence": "C",
-          "note": "내 itemId와 동일 여부를 이번 실행에서 재확인하지 못했으므로 내 상품 가격으로 사용하지 않음"
-        },
-        {
-          "seller": "레노버 브랜드스토어 네이버페이",
-          "price": 1209000,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "confidence": "B"
-        },
-        {
-          "seller": "Lenovo Korea",
-          "price": 1510065,
-          "shipping": "무료배송",
-          "source": "Lenovo",
-          "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-slim-15-inch-laptops-0acz00a",
-          "confidence": "A"
-        }
-      ],
-      "automation": {
-        "mode": "precision",
-        "checkedAt": "2026-09-11T13:15:52+09:00",
-        "sourcesAttempted": 2,
-        "sourcesSucceeded": 2,
-        "observations": [
-          {
-            "url": "https://prod.danawa.com/info/?pcode=95845826",
-            "price": 949000,
-            "checkedAt": "2026-09-11T13:15:52+09:00"
-          },
-          {
-            "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-slim-15-inch-laptops-0acz00a",
-            "price": 1359982,
-            "checkedAt": "2026-09-11T13:15:52+09:00"
-          }
-        ]
-      }
-    },
-    {
-      "mtm": "83N30046KR",
-      "storage": "512GB",
-      "display": "15.1-inch WQXGA 2560x1600, 500nit",
-      "coupang": {
-        "productId": "8708708250",
-        "itemId": "25515648568",
-        "vendorItemId": "95415897536",
-        "url": "https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536",
-        "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
-        "checkedAt": "2026-09-11T13:15:52+09:00"
-      },
-      "marketLowest": 1486092,
-      "marketLowestSeller": "자동 조사 확인 최저가",
-      "marketRows": [
-        {
-          "seller": "Lenovo Korea",
-          "price": 1486092,
-          "shipping": "무료배송",
-          "source": "Lenovo/Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "confidence": "A/B"
-        },
-        {
-          "seller": "쿠팡(다나와 연결 항목)",
-          "price": 1549800,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "confidence": "C",
-          "note": "내 itemId와 동일 여부를 이번 실행에서 재확인하지 못했으므로 내 상품 가격으로 사용하지 않음"
-        },
-        {
-          "seller": "phcnc",
-          "price": 1550000,
-          "shipping": "무료배송",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "confidence": "B"
-        },
-        {
-          "seller": "노트필(NOTEFEEL)",
-          "price": 1550000,
-          "shipping": "무료배송",
-          "paymentCondition": "현금",
-          "source": "Danawa",
-          "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "confidence": "B"
-        }
-      ],
-      "automation": {
-        "mode": "precision",
-        "checkedAt": "2026-09-11T13:15:52+09:00",
-        "sourcesAttempted": 1,
-        "sourcesSucceeded": 1,
-        "observations": [
-          {
-            "url": "https://prod.danawa.com/info/?pcode=122647414",
-            "price": 1486092,
-            "checkedAt": "2026-09-11T13:15:52+09:00"
-          }
-        ]
-      }
+window.MARKET_DATA = {
+  meta: {
+    snapshotAt: "2026-09-10T12:51:00+09:00",
+    sourceFile: "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
+    comparisonBasis: "로그인 없이 공개 확인 가능한 판매가·즉시할인·쿠폰과 배송비 기준",
+    exclusions: "개인화 쿠폰, 카드사별 혜택, 적립금, 멤버십 최대혜택은 기본 비교가에서 제외",
+    monitoring: {
+      enabled: true,
+      quickWatch: "매일 10:00 KST",
+      fullResearch: "월·수·금 정밀조사",
+      dashboardSync: "조사 완료 후 자동 반영",
+      lastAttemptAt: "2026-09-10T17:31:00+09:00",
+      lastAttemptStatus: "partial",
+      lastAttemptText: "G마켓 품절은 재확인했으며 쿠팡·다나와 직접 페이지는 접근 제한으로 기존 검증가를 유지"
     }
-  ],
-  "note": "2026-09-11T13:15:52+09:00 automated precision scan completed. Prices change only when a numeric value is re-verified; Coupang 와우 prices are never inferred."
+  },
+  products: [
+    {
+      mtm: "83N30037KR",
+      storage: "512GB",
+      display: "15.3형 WUXGA · 300nit",
+      productId: "9235110727",
+      itemId: "27303279355",
+      vendorItemId: "95415897534",
+      offers: [
+        {
+          role: "mine",
+          channel: "쿠팡",
+          seller: "내 쿠팡 상품",
+          status: "판매중",
+          displayPrice: 1109000,
+          instantDiscount: 0,
+          couponDiscount: 130000,
+          cardDiscount: 0,
+          finalPrice: 979000,
+          shipping: 0,
+          conditionalBest: 849000,
+          conditionalLabel: "와우 최대혜택가",
+          condition: "일반 쿠폰가 979,000원. 와우 최대혜택가는 조건부이며 기본 비교가에서 제외.",
+          sourceType: "쿠팡 검색 노출 + 다나와 가격비교(동일 Item ID)",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "현재 다나와 상세 페이지에서 당일 확인",
+          url: "https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "피씨블랙",
+          status: "판매중",
+          displayPrice: 988000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 988000,
+          shipping: 0,
+          condition: "다나와 현금 구매가. 카드·쿠폰 추가혜택은 미노출.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:01",
+          confidence: "A",
+          confidenceText: "다나와 상세 페이지에서 당일 확인",
+          url: "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PXC03&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "(주)두리칸",
+          status: "판매중",
+          displayPrice: 989000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 989000,
+          shipping: 0,
+          condition: "다나와 경유 구매가격. 할인 상세는 미노출.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:01",
+          confidence: "A",
+          confidenceText: "다나와 상세 페이지에서 당일 확인",
+          url: "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PJ931&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "SnapdragonLaptop",
+          status: "판매중",
+          displayPrice: 1159000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1159000,
+          shipping: 0,
+          condition: "사이트 노출가 기준. 별도 쿠폰·카드 조건은 미노출.",
+          sourceType: "판매사이트 직접 노출",
+          checkedAt: "2026-09-10 11:54",
+          confidence: "A/B",
+          confidenceText: "판매사이트 또는 당일 검색 노출 확인",
+          url: "https://snapdragonlaptop.co.kr/"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "phcnc",
+          status: "판매중",
+          displayPrice: 1200000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1200000,
+          shipping: 0,
+          condition: "다나와 경유 구매가격. 할인 상세는 미노출.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 11:54",
+          confidence: "B",
+          confidenceText: "가격비교·검색 인덱스 기반",
+          url: "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PX402&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "슈프림컴",
+          status: "판매중",
+          displayPrice: 1200000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1200000,
+          shipping: 0,
+          condition: "다나와 경유 구매가격. 할인 상세는 미노출.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 11:54",
+          confidence: "B",
+          confidenceText: "가격비교·검색 인덱스 기반",
+          url: "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PX108&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "피씨토피아",
+          status: "판매중",
+          displayPrice: 1329000,
+          instantDiscount: 106000,
+          couponDiscount: 0,
+          cardDiscount: 0,
+          finalPrice: 1223000,
+          shipping: 0,
+          condition: "회원가입 시 할인 적용: 1,329,000원 → 1,223,000원.",
+          sourceType: "판매사이트 직접",
+          checkedAt: "2026-09-10 11:54",
+          confidence: "A/B",
+          confidenceText: "판매사이트 또는 당일 검색 노출 확인",
+          url: "https://m.pctopia.co.kr/goods/goods_view.php?cateCd=039&goodsNo=1000049331"
+        },
+        {
+          role: "competitor",
+          channel: "제조사몰",
+          seller: "Lenovo Korea",
+          status: "판매중",
+          displayPrice: 2029002,
+          instantDiscount: 766003,
+          couponDiscount: 0,
+          cardDiscount: 0,
+          finalPrice: 1262999,
+          shipping: 0,
+          condition: "공식몰 기본 할인 38%. 자격형·멤버십 혜택은 제외.",
+          sourceType: "제조사 공식몰 직접",
+          checkedAt: "2026-09-10 12:01",
+          confidence: "A",
+          confidenceText: "Lenovo 공식 페이지에서 당일 확인",
+          url: "https://www.lenovo.com/kr/ko/p/laptops/ideapad/ideapad-slim-series/lenovo-ideapad-slim-3x-gen-10-15-inch-snapdragon/83n30037kr"
+        }
+      ],
+      references: [
+        {
+          role: "competitor",
+          channel: "오픈마켓",
+          seller: "롯데ON",
+          status: "과거 인덱스",
+          displayPrice: 1051340,
+          finalPrice: null,
+          referencePrice: 1051340,
+          condition: "약 2개월 전 검색 인덱스. 현재 판매 유효성과 쿠폰은 미검증.",
+          sourceType: "다나와 검색 인덱스",
+          checkedAt: "2026-09-10 12:51",
+          confidence: "C",
+          confidenceText: "오래된 인덱스",
+          url: "https://prod.danawa.com/info/?pcode=95845739"
+        },
+        {
+          role: "competitor",
+          channel: "오픈마켓",
+          seller: "레노버 브랜드스토어(네이버)",
+          status: "과거 인덱스",
+          displayPrice: 1109000,
+          finalPrice: null,
+          referencePrice: 1109000,
+          condition: "직접 접근 제한. 과거 검색 인덱스이며 현재 쿠폰가는 미검증.",
+          sourceType: "다나와·쿠차 검색 인덱스",
+          checkedAt: "2026-09-10 12:51",
+          confidence: "C",
+          confidenceText: "직접 검증 불가·인덱스 시차",
+          url: "https://prod.danawa.com/info/?pcode=95845739"
+        },
+        {
+          role: "competitor",
+          channel: "오픈마켓",
+          seller: "G마켓",
+          status: "품절",
+          displayPrice: null,
+          finalPrice: null,
+          referencePrice: 1104000,
+          condition: "현재 SOLD OUT. 과거 검색 인덱스 가격만 참고.",
+          sourceType: "G마켓 페이지·검색 인덱스",
+          checkedAt: "2026-09-10 12:51",
+          confidence: "C",
+          confidenceText: "품절·과거가",
+          url: "https://item.gmarket.co.kr/Item?goodscode=4630430606"
+        }
+      ]
+    },
+    {
+      mtm: "83N3003DKR",
+      storage: "1TB",
+      display: "15.3형 WUXGA · 300nit",
+      productId: "9235110727",
+      itemId: "27303268765",
+      vendorItemId: "95415897535",
+      offers: [
+        {
+          role: "mine",
+          channel: "쿠팡",
+          seller: "내 쿠팡 상품",
+          status: "판매중",
+          displayPrice: 1159000,
+          instantDiscount: 0,
+          couponDiscount: 130000,
+          cardDiscount: 0,
+          finalPrice: 1029000,
+          shipping: 0,
+          condition: "공개 노출 일반 쿠폰가. 최대 적립은 결제가에서 제외.",
+          sourceType: "쿠팡 검색 노출 + exact Item ID",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "정확 MTM과 쿠팡 최근 검색 노출",
+          url: "https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "phcnc",
+          status: "판매중",
+          displayPrice: 1046000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1046000,
+          shipping: 0,
+          condition: "다나와 현재 최저가. 추가 쿠폰·카드할인은 미확인.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "다나와 당일 확인",
+          url: "https://prod.danawa.com/info/?pcode=95845826"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "피씨블랙",
+          status: "판매중",
+          displayPrice: 1046000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1046000,
+          shipping: 0,
+          condition: "다나와 현금가. 무료배송.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "다나와 당일 확인",
+          url: "https://prod.danawa.com/info/?pcode=95845826"
+        },
+        {
+          role: "competitor",
+          channel: "제조사몰",
+          seller: "Lenovo Korea",
+          status: "판매중",
+          displayPrice: 1510065,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1510065,
+          shipping: 0,
+          condition: "다나와 Lenovo 인증 판매가 기준.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "다나와 당일 확인",
+          url: "https://prod.danawa.com/info/?pcode=95845826"
+        }
+      ],
+      references: [
+        {
+          role: "competitor",
+          channel: "오픈마켓",
+          seller: "레노버 브랜드스토어(네이버)",
+          status: "과거 인덱스",
+          displayPrice: 1209000,
+          finalPrice: null,
+          referencePrice: 1209000,
+          condition: "약 2개월 전 검색 인덱스. 현재 쿠폰가는 미검증.",
+          sourceType: "다나와 검색 인덱스",
+          checkedAt: "2026-09-10 12:51",
+          confidence: "C",
+          confidenceText: "가격 인덱스 시차",
+          url: "https://prod.danawa.com/info/?pcode=95845826"
+        }
+      ]
+    },
+    {
+      mtm: "83N30046KR",
+      storage: "512GB",
+      display: "15.1형 WQXGA · 500nit · DCI-P3 100%",
+      productId: "8708708250",
+      itemId: "25515648568",
+      vendorItemId: "95415897536",
+      offers: [
+        {
+          role: "mine",
+          channel: "쿠팡",
+          seller: "내 쿠팡 상품",
+          status: "판매중",
+          displayPrice: 1199000,
+          instantDiscount: 0,
+          couponDiscount: 130000,
+          cardDiscount: 0,
+          finalPrice: 1069000,
+          shipping: 0,
+          condition: "공개 노출 일반 쿠폰가. 최대 적립은 결제가에서 제외.",
+          sourceType: "쿠팡 검색 노출 + exact Item ID",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A",
+          confidenceText: "정확 Item ID·Vendor Item ID·MTM 확인",
+          url: "https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "노트필(NOTEFEEL)",
+          status: "판매중",
+          displayPrice: 1485000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1485000,
+          shipping: 0,
+          condition: "다나와 현금가. 무료배송.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A/B",
+          confidenceText: "최근 다나와 확인",
+          url: "https://prod.danawa.com/info/?pcode=122647414"
+        },
+        {
+          role: "competitor",
+          channel: "제조사몰",
+          seller: "Lenovo Korea",
+          status: "판매중",
+          displayPrice: 1486092,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1486092,
+          shipping: 0,
+          condition: "다나와 현재 공식 인증 판매가.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A/B",
+          confidenceText: "최근 다나와 확인",
+          url: "https://prod.danawa.com/info/?pcode=122647414"
+        },
+        {
+          role: "competitor",
+          channel: "전문몰",
+          seller: "phcnc",
+          status: "판매중",
+          displayPrice: 1550000,
+          instantDiscount: null,
+          couponDiscount: null,
+          cardDiscount: null,
+          finalPrice: 1550000,
+          shipping: 0,
+          condition: "다나와 노출가. 추가 쿠폰·카드할인은 미확인.",
+          sourceType: "다나와 가격비교",
+          checkedAt: "2026-09-10 12:47",
+          confidence: "A/B",
+          confidenceText: "최근 다나와 확인",
+          url: "https://prod.danawa.com/info/?pcode=122647414"
+        }
+      ],
+      references: [
+        {
+          role: "competitor",
+          channel: "오픈마켓",
+          seller: "레노버 브랜드스토어(네이버)",
+          status: "과거 인덱스",
+          displayPrice: 1249000,
+          finalPrice: null,
+          referencePrice: 1249000,
+          condition: "과거 인덱스이며 직접 검증되지 않음. 원본 URL 검색어도 다른 모델명으로 보여 재검증 필요.",
+          sourceType: "다나와 통합검색 인덱스",
+          checkedAt: "2026-09-10 12:51",
+          confidence: "C",
+          confidenceText: "가격 인덱스 시차·직접 재검증 필요",
+          url: "https://search.danawa.com/dsearch.php?query=Slim5+16ABR8"
+        }
+      ]
+    }
+  ]
 };
