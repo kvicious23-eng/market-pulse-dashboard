@@ -6,7 +6,7 @@ const now = new Date();
 const stamp = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now).replace(" ","T")+"+09:00";
 const display = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(now);
 const raw=await fs.readFile(FILE,"utf8");
-const data=Function('"use strict";return ('+raw.replace(/^window\\.MARKET_DATA\\s*=\\s*/,"").replace(/;\\s*$/,"")+")")();
+const data=Function('"use strict";return ('+raw.replace(/^window\.MARKET_DATA\s*=\s*/,"").replace(/;\s*$/,"")+")")();
 
 async function fetchText(url){
  const r=await fetch(url,{redirect:"follow",headers:{"user-agent":"Mozilla/5.0 (compatible; AcerMarketPulse/1.0)","accept-language":"ko-KR,ko;q=0.9"},signal:AbortSignal.timeout(25000)});
@@ -19,7 +19,7 @@ function pricesNear(html,needle){
  if(p<0) return [];
  const scope=text.slice(Math.max(0,p-120000),p+240000);
  const vals=[];
- for(const m of scope.matchAll(/(?:finalPrice|salePrice|lowPrice|price)[\"'\\s:=]+[\"']?([0-9]{5,9})/gi)){
+ for(const m of scope.matchAll(/(?:finalPrice|salePrice|lowPrice|price)[\"'\s:=]+[\"']?([0-9]{5,9})/gi)){
   const n=Number(m[1]); if(n>=250000&&n<=7000000) vals.push(n);
  }
  return [...new Set(vals)].sort((a,b)=>a-b);
@@ -65,5 +65,5 @@ data.meta.snapshotAt=stamp;
 data.meta.monitoring.lastAttemptAt=stamp;
 data.meta.monitoring.lastAttemptStatus=successes?"success":"partial";
 data.meta.monitoring.lastAttemptText=`Acer ${mode} 조사 완료 · ${attempts}개 확인 중 ${successes}개 검증 · 나머지는 마지막 검증값 유지`;
-await fs.writeFile(FILE,"window.MARKET_DATA = "+JSON.stringify(data,null,2)+";\\n");
+await fs.writeFile(FILE,"window.MARKET_DATA = "+JSON.stringify(data,null,2)+";\n");
 console.log(`Acer scan ${successes}/${attempts} at ${stamp}`);
