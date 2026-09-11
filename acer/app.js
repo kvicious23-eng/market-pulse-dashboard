@@ -67,8 +67,9 @@
       .filter((offer) => offer.role === "competitor" && Number.isFinite(offer.finalPrice))
       .sort((a, b) => a.finalPrice - b.finalPrice);
     const competitorBest = competitors[0] || null;
-    const difference = mine && competitorBest ? competitorBest.finalPrice - mine.finalPrice : null;
-    const undercutters = mine ? competitors.filter((offer) => offer.finalPrice < mine.finalPrice) : [];
+    const mineReady = Number.isFinite(mine?.finalPrice);
+    const difference = mineReady && competitorBest ? competitorBest.finalPrice - mine.finalPrice : null;
+    const undercutters = mineReady ? competitors.filter((offer) => offer.finalPrice < mine.finalPrice) : [];
     return { mine, competitors, competitorBest, difference, undercutters };
   }
 
@@ -133,7 +134,7 @@
       try {
         const response = await fetch(`./market-data.js?check=${Date.now()}`, { cache: "no-store" });
         const source = await response.text();
-        const latest = source.match(/["\']?snapshotAt["\']?\\s*:\\s*"([^"]+)"/)?.[1];
+        const latest = source.match(/["\']?snapshotAt["\']?\s*:\s*"([^"]+)"/)?.[1];
         if (latest && latest !== data.meta.snapshotAt) location.reload();
       } catch {
         // 다음 확인 주기에 다시 시도합니다.
@@ -207,11 +208,11 @@
       const mine = offer.role === "mine";
       const current = activeView === "current";
       const price = current ? offer.finalPrice : offer.referencePrice;
-      const difference = current && !mine && Number.isFinite(offer.finalPrice)
+      const difference = current && !mine && Number.isFinite(offer.finalPrice) && Number.isFinite(stats.mine?.finalPrice)
         ? offer.finalPrice - stats.mine.finalPrice
         : null;
       const best = current && !mine && offer === stats.competitorBest;
-      const alert = current && !mine && difference < 0;
+      const alert = current && !mine && Number.isFinite(difference) && difference < 0;
       const rowClass = mine ? "is-mine" : alert ? "is-alert" : best ? "is-best" : "";
       const statusClass = current ? "active" : "stale";
       const finalCell = current
@@ -220,7 +221,7 @@
       const diffCell = mine
         ? '<span class="diff diff--base">비교 기준</span>'
         : current
-          ? `<span class="diff diff--${difference < 0 ? "bad" : "good"}">${formatDiff(difference)}</span>`
+          ? (Number.isFinite(difference) ? `<span class="diff diff--${difference < 0 ? "bad" : "good"}">${formatDiff(difference)}</span>` : '<span class="unknown">기준가 미확인</span>')
           : '<span class="unknown">계산 제외</span>';
 
       return `
