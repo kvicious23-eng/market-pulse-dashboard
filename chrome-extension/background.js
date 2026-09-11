@@ -115,9 +115,10 @@ function readDanawaSellers(expectedMtm) {
 }
 
 async function scanAll() {
-  const lock = await chrome.storage.local.get(['running']);
-  if (lock.running) return;
-  await chrome.storage.local.set({running:true});
+  const lock = await chrome.storage.local.get(['running','runningStartedAt']);
+  const lockAge = Date.now() - Number(lock.runningStartedAt || 0);
+  if (lock.running && lock.runningStartedAt && lockAge < 30 * 60 * 1000) return;
+  await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
   const results = [];
   try {
     for (const target of TARGETS) {
@@ -171,7 +172,7 @@ async function scanAll() {
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
     await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
   } finally {
-    await chrome.storage.local.set({running:false});
+    await chrome.storage.local.set({running:false,runningStartedAt:null});
   }
 }
 
@@ -187,7 +188,10 @@ async function schedule() {
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
 }
 
-chrome.runtime.onInstalled.addListener(schedule);
+chrome.runtime.onInstalled.addListener(async()=>{
+  await chrome.storage.local.set({running:false,runningStartedAt:null});
+  await schedule();
+});
 chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
   const state=await chrome.storage.local.get(['lastRunDay']);
