@@ -40,12 +40,12 @@ window.MARKET_DATA = {
                                             "conditionalLabel":  "와우 최대혜택가",
                                             "condition":  "일반 쿠폰가 979,000원. 와우 최대혜택가는 조건부이며 기본 비교가에서 제외.",
                                             "sourceType":  "쿠팡 검색 노출 + 다나와 가격비교(동일 Item ID)",
-                                            "checkedAt":  "2026-09-11 16:57",
+                                            "checkedAt":  "2026-09-11 17:42",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303279355\u0026vendorItemId=95415897534",
-                                            "availabilityCheckedAt":  "2026-09-11 16:57",
-                                            "priceCheckedAt":  "2026-09-11 16:57"
+                                            "availabilityCheckedAt":  "2026-09-11 17:42",
+                                            "priceCheckedAt":  "2026-09-11 17:42"
                                         },
                                         {
                                             "role":  "competitor",
@@ -243,12 +243,12 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "공개 노출 일반 쿠폰가. 최대 적립은 결제가에서 제외.",
                                             "sourceType":  "쿠팡 검색 노출 + exact Item ID",
-                                            "checkedAt":  "2026-09-11 16:58",
+                                            "checkedAt":  "2026-09-11 17:43",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303268765\u0026vendorItemId=95415897535",
-                                            "availabilityCheckedAt":  "2026-09-11 16:58",
-                                            "priceCheckedAt":  "2026-09-11 16:58"
+                                            "availabilityCheckedAt":  "2026-09-11 17:43",
+                                            "priceCheckedAt":  "2026-09-11 17:43"
                                         },
                                         {
                                             "role":  "competitor",
@@ -344,12 +344,12 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "공개 노출 일반 쿠폰가. 최대 적립은 결제가에서 제외.",
                                             "sourceType":  "쿠팡 검색 노출 + exact Item ID",
-                                            "checkedAt":  "2026-09-11 16:58",
+                                            "checkedAt":  "2026-09-11 17:43",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/8708708250?itemId=25515648568\u0026vendorItemId=95415897536",
-                                            "availabilityCheckedAt":  "2026-09-11 16:58",
-                                            "priceCheckedAt":  "2026-09-11 16:58"
+                                            "availabilityCheckedAt":  "2026-09-11 17:43",
+                                            "priceCheckedAt":  "2026-09-11 17:43"
                                         },
                                         {
                                             "role":  "competitor",
