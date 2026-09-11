@@ -75,6 +75,10 @@ if (-not (Get-ScheduledTask -TaskName $importTaskName -ErrorAction SilentlyConti
   throw "Failed to create the daily result upload task."
 }
 
+Write-Host "Importing the newest Chrome scan result, if one exists..."
+& $powershell -NoProfile -ExecutionPolicy Bypass -File $importScript -RepoPath $InstallPath
+if ($LASTEXITCODE -ne 0) { throw "The newest Chrome scan result could not be uploaded." }
+
 Unregister-ScheduledTask -TaskName "Market Pulse Coupang Price Scan" -Confirm:$false -ErrorAction SilentlyContinue
 $extensionPath = Join-Path $InstallPath 'chrome-extension'
 Start-Process explorer.exe -ArgumentList $extensionPath

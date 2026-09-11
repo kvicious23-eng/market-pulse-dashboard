@@ -1,7 +1,9 @@
 param([string]$RepoPath = (Split-Path -Parent $PSScriptRoot))
 $ErrorActionPreference = 'Stop'
-$resultPath = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse\latest-coupang-scan.json'
-if (-not (Test-Path $resultPath)) { exit 0 }
+$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
+$resultPath = Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
+  Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
+if (-not $resultPath) { exit 0 }
 $payload = Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 
