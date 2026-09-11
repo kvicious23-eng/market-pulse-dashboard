@@ -1,11 +1,29 @@
-param([string]$RepoPath = (Split-Path -Parent $PSScriptRoot))
+param(
+  [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
+  [switch]$WaitForToday
+)
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
-$resultPath = Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
-  Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
-if (-not $resultPath) { exit 0 }
-$payload = Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+
+function Get-LatestResultPath {
+  return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
+}
+
+$deadline = [DateTime]::UtcNow.AddMinutes(45)
+do {
+  $resultPath = Get-LatestResultPath
+  $payload = if ($resultPath) { Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json } else { $null }
+  if ($payload) {
+    $resultDay = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-dd')
+    $todayKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-dd')
+    if (-not $WaitForToday -or $resultDay -eq $todayKst) { break }
+  }
+  if (-not $WaitForToday -or [DateTime]::UtcNow -ge $deadline) { exit 0 }
+  Start-Sleep -Seconds 30
+} while ($true)
+
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 
 function Decode-Utf8([string]$value) {
