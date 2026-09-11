@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-09-11T00:00:00+09:00",
+    "snapshotAt": "2026-09-11T15:27:05+09:00",
     "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "정확한 MTM과 쿠팡 Item ID가 함께 확인된 공개 판매가·배송비 기준",
     "exclusions": "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
@@ -9,9 +9,9 @@ window.MARKET_DATA = {
       "quickWatch": "매일 10:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": null,
-      "lastAttemptStatus": "pending",
-      "lastAttemptText": "수정 엑셀의 쿠팡 식별자 반영 완료 · 첫 자동 가격 검증 대기"
+      "lastAttemptAt": "2026-09-11T15:27:05+09:00",
+      "lastAttemptStatus": "success",
+      "lastAttemptText": "Acer precision 조사 완료 · 30개 확인 중 10개 검증 · 나머지는 마지막 검증값 유지"
     }
   },
   "products": [
@@ -41,6 +41,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9235110727?itemId=28575928128&vendorItemId=95520178041"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1457990,
+          "finalPrice": 1457990,
+          "referencePrice": 1457990,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=ANV16-I31-514Z"
         }
       ],
       "references": [
@@ -48,15 +63,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1457990,
+          "finalPrice": 1457990,
+          "referencePrice": 1457990,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=ANV16-I31-514Z"
         },
         {
@@ -102,6 +117,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 324430,
+          "finalPrice": 324430,
+          "referencePrice": 324430,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=AG14-I71M-972S"
         }
       ],
       "references": [
@@ -109,15 +139,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 324430,
+          "finalPrice": 324430,
+          "referencePrice": 324430,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=AG14-I71M-972S"
         },
         {
@@ -163,6 +193,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1389000,
+          "finalPrice": 1389000,
+          "referencePrice": 1389000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=AG14-I71M-96C5"
         }
       ],
       "references": [
@@ -170,15 +215,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1389000,
+          "finalPrice": 1389000,
+          "referencePrice": 1389000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=AG14-I71M-96C5"
         },
         {
@@ -224,6 +269,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 3675000,
+          "finalPrice": 3675000,
+          "referencePrice": 3675000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=PHN16S-71-949J"
         }
       ],
       "references": [
@@ -231,15 +291,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 3675000,
+          "finalPrice": 3675000,
+          "referencePrice": 3675000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=PHN16S-71-949J"
         },
         {
@@ -285,6 +345,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1529000,
+          "finalPrice": 1529000,
+          "referencePrice": 1529000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SFG14-I71-57P5"
         }
       ],
       "references": [
@@ -292,15 +367,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1529000,
+          "finalPrice": 1529000,
+          "referencePrice": 1529000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SFG14-I71-57P5"
         },
         {
@@ -346,6 +421,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1099000,
+          "finalPrice": 1099000,
+          "referencePrice": 1099000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SFG14-75-508U"
         }
       ],
       "references": [
@@ -353,15 +443,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1099000,
+          "finalPrice": 1099000,
+          "referencePrice": 1099000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SFG14-75-508U"
         },
         {
@@ -407,6 +497,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 2800000,
+          "finalPrice": 2800000,
+          "referencePrice": 2800000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SFG16-74-7412"
         }
       ],
       "references": [
@@ -414,15 +519,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 2800000,
+          "finalPrice": 2800000,
+          "referencePrice": 2800000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SFG16-74-7412"
         },
         {
@@ -468,6 +573,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
           "url": "https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1679000,
+          "finalPrice": 1679000,
+          "referencePrice": 1679000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SFG16-I71-75Y2"
         }
       ],
       "references": [
@@ -475,15 +595,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1679000,
+          "finalPrice": 1679000,
+          "referencePrice": 1679000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SFG16-I71-75Y2"
         },
         {
@@ -529,6 +649,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 1358490,
+          "finalPrice": 1358490,
+          "referencePrice": 1358490,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SFG16-74-70E9"
         }
       ],
       "references": [
@@ -536,15 +671,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 1358490,
+          "finalPrice": 1358490,
+          "referencePrice": 1358490,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SFG16-74-70E9"
         },
         {
@@ -590,6 +725,21 @@ window.MARKET_DATA = {
           "confidence": "C",
           "confidenceText": "정확한 Item ID 가격 확인 중",
           "url": "https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227"
+        },
+        {
+          "role": "competitor",
+          "channel": "가격비교",
+          "seller": "다나와 검색",
+          "status": "현재가 확인",
+          "displayPrice": 2159000,
+          "finalPrice": 2159000,
+          "referencePrice": 2159000,
+          "condition": "정확한 MTM 검색 결과를 자동 확인",
+          "sourceType": "다나와 검색",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
+          "url": "https://search.danawa.com/dsearch.php?query=SF16-71T-7475"
         }
       ],
       "references": [
@@ -597,15 +747,15 @@ window.MARKET_DATA = {
           "role": "competitor",
           "channel": "가격비교",
           "seller": "다나와 검색",
-          "status": "조사 중",
-          "displayPrice": null,
-          "finalPrice": null,
-          "referencePrice": null,
+          "status": "현재가 확인",
+          "displayPrice": 2159000,
+          "finalPrice": 2159000,
+          "referencePrice": 2159000,
           "condition": "정확한 MTM 검색 결과를 자동 확인",
           "sourceType": "다나와 검색",
-          "checkedAt": "미확인",
-          "confidence": "C",
-          "confidenceText": "초기 검증 대기",
+          "checkedAt": "2026-09-11 15:27",
+          "confidence": "B",
+          "confidenceText": "정확한 MTM과 가격을 검색 결과에서 재확인",
           "url": "https://search.danawa.com/dsearch.php?query=SF16-71T-7475"
         },
         {
