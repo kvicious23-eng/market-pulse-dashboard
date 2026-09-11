@@ -6,6 +6,7 @@ $resultPath = Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.js
 if (-not $resultPath) { exit 0 }
 $payload = Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+$scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
@@ -76,6 +77,11 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
   }
   $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq $brandResults.Count){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
+  $data.meta.snapshotAt=$scanKst
+  $data.meta.monitoring.lastAttemptAt=$scanKst
+  if ($spec.Brand -eq 'Acer' -and @($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
+    $data.meta.monitoring.competitionLastAttemptAt=$scanKst
+  }
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
