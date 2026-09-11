@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Market Pulse | Lenovo 3MTM</title>
+  <style>
+    body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:#0b1220;color:#e5e7eb}main{max-width:1100px;margin:0 auto;padding:32px}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.muted{color:#94a3b8}.stamp{padding:12px 16px;border:1px solid #334155;border-radius:12px;background:#111827}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:28px}.card{background:#111827;border:1px solid #263244;border-radius:16px;padding:20px}.mtm{font-size:22px;font-weight:700}.status{margin-top:24px;padding:16px;border-radius:12px;background:#172033}.ok{color:#86efac}a{color:#93c5fd}
+  </style>
+</head>
+<body><main><div class="top"><div><h1>Market Pulse</h1><div class="muted">Lenovo Slim 3x · 3MTM 시장 모니터링</div></div><div class="stamp">조사 기준 <strong id="updated">불러오는 중</strong></div></div><div id="cards" class="grid"></div><div class="status"><span class="ok">● GitHub 데이터 연결됨</span><br><span class="muted">가격은 최신 시장조사에서 검증된 값만 표시하도록 구성합니다.</span></div></main><script src="dist/market-data.js"></script><script>const d=window.MARKET_PULSE_DATA;document.getElementById('updated').textContent=new Date(d.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});document.getElementById('cards').innerHTML=d.products.map(p=>`<section class="card"><div class="mtm">${p.mtm}</div><p>${p.storage}</p><p class="muted">Coupang Item ID ${p.coupang.itemId}</p><a href="${p.coupang.url}" target="_blank" rel="noreferrer">내 쿠팡 상품 열기</a></section>`).join('');</script></body></html>
