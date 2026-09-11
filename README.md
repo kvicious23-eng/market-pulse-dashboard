@@ -12,3 +12,11 @@ Lenovo Slim 3x 3MTM 가격 모니터링 대시보드입니다.
 - 쿠팡 와우/회원가는 로그인 검증 없이 추정하지 않음
 
 GitHub Actions 스케줄은 UTC 기준이며 혼잡 시 몇 분 지연될 수 있습니다.
+
+
+## Acer dashboard
+
+- 10개 Acer MTM 별도 모니터링: `/acer/`
+- 매일 오전 10:00 KST 기본+정밀 조사 및 자동 배포
+- 동일 MTM·Item ID가 확인된 가격만 현재가로 반영
+- 입력 검증 필요: SFG16-74-7412/SFG16-I71-75Y2 URL 중복, SFG16-74-70E9 vendorItemId 길이 이상
