@@ -1,7 +1,7 @@
 window.MARKET_DATA = {
   "meta": {
     "snapshotAt": "2026-09-11T00:00:00+09:00",
-    "sourceFile": "아쎄르.xlsx",
+    "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "정확한 MTM과 쿠팡 Item ID가 함께 확인된 공개 판매가·배송비 기준",
     "exclusions": "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
     "monitoring": {
@@ -11,7 +11,7 @@ window.MARKET_DATA = {
       "dashboardSync": "GitHub Pages 자동 반영",
       "lastAttemptAt": null,
       "lastAttemptStatus": "pending",
-      "lastAttemptText": "초기 시장조사 준비 중"
+      "lastAttemptText": "수정 엑셀의 쿠팡 식별자 반영 완료 · 첫 자동 가격 검증 대기"
     }
   },
   "products": [
@@ -385,10 +385,10 @@ window.MARKET_DATA = {
       "mtm": "SFG16-74-7412",
       "storage": "세부 용량 확인 중",
       "display": "Swift Go 16 AI",
-      "productId": "9483273252",
-      "itemId": "28237319655",
-      "vendorItemId": "95190959758",
-      "validation": "duplicate-item-id",
+      "productId": "9573633117",
+      "itemId": "28029585486",
+      "vendorItemId": "94986693706",
+      "validation": "verified-input",
       "offers": [
         {
           "role": "mine",
@@ -401,12 +401,12 @@ window.MARKET_DATA = {
           "cardDiscount": null,
           "finalPrice": null,
           "shipping": 0,
-          "condition": "다른 MTM과 동일한 쿠팡 Item ID가 입력되어 재검증 필요",
+          "condition": "수정 엑셀에서 productId·itemId·vendorItemId 재확인",
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "다른 MTM과 동일한 쿠팡 Item ID가 입력되어 재검증 필요",
-          "url": "https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758"
+          "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706"
         }
       ],
       "references": [
@@ -449,7 +449,7 @@ window.MARKET_DATA = {
       "productId": "9483273252",
       "itemId": "28237319655",
       "vendorItemId": "95190959758",
-      "validation": "duplicate-item-id",
+      "validation": "verified-input",
       "offers": [
         {
           "role": "mine",
@@ -462,11 +462,11 @@ window.MARKET_DATA = {
           "cardDiscount": null,
           "finalPrice": null,
           "shipping": 0,
-          "condition": "다른 MTM과 동일한 쿠팡 Item ID가 입력되어 재검증 필요",
+          "condition": "수정 엑셀에서 productId·itemId·vendorItemId 재확인",
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "다른 MTM과 동일한 쿠팡 Item ID가 입력되어 재검증 필요",
+          "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
           "url": "https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758"
         }
       ],
@@ -509,8 +509,8 @@ window.MARKET_DATA = {
       "display": "Swift Go 16 AI",
       "productId": "9573633117",
       "itemId": "28714706401",
-      "vendorItemId": "956553",
-      "validation": "short-vendor-item-id",
+      "vendorItemId": "95655361668",
+      "validation": "verified-input",
       "offers": [
         {
           "role": "mine",
@@ -523,12 +523,12 @@ window.MARKET_DATA = {
           "cardDiscount": null,
           "finalPrice": null,
           "shipping": 0,
-          "condition": "vendorItemId가 잘린 것으로 보여 재검증 필요",
+          "condition": "수정 엑셀에서 productId·itemId·vendorItemId 재확인",
           "sourceType": "사용자 제공 쿠팡 URL",
           "checkedAt": "미확인",
           "confidence": "C",
-          "confidenceText": "vendorItemId가 잘린 것으로 보여 재검증 필요",
-          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=956553"
+          "confidenceText": "수정 입력값 반영 · 현재 가격 자동 검증 대기",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668"
         }
       ],
       "references": [
