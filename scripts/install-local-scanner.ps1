@@ -50,13 +50,18 @@ git -C $InstallPath config user.email "market-pulse-local@users.noreply.github.c
 
 $scanScript = Join-Path $InstallPath "scripts\local-coupang-scan.ps1"
 $powershell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$taskCommand = '"' + $powershell + '" -NoProfile -ExecutionPolicy Bypass -File "' + $scanScript + '" -RepoPath "' + $InstallPath + '"'
-
-schtasks.exe /Create /TN $taskName /SC DAILY /ST 10:00 /TR $taskCommand /F | Out-Host
-if ($LASTEXITCODE -ne 0) { throw "Failed to create the daily 10:00 scheduled task." }
+$taskArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $scanScript + '" -RepoPath "' + $InstallPath + '"'
+$taskAction = New-ScheduledTaskAction -Execute $powershell -Argument $taskArguments
+$taskTrigger = New-ScheduledTaskTrigger -Daily -At "11:30"
+$taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Daily Lenovo and Acer Coupang price scan" -Force | Out-Host
+if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
+  throw "Failed to create the daily 11:30 scheduled task."
+}
 
 Write-Host "Starting the first test scan. If GitHub asks you to sign in, sign in once."
 & $powershell -NoProfile -ExecutionPolicy Bypass -File $scanScript -RepoPath $InstallPath
 if ($LASTEXITCODE -ne 0) { throw "The first test scan failed." }
 
-Write-Host "Installation complete: Lenovo and Acer Coupang prices will be checked daily at 10:00."
+Write-Host "Installation complete: Lenovo and Acer Coupang prices will be checked daily at 11:30."
+Write-Host "If the PC is off at 11:30, Windows will run the missed scan after the PC starts."
