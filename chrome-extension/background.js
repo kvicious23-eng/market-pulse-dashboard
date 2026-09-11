@@ -23,10 +23,12 @@ function localDay() {
 async function waitForComplete(tabId) {
   for (let i = 0; i < 45; i++) {
     const tab = await chrome.tabs.get(tabId);
-    if (tab.status === 'complete') return;
+    if (tab.status === 'complete') return true;
     await wait(1000);
   }
-  throw new Error('page-timeout');
+  // Some shopping pages keep ad/tracker requests open indefinitely even
+  // though the product DOM is already usable. Continue with the DOM scan.
+  return false;
 }
 
 function readDisplayedPrice(expectedItemId) {
@@ -124,10 +126,21 @@ async function scanAll() {
         tab = await chrome.tabs.create({url:target.url, active:true});
         await waitForComplete(tab.id);
         await wait(7000);
-        const injected = await chrome.scripting.executeScript({
+        let injected = await chrome.scripting.executeScript({
           target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
         });
-        const result={...target, ...injected[0].result, checkedAt:new Date().toISOString()};
+        let priceScan=injected[0].result;
+        if (!priceScan.ok && priceScan.reason === 'access-check') {
+          await wait(45000);
+          await chrome.tabs.update(tab.id,{url:target.url,active:true});
+          await waitForComplete(tab.id);
+          await wait(10000);
+          injected=await chrome.scripting.executeScript({
+            target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
+          });
+          priceScan=injected[0].result;
+        }
+        const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if (target.danawaUrl) {
           let danawaTab;
           try {
@@ -150,7 +163,8 @@ async function scanAll() {
       } finally {
         if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
       }
-      await wait(10000);
+      // A slower cadence reduces Coupang's temporary access-check response.
+      await wait(20000);
     }
     const payload = {version:1, scannedAt:new Date().toISOString(), results};
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
