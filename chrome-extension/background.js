@@ -205,7 +205,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
   const state=await chrome.storage.local.get(['lastRunDay']);
   const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()));
-  if (hour>=11 && state.lastRunDay!==localDay()) scanAll();
+  if (hour>=10 && state.lastRunDay!==localDay()) scanAll();
 });
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='daily-scan') scanAll();});
 chrome.action.onClicked.addListener(scanAll);
