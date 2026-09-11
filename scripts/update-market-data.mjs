@@ -86,7 +86,7 @@ for (const product of data.products) {
 data.meta.snapshotAt = checkedAt;
 data.meta.monitoring.enabled = true;
 data.meta.monitoring.quickWatch = "매일 10:00 KST";
-data.meta.monitoring.fullResearch = "월·수·금 10:10 KST";
+data.meta.monitoring.fullResearch = "기본+정밀 동시 실행";
 data.meta.monitoring.dashboardSync = "GitHub Pages 자동 반영";
 data.meta.monitoring.lastAttemptAt = checkedAt;
 data.meta.monitoring.lastAttemptStatus = successes ? "success" : "partial";
