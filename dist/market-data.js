@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-09-11T17:30:13+09:00",
+    "snapshotAt": "2026-09-11T17:34:18+09:00",
     "sourceFile": "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
     "comparisonBasis": "로그인 없이 공개 확인 가능한 판매가·즉시할인·쿠폰과 배송비 기준",
     "exclusions": "개인화 쿠폰, 카드사별 혜택, 적립금, 멤버십 최대혜택은 기본 비교가에서 제외",
@@ -13,7 +13,7 @@ window.MARKET_DATA = {
       "lastAttemptStatus": "success",
       "lastAttemptText": "Lenovo Chrome 현재가 3/3 확인 · GitHub 경쟁 출처 12/13 확인",
       "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
-      "competitionLastAttemptAt": "2026-09-11T17:30:13+09:00"
+      "competitionLastAttemptAt": "2026-09-11T17:34:18+09:00"
     }
   },
   "products": [
@@ -60,7 +60,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 현금 구매가. 카드·쿠폰 추가혜택은 미노출.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PXC03&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
@@ -78,7 +78,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유 구매가격. 할인 상세는 미노출.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PJ931&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
@@ -114,7 +114,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유 구매가격. 할인 상세는 미노출.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PX402&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
@@ -132,7 +132,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유 구매가격. 할인 상세는 미노출.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/bridge/loadingBridge.html?cate1=860&cate2=869&cate3=10586&cate4=0&cmpnyc=PX108&fee_type=S&link_pcode=95845739&package=0&pcode=95845739&safe_trade=2&setpc=0"
@@ -150,7 +150,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "회원가입 시 할인 적용: 1,329,000원 → 1,223,000원.",
           "sourceType": "판매사이트 직접",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://m.pctopia.co.kr/goods/goods_view.php?cateCd=039&goodsNo=1000049331"
@@ -168,7 +168,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "공식몰 기본 할인 38%. 자격형·멤버십 혜택은 제외.",
           "sourceType": "제조사 공식몰 직접",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "A",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://www.lenovo.com/kr/ko/p/laptops/ideapad/ideapad-slim-series/lenovo-ideapad-slim-3x-gen-10-15-inch-snapdragon/83n30037kr"
@@ -263,7 +263,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 현재 최저가. 추가 쿠폰·카드할인은 미확인.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826"
@@ -281,7 +281,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 현금가. 무료배송.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826"
@@ -299,7 +299,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 Lenovo 인증 판매가 기준.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826"
@@ -364,7 +364,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 현금가. 무료배송.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414"
@@ -382,7 +382,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 현재 공식 인증 판매가.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414"
@@ -400,7 +400,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 노출가. 추가 쿠폰·카드할인은 미확인.",
           "sourceType": "다나와 가격비교",
-          "checkedAt": "2026-09-11 17:30",
+          "checkedAt": "2026-09-11 17:34",
           "confidence": "B",
           "confidenceText": "자동 조사에서 MTM과 가격을 함께 재확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414"
