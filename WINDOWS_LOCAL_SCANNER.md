@@ -8,7 +8,7 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 2. 저장소의 `INSTALL_WINDOWS_SCANNER.cmd` 파일을 다운로드해 실행합니다.
 3. 첫 실행 중 GitHub 로그인 창이 뜨면 `kvicious23-eng` 계정으로 로그인합니다.
 
-설치가 끝나면 일반 Chrome 확장프로그램이 매일 오전 11시 30분에 실행되고, 결과는 오전 11시 45분에 GitHub로 전송됩니다.
+설치가 끝나면 일반 Chrome 확장프로그램이 매일 오전 10시에 실행되고, 결과는 오전 10시 30분에 GitHub로 전송됩니다.
 
 ## 판정 기준
 
@@ -22,7 +22,7 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 ## 운영 조건
 
 - Chrome 확장프로그램 화면에서 개발자 모드를 켠 후 `%LOCALAPPDATA%\MarketPulseDashboard\chrome-extension` 폴더를 `압축해제된 확장 프로그램 로드`로 한 번 등록해야 합니다.
-- 오전 11시 30분에 PC가 꺼져 있었다면 다음에 PC와 Chrome이 켜진 뒤 누락된 조사를 실행합니다. 실행 시 인터넷 연결이 필요합니다.
+- 오전 10시에 PC가 꺼져 있었다면 다음에 PC와 Chrome이 켜진 뒤 누락된 조사를 실행합니다. 실행 시 인터넷 연결이 필요합니다.
 - Windows 계정에 로그인된 상태에서 실행하는 구성이 가장 안정적입니다.
 - Chrome/Edge의 전용 프로필은 `%LOCALAPPDATA%\MarketPulseChrome`에 저장됩니다.
 
