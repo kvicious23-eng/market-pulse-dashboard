@@ -67,7 +67,7 @@ if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) 
 }
 
 $importScript = Join-Path $InstallPath "scripts\import-extension-results.ps1"
-$importArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $importScript + '" -RepoPath "' + $InstallPath + '"'
+$importArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $importScript + '" -RepoPath "' + $InstallPath + '" -WaitForToday'
 $importAction = New-ScheduledTaskAction -Execute $powershell -Argument $importArguments
 $importTrigger = New-ScheduledTaskTrigger -Daily -At "10:30"
 Register-ScheduledTask -TaskName $importTaskName -Action $importAction -Trigger $importTrigger -Settings $taskSettings -Description "Upload Chrome price scan results to GitHub" -Force | Out-Host
