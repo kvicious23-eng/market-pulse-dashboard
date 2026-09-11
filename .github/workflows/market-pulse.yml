@@ -1,0 +1,83 @@
+name: Market Pulse Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      scan_mode:
+        description: Scan mode
+        required: true
+        default: precision
+        type: choice
+        options: [daily, precision]
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/market-pulse.yml"
+      - "scripts/update-market-data.mjs"
+      - "index.html"
+  schedule:
+    - cron: "0 1 * * *"
+    - cron: "10 1 * * 1,3,5"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: market-pulse
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Choose scan mode
+        id: mode
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.scan_mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "10 1 * * 1,3,5" ]; then
+            echo "value=precision" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=daily" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run market scan
+        env:
+          SCAN_MODE: ${{ steps.mode.outputs.value }}
+        run: node scripts/update-market-data.mjs
+      - name: Commit refreshed data
+        shell: bash
+        run: |
+          if git diff --quiet -- dist/market-data.js; then exit 0; fi
+          git config user.name "market-pulse-bot"
+          git config user.email "market-pulse-bot@users.noreply.github.com"
+          git add dist/market-data.js
+          git commit -m "data: refresh market scan"
+          git push
+
+  deploy:
+    needs: update
+    if: always() && needs.update.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy dashboard
+        id: deployment
+        uses: actions/deploy-pages@v4
