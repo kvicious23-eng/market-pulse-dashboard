@@ -80,50 +80,32 @@ for (const product of data.products) {
     }
   }));
 
-  if (mode === "precision") {
-    const mine = product.offers.find((offer) => offer.role === "mine");
-    if (mine?.url) {
-      attempts += 1;
-      try {
-        const html = await fetchText(mine.url);
-        const exactItem = html.includes(String(product.itemId));
-        const currentPrice = exactItem ? exactCoupangPrice(html, product.itemId) : null;
-        mine.availabilityCheckedAt = displayTime;
-        if (currentPrice) {
-          mine.displayPrice = currentPrice;
-          mine.finalPrice = currentPrice + (mine.shipping || 0);
-          mine.priceCheckedAt = displayTime;
-          mine.checkedAt = displayTime;
-          mine.status = "현재가 직접 확인";
-          mine.confidence = "A";
-          mine.confidenceText = "동일 Item ID 주변의 공개 가격을 직접 확인";
-          minePrices += 1;
-          successes += 1;
-        } else if (exactItem) {
-          mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 상품 확인" : "가격 미확인 · 상품 확인";
-          mine.confidenceText = Number.isFinite(mine.finalPrice)
-            ? "동일 Item ID 확인, 가격은 마지막 검증값(" + (mine.priceCheckedAt || mine.checkedAt) + ") 유지"
-            : "동일 Item ID 확인, 공개 가격은 확인되지 않음";
-          successes += 1;
-        } else {
-          mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
-        }
-      } catch {
-        mine.availabilityCheckedAt = displayTime;
-        mine.status = Number.isFinite(mine.finalPrice) ? "최근 검증가 · 자동확인 실패" : "가격 미확인 · 자동접근 제한";
-      }
-    }
+  // Coupang prices are owned by the visible Chrome collector. GitHub only preserves them.
+  const mine = product.offers.find((offer) => offer.role === "mine");
+  if (mine && Number.isFinite(mine.finalPrice) && mine.priceCheckedAt) {
+    mine.status = "현재가 직접 확인";
+    mine.confidence = "A";
+    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 가격 확인";
+    minePrices += 1;
   }
-}
+}}
 
 data.meta.snapshotAt = checkedAt;
+const latestChromeCheck = data.products
+  .map((product) => product.offers.find((offer) => offer.role === "mine")?.priceCheckedAt)
+  .filter(Boolean).sort().at(-1);
 data.meta.monitoring.enabled = true;
-data.meta.monitoring.quickWatch = "매일 10:00 KST";
+data.meta.monitoring.quickWatch = "매일 11:30 KST";
 data.meta.monitoring.fullResearch = "기본+정밀 동시 실행";
 data.meta.monitoring.dashboardSync = "GitHub Pages 자동 반영";
-data.meta.monitoring.lastAttemptAt = checkedAt;
+data.meta.monitoring.collectionRoute = "Windows PC · 일반 Chrome 확장프로그램";
+data.meta.monitoring.lastAttemptAt = latestChromeCheck
+  ? latestChromeCheck.replace(" ", "T") + ":00+09:00"
+  : data.meta.monitoring.lastAttemptAt;
 data.meta.monitoring.lastAttemptStatus = minePrices === data.products.length ? "success" : "partial";
-data.meta.monitoring.lastAttemptText = `${mode === "precision" ? "정밀" : "기본"} 조사 완료 · 내 쿠팡 현재가 직접확인 ${minePrices}/${data.products.length} · 접근 제한 시 마지막 검증가 유지 · 전체 출처 ${successes}/${attempts} 확인`;
+data.meta.monitoring.lastAttemptText =
+  `Lenovo Chrome 현재가 ${minePrices}/${data.products.length} 확인 · GitHub 경쟁 출처 ${successes}/${attempts} 확인`;
+data.meta.monitoring.competitionLastAttemptAt = checkedAt;
 
 await fs.writeFile(DATA_FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
 console.log(`Market Pulse ${mode}: ${successes}/${attempts} verified at ${checkedAt}`);
