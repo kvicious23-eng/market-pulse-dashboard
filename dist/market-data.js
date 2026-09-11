@@ -1,7 +1,7 @@
 window.MARKET_PULSE_DATA = {
-  "updatedAt": "2026-09-11T13:07:01+09:00",
+  "updatedAt": "2026-09-11T13:15:52+09:00",
   "timezone": "Asia/Seoul",
-  "status": "daily-market-check",
+  "status": "precision-market-check",
   "methodology": {
     "rule": "Exact MTM only. Old search indexes are not promoted to current prices. Coupang own-price is populated only when the exact itemId is re-verified.",
     "ownPricePolicy": "Do not infer my Coupang price from another seller or generic MTM listing."
@@ -17,7 +17,8 @@ window.MARKET_PULSE_DATA = {
         "vendorItemId": "95415897534",
         "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534",
         "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId current price not re-verified in this run"
+        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
+        "checkedAt": "2026-09-11T13:15:52+09:00"
       },
       "marketLowest": 899000,
       "marketLowestSeller": "자동 조사 확인 최저가",
@@ -66,20 +67,20 @@ window.MARKET_PULSE_DATA = {
         }
       ],
       "automation": {
-        "mode": "daily",
-        "checkedAt": "2026-09-11T13:07:01+09:00",
+        "mode": "precision",
+        "checkedAt": "2026-09-11T13:15:52+09:00",
         "sourcesAttempted": 2,
         "sourcesSucceeded": 2,
         "observations": [
           {
             "url": "https://prod.danawa.com/info/?pcode=95845739",
             "price": 899000,
-            "checkedAt": "2026-09-11T13:07:01+09:00"
+            "checkedAt": "2026-09-11T13:15:52+09:00"
           },
           {
             "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-high-performance-slim-laptops-with-windows-11-0acz00a",
             "price": 1262999,
-            "checkedAt": "2026-09-11T13:07:01+09:00"
+            "checkedAt": "2026-09-11T13:15:52+09:00"
           }
         ]
       }
@@ -94,7 +95,8 @@ window.MARKET_PULSE_DATA = {
         "vendorItemId": "95415897535",
         "url": "https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535",
         "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId current price not re-verified in this run"
+        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
+        "checkedAt": "2026-09-11T13:15:52+09:00"
       },
       "marketLowest": 949000,
       "marketLowestSeller": "자동 조사 확인 최저가",
@@ -143,20 +145,20 @@ window.MARKET_PULSE_DATA = {
         }
       ],
       "automation": {
-        "mode": "daily",
-        "checkedAt": "2026-09-11T13:07:01+09:00",
+        "mode": "precision",
+        "checkedAt": "2026-09-11T13:15:52+09:00",
         "sourcesAttempted": 2,
         "sourcesSucceeded": 2,
         "observations": [
           {
             "url": "https://prod.danawa.com/info/?pcode=95845826",
             "price": 949000,
-            "checkedAt": "2026-09-11T13:07:01+09:00"
+            "checkedAt": "2026-09-11T13:15:52+09:00"
           },
           {
             "url": "https://www.lenovo.com/buy/kr/ko/womens-day-deals-on-slim-15-inch-laptops-0acz00a",
             "price": 1359982,
-            "checkedAt": "2026-09-11T13:07:01+09:00"
+            "checkedAt": "2026-09-11T13:15:52+09:00"
           }
         ]
       }
@@ -171,7 +173,8 @@ window.MARKET_PULSE_DATA = {
         "vendorItemId": "95415897536",
         "url": "https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536",
         "verifiedCurrentPrice": null,
-        "verificationStatus": "Exact itemId current price not re-verified in this run"
+        "verificationStatus": "Exact itemId check blocked: 403 Forbidden",
+        "checkedAt": "2026-09-11T13:15:52+09:00"
       },
       "marketLowest": 1486092,
       "marketLowestSeller": "자동 조사 확인 최저가",
@@ -212,19 +215,19 @@ window.MARKET_PULSE_DATA = {
         }
       ],
       "automation": {
-        "mode": "daily",
-        "checkedAt": "2026-09-11T13:07:01+09:00",
+        "mode": "precision",
+        "checkedAt": "2026-09-11T13:15:52+09:00",
         "sourcesAttempted": 1,
         "sourcesSucceeded": 1,
         "observations": [
           {
             "url": "https://prod.danawa.com/info/?pcode=122647414",
             "price": 1486092,
-            "checkedAt": "2026-09-11T13:07:01+09:00"
+            "checkedAt": "2026-09-11T13:15:52+09:00"
           }
         ]
       }
     }
   ],
-  "note": "2026-09-11T13:07:01+09:00 automated daily scan completed. Prices change only when a numeric value is re-verified; Coupang 와우 prices are never inferred."
+  "note": "2026-09-11T13:15:52+09:00 automated precision scan completed. Prices change only when a numeric value is re-verified; Coupang 와우 prices are never inferred."
 };
