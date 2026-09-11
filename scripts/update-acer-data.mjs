@@ -91,7 +91,8 @@ let minePrices = 0;
 
 for (const product of data.products) {
   const mine = product.offers.find((offer) => offer.role === "mine");
-  product.offers = mine ? [mine] : [];
+  const preservedCompetitors = product.offers.filter((offer) => offer.role === "competitor");
+  product.offers = mine ? [mine, ...preservedCompetitors] : [...preservedCompetitors];
   product.validation = "identifiers-verified";
   identifiers++;
 
@@ -112,6 +113,7 @@ for (const product of data.products) {
     const html = await fetchText(danawa.url);
     const sellers = danawaSellerOffers(html, product.mtm);
     if (sellers.length) {
+      product.offers = product.offers.filter((offer) => offer.role !== "competitor");
       const lowest = Math.min(...sellers.map((entry) => entry.price));
       Object.assign(danawa, {
         seller: "다나와 판매처 목록",
