@@ -47,12 +47,12 @@ let successes = 0;
 let attempts = 0;
 for (const product of data.products) {
   const candidates = product.offers.filter((offer) => offer.role === "competitor" && offer.url);
-  for (const offer of candidates) {
+  await Promise.all(candidates.map(async (offer) => {
     attempts += 1;
     try {
       const html = await fetchText(offer.url);
       const prices = verifiedPrices(html, product.mtm);
-      if (!prices.length) continue;
+      if (!prices.length) return;
       const price = prices[0];
       offer.displayPrice = price;
       offer.finalPrice = price + (offer.shipping || 0);
@@ -63,7 +63,7 @@ for (const product of data.products) {
     } catch {
       // 접근 제한 시 마지막 검증값을 보존합니다.
     }
-  }
+  }));
 
   if (mode === "precision") {
     const mine = product.offers.find((offer) => offer.role === "mine");
