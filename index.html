@@ -1,11 +1,144 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Market Pulse | Lenovo 3MTM</title>
-  <style>
-    body{font-family:Arial,"Noto Sans KR",sans-serif;margin:0;background:#0b1220;color:#e5e7eb}main{max-width:1100px;margin:0 auto;padding:32px}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.muted{color:#94a3b8}.stamp{padding:12px 16px;border:1px solid #334155;border-radius:12px;background:#111827}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:28px}.card{background:#111827;border:1px solid #263244;border-radius:16px;padding:20px}.mtm{font-size:22px;font-weight:700}.status{margin-top:24px;padding:16px;border-radius:12px;background:#172033}.ok{color:#86efac}a{color:#93c5fd}
-  </style>
-</head>
-<body><main><div class="top"><div><h1>Market Pulse</h1><div class="muted">Lenovo Slim 3x · 3MTM 시장 모니터링</div></div><div class="stamp">조사 기준 <strong id="updated">불러오는 중</strong></div></div><div id="cards" class="grid"></div><div class="status"><span class="ok">● GitHub 데이터 연결됨</span><br><span class="muted">가격은 최신 시장조사에서 검증된 값만 표시하도록 구성합니다.</span></div></main><script src="dist/market-data.js"></script><script>const d=window.MARKET_PULSE_DATA;document.getElementById('updated').textContent=new Date(d.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});document.getElementById('cards').innerHTML=d.products.map(p=>`<section class="card"><div class="mtm">${p.mtm}</div><p>${p.storage}</p><p class="muted">Coupang Item ID ${p.coupang.itemId}</p><a href="${p.coupang.url}" target="_blank" rel="noreferrer">내 쿠팡 상품 열기</a></section>`).join('');</script></body></html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1b13" />
+    <meta name="description" content="Lenovo Slim 3x 3개 MTM 온라인 가격조사 대시보드" />
+    <title>Lenovo 3MTM 가격 현황</title>
+    <link rel="stylesheet" href="dist/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="#top" aria-label="가격 현황 홈">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>
+            <strong>MARKET PULSE</strong>
+            <small>Lenovo Slim 3x · Korea</small>
+          </span>
+        </a>
+        <div class="topbar__meta">
+          <span class="monitoring"><i></i>자동 감시</span>
+          <span class="privacy"><i></i>공개 대시보드</span>
+          <span class="snapshot"><b>조사 기준</b><span id="headerSnapshot">—</span></span>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero__copy">
+          <p class="eyebrow">LATEST MARKET SNAPSHOT</p>
+          <h1 id="pageTitle">세 모델 모두<br /><em>가격 우위.</em></h1>
+          <p id="heroSummary">검증된 현재 판매가를 비교하고 있습니다.</p>
+          <button class="text-button" id="methodButton" type="button">비교 기준과 제외 항목 보기 <span>↗</span></button>
+          <div class="automation-strip" id="automationStrip" aria-label="자동 조사 연결 상태"></div>
+        </div>
+        <div class="scoreboard" aria-label="시장조사 요약">
+          <div class="scoreboard__primary">
+            <span>가격 우위 MTM</span>
+            <strong><b id="winCount">—</b> / 3</strong>
+            <small>공개 실구매가 기준</small>
+          </div>
+          <div class="scoreboard__item">
+            <span>최소 가격 우위</span>
+            <strong id="minAdvantage">—</strong>
+          </div>
+          <div class="scoreboard__item">
+            <span>현재 경쟁 판매처</span>
+            <strong id="sellerCount">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="overview" aria-labelledby="overviewTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">3 MTM OVERVIEW</p>
+            <h2 id="overviewTitle">내 가격 경쟁력</h2>
+          </div>
+          <p>카드를 누르면 판매처별 근거를 확인할 수 있습니다.</p>
+        </div>
+        <div class="product-grid" id="productGrid" role="tablist" aria-label="MTM 선택"></div>
+      </section>
+
+      <section class="detail" aria-labelledby="detailTitle">
+        <div class="detail__head">
+          <div>
+            <p class="eyebrow">SELLER COMPARISON</p>
+            <h2 id="detailTitle">판매처별 가격</h2>
+            <p class="product-meta" id="productMeta"></p>
+          </div>
+          <div class="view-switch" role="group" aria-label="가격 데이터 범위">
+            <button class="is-active" type="button" data-view="current">현재 판매</button>
+            <button type="button" data-view="reference">참고·품절 <b id="referenceCount">0</b></button>
+          </div>
+        </div>
+
+        <div id="priceSignal" aria-live="polite"></div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>판매처</th>
+                <th>상태</th>
+                <th>표시가격</th>
+                <th>즉시할인</th>
+                <th>쿠폰</th>
+                <th>카드할인</th>
+                <th>최종 실구매가</th>
+                <th>내 상품 대비</th>
+                <th>신뢰도</th>
+                <th><span class="sr-only">근거</span></th>
+              </tr>
+            </thead>
+            <tbody id="offerRows"></tbody>
+          </table>
+        </div>
+
+        <div class="detail__foot">
+          <span><i class="swatch swatch--mine"></i>내 상품</span>
+          <span><i class="swatch swatch--best"></i>경쟁 최저가</span>
+          <span><i class="swatch swatch--warn"></i>내 가격보다 저렴</span>
+          <p><strong>A</strong> 당일·직접 확인 · <strong>B</strong> 가격비교 기반 · <strong>C</strong> 과거·미검증</p>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="modal" id="evidenceDialog" aria-labelledby="evidenceTitle">
+      <div class="modal__head">
+        <div>
+          <p class="eyebrow">PRICE EVIDENCE</p>
+          <h2 id="evidenceTitle">가격 확인 근거</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-modal aria-label="닫기">×</button>
+      </div>
+      <div class="evidence" id="evidenceContent"></div>
+      <div class="modal__foot">
+        <button class="button button--ghost" type="button" data-close-modal>닫기</button>
+        <a class="button button--primary" id="sourceLink" target="_blank" rel="noopener noreferrer">출처 열기 ↗</a>
+      </div>
+    </dialog>
+
+    <dialog class="modal modal--small" id="methodDialog" aria-labelledby="methodTitle">
+      <div class="modal__head">
+        <div>
+          <p class="eyebrow">COMPARISON RULE</p>
+          <h2 id="methodTitle">어떤 가격을 비교했나</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-modal aria-label="닫기">×</button>
+      </div>
+      <div class="method-copy">
+        <p><strong>기본 비교가</strong><span id="basisText"></span></p>
+        <p><strong>비교 제외</strong><span id="exclusionText"></span></p>
+        <p><strong>오래된 가격</strong><span>C등급 인덱스와 품절 가격은 현재 최저가 계산에서 제외하고 ‘참고·품절’에 분리했습니다.</span></p>
+      </div>
+      <div class="modal__foot"><button class="button button--primary" type="button" data-close-modal>확인</button></div>
+    </dialog>
+
+    <script src="dist/market-data.js"></script>
+    <script src="dist/app.js"></script>
+  </body>
+</html>
