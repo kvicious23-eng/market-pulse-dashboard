@@ -7,6 +7,11 @@ $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloa
 $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 
+# Keep the C:\MarketPulse checkout and brand-generation template current before
+# importing a scan. This makes future shared-dashboard changes self-updating.
+git -C $RepoPath pull --rebase origin main
+if ($LASTEXITCODE -ne 0) { throw 'Dashboard update failed before result import.' }
+
 function Get-LatestResultPath {
   return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
