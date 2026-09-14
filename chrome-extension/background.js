@@ -294,7 +294,7 @@ async function scanAll() {
       }
       await wait(20000);
     }
-    const payload = {version:1, scannedAt:new Date().toISOString(), results};
+    const payload = {version:2, scannedAt:new Date().toISOString(), results};
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
     await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
