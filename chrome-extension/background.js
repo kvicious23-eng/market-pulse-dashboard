@@ -1,18 +1,23 @@
 const TARGETS = [
-  {brand:'Lenovo',mtm:'83N30037KR',itemId:'27303279355',url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
-  {brand:'Lenovo',mtm:'83N3003DKR',itemId:'27303268765',url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
-  {brand:'Lenovo',mtm:'83N30046KR',itemId:'25515648568',url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
-  {brand:'Acer',mtm:'ANV16-I31-514Z',itemId:'28575928128',url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
-  {brand:'Acer',mtm:'AG14-I71M-972S',itemId:'28951318769',url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
-  {brand:'Acer',mtm:'AG14-I71M-96C5',itemId:'28951318771',url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
-  {brand:'Acer',mtm:'PHN16S-71-949J',itemId:'26004597899',url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
-  {brand:'Acer',mtm:'SFG14-I71-57P5',itemId:'28714706385',url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
-  {brand:'Acer',mtm:'SFG14-75-508U',itemId:'28287192873',url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
-  {brand:'Acer',mtm:'SFG16-74-7412',itemId:'28029585486',url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
-  {brand:'Acer',mtm:'SFG16-I71-75Y2',itemId:'28237319655',url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
-  {brand:'Acer',mtm:'SFG16-74-70E9',itemId:'28714706401',url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
-  {brand:'Acer',mtm:'SF16-71T-7475',itemId:'28067081535',url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
+  {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',skuid:'74357773',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',skuid:'77524457',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
+  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
+  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',skuid:'',srp:null,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
 ];
+
+async function getTargets() {
+  const state=await chrome.storage.local.get(['products']);
+  return Array.isArray(state.products) ? state.products : TARGETS;
+}
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -87,7 +92,19 @@ function readDisplayedPrice(expectedItemId) {
   const preferred = candidates.find(x=>/price-value|prod-sale-price|total-price/.test(x.source))
     || candidates.find(x=>x.source==='json-ld')
     || candidates.find(x=>x.source.startsWith('meta'));
-  if (preferred) return {ok:true, price:preferred.price, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  const strikeCandidates=[];
+  for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]','del','s']) {
+    for (const node of document.querySelectorAll(selector)) {
+      const style=getComputedStyle(node);
+      const digits=(node.textContent||'').replace(/[^0-9]/g,'');
+      const price=Number(digits);
+      if (style.display!=='none'&&style.visibility!=='hidden'&&price>=250000&&price<=7000000) strikeCandidates.push({price,selector});
+    }
+  }
+  const strike=preferred
+    ? strikeCandidates.filter(x=>x.price>=preferred.price).sort((a,b)=>a.price-b.price)[0]
+    : null;
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
@@ -121,7 +138,8 @@ async function scanAll() {
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
   const results = [];
   try {
-    for (const target of TARGETS) {
+    const targets=(await getTargets()).filter(x=>x.enabled!==false);
+    for (const target of targets) {
       let tab;
       try {
         tab = await chrome.tabs.create({url:target.url, active:true});
@@ -209,3 +227,17 @@ chrome.runtime.onStartup.addListener(async()=>{
 });
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='daily-scan') scanAll();});
 chrome.action.onClicked.addListener(scanAll);
+chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
+  if (message?.type==='GET_PRODUCTS') {
+    getTargets().then(products=>sendResponse({ok:true,products}));
+    return true;
+  }
+  if (message?.type==='SAVE_PRODUCTS') {
+    chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
+    return true;
+  }
+  if (message?.type==='RUN_SCAN') {
+    scanAll();
+    sendResponse({ok:true});
+  }
+});

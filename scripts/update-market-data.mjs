@@ -95,7 +95,7 @@ const latestChromeCheck = data.products
   .map((product) => product.offers.find((offer) => offer.role === "mine")?.priceCheckedAt)
   .filter(Boolean).sort().at(-1);
 data.meta.monitoring.enabled = true;
-data.meta.monitoring.quickWatch = "매일 11:30 KST";
+data.meta.monitoring.quickWatch = "매일 10:00 KST";
 data.meta.monitoring.fullResearch = "기본+정밀 동시 실행";
 data.meta.monitoring.dashboardSync = "GitHub Pages 자동 반영";
 data.meta.monitoring.collectionRoute = "Windows PC · 일반 Chrome 확장프로그램";

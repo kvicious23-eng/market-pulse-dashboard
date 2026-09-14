@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Pulse 상품 관리</title><link rel="stylesheet" href="options.css"></head>
+<body><main>
+  <header><div><p class="eyebrow">MARKET PULSE</p><h1>상품 관리</h1><p class="desc">기존 상품을 수정하거나 신규 상품을 등록해. SRP는 가격 판정의 기준값으로 사용돼.</p></div><div class="summary"><b id="activeCount">0</b><span>사용 상품</span></div></header>
+  <section class="toolbar"><div><button id="add">+ 신규 상품</button><button id="save" class="primary">변경사항 저장</button></div><label>검색 <input id="search" placeholder="브랜드, MTM, SKUID"></label></section>
+  <div id="notice" role="status"></div>
+  <section id="cards" aria-label="등록 상품 목록"></section>
+  <footer><button id="saveBottom" class="primary">변경사항 저장</button><p>저장 후 다음 자동수집부터 적용돼. 즉시 반영하려면 M 아이콘에서 ‘지금 수집 시작’을 선택해.</p></footer>
+</main><template id="cardTemplate"><article class="card">
+  <div class="cardHead"><div><span class="brandBadge"></span><strong class="title"></strong></div><label class="toggle"><input class="enabled" type="checkbox"><span>사용</span></label></div>
+  <div class="grid">
+    <label>Brand<input class="brand" placeholder="Acer"></label><label>Category<input class="category" placeholder="Notebook"></label><label>Model Name (MTM)<input class="mtm" placeholder="AG14-I71M-972S"></label><label>SKUID<input class="skuid" inputmode="numeric"></label><label>SRP<input class="srp" inputmode="numeric" placeholder="예: 1429000"></label>
+    <label class="wide">쿠팡 URL<input class="url" type="url" placeholder="https://www.coupang.com/vp/products/..."></label>
+    <label>Product ID<input class="productId" readonly></label><label>Item ID<input class="itemId" readonly></label><label>VendorItem ID<input class="vendorItemId" readonly></label>
+    <label class="wide">다나와 URL <small>선택</small><input class="danawaUrl" type="url" placeholder="https://prod.danawa.com/info/?pcode=..."></label>
+  </div><div class="cardFoot"><span class="validation"></span><button class="remove" type="button">목록에서 제거</button></div>
+</article></template><script src="options.js"></script></body></html>

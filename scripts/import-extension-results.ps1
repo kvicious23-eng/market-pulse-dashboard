@@ -4,6 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
+$catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 
 function Get-LatestResultPath {
@@ -25,6 +26,7 @@ do {
 } while ($true)
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
+$catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
@@ -46,6 +48,11 @@ $text = @{
   MarketplacePattern = Decode-Utf8 'MTHrsojqsIB87Jil7IWYfEfrp4jsvJN866Gv642wT0587L+g7YyhfFNTR3zrhKTsnbTrsoQ='
   AcerPattern = Decode-Utf8 'QWNlcnzsl5DsnbTshJw='
   ScanSummary = Decode-Utf8 '7J2867CYIENocm9tZSDsobDsgqwgwrcg7ZiE7J6s6rCAIO2ZleyduA=='
+  Coupang = Decode-Utf8 '7L+g7Yyh'
+  MyProduct = Decode-Utf8 '64K0IOy/oO2MoSDsg4Htkog='
+  ManagedUrl = Decode-Utf8 '6rSA66as7ZmU66m0IOuTseuhnSBVUkw='
+  FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
+  ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
 }
 
 function Read-Data($path) {
@@ -62,6 +69,46 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
   $path=Join-Path $RepoPath $spec.Path
   $data=Read-Data $path
   $brandResults=@($payload.results | Where-Object {$_.brand -eq $spec.Brand})
+  $catalogProducts=@($catalog.products | Where-Object {$_.brand -eq $spec.Brand -and $_.enabled -ne $false})
+  if ($catalog -and $catalogProducts.Count -ge 0) {
+    $activeIds=@($catalogProducts | ForEach-Object {[string]$_.itemId})
+    $data.products=@($data.products | Where-Object {$activeIds -contains [string]$_.itemId})
+    foreach ($config in $catalogProducts) {
+      $product=$data.products | Where-Object {[string]$_.itemId -eq [string]$config.itemId} | Select-Object -First 1
+      if (-not $product) {
+        $product=[pscustomobject]@{
+          mtm=[string]$config.mtm; storage=''; display=[string]$config.mtm
+          productId=[string]$config.productId; itemId=[string]$config.itemId; vendorItemId=[string]$config.vendorItemId
+          category=[string]$config.category; skuid=[string]$config.skuid; srp=$config.srp; validation='identifiers-verified'
+          offers=@([pscustomobject]@{
+            role='mine'; channel=$text.Coupang; seller=$text.MyProduct; status=$text.MissingFailed
+            displayPrice=$null; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
+            finalPrice=$null; shipping=0; condition=$text.ManagedProduct; sourceType=$text.ManagedUrl
+            checkedAt=''; confidence='C'; confidenceText=$text.FirstScan; url=[string]$config.url
+          }); references=@()
+        }
+        $data.products+= $product
+      }
+      foreach ($field in @('mtm','productId','itemId','vendorItemId','category','skuid','srp')) {
+        $product | Add-Member -NotePropertyName $field -NotePropertyValue $config.PSObject.Properties[$field].Value -Force
+      }
+      $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
+      if ($mine) { $mine.url=[string]$config.url }
+      if ($spec.Brand -eq 'Acer' -and $config.danawaUrl) {
+        $danawaRef=$product.references | Where-Object {$_.url -like 'https://prod.danawa.com/*'} | Select-Object -First 1
+        if ($danawaRef) {
+          $danawaRef.url=[string]$config.danawaUrl
+        } else {
+          $product.references += [pscustomobject]@{
+            role='competitor'; channel='Price comparison'; seller='Danawa'; status='Waiting for scan'
+            displayPrice=$null; finalPrice=$null; referencePrice=$null; condition='Exact MTM comparison'
+            sourceType='Danawa product page'; checkedAt=''; confidence='C'; confidenceText='Waiting for first scan'
+            url=[string]$config.danawaUrl
+          }
+        }
+      }
+    }
+  }
   $confirmed=0
   foreach ($product in $data.products) {
     $result=$brandResults | Where-Object {$_.itemId -eq [string]$product.itemId} | Select-Object -First 1
@@ -70,7 +117,15 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
-      $mine.displayPrice=[long]$result.price; $mine.finalPrice=[long]$result.price + [long]($mine.shipping)
+      $final=[long]$result.price + [long]($mine.shipping)
+      $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {[long]$result.srp}else{$null}
+      $strike=if ($null -ne $result.strikePrice -and [long]$result.strikePrice -gt 0) {[long]$result.strikePrice}else{$null}
+      $mine.displayPrice=if ($null -ne $srp){$srp}else{[long]$result.price}
+      $mine.finalPrice=$final
+      $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
+      $mine.couponDiscount=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
+      $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
+      $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=$text.Current; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail
