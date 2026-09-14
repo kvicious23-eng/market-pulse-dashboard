@@ -21,7 +21,8 @@
     evidenceTitle: $("#evidenceTitle"),
     evidenceContent: $("#evidenceContent"),
     sourceLink: $("#sourceLink"),
-    methodDialog: $("#methodDialog")
+    methodDialog: $("#methodDialog"),
+    exportExcel: $("#exportExcel")
   };
 
   const hashMtm = decodeURIComponent(location.hash.replace(/^#/, ""));
@@ -59,6 +60,59 @@
     if (!Number.isFinite(value)) return "—";
     if (value === 0) return "동일";
     return `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString("ko-KR")}원`;
+  }
+
+  function exportMyProducts() {
+    const brand = document.title.split(/\s+/)[0] || "MarketPulse";
+    const headers = [
+      "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
+      "판매처", "채널", "상태", "SRP", "취소선 표시가격", "즉시할인", "쿠폰",
+      "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
+      "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
+      "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각"
+    ];
+    const rows = data.products.map((product) => {
+      const mine = product.offers.find((offer) => offer.role === "mine") || {};
+      const srp = Number.isFinite(mine.srp) ? mine.srp : mine.displayPrice;
+      const preCardPrice = Number.isFinite(mine.preCardPrice)
+        ? mine.preCardPrice
+        : Number.isFinite(mine.finalPrice) && Number.isFinite(mine.cardDiscount)
+          ? mine.finalPrice + mine.cardDiscount
+          : mine.finalPrice;
+      const instantDiscount = Number.isFinite(srp) && Number.isFinite(mine.observedListPrice) && srp >= mine.observedListPrice
+        ? srp - mine.observedListPrice
+        : mine.instantDiscount;
+      const couponDiscount = Number.isFinite(mine.observedListPrice) && Number.isFinite(preCardPrice) && mine.observedListPrice >= preCardPrice
+        ? mine.observedListPrice - preCardPrice
+        : mine.couponDiscount;
+      return [
+        brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
+        mine.seller, mine.channel, mine.status, srp, mine.observedListPrice, instantDiscount, couponDiscount,
+        mine.cardDiscount, preCardPrice, mine.finalPrice, mine.shipping,
+        Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
+        mine.cardRate, mine.cardMaxDiscount, mine.condition, mine.sourceType, mine.confidence,
+        mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
+        safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
+      ];
+    });
+    const csvCell = (value) => {
+      if (value === null || value === undefined) return "";
+      if (typeof value === "number" && Number.isFinite(value)) return String(value);
+      const text = String(value);
+      const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+      return `"${safe.replace(/"/g, '""')}"`;
+    };
+    const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = String(data.meta.snapshotAt || new Date().toISOString()).slice(0, 10);
+    link.href = url;
+    link.download = `MarketPulse_${brand}_내상품_${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   function productStats(product) {
@@ -329,6 +383,8 @@
     if (button) openEvidence(Number(button.dataset.evidenceIndex));
   });
 
+  refs.exportExcel.addEventListener("click", exportMyProducts);
+
   $("#methodButton").addEventListener("click", () => refs.methodDialog.showModal());
   document.querySelectorAll("[data-close-modal]").forEach((button) => {
     button.addEventListener("click", () => button.closest("dialog").close());
@@ -339,5 +395,5 @@
 
   render();
   watchForPublishedData();
-  window.MarketPulse = { productStats, formatWon, getActiveMtm: () => activeMtm };
+  window.MarketPulse = { productStats, formatWon, exportMyProducts, getActiveMtm: () => activeMtm };
 })();
