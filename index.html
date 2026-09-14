@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1b13" />
     <meta name="description" content="Lenovo Slim 3x 3개 MTM 온라인 가격조사 대시보드" />
     <title>Lenovo 3MTM 가격 현황</title>
-    <link rel="stylesheet" href="dist/styles.css" />
+    <link rel="stylesheet" href="dist/styles.css?v=20260914-5" />
   </head>
   <body>
     <header class="topbar">
@@ -70,9 +70,12 @@
             <h2 id="detailTitle">판매처별 가격</h2>
             <p class="product-meta" id="productMeta"></p>
           </div>
-          <div class="view-switch" role="group" aria-label="가격 데이터 범위">
-            <button class="is-active" type="button" data-view="current">현재 판매</button>
-            <button type="button" data-view="reference">참고·품절 <b id="referenceCount">0</b></button>
+          <div class="detail__actions">
+            <button class="export-button" id="exportExcel" type="button" title="내 쿠팡 상품과 가격 확인 근거를 Excel 파일로 저장">Excel 추출</button>
+            <div class="view-switch" role="group" aria-label="가격 데이터 범위">
+              <button class="is-active" type="button" data-view="current">현재 판매</button>
+              <button type="button" data-view="reference">참고·품절 <b id="referenceCount">0</b></button>
+            </div>
           </div>
         </div>
 
@@ -138,7 +141,7 @@
       <div class="modal__foot"><button class="button button--primary" type="button" data-close-modal>확인</button></div>
     </dialog>
 
-    <script src="dist/market-data.js?v=20260914-4"></script>
-    <script src="dist/app.js?v=20260914-4"></script>
+    <script src="dist/market-data.js?v=20260914-5"></script>
+    <script src="dist/app.js?v=20260914-5"></script>
   </body>
 </html>
