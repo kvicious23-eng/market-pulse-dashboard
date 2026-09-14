@@ -38,7 +38,10 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Test-Path (Join-Path $InstallPath ".git"))) {
-  New-Item -ItemType Directory -Path (Split-Path -Parent $InstallPath) -Force | Out-Null
+  # Create the requested install folder itself. Split-Path can return an empty
+  # parent for a directory placed directly under a drive (for example,
+  # C:\MarketPulse), which makes New-Item fail with an invalid path.
+  New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
   git clone $repoUrl $InstallPath
   if ($LASTEXITCODE -ne 0) { throw "Dashboard download failed." }
 } else {
