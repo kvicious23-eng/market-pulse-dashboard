@@ -88,6 +88,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand Notebook · Korea</small>")
   $html=$html -replace 'href="\.\/styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
+  $html=$html -replace 'src="\.\.\/dist\/xlsx-export\.js([^\"]*)"','src="../../dist/xlsx-export.js$1"'
   $html=$html -replace 'src="\.\/app\.js([^\"]*)"','src="../../dist/app.js$1"'
   [IO.File]::WriteAllText($indexPath,$html,(New-Object Text.UTF8Encoding($false)))
   if (-not (Test-Path $dataPath)) {

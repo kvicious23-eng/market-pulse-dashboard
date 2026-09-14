@@ -130,29 +130,29 @@
       const breakdown = priceBreakdown(mine);
       return [
         brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
-        mine.seller, mine.channel, mine.status, breakdown.srp, breakdown.basisPrice, basisTypeText(mine.priceBasisType), breakdown.instantDiscount, breakdown.couponDiscount,
-        cardStatusText(mine.cardBenefitStatus), mine.cardBenefitStatus === "none" ? 0 : mine.cardDiscount,
-        breakdown.preCardPrice, effectiveFinalPrice(mine), mine.shipping,
+        mine.seller, mine.channel, mine.status,
+        Number.isFinite(breakdown.srp) ? breakdown.srp : "SRP 미입력",
+        Number.isFinite(breakdown.basisPrice) ? breakdown.basisPrice : "미확인",
+        basisTypeText(mine.priceBasisType),
+        Number.isFinite(breakdown.instantDiscount) ? breakdown.instantDiscount : "미확인",
+        Number.isFinite(breakdown.couponDiscount) ? breakdown.couponDiscount : "미확인",
+        cardStatusText(mine.cardBenefitStatus),
+        mine.cardBenefitStatus === "none" ? 0 : Number.isFinite(mine.cardDiscount) ? mine.cardDiscount : "미확인",
+        Number.isFinite(breakdown.preCardPrice) ? breakdown.preCardPrice : "미확인",
+        Number.isFinite(effectiveFinalPrice(mine)) ? effectiveFinalPrice(mine) : "미확인", mine.shipping,
         Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
         mine.cardRate, mine.cardMaxDiscount, mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
         safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
       ];
     });
-    const csvCell = (value) => {
-      if (value === null || value === undefined) return "";
-      if (typeof value === "number" && Number.isFinite(value)) return String(value);
-      const text = String(value);
-      const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
-      return `"${safe.replace(/"/g, '""')}"`;
-    };
-    const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    if (!window.MarketPulseXlsx?.createWorkbook) throw new Error("Excel 생성 모듈을 불러오지 못했습니다.");
+    const blob = window.MarketPulseXlsx.createWorkbook(headers, rows, "내 쿠팡상품");
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     const date = String(data.meta.snapshotAt || new Date().toISOString()).slice(0, 10);
     link.href = url;
-    link.download = `MarketPulse_${brand}_내상품_${date}.csv`;
+    link.download = `MarketPulse_${brand}_내상품_${date}.xlsx`;
     document.body.appendChild(link);
     link.click();
     link.remove();
