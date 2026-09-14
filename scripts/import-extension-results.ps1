@@ -121,7 +121,7 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
       $cardDiscount=if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
       $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$preCardPrice}
       $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {[long]$result.srp}else{$null}
-      $strike=if ($null -ne $result.strikePrice -and [long]$result.strikePrice -gt 0) {[long]$result.strikePrice}else{$null}
+      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge [long]$result.price) {[long]$result.strikePrice}else{$null}
       $mine.displayPrice=if ($null -ne $srp){$srp}else{[long]$result.price}
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
