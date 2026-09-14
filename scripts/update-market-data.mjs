@@ -59,10 +59,17 @@ function exactCoupangPrice(html, itemId) {
 
 let successes = 0;
 let attempts = 0;
+let manualOnly = 0;
 let minePrices = 0;
 for (const product of data.products) {
   const candidates = product.offers.filter((offer) => offer.role === "competitor" && offer.url);
   await Promise.all(candidates.map(async (offer) => {
+    // 다나와 상세는 여러 판매처와 출시가가 한 문서에 섞여 있으므로
+    // 판매자별 가격을 자동 추출하지 않고 정밀조사에서만 갱신합니다.
+    if (/prod\.danawa\.com\/info/i.test(offer.url)) {
+      manualOnly += 1;
+      return;
+    }
     attempts += 1;
     try {
       const html = await fetchText(offer.url);
@@ -82,11 +89,21 @@ for (const product of data.products) {
 
   // Coupang prices are owned by the visible Chrome collector. GitHub only preserves them.
   const mine = product.offers.find((offer) => offer.role === "mine");
-  if (mine && Number.isFinite(mine.finalPrice) && mine.priceCheckedAt) {
+  const todayKst = displayTime.slice(0, 10);
+  const mineIsFresh = mine && Number.isFinite(mine.finalPrice)
+    && typeof mine.priceCheckedAt === "string"
+    && mine.priceCheckedAt.startsWith(todayKst);
+  if (mineIsFresh) {
     mine.status = "현재가 직접 확인";
     mine.confidence = "A";
-    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 가격 확인";
+    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 당일 가격 확인";
+    mine.alertEligible = true;
     minePrices += 1;
+  } else if (mine) {
+    mine.status = "직전 직접 확인 · 당일 미확인";
+    mine.confidence = "C";
+    mine.confidenceText = "동일 Item ID의 과거 직접 확인값이며 당일 현재가가 아님";
+    mine.alertEligible = false;
   }
 }
 
@@ -104,7 +121,7 @@ data.meta.monitoring.lastAttemptAt = latestChromeCheck
   : data.meta.monitoring.lastAttemptAt;
 data.meta.monitoring.lastAttemptStatus = minePrices === data.products.length ? "success" : "partial";
 data.meta.monitoring.lastAttemptText =
-  `Lenovo Chrome 현재가 ${minePrices}/${data.products.length} 확인 · GitHub 경쟁 출처 ${successes}/${attempts} 확인`;
+  `Lenovo Chrome 현재가 ${minePrices}/${data.products.length} 확인 · 직접 판매처 ${successes}/${attempts} 확인 · 다나와 ${manualOnly}건 정밀조사 대기`;
 data.meta.monitoring.competitionLastAttemptAt = checkedAt;
 
 await fs.writeFile(DATA_FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
