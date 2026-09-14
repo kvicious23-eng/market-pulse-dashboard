@@ -117,15 +117,23 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
-      $final=[long]$result.price + [long]($mine.shipping)
+      $preCardPrice=[long]$result.price + [long]($mine.shipping)
+      $cardDiscount=if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
+      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$preCardPrice}
       $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {[long]$result.srp}else{$null}
       $strike=if ($null -ne $result.strikePrice -and [long]$result.strikePrice -gt 0) {[long]$result.strikePrice}else{$null}
       $mine.displayPrice=if ($null -ne $srp){$srp}else{[long]$result.price}
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
       $mine.couponDiscount=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
+      $mine.cardDiscount=$cardDiscount
       $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
+      $mine | Add-Member -NotePropertyName preCardPrice -NotePropertyValue $preCardPrice -Force
+      $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
+      $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
+      $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
+      $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue ([string]$result.cardBenefitText) -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=$text.Current; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail

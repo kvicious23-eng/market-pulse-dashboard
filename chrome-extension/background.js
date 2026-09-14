@@ -36,7 +36,7 @@ async function waitForComplete(tabId) {
   return false;
 }
 
-function readDisplayedPrice(expectedItemId) {
+async function readDisplayedPrice(expectedItemId) {
   const params = new URL(location.href).searchParams;
   const actualItemId = params.get('itemId');
   const bodyText = document.body?.innerText || '';
@@ -105,7 +105,71 @@ function readDisplayedPrice(expectedItemId) {
   // promotions. Preserve selector/DOM priority so the main product price's
   // visible `.prod-origin-price` wins instead of choosing the lowest value.
   const strike=preferred ? strikeCandidates.find(x=>x.price>=preferred.price) : null;
-  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  let cardDiscount=null;
+  let cardRate=null;
+  let cardMaxDiscount=null;
+  let cardProviders=[];
+  let cardBenefitText='';
+  if (preferred) {
+    const visible=node=>{
+      const style=getComputedStyle(node);
+      return style.display!=='none'&&style.visibility!=='hidden'&&node.getBoundingClientRect().width>0;
+    };
+    const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+    const summaryNodes=[...document.querySelectorAll('div,li,p')]
+      .filter(node=>visible(node)&&/카드\s*즉시할인/.test(compact(node))&&compact(node).length<700)
+      .sort((a,b)=>compact(a).length-compact(b).length);
+    const summaryRoot=summaryNodes[0]||null;
+    const summaryText=compact(summaryRoot);
+    let detailText='';
+    if (summaryRoot) {
+      const controls=[...summaryRoot.querySelectorAll('button,a,[role="button"]')].filter(visible);
+      const detailControl=controls.find(node=>/와우\s*전용|상세|안내/.test(`${compact(node)} ${node.getAttribute('aria-label')||''} ${node.title||''}`))||controls.at(-1);
+      if (detailControl) {
+        detailControl.click();
+        await new Promise(resolve=>setTimeout(resolve,900));
+        const layers=[...document.querySelectorAll('[role="dialog"],[class*="modal"],[class*="layer"],[class*="popover"]')]
+          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<8000)
+          .sort((a,b)=>compact(a).length-compact(b).length);
+        detailText=compact(layers[0]);
+      }
+    }
+    cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
+    const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
+    cardProviders=knownCards.filter(card=>cardBenefitText.includes(card));
+    const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
+    const parseCap=text=>{
+      const match=text.match(/(?:최대\s*(?:할인\s*)?(?:금액|한도)?|할인\s*한도)[^0-9]{0,12}([0-9][0-9,]*)\s*원/);
+      return match?Number(match[1].replace(/,/g,'')):0;
+    };
+    const benefitRows=[];
+    const detailRoot=[...document.querySelectorAll('[role="dialog"],[class*="modal"],[class*="layer"],[class*="popover"]')]
+      .find(node=>visible(node)&&compact(node)===detailText);
+    for (const node of detailRoot?.querySelectorAll('tr,li,div')||[]) {
+      const text=compact(node);
+      if (text.length<10||text.length>700||!/%/.test(text)||!/원/.test(text)) continue;
+      const rate=parseRate(text),cap=parseCap(text);
+      if (!rate||!cap) continue;
+      const providers=knownCards.filter(card=>text.includes(card));
+      benefitRows.push({rate,cap,providers});
+    }
+    if (!benefitRows.length) {
+      const rate=parseRate(summaryText||detailText);
+      const cap=parseCap(detailText);
+      if (rate&&cap) benefitRows.push({rate,cap,providers:cardProviders});
+    }
+    const calculated=benefitRows.map(row=>({
+      ...row,
+      amount:Math.min(Math.floor(preferred.price*row.rate/100),row.cap)
+    })).sort((a,b)=>b.amount-a.amount);
+    if (calculated[0]) {
+      cardDiscount=calculated[0].amount;
+      cardRate=calculated[0].rate;
+      cardMaxDiscount=calculated[0].cap;
+      if (calculated[0].providers.length) cardProviders=calculated[0].providers;
+    }
+  }
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 

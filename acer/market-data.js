@@ -224,8 +224,8 @@ window.MARKET_DATA = {
           "displayPrice": 1429000,
           "instantDiscount": 15530,
           "couponDiscount": 154470,
-          "cardDiscount": null,
-          "finalPrice": 1259000,
+          "cardDiscount": 20000,
+          "finalPrice": 1239000,
           "shipping": 0,
           "condition": "사용자 제공 URL의 동일 Item ID 가격만 반영",
           "sourceType": "사용자 제공 쿠팡 URL",
@@ -236,7 +236,20 @@ window.MARKET_DATA = {
           "availabilityCheckedAt": "2026-09-14 13:15",
           "srp": 1429000,
           "observedListPrice": 1413470,
-          "priceCheckedAt": "2026-09-14 13:15"
+          "priceCheckedAt": "2026-09-14 13:15",
+          "preCardPrice": 1259000,
+          "cardRate": 2,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "신한",
+            "BC",
+            "우리",
+            "롯데",
+            "NH농협",
+            "하나",
+            "삼성"
+          ],
+          "cardBenefitText": "최대 2% 카드 즉시할인 · 최대 할인한도 20,000원 · 와우 전용"
         },
         {
           "role": "competitor",

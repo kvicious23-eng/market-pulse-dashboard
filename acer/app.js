@@ -209,11 +209,16 @@
       const current = activeView === "current";
       const price = current ? offer.finalPrice : offer.referencePrice;
       const srp = mine && Number.isFinite(offer.srp) ? offer.srp : offer.displayPrice;
+      const preCardPrice = mine && Number.isFinite(offer.preCardPrice)
+        ? offer.preCardPrice
+        : mine && Number.isFinite(offer.finalPrice) && Number.isFinite(offer.cardDiscount)
+          ? offer.finalPrice + offer.cardDiscount
+          : offer.finalPrice;
       const instantDiscount = mine && Number.isFinite(srp) && Number.isFinite(offer.observedListPrice) && srp >= offer.observedListPrice
         ? srp - offer.observedListPrice
         : offer.instantDiscount;
-      const couponDiscount = mine && Number.isFinite(offer.observedListPrice) && Number.isFinite(offer.finalPrice) && offer.observedListPrice >= offer.finalPrice
-        ? offer.observedListPrice - offer.finalPrice
+      const couponDiscount = mine && Number.isFinite(offer.observedListPrice) && Number.isFinite(preCardPrice) && offer.observedListPrice >= preCardPrice
+        ? offer.observedListPrice - preCardPrice
         : offer.couponDiscount;
       const difference = current && !mine && Number.isFinite(offer.finalPrice) && Number.isFinite(stats.mine?.finalPrice)
         ? offer.finalPrice - stats.mine.finalPrice
@@ -279,6 +284,7 @@
 
     const displayPrice = Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인";
     const finalValue = activeView === "current" ? offer.finalPrice : offer.referencePrice;
+    const providers = Array.isArray(offer.cardProviders) ? offer.cardProviders.filter(Boolean).join(', ') : '';
     refs.evidenceTitle.textContent = offer.seller;
     const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
     const accessCheckedAt = offer.availabilityCheckedAt || null;
@@ -287,6 +293,8 @@
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>SRP</span><strong>${displayPrice}</strong></div>
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
+      ${providers ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
+      ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · 최대 ${formatWon(offer.cardMaxDiscount)}`)}</strong></div>` : ""}
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
       <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
       ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}
