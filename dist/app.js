@@ -197,6 +197,13 @@
       const mine = offer.role === "mine";
       const current = activeView === "current";
       const price = current ? offer.finalPrice : offer.referencePrice;
+      const srp = mine && Number.isFinite(offer.srp) ? offer.srp : offer.displayPrice;
+      const instantDiscount = mine && Number.isFinite(srp) && Number.isFinite(offer.observedListPrice) && srp >= offer.observedListPrice
+        ? srp - offer.observedListPrice
+        : offer.instantDiscount;
+      const couponDiscount = mine && Number.isFinite(offer.observedListPrice) && Number.isFinite(offer.finalPrice) && offer.observedListPrice >= offer.finalPrice
+        ? offer.observedListPrice - offer.finalPrice
+        : offer.couponDiscount;
       const difference = current && !mine && Number.isFinite(offer.finalPrice)
         ? offer.finalPrice - stats.mine.finalPrice
         : null;
@@ -222,9 +229,9 @@
             </span>
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
-          <td data-label="SRP">${formatWon(offer.displayPrice)}</td>
-          <td data-label="즉시할인">${current ? discountText(offer.instantDiscount) : '<span class="unknown">—</span>'}</td>
-          <td data-label="쿠폰">${current ? discountText(offer.couponDiscount) : '<span class="unknown">—</span>'}</td>
+          <td data-label="SRP">${formatWon(srp)}</td>
+          <td data-label="즉시할인">${current ? discountText(instantDiscount) : '<span class="unknown">—</span>'}</td>
+          <td data-label="쿠폰">${current ? discountText(couponDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="카드할인">${current ? discountText(offer.cardDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
