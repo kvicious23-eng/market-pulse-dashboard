@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-09-14T13:14:00+09:00",
+    "snapshotAt": "2026-09-14T19:42:57+09:00",
     "sourceFile": "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
     "comparisonBasis": "동일 MTM·용량의 당일 공개가와 배송비 기준. 내 쿠팡은 exact Item ID 직접 수집가의 카드 적용 전 공개 실구매가를 사용",
     "exclusions": "개인화 쿠폰·적립금·조건부 카드/멤버십 가격은 기본 비교에서 제외. 다나와 쿠팡 항목은 당일 Item ID 미검증 시 참고로 분리",
@@ -11,12 +11,12 @@ window.MARKET_DATA = {
       "dashboardSync": "GitHub Pages 자동 반영",
       "lastAttemptAt": "2026-09-14T13:14:00+09:00",
       "lastAttemptStatus": "success",
-      "lastAttemptText": "쿠팡 exact Item ID 현재가 3/3 확인 · 다나와 상세 경쟁가 3/3 확인 · 출시가 오인 자동수집 교정",
+      "lastAttemptText": "쿠팡 exact Item ID 현재가 3/3 확인(13:13~13:14) · 다나와 상세 경쟁가 3/3 재확인(19:42) · 출시가 오인 자동수집 교정",
       "collectionRoute": "Windows Chrome exact Item ID + 공개 웹 다나와 상세",
-      "competitionLastAttemptAt": "2026-09-14T13:14:00+09:00",
+      "competitionLastAttemptAt": "2026-09-14T19:42:57+09:00",
       "alertEvaluation": "83N3003DKR 가격 역전 1,000원 확인"
     },
-    "updatedAt": "2026-09-14T13:14:00+09:00"
+    "updatedAt": "2026-09-14T19:42:57+09:00"
   },
   "products": [
     {
@@ -71,12 +71,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "현금 구매가. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -92,12 +92,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유가. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -113,12 +113,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "레노버 공식 판매가. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845739",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         }
       ],
       "references": [
@@ -135,7 +135,7 @@ window.MARKET_DATA = {
           "conditionalLabel": "신한카드 결제 시",
           "condition": "기본 공개가 979,000원, 신한카드 결제 시 829,000원. 다나와→쿠팡 연결 Item ID를 이번 조사에서 재추출하지 못해 내 상품 근거와 기본 비교에서 제외.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "C",
           "confidenceText": "당일 가격은 확인했으나 연결 Item ID를 이번 환경에서 재추출하지 못해 현재 비교 제외",
           "url": "https://prod.danawa.com/info/?pcode=95845739"
@@ -195,7 +195,7 @@ window.MARKET_DATA = {
       "srp": 1109000,
       "sourceSellerCount": 6,
       "summary": {
-        "updatedAt": "2026-09-14T13:14:00+09:00",
+        "updatedAt": "2026-09-14T19:42:57+09:00",
         "minePrice": 849000,
         "competitorBest": 988000,
         "difference": 139000,
@@ -255,12 +255,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -276,12 +276,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "현금 구매가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -297,12 +297,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "레노버 공식 판매가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=95845826",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         }
       ],
       "references": [
@@ -319,7 +319,7 @@ window.MARKET_DATA = {
           "conditionalLabel": null,
           "condition": "다나와 쿠팡 항목 1,177,000원. 연결 Item ID를 이번 조사에서 재추출하지 못해 exact Item ID 직접 수집가를 우선하고 이 값은 참고로 분리.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "C",
           "confidenceText": "당일 가격은 확인했으나 연결 Item ID를 이번 환경에서 재추출하지 못해 현재 비교 제외",
           "url": "https://prod.danawa.com/info/?pcode=95845826"
@@ -349,7 +349,7 @@ window.MARKET_DATA = {
       "srp": 1159000,
       "sourceSellerCount": 6,
       "summary": {
-        "updatedAt": "2026-09-14T13:14:00+09:00",
+        "updatedAt": "2026-09-14T19:42:57+09:00",
         "minePrice": 1047000,
         "competitorBest": 1046000,
         "difference": -1000,
@@ -409,12 +409,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "현금 구매가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -430,12 +430,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "레노버 공식 판매가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         },
         {
           "role": "competitor",
@@ -451,12 +451,12 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "다나와 경유가. 무료배송. 공개 추가 쿠폰·카드 혜택 미노출.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "B",
           "confidenceText": "당일 다나와 상세에서 정확 MTM·용량·가격·무료배송 확인",
           "url": "https://prod.danawa.com/info/?pcode=122647414",
-          "availabilityCheckedAt": "2026-09-14 13:14",
-          "priceCheckedAt": "2026-09-14 13:14"
+          "availabilityCheckedAt": "2026-09-14 19:42",
+          "priceCheckedAt": "2026-09-14 19:42"
         }
       ],
       "references": [
@@ -473,7 +473,7 @@ window.MARKET_DATA = {
           "conditionalLabel": null,
           "condition": "다나와 쿠팡 항목 1,549,800원. 연결 Item ID를 이번 조사에서 재추출하지 못해 exact Item ID 직접 수집가를 우선하고 이 값은 참고로 분리.",
           "sourceType": "다나와 상세 가격비교",
-          "checkedAt": "2026-09-14 13:14",
+          "checkedAt": "2026-09-14 19:42",
           "confidence": "C",
           "confidenceText": "당일 가격은 확인했으나 연결 Item ID를 이번 환경에서 재추출하지 못해 현재 비교 제외",
           "url": "https://prod.danawa.com/info/?pcode=122647414"
@@ -503,7 +503,7 @@ window.MARKET_DATA = {
       "srp": 1199000,
       "sourceSellerCount": 6,
       "summary": {
-        "updatedAt": "2026-09-14T13:14:00+09:00",
+        "updatedAt": "2026-09-14T19:42:57+09:00",
         "minePrice": 939000,
         "competitorBest": 1485000,
         "difference": 546000,
@@ -514,7 +514,7 @@ window.MARKET_DATA = {
   ],
   "history": [
     {
-      "snapshotAt": "2026-09-14T13:14:00+09:00",
+      "snapshotAt": "2026-09-14T19:42:57+09:00",
       "status": "verified",
       "source": "exact Item ID Chrome + Danawa detail",
       "products": {
