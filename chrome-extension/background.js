@@ -61,7 +61,11 @@ async function readDisplayedPrice(expectedItemId) {
       const parsed=JSON.parse(node.textContent);
       const walk=value=>{
         if (!value || typeof value!=='object') return;
-        if (value.price) addCandidate(value.price,'json-ld',value.name||value['@type']||'');
+        if (value.price) {
+          const type=String(value['@type']||'');
+          const source=/UnitPriceSpecification/i.test(type)?'json-ld-unit-price':'json-ld';
+          addCandidate(value.price,source,value.name||type||'');
+        }
         for (const child of Object.values(value)) if (typeof child==='object') walk(child);
       };
       walk(parsed);
@@ -78,12 +82,18 @@ async function readDisplayedPrice(expectedItemId) {
     '[class*="price-value"]',
     '[data-price]'
   ];
+  const positionedPrices=[];
   for (const selector of selectors) {
     for (const node of document.querySelectorAll(selector)) {
       const style = getComputedStyle(node);
       const rect = node.getBoundingClientRect();
       if (style.display === 'none' || style.visibility === 'hidden') continue;
-      addCandidate(node.getAttribute('data-price') || node.textContent, selector, node.parentElement?.innerText || node.textContent);
+      const raw=node.getAttribute('data-price')||node.textContent;
+      addCandidate(raw,selector,node.parentElement?.innerText||node.textContent);
+      const price=Number(String(raw??'').replace(/[^0-9]/g,''));
+      if (rect.width>0&&rect.height>0&&price>=250000&&price<=7000000) {
+        positionedPrices.push({price,top:rect.top+scrollY,left:rect.left+scrollX,selector});
+      }
     }
   }
   const wonMatches = bodyText.match(/(?:[0-9]{1,3},){1,2}[0-9]{3}\s*원/g) || [];
@@ -93,7 +103,7 @@ async function readDisplayedPrice(expectedItemId) {
     || candidates.find(x=>x.source==='json-ld')
     || candidates.find(x=>x.source.startsWith('meta'));
   const strikeCandidates=[];
-  for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]','del','s']) {
+  for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]']) {
     for (const node of document.querySelectorAll(selector)) {
       const style=getComputedStyle(node);
       const digits=(node.textContent||'').replace(/[^0-9]/g,'');
@@ -101,10 +111,16 @@ async function readDisplayedPrice(expectedItemId) {
       if (style.display!=='none'&&style.visibility!=='hidden'&&price>=250000&&price<=7000000) strikeCandidates.push({price,selector});
     }
   }
-  // Coupang can render additional crossed-out prices for other variants or
-  // promotions. Preserve selector/DOM priority so the main product price's
-  // visible `.prod-origin-price` wins instead of choosing the lowest value.
-  const strike=preferred ? strikeCandidates.find(x=>x.price>=preferred.price) : null;
+  // UnitPriceSpecification belongs to the active offer. Generic <del>/<s>
+  // nodes also contain other variants and recommendations, so never use them.
+  const jsonStrike=candidates.find(x=>x.source==='json-ld-unit-price'&&(!preferred||x.price>=preferred.price));
+  const topVisiblePrice=positionedPrices
+    .filter(x=>!preferred||x.price>=preferred.price)
+    .sort((a,b)=>a.top-b.top||a.left-b.left)[0];
+  const strike=jsonStrike
+    ? {price:jsonStrike.price,selector:jsonStrike.source}
+    : preferred ? (strikeCandidates.find(x=>x.price>=preferred.price)
+      || (topVisiblePrice?{price:topVisiblePrice.price,selector:'top-visible-price'}:null)) : null;
   let cardDiscount=null;
   let cardRate=null;
   let cardMaxDiscount=null;
@@ -122,16 +138,35 @@ async function readDisplayedPrice(expectedItemId) {
     const summaryRoot=summaryNodes[0]||null;
     const summaryText=compact(summaryRoot);
     let detailText='';
+    let detailRoot=null;
     if (summaryRoot) {
-      const controls=[...summaryRoot.querySelectorAll('button,a,[role="button"]')].filter(visible);
-      const detailControl=controls.find(node=>/와우\s*전용|상세|안내/.test(`${compact(node)} ${node.getAttribute('aria-label')||''} ${node.title||''}`))||controls.at(-1);
-      if (detailControl) {
-        detailControl.click();
-        await new Promise(resolve=>setTimeout(resolve,900));
-        const layers=[...document.querySelectorAll('[role="dialog"],[class*="modal"],[class*="layer"],[class*="popover"]')]
-          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<8000)
+      const areas=[];
+      for (let node=summaryRoot,depth=0;node&&depth<5;node=node.parentElement,depth++) areas.push(node);
+      const controls=[...new Set(areas.flatMap(area=>[
+        ...area.querySelectorAll('button,a,[role="button"],[tabindex],svg')
+      ].map(node=>node.tagName==='svg'?(node.closest('button,a,[role="button"],[tabindex]')||node.parentElement):node)))]
+        .filter(node=>node&&visible(node));
+      const controlText=node=>`${compact(node)} ${node.getAttribute('aria-label')||''} ${node.title||''} ${node.getAttribute('data-tooltip')||''}`;
+      controls.sort((a,b)=>{
+        const score=node=>/와우\s*전용|카드|할인|혜택|상세|안내/.test(controlText(node))?0:1;
+        return score(a)-score(b);
+      });
+      const readDetail=()=>{
+        const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
+          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
           .sort((a,b)=>compact(a).length-compact(b).length);
-        detailText=compact(layers[0]);
+        return layers.find(node=>/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(compact(node)))||layers[0]||null;
+      };
+      for (const detailControl of controls.slice(0,8)) {
+        detailControl.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+        detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
+        detailControl.click();
+        await new Promise(resolve=>setTimeout(resolve,700));
+        detailRoot=readDetail();
+        if (detailRoot) {
+          detailText=compact(detailRoot);
+          if (/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(detailText)) break;
+        }
       }
     }
     cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
@@ -139,13 +174,13 @@ async function readDisplayedPrice(expectedItemId) {
     cardProviders=knownCards.filter(card=>cardBenefitText.includes(card));
     const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
     const parseCap=text=>{
-      const match=text.match(/(?:최대\s*(?:할인\s*)?(?:금액|한도)?|할인\s*한도)[^0-9]{0,12}([0-9][0-9,]*)\s*원/);
-      return match?Number(match[1].replace(/,/g,'')):0;
+      const match=text.match(/(?:최대\s*(?:할인\s*)?(?:금액|한도)?|할인\s*(?:금액|한도))[^0-9]{0,20}([0-9][0-9,.]*)\s*(만원|천원|원)/);
+      if (!match) return 0;
+      const amount=Number(match[1].replace(/,/g,''));
+      return Math.round(amount*(match[2]==='만원'?10000:match[2]==='천원'?1000:1));
     };
     const benefitRows=[];
-    const detailRoot=[...document.querySelectorAll('[role="dialog"],[class*="modal"],[class*="layer"],[class*="popover"]')]
-      .find(node=>visible(node)&&compact(node)===detailText);
-    for (const node of detailRoot?.querySelectorAll('tr,li,div')||[]) {
+    for (const node of detailRoot?.querySelectorAll('tr,li,div,p')||[]) {
       const text=compact(node);
       if (text.length<10||text.length>700||!/%/.test(text)||!/원/.test(text)) continue;
       const rate=parseRate(text),cap=parseCap(text);
@@ -154,7 +189,7 @@ async function readDisplayedPrice(expectedItemId) {
       benefitRows.push({rate,cap,providers});
     }
     if (!benefitRows.length) {
-      const rate=parseRate(summaryText||detailText);
+      const rate=parseRate(summaryText)||parseRate(detailText);
       const cap=parseCap(detailText);
       if (rate&&cap) benefitRows.push({rate,cap,providers:cardProviders});
     }
@@ -169,7 +204,7 @@ async function readDisplayedPrice(expectedItemId) {
       if (calculated[0].providers.length) cardProviders=calculated[0].providers;
     }
   }
-  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
