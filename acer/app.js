@@ -2,7 +2,7 @@
   "use strict";
 
   const data = window.MARKET_DATA;
-  if (!data?.products?.length) throw new Error("가격 데이터가 없습니다.");
+  if (!data || !Array.isArray(data.products)) throw new Error("가격 데이터 형식이 올바르지 않습니다.");
 
   const $ = (selector) => document.querySelector(selector);
   const refs = {
@@ -27,6 +27,18 @@
     methodDialog: $("#methodDialog"),
     exportExcel: $("#exportExcel")
   };
+
+  if (!data.products.length) {
+    refs.totalCount.textContent = "0";
+    refs.winCount.textContent = "0";
+    refs.overviewEyebrow.textContent = "0 MTM OVERVIEW";
+    refs.pageTitle.innerHTML = '등록 상품<br /><em>없음.</em>';
+    refs.heroSummary.textContent = "관리 화면에서 활성 상품을 등록하면 이 브랜드 대시보드가 자동으로 채워집니다.";
+    refs.productGrid.innerHTML = '<div class="empty-state">현재 활성화된 상품이 없습니다.</div>';
+    refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>비교할 상품이 없습니다.</strong><span>상품을 등록하고 다음 수집을 완료하면 가격 비교가 시작됩니다.</span></span></span></div>';
+    refs.exportExcel.disabled = true;
+    return;
+  }
 
   const hashMtm = decodeURIComponent(location.hash.replace(/^#/, ""));
   let activeMtm = data.products.some((product) => product.mtm === hashMtm)
@@ -59,6 +71,11 @@
     return `−${value.toLocaleString("ko-KR")}원`;
   }
 
+  function cardDiscountText(offer) {
+    if (offer?.cardBenefitStatus === "none") return "0원";
+    return discountText(offer?.cardDiscount);
+  }
+
   function formatDiff(value) {
     if (!Number.isFinite(value)) return "—";
     if (value === 0) return "동일";
@@ -87,10 +104,16 @@
   }
 
   function cardStatusText(value) {
-    if (value === "captured") return "정상 수집";
-    if (value === "none") return "카드 혜택 없음";
+    if (value === "captured") return "수집 완료";
+    if (value === "none") return "혜택 없음";
     if (value === "partial") return "상세정보 미수집";
     return "미확인";
+  }
+
+  function effectiveFinalPrice(offer) {
+    if (!offer || !Number.isFinite(offer.finalPrice)) return null;
+    if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
+    return offer.finalPrice;
   }
 
   function exportMyProducts() {
@@ -108,7 +131,8 @@
       return [
         brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
         mine.seller, mine.channel, mine.status, breakdown.srp, breakdown.basisPrice, basisTypeText(mine.priceBasisType), breakdown.instantDiscount, breakdown.couponDiscount,
-        cardStatusText(mine.cardBenefitStatus), mine.cardDiscount, breakdown.preCardPrice, mine.finalPrice, mine.shipping,
+        cardStatusText(mine.cardBenefitStatus), mine.cardBenefitStatus === "none" ? 0 : mine.cardDiscount,
+        breakdown.preCardPrice, effectiveFinalPrice(mine), mine.shipping,
         Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
         mine.cardRate, mine.cardMaxDiscount, mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
@@ -141,10 +165,11 @@
       .filter((offer) => offer.role === "competitor" && Number.isFinite(offer.finalPrice))
       .sort((a, b) => a.finalPrice - b.finalPrice);
     const competitorBest = competitors[0] || null;
-    const mineReady = Number.isFinite(mine?.finalPrice);
-    const difference = mineReady && competitorBest ? competitorBest.finalPrice - mine.finalPrice : null;
-    const undercutters = mineReady ? competitors.filter((offer) => offer.finalPrice < mine.finalPrice) : [];
-    return { mine, competitors, competitorBest, difference, undercutters };
+    const mineFinalPrice = effectiveFinalPrice(mine);
+    const mineReady = Number.isFinite(mineFinalPrice);
+    const difference = mineReady && competitorBest ? competitorBest.finalPrice - mineFinalPrice : null;
+    const undercutters = mineReady ? competitors.filter((offer) => offer.finalPrice < mineFinalPrice) : [];
+    return { mine, mineFinalPrice, competitors, competitorBest, difference, undercutters };
   }
 
   function activeProduct() {
@@ -191,7 +216,7 @@
       refs.heroSummary.textContent = "현재 가격이 확인된 모델의 공개 실구매가를 비교했습니다.";
     } else {
       refs.pageTitle.innerHTML = `${total}개 모델<br /><em>가격 확인 중.</em>`;
-      refs.heroSummary.textContent = "상품 식별자는 검증 완료했습니다. 내 쿠팡 가격은 직접 확인되거나 마지막으로 검증된 값만 표시합니다.";
+      refs.heroSummary.textContent = "상품 등록을 마쳤습니다. 첫 가격 수집 후 비교 결과가 표시됩니다.";
     }
 
     $("#basisText").textContent = data.meta.comparisonBasis;
@@ -209,11 +234,14 @@
   }
 
   function watchForPublishedData() {
+    const dataScript = [...document.scripts].find((script) => /market-data\.js(?:\?|$)/.test(script.src));
+    const dataUrl = dataScript?.src || new URL("./market-data.js", location.href).href;
     window.setInterval(async () => {
       try {
-        const response = await fetch(`./market-data.js?check=${Date.now()}`, { cache: "no-store" });
+        const separator = dataUrl.includes("?") ? "&" : "?";
+        const response = await fetch(`${dataUrl}${separator}check=${Date.now()}`, { cache: "no-store" });
         const source = await response.text();
-        const latest = source.match(/["\']?snapshotAt["\']?\s*:\s*"([^"]+)"/)?.[1];
+        const latest = source.match(/["']?snapshotAt["']?\s*:\s*"([^"]+)"/)?.[1];
         if (latest && latest !== data.meta.snapshotAt) location.reload();
       } catch {
         // 다음 확인 주기에 다시 시도합니다.
@@ -236,7 +264,7 @@
             <span class="status status--${known ? (winning ? "win" : "lose") : "pending"}">${known ? (winning ? "내 상품 우위" : "가격 역전") : "확인 중"}</span>
           </span>
           <span class="product-card__prices">
-            <span><span>내 쿠팡 실구매가</span><strong>${formatWon(stats.mine?.finalPrice)}</strong></span>
+            <span><span>내 쿠팡 실구매가</span><strong>${formatWon(stats.mineFinalPrice)}</strong></span>
             <span><span>경쟁 최저가</span><strong>${formatWon(stats.competitorBest?.finalPrice)}</strong></span>
           </span>
           <span class="product-card__gap">
@@ -257,9 +285,9 @@
     }
 
     const stats = productStats(product);
-    const ready = Number.isFinite(stats.mine?.finalPrice) && Number.isFinite(stats.competitorBest?.finalPrice);
+    const ready = Number.isFinite(stats.mineFinalPrice) && Number.isFinite(stats.competitorBest?.finalPrice);
     if (!ready) {
-      refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>내 쿠팡 가격을 확인하지 못했습니다.</strong><span>상품 식별자는 검증됐으며, 확인되지 않은 가격은 비교에서 제외합니다.</span></span></span></div>';
+      refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>비교가격을 확인하지 못했습니다.</strong><span>카드 상세정보와 경쟁가격이 모두 확인된 경우에만 최종 가격을 비교합니다.</span></span></span></div>';
       return;
     }
     const alert = stats.undercutters.length > 0;
@@ -291,15 +319,16 @@
       const srp = mine ? breakdown.srp : offer.displayPrice;
       const instantDiscount = mine ? breakdown.instantDiscount : offer.instantDiscount;
       const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
-      const difference = current && !mine && Number.isFinite(offer.finalPrice) && Number.isFinite(stats.mine?.finalPrice)
-        ? offer.finalPrice - stats.mine.finalPrice
+      const offerFinalPrice = current ? effectiveFinalPrice(offer) : null;
+      const difference = current && !mine && Number.isFinite(offerFinalPrice) && Number.isFinite(stats.mineFinalPrice)
+        ? offerFinalPrice - stats.mineFinalPrice
         : null;
       const best = current && !mine && offer === stats.competitorBest;
-      const alert = current && !mine && Number.isFinite(difference) && difference < 0;
+      const alert = current && !mine && difference < 0;
       const rowClass = mine ? "is-mine" : alert ? "is-alert" : best ? "is-best" : "";
       const statusClass = current ? "active" : "stale";
       const finalCell = current
-        ? `<strong class="price">${formatWon(offer.finalPrice + (offer.shipping || 0))}</strong>${offer.conditionalBest ? `<span class="conditional">${escapeHtml(offer.conditionalLabel)} ${formatWon(offer.conditionalBest)}</span>` : ""}`
+        ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>${offer.conditionalBest ? `<span class="conditional">${escapeHtml(offer.conditionalLabel)} ${formatWon(offer.conditionalBest)}</span>` : ""}`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
       const diffCell = mine
         ? '<span class="diff diff--base">비교 기준</span>'
@@ -319,7 +348,7 @@
           <td data-label="SRP">${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</td>
           <td data-label="즉시할인">${current ? discountText(instantDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="쿠폰">${current ? discountText(couponDiscount) : '<span class="unknown">—</span>'}</td>
-          <td data-label="카드할인">${current ? discountText(offer.cardDiscount) : '<span class="unknown">—</span>'}</td>
+          <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
           <td data-label="신뢰도"><span class="confidence confidence--${confidenceClass(offer.confidence)}">${escapeHtml(offer.confidence)}</span></td>
@@ -358,7 +387,7 @@
     const displayPrice = mine
       ? (Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : "SRP 미입력")
       : (Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인");
-    const finalValue = activeView === "current" ? offer.finalPrice : offer.referencePrice;
+    const finalValue = activeView === "current" ? effectiveFinalPrice(offer) : offer.referencePrice;
     const providers = Array.isArray(offer.cardProviders) ? offer.cardProviders.filter(Boolean).join(', ') : '';
     refs.evidenceTitle.textContent = offer.seller;
     const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
@@ -373,7 +402,7 @@
       <div class="evidence__item"><span>쿠폰</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
-      <div class="evidence__item"><span>카드할인 금액</span><strong>${discountText(offer.cardDiscount)}</strong></div>` : ""}
+      <div class="evidence__item"><span>카드할인 금액</span><strong>${cardDiscountText(offer)}</strong></div>` : ""}
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       ${providers ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
       ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · 최대 ${formatWon(offer.cardMaxDiscount)}`)}</strong></div>` : ""}

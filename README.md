@@ -1,6 +1,6 @@
 # Market Pulse Dashboard
 
-Lenovo Slim 3x 3MTM 가격 모니터링 대시보드입니다.
+Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드입니다.
 
 ## 자동 실행
 
@@ -14,9 +14,10 @@ Lenovo Slim 3x 3MTM 가격 모니터링 대시보드입니다.
 GitHub Actions 스케줄은 UTC 기준이며 혼잡 시 몇 분 지연될 수 있습니다.
 
 
-## Acer dashboard
+## 브랜드 대시보드
 
-- 10개 Acer MTM 별도 모니터링: `/acer/`
+- Lenovo: `/brand/lenovo/`
+- Acer: `/brand/acer/`
+- 신규 브랜드: 상품 관리 화면에서 저장 후 `/brand/{브랜드}/` 자동 생성
 - 매일 오전 10:00 KST 기본+정밀 조사 및 자동 배포
 - 동일 MTM·Item ID가 확인된 가격만 현재가로 반영
-- 입력 검증 필요: SFG16-74-7412/SFG16-I71-75Y2 URL 중복, SFG16-74-70E9 vendorItemId 길이 이상

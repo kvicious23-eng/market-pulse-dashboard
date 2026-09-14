@@ -82,7 +82,6 @@ jobs:
         with:
           ref: main
       - uses: actions/configure-pages@v5
-        continue-on-error: true
         with:
           enablement: true
       - uses: actions/upload-pages-artifact@v3
@@ -90,5 +89,4 @@ jobs:
           path: .
       - name: Deploy dashboard
         id: deployment
-        continue-on-error: true
         uses: actions/deploy-pages@v4

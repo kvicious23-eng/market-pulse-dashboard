@@ -238,7 +238,9 @@ function readDanawaSellers(expectedMtm) {
 async function scanAll() {
   const lock = await chrome.storage.local.get(['running','runningStartedAt']);
   const lockAge = Date.now() - Number(lock.runningStartedAt || 0);
-  if (lock.running && lock.runningStartedAt && lockAge < 5 * 60 * 1000) return;
+  // A full multi-brand pass can take well over five minutes. Keep a one-hour
+  // lock so a second manual click cannot start an overlapping scan.
+  if (lock.running && lock.runningStartedAt && lockAge < 60 * 60 * 1000) return;
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
   const results = [];
   try {

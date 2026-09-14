@@ -178,7 +178,10 @@ foreach ($spec in $specs) {
       $preCardPrice=[long]$result.price + [long]($mine.shipping)
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
       $cardDiscount=if ($cardBenefitStatus -eq 'none') {0}elseif($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
-      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$preCardPrice}
+      # A missing card-detail result is not the same as a zero discount.
+      # Publish a final purchase price only when the benefit was captured or
+      # the page explicitly confirmed that no card benefit exists.
+      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
       $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {[long]$result.srp}else{$null}
       $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge [long]$result.price) {[long]$result.strikePrice}else{$null}
       $mine.displayPrice=$srp
