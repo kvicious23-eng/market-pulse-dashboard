@@ -25,6 +25,14 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
+# Version 1 results were produced before reliable main-price and card-detail
+# capture. Ignore them so installing an update cannot overwrite good dashboard
+# data with a stale, incompatible scan.
+if ([int]$payload.version -lt 2) {
+  Write-Host 'Skipping an older scan file. Run scanner version 1.2.3 or newer.'
+  exit 0
+}
+
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 
