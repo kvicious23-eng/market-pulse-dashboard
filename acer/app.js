@@ -233,7 +233,7 @@
             </span>
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
-          <td data-label="표시가격">${formatWon(offer.displayPrice)}</td>
+          <td data-label="SRP">${formatWon(offer.displayPrice)}</td>
           <td data-label="즉시할인">${current ? discountText(offer.instantDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="쿠폰">${current ? discountText(offer.couponDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="카드할인">${current ? discountText(offer.cardDiscount) : '<span class="unknown">—</span>'}</td>
@@ -278,7 +278,7 @@
     refs.evidenceContent.innerHTML = `
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
-      <div class="evidence__item"><span>표시가격</span><strong>${displayPrice}</strong></div>
+      <div class="evidence__item"><span>SRP</span><strong>${displayPrice}</strong></div>
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
       <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
