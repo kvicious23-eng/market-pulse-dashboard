@@ -142,29 +142,30 @@ async function readDisplayedPrice(expectedItemId) {
     let detailText='';
     let detailRoot=null;
     if (summaryRoot) {
-      const areas=[];
-      for (let node=summaryRoot,depth=0;node&&depth<5;node=node.parentElement,depth++) areas.push(node);
-      const controls=[...new Set(areas.flatMap(area=>[
-        ...area.querySelectorAll('button,a,[role="button"],[tabindex],svg')
-      ].map(node=>node.tagName==='svg'?(node.closest('button,a,[role="button"],[tabindex]')||node.parentElement):node)))]
-        .filter(node=>node&&visible(node));
-      const controlText=node=>`${compact(node)} ${node.getAttribute('aria-label')||''} ${node.title||''} ${node.getAttribute('data-tooltip')||''}`;
-      controls.sort((a,b)=>{
-        const score=node=>/와우\s*전용|카드|할인|혜택|상세|안내/.test(controlText(node))?0:1;
-        return score(a)-score(b);
-      });
+      // Only inspect controls located inside the smallest card-benefit summary.
+      // Never click anchors, generic tabindex elements, surrounding product
+      // areas, or recommendation links.
+      const controls=[...new Set([
+        summaryRoot,
+        ...summaryRoot.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg')
+      ].map(node=>node.tagName==='svg'?(node.closest('button,[role="button"]')||node.parentElement):node))]
+        .filter(node=>node&&visible(node)&&node.tagName!=='A'&&!node.closest('a[href]'));
       const readDetail=()=>{
         const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
           .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
           .sort((a,b)=>compact(a).length-compact(b).length);
         return layers.find(node=>/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(compact(node)))||layers[0]||null;
       };
-      for (const detailControl of controls.slice(0,8)) {
+      for (const detailControl of controls.slice(0,5)) {
         detailControl.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
         detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
-        detailControl.click();
         await new Promise(resolve=>setTimeout(resolve,700));
         detailRoot=readDetail();
+        if (!detailRoot && (detailControl.tagName==='BUTTON'||detailControl.getAttribute('role')==='button')) {
+          detailControl.click();
+          await new Promise(resolve=>setTimeout(resolve,700));
+          detailRoot=readDetail();
+        }
         if (detailRoot) {
           detailText=compact(detailRoot);
           if (/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(detailText)) break;
@@ -243,6 +244,13 @@ async function scanAll() {
   if (lock.running && lock.runningStartedAt && lockAge < 60 * 60 * 1000) return;
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
   const results = [];
+  const closeChildTabs = async (openerTabId) => {
+    const childIds=(await chrome.tabs.query({}))
+      .filter(candidate=>candidate.openerTabId===openerTabId)
+      .map(candidate=>candidate.id)
+      .filter(Number.isInteger);
+    if (childIds.length) await chrome.tabs.remove(childIds).catch(()=>{});
+  };
   try {
     const targets=(await getTargets()).filter(x=>x.enabled!==false);
     for (const target of targets) {
@@ -254,7 +262,10 @@ async function scanAll() {
         const injected = await chrome.scripting.executeScript({
           target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
         });
-        const priceScan=injected[0].result;
+        const priceScan=injected?.[0]?.result;
+        if (!priceScan || typeof priceScan !== 'object') {
+          throw new Error('scan-script-no-result');
+        }
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if (target.danawaUrl) {
           let danawaTab;
@@ -276,6 +287,7 @@ async function scanAll() {
       } catch (error) {
         results.push({...target, ok:false, reason:String(error), checkedAt:new Date().toISOString()});
       } finally {
+        if (tab?.id) await closeChildTabs(tab.id).catch(()=>{});
         if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
       }
       // A slower cadence reduces Coupang's temporary access-check response.
@@ -292,10 +304,11 @@ async function scanAll() {
         const retried=await chrome.scripting.executeScript({
           target:{tabId:retryTab.id},func:readDisplayedPrice,args:[result.itemId]
         });
-        const retryScan=retried[0].result;
-        if (retryScan.ok) Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+        const retryScan=retried?.[0]?.result;
+        if (retryScan?.ok) Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
       } catch (_) {
       } finally {
+        if (retryTab?.id) await closeChildTabs(retryTab.id).catch(()=>{});
         if (retryTab?.id) await chrome.tabs.remove(retryTab.id).catch(()=>{});
       }
       await wait(20000);
