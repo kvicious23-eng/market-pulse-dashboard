@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-09-14T11:35:12+09:00",
+                 "snapshotAt":  "2026-09-14T13:21:11+09:00",
                  "sourceFile":  "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
                  "comparisonBasis":  "당일 다나와 상세에서 확인된 동일 MTM 판매가와 배송비 기준. 내 쿠팡은 동일 Item ID가 이번 조사에서 재검증된 경우에만 경보 기준가로 사용",
                  "exclusions":  "개인화 쿠폰, 적립금, 조건부 멤버십 최대혜택은 기본 비교가에서 제외. 당일 Item ID 미검증 내 가격은 경보 판정에서 제외",
@@ -9,7 +9,7 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 10:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-09-14T11:35:12+09:00",
+                                    "lastAttemptAt":  "2026-09-14T13:21:11+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Lenovo 일반 Chrome 조사 · 현재가 확인 3/3",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
@@ -19,21 +19,17 @@ window.MARKET_DATA = {
              },
     "products":  [
                      {
-                         "mtm":  "83N30037KR",
                          "storage":  "512GB",
                          "display":  "15.3형 WUXGA · 300nit",
-                         "productId":  "9235110727",
-                         "itemId":  "27303279355",
-                         "vendorItemId":  "95415897534",
                          "offers":  [
                                         {
                                             "role":  "mine",
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  849000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1109000,
+                                            "instantDiscount":  230000,
+                                            "couponDiscount":  30000,
                                             "cardDiscount":  0,
                                             "finalPrice":  849000,
                                             "shipping":  0,
@@ -41,15 +37,15 @@ window.MARKET_DATA = {
                                             "conditionalLabel":  "와우할인 혜택 최대 적용",
                                             "condition":  "기본 공개가 979,000원. 조건부 849,000원은 카드결제·쿠팡 와우회원·N+멤버십 최대 혜택으로 기본 비교가에서 제외.",
                                             "sourceType":  "다나와 상세 가격비교 · 동일 Item ID 검증 이력",
-                                            "checkedAt":  "2026-09-14 11:27",
+                                            "checkedAt":  "2026-09-14 13:13",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303279355\u0026vendorItemId=95415897534",
                                             "alertEligible":  true,
-                                            "availabilityCheckedAt":  "2026-09-14 11:27",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:27"
+                                            "availabilityCheckedAt":  "2026-09-14 13:13",
+                                            "srp":  1109000,
+                                            "observedListPrice":  879000,
+                                            "priceCheckedAt":  "2026-09-14 13:13"
                                         },
                                         {
                                             "role":  "competitor",
@@ -158,38 +154,41 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "품절·과거가",
                                                 "url":  "https://item.gmarket.co.kr/Item?goodscode=4630430606"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "83N30037KR",
+                         "productId":  "9235110727",
+                         "itemId":  "27303279355",
+                         "vendorItemId":  "95415897534",
+                         "category":  "Notebook",
+                         "skuid":  "73525884",
+                         "srp":  1109000
                      },
                      {
-                         "mtm":  "83N3003DKR",
                          "storage":  "1TB",
                          "display":  "15.3형 WUXGA · 300nit",
-                         "productId":  "9235110727",
-                         "itemId":  "27303268765",
-                         "vendorItemId":  "95415897535",
                          "offers":  [
                                         {
                                             "role":  "mine",
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1047000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1159000,
+                                            "instantDiscount":  70000,
+                                            "couponDiscount":  42000,
                                             "cardDiscount":  0,
                                             "finalPrice":  1047000,
                                             "shipping":  0,
                                             "condition":  "직전 일반 Chrome 직접 확인가. 오늘 다나와 쿠팡 노출가 1,177,000원은 연결 Item ID를 재검증하지 못해 현재 내 가격으로 승계하지 않음.",
                                             "sourceType":  "쿠팡 검색 노출 + exact Item ID",
-                                            "checkedAt":  "2026-09-14 11:27",
+                                            "checkedAt":  "2026-09-14 13:13",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303268765\u0026vendorItemId=95415897535",
                                             "alertEligible":  false,
-                                            "availabilityCheckedAt":  "2026-09-14 11:27",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:27"
+                                            "availabilityCheckedAt":  "2026-09-14 13:13",
+                                            "srp":  1159000,
+                                            "observedListPrice":  1089000,
+                                            "priceCheckedAt":  "2026-09-14 13:13"
                                         },
                                         {
                                             "role":  "competitor",
@@ -268,38 +267,41 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "가격 인덱스 시차",
                                                 "url":  "https://prod.danawa.com/info/?pcode=95845826"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "83N3003DKR",
+                         "productId":  "9235110727",
+                         "itemId":  "27303268765",
+                         "vendorItemId":  "95415897535",
+                         "category":  "Notebook",
+                         "skuid":  "73525886",
+                         "srp":  1159000
                      },
                      {
-                         "mtm":  "83N30046KR",
                          "storage":  "512GB",
                          "display":  "15.1형 WQXGA · 500nit · DCI-P3 100%",
-                         "productId":  "8708708250",
-                         "itemId":  "25515648568",
-                         "vendorItemId":  "95415897536",
                          "offers":  [
                                         {
                                             "role":  "mine",
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  939000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1199000,
+                                            "instantDiscount":  201000,
+                                            "couponDiscount":  59000,
                                             "cardDiscount":  0,
                                             "finalPrice":  939000,
                                             "shipping":  0,
                                             "condition":  "직전 일반 Chrome 직접 확인가. 오늘 다나와 쿠팡 노출가 1,549,800원은 연결 Item ID를 재검증하지 못해 현재 내 가격으로 승계하지 않음.",
                                             "sourceType":  "쿠팡 검색 노출 + exact Item ID",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/8708708250?itemId=25515648568\u0026vendorItemId=95415897536",
                                             "alertEligible":  false,
-                                            "availabilityCheckedAt":  "2026-09-14 11:28",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:28"
+                                            "availabilityCheckedAt":  "2026-09-14 13:14",
+                                            "srp":  1199000,
+                                            "observedListPrice":  998000,
+                                            "priceCheckedAt":  "2026-09-14 13:14"
                                         },
                                         {
                                             "role":  "competitor",
@@ -378,7 +380,14 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "가격 인덱스 시차·직접 재검증 필요",
                                                 "url":  "https://search.danawa.com/dsearch.php?query=Slim5+16ABR8"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "83N30046KR",
+                         "productId":  "8708708250",
+                         "itemId":  "25515648568",
+                         "vendorItemId":  "95415897536",
+                         "category":  "Notebook",
+                         "skuid":  "73525899",
+                         "srp":  1199000
                      }
                  ]
 };

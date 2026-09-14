@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-09-14T11:35:12+09:00",
+                 "snapshotAt":  "2026-09-14T13:21:11+09:00",
                  "sourceFile":  "아쎄르_수정.xlsx",
                  "comparisonBasis":  "정확한 MTM·용량이 일치하는 개별 상품 페이지의 공개 판매가와 배송비 기준",
                  "exclusions":  "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
@@ -9,21 +9,17 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 10:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-09-14T11:35:12+09:00",
+                                    "lastAttemptAt":  "2026-09-14T13:21:11+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Acer 일반 Chrome 조사 · 현재가 확인 10/10",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-09-14T11:35:12+09:00"
+                                    "competitionLastAttemptAt":  "2026-09-14T13:21:11+09:00"
                                 }
              },
     "products":  [
                      {
-                         "mtm":  "ANV16-I31-514Z",
                          "storage":  "1TB",
                          "display":  "Nitro V 16",
-                         "productId":  "9573633117",
-                         "itemId":  "28575928128",
-                         "vendorItemId":  "95520178041",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -31,22 +27,40 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1477990,
+                                            "displayPrice":  1558000,
                                             "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "couponDiscount":  171010,
                                             "cardDiscount":  null,
                                             "finalPrice":  1477990,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28575928128\u0026vendorItemId=95520178041",
-                                            "availabilityCheckedAt":  "2026-09-14 11:28",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:28"
+                                            "availabilityCheckedAt":  "2026-09-14 13:14",
+                                            "srp":  1558000,
+                                            "observedListPrice":  1649000,
+                                            "priceCheckedAt":  "2026-09-14 13:14"
+                                        },
+                                        {
+                                            "role":  "competitor",
+                                            "channel":  "오픈마켓",
+                                            "seller":  "11번가",
+                                            "status":  "판매중",
+                                            "displayPrice":  1665280,
+                                            "instantDiscount":  null,
+                                            "couponDiscount":  null,
+                                            "cardDiscount":  null,
+                                            "finalPrice":  1665280,
+                                            "shipping":  0,
+                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
+                                            "sourceType":  "다나와 가격비교 판매처 목록",
+                                            "checkedAt":  "2026-09-14 13:14",
+                                            "confidence":  "B",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "url":  "https://prod.danawa.com/info/?pcode=122672194"
                                         },
                                         {
                                             "role":  "competitor",
@@ -61,7 +75,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -79,25 +93,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
-                                            "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=122672194"
-                                        },
-                                        {
-                                            "role":  "competitor",
-                                            "channel":  "오픈마켓",
-                                            "seller":  "11번가",
-                                            "status":  "판매중",
-                                            "displayPrice":  1665300,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
-                                            "cardDiscount":  null,
-                                            "finalPrice":  1665300,
-                                            "shipping":  0,
-                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
-                                            "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -115,7 +111,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -133,7 +129,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -141,7 +137,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "KTG",
+                                            "seller":  "슈프림컴",
                                             "status":  "판매중",
                                             "displayPrice":  1880000,
                                             "instantDiscount":  null,
@@ -151,7 +147,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -159,7 +155,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "노트피플",
+                                            "seller":  "스마일컴",
                                             "status":  "판매중",
                                             "displayPrice":  1648000,
                                             "instantDiscount":  null,
@@ -169,7 +165,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:28",
+                                            "checkedAt":  "2026-09-14 13:14",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122672194"
@@ -206,15 +202,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=ANV16-I31-514Z"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "ANV16-I31-514Z",
+                         "productId":  "9573633117",
+                         "itemId":  "28575928128",
+                         "vendorItemId":  "95520178041",
+                         "category":  "Notebook",
+                         "skuid":  "74357773",
+                         "srp":  1558000
                      },
                      {
-                         "mtm":  "AG14-I71M-972S",
                          "storage":  "512GB",
                          "display":  "Aspire Go 14",
-                         "productId":  "9681715061",
-                         "itemId":  "28951318769",
-                         "vendorItemId":  "95881909514",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -222,22 +221,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1259000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1429000,
+                                            "instantDiscount":  140000,
+                                            "couponDiscount":  30000,
                                             "cardDiscount":  null,
                                             "finalPrice":  1259000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318769\u0026vendorItemId=95881909514",
-                                            "availabilityCheckedAt":  "2026-09-14 11:29",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:29"
+                                            "availabilityCheckedAt":  "2026-09-14 13:15",
+                                            "srp":  1429000,
+                                            "observedListPrice":  1289000,
+                                            "priceCheckedAt":  "2026-09-14 13:15"
                                         },
                                         {
                                             "role":  "competitor",
@@ -252,7 +251,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -270,7 +269,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -288,7 +287,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -306,7 +305,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -324,7 +323,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -342,7 +341,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -350,7 +349,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "노트마켓씨엔씨",
+                                            "seller":  "피씨블랙",
                                             "status":  "판매중",
                                             "displayPrice":  1270000,
                                             "instantDiscount":  null,
@@ -360,7 +359,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:15",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123650595"
@@ -397,15 +396,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=AG14-I71M-972S"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "AG14-I71M-972S",
+                         "productId":  "9681715061",
+                         "itemId":  "28951318769",
+                         "vendorItemId":  "95881909514",
+                         "category":  "Notebook",
+                         "skuid":  "77524457",
+                         "srp":  1429000
                      },
                      {
-                         "mtm":  "AG14-I71M-96C5",
                          "storage":  "512GB",
                          "display":  "Aspire Go 14",
-                         "productId":  "9681715061",
-                         "itemId":  "28951318771",
-                         "vendorItemId":  "95881909515",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -413,22 +415,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1389000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1569000,
+                                            "instantDiscount":  109000,
+                                            "couponDiscount":  71000,
                                             "cardDiscount":  null,
                                             "finalPrice":  1389000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318771\u0026vendorItemId=95881909515",
-                                            "availabilityCheckedAt":  "2026-09-14 11:29",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:29"
+                                            "availabilityCheckedAt":  "2026-09-14 13:16",
+                                            "srp":  1569000,
+                                            "observedListPrice":  1460000,
+                                            "priceCheckedAt":  "2026-09-14 13:16"
                                         },
                                         {
                                             "role":  "competitor",
@@ -443,7 +445,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123763381"
@@ -461,7 +463,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123763381"
@@ -479,7 +481,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123763381"
@@ -487,7 +489,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "노트필(NOTEFEEL)",
+                                            "seller":  "바른컴",
                                             "status":  "판매중",
                                             "displayPrice":  1590000,
                                             "instantDiscount":  null,
@@ -497,7 +499,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:29",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=123763381"
@@ -534,15 +536,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=AG14-I71M-96C5"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "AG14-I71M-96C5",
+                         "productId":  "9681715061",
+                         "itemId":  "28951318771",
+                         "vendorItemId":  "95881909515",
+                         "category":  "Notebook",
+                         "skuid":  "77524458",
+                         "srp":  1569000
                      },
                      {
-                         "mtm":  "PHN16S-71-949J",
                          "storage":  "1TB",
                          "display":  "Predator Helios Neo 16S",
-                         "productId":  "9573633117",
-                         "itemId":  "26004597899",
-                         "vendorItemId":  "92986675922",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -550,22 +555,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  3032430,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  4099000,
+                                            "instantDiscount":  850000,
+                                            "couponDiscount":  216570,
                                             "cardDiscount":  null,
                                             "finalPrice":  3032430,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:30",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=26004597899\u0026vendorItemId=92986675922",
-                                            "availabilityCheckedAt":  "2026-09-14 11:30",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:30"
+                                            "availabilityCheckedAt":  "2026-09-14 13:16",
+                                            "srp":  4099000,
+                                            "observedListPrice":  3249000,
+                                            "priceCheckedAt":  "2026-09-14 13:16"
                                         },
                                         {
                                             "role":  "competitor",
@@ -580,7 +585,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:30",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=93445997"
@@ -598,7 +603,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:30",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=93445997"
@@ -616,7 +621,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:30",
+                                            "checkedAt":  "2026-09-14 13:16",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=93445997"
@@ -653,15 +658,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=PHN16S-71-949J"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "PHN16S-71-949J",
+                         "productId":  "9573633117",
+                         "itemId":  "26004597899",
+                         "vendorItemId":  "92986675922",
+                         "category":  "Notebook",
+                         "skuid":  "62173228",
+                         "srp":  4099000
                      },
                      {
-                         "mtm":  "SFG14-I71-57P5",
                          "storage":  "512GB",
                          "display":  "Swift Go 14 AI",
-                         "productId":  "9616664363",
-                         "itemId":  "28714706385",
-                         "vendorItemId":  "95655361667",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -669,22 +677,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1529000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1689000,
+                                            "instantDiscount":  40000,
+                                            "couponDiscount":  120000,
                                             "cardDiscount":  null,
                                             "finalPrice":  1529000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9616664363?itemId=28714706385\u0026vendorItemId=95655361667",
-                                            "availabilityCheckedAt":  "2026-09-14 11:31",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:31"
+                                            "availabilityCheckedAt":  "2026-09-14 13:17",
+                                            "srp":  1689000,
+                                            "observedListPrice":  1649000,
+                                            "priceCheckedAt":  "2026-09-14 13:17"
                                         },
                                         {
                                             "role":  "competitor",
@@ -699,7 +707,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -717,7 +725,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -735,7 +743,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -753,7 +761,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -771,7 +779,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -789,7 +797,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -797,7 +805,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "노트마켓씨엔씨",
+                                            "seller":  "노트캐슬",
                                             "status":  "판매중",
                                             "displayPrice":  1470000,
                                             "instantDiscount":  null,
@@ -807,7 +815,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:17",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719782"
@@ -844,15 +852,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SFG14-I71-57P5"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SFG14-I71-57P5",
+                         "productId":  "9616664363",
+                         "itemId":  "28714706385",
+                         "vendorItemId":  "95655361667",
+                         "category":  "Notebook",
+                         "skuid":  "75574102",
+                         "srp":  1689000
                      },
                      {
-                         "mtm":  "SFG14-75-508U",
                          "storage":  "1TB",
                          "display":  "Swift Go 14 AI",
-                         "productId":  "9428079675",
-                         "itemId":  "28287192873",
-                         "vendorItemId":  "95240133006",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -860,22 +871,40 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1099000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1229000,
+                                            "instantDiscount":  130000,
+                                            "couponDiscount":  0,
                                             "cardDiscount":  null,
                                             "finalPrice":  1099000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9428079675?itemId=28287192873\u0026vendorItemId=95240133006",
-                                            "availabilityCheckedAt":  "2026-09-14 11:31",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:31"
+                                            "availabilityCheckedAt":  "2026-09-14 13:18",
+                                            "srp":  1229000,
+                                            "observedListPrice":  1099000,
+                                            "priceCheckedAt":  "2026-09-14 13:18"
+                                        },
+                                        {
+                                            "role":  "competitor",
+                                            "channel":  "오픈마켓",
+                                            "seller":  "11번가",
+                                            "status":  "판매중",
+                                            "displayPrice":  1358460,
+                                            "instantDiscount":  null,
+                                            "couponDiscount":  null,
+                                            "cardDiscount":  null,
+                                            "finalPrice":  1358460,
+                                            "shipping":  0,
+                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
+                                            "sourceType":  "다나와 가격비교 판매처 목록",
+                                            "checkedAt":  "2026-09-14 13:18",
+                                            "confidence":  "B",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "url":  "https://prod.danawa.com/info/?pcode=122636128"
                                         },
                                         {
                                             "role":  "competitor",
@@ -890,7 +919,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636128"
@@ -908,25 +937,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
-                                            "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=122636128"
-                                        },
-                                        {
-                                            "role":  "competitor",
-                                            "channel":  "오픈마켓",
-                                            "seller":  "11번가",
-                                            "status":  "판매중",
-                                            "displayPrice":  1358480,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
-                                            "cardDiscount":  null,
-                                            "finalPrice":  1358480,
-                                            "shipping":  0,
-                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
-                                            "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636128"
@@ -944,7 +955,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636128"
@@ -962,7 +973,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636128"
@@ -970,7 +981,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "노트캐슬",
+                                            "seller":  "신세계컴",
                                             "status":  "판매중",
                                             "displayPrice":  1208000,
                                             "instantDiscount":  null,
@@ -980,7 +991,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:31",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636128"
@@ -1017,15 +1028,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SFG14-75-508U"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SFG14-75-508U",
+                         "productId":  "9428079675",
+                         "itemId":  "28287192873",
+                         "vendorItemId":  "95240133006",
+                         "category":  "Notebook",
+                         "skuid":  "72157300",
+                         "srp":  1229000
                      },
                      {
-                         "mtm":  "SFG16-74-7412",
                          "storage":  "1TB",
                          "display":  "Swift Go 16 AI · 리퍼비시",
-                         "productId":  "9573633117",
-                         "itemId":  "28029585486",
-                         "vendorItemId":  "94986693706",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -1033,22 +1047,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  2260100,
+                                            "displayPrice":  1659000,
                                             "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "couponDiscount":  38900,
                                             "cardDiscount":  null,
                                             "finalPrice":  2260100,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:32",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28029585486\u0026vendorItemId=94986693706",
-                                            "availabilityCheckedAt":  "2026-09-14 11:32",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:32"
+                                            "availabilityCheckedAt":  "2026-09-14 13:18",
+                                            "srp":  1659000,
+                                            "observedListPrice":  2299000,
+                                            "priceCheckedAt":  "2026-09-14 13:18"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1063,7 +1077,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:32",
+                                            "checkedAt":  "2026-09-14 13:18",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122702450"
@@ -1100,15 +1114,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SFG16-74-7412"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SFG16-74-7412",
+                         "productId":  "9573633117",
+                         "itemId":  "28029585486",
+                         "vendorItemId":  "94986693706",
+                         "category":  "Notebook",
+                         "skuid":  "70646376",
+                         "srp":  1659000
                      },
                      {
-                         "mtm":  "SFG16-I71-75Y2",
                          "storage":  "1TB",
                          "display":  "Swift Go 16 AI",
-                         "productId":  "9483273252",
-                         "itemId":  "28237319655",
-                         "vendorItemId":  "95190959758",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -1116,22 +1133,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1679000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1829000,
+                                            "instantDiscount":  130000,
+                                            "couponDiscount":  20000,
                                             "cardDiscount":  null,
                                             "finalPrice":  1679000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9483273252?itemId=28237319655\u0026vendorItemId=95190959758",
-                                            "availabilityCheckedAt":  "2026-09-14 11:33",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:33"
+                                            "availabilityCheckedAt":  "2026-09-14 13:19",
+                                            "srp":  1829000,
+                                            "observedListPrice":  1699000,
+                                            "priceCheckedAt":  "2026-09-14 13:19"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1146,25 +1163,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
-                                            "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=122636236"
-                                        },
-                                        {
-                                            "role":  "competitor",
-                                            "channel":  "오픈마켓",
-                                            "seller":  "G마켓",
-                                            "status":  "판매중",
-                                            "displayPrice":  2398450,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
-                                            "cardDiscount":  null,
-                                            "finalPrice":  2398450,
-                                            "shipping":  0,
-                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
-                                            "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1182,7 +1181,25 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
+                                            "confidence":  "B",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "url":  "https://prod.danawa.com/info/?pcode=122636236"
+                                        },
+                                        {
+                                            "role":  "competitor",
+                                            "channel":  "오픈마켓",
+                                            "seller":  "G마켓",
+                                            "status":  "판매중",
+                                            "displayPrice":  2398450,
+                                            "instantDiscount":  null,
+                                            "couponDiscount":  null,
+                                            "cardDiscount":  null,
+                                            "finalPrice":  2398450,
+                                            "shipping":  0,
+                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
+                                            "sourceType":  "다나와 가격비교 판매처 목록",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1200,7 +1217,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1218,7 +1235,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1236,7 +1253,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1244,7 +1261,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "신세계컴",
+                                            "seller":  "노트캐슬",
                                             "status":  "판매중",
                                             "displayPrice":  2040000,
                                             "instantDiscount":  null,
@@ -1254,7 +1271,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:33",
+                                            "checkedAt":  "2026-09-14 13:19",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122636236"
@@ -1291,15 +1308,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SFG16-I71-75Y2"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SFG16-I71-75Y2",
+                         "productId":  "9483273252",
+                         "itemId":  "28237319655",
+                         "vendorItemId":  "95190959758",
+                         "category":  "Notebook",
+                         "skuid":  "71847372",
+                         "srp":  1829000
                      },
                      {
-                         "mtm":  "SFG16-74-70E9",
                          "storage":  "512GB",
                          "display":  "Swift Go 16 AI",
-                         "productId":  "9573633117",
-                         "itemId":  "28714706401",
-                         "vendorItemId":  "95655361668",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -1307,22 +1327,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  1289000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  1439000,
+                                            "instantDiscount":  150000,
+                                            "couponDiscount":  0,
                                             "cardDiscount":  null,
                                             "finalPrice":  1289000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28714706401\u0026vendorItemId=95655361668",
-                                            "availabilityCheckedAt":  "2026-09-14 11:34",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:34"
+                                            "availabilityCheckedAt":  "2026-09-14 13:20",
+                                            "srp":  1439000,
+                                            "observedListPrice":  1289000,
+                                            "priceCheckedAt":  "2026-09-14 13:20"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1337,7 +1357,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1355,7 +1375,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1373,7 +1393,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1391,7 +1411,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1409,7 +1429,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1427,7 +1447,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1435,7 +1455,7 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "competitor",
                                             "channel":  "전문몰",
-                                            "seller":  "피씨블랙",
+                                            "seller":  "노엘시스템",
                                             "status":  "판매중",
                                             "displayPrice":  1250000,
                                             "instantDiscount":  null,
@@ -1445,7 +1465,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=122719720"
@@ -1482,15 +1502,18 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SFG16-74-70E9"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SFG16-74-70E9",
+                         "productId":  "9573633117",
+                         "itemId":  "28714706401",
+                         "vendorItemId":  "95655361668",
+                         "category":  "Notebook",
+                         "skuid":  "75574103",
+                         "srp":  1439000
                      },
                      {
-                         "mtm":  "SF16-71T-7475",
                          "storage":  "512GB",
                          "display":  "Swift 16 AI",
-                         "productId":  "9437677217",
-                         "itemId":  "28067081535",
-                         "vendorItemId":  "95023756227",
                          "validation":  "identifiers-verified",
                          "offers":  [
                                         {
@@ -1498,22 +1521,22 @@ window.MARKET_DATA = {
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
                                             "status":  "현재가 직접 확인",
-                                            "displayPrice":  2159000,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
+                                            "displayPrice":  2369000,
+                                            "instantDiscount":  190000,
+                                            "couponDiscount":  20000,
                                             "cardDiscount":  null,
                                             "finalPrice":  2159000,
                                             "shipping":  0,
                                             "condition":  "사용자 제공 URL의 동일 Item ID 가격만 반영",
                                             "sourceType":  "사용자 제공 쿠팡 URL",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9437677217?itemId=28067081535\u0026vendorItemId=95023756227",
-                                            "availabilityCheckedAt":  "2026-09-14 11:34",
-                                            "srp":  null,
-                                            "observedListPrice":  null,
-                                            "priceCheckedAt":  "2026-09-14 11:34"
+                                            "availabilityCheckedAt":  "2026-09-14 13:20",
+                                            "srp":  2369000,
+                                            "observedListPrice":  2179000,
+                                            "priceCheckedAt":  "2026-09-14 13:20"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1528,7 +1551,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=107769113"
@@ -1546,7 +1569,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=107769113"
@@ -1564,7 +1587,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와 가격비교 판매처 목록",
-                                            "checkedAt":  "2026-09-14 11:34",
+                                            "checkedAt":  "2026-09-14 13:20",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://prod.danawa.com/info/?pcode=107769113"
@@ -1601,7 +1624,14 @@ window.MARKET_DATA = {
                                                 "confidenceText":  "초기 검증 대기",
                                                 "url":  "https://search.shopping.naver.com/search/all?query=SF16-71T-7475"
                                             }
-                                        ]
+                                        ],
+                         "mtm":  "SF16-71T-7475",
+                         "productId":  "9437677217",
+                         "itemId":  "28067081535",
+                         "vendorItemId":  "95023756227",
+                         "category":  "Notebook",
+                         "skuid":  "70743710",
+                         "srp":  2369000
                      }
                  ]
 };
