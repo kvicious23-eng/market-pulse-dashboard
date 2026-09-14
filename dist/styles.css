@@ -76,7 +76,7 @@ h1 em { color: var(--green); font-style: normal; }
 .section-heading, .detail__head { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .section-heading h2, .detail__head h2 { margin: 0; font-size: 25px; letter-spacing: -.035em; }
 .section-heading > p { margin: 0; color: var(--muted); font-size: 11px; }
-.product-grid { margin-top: 17px; display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.product-grid { margin-top: 17px; display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 14px; }
 .product-card { min-width: 0; padding: 21px; border: 1px solid var(--line); border-radius: 20px; background: white; text-align: left; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
 .product-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(16,39,28,.08); }
 .product-card[aria-selected="true"] { border-color: var(--green); box-shadow: 0 0 0 3px rgba(3,199,90,.12); }
@@ -86,6 +86,7 @@ h1 em { color: var(--green); font-style: normal; }
 .status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 900; }
 .status--win { background: var(--green-soft); color: var(--green-dark); }
 .status--lose { background: var(--red-soft); color: var(--red); }
+.status--pending { background: #eef2ef; color: var(--muted); }
 .product-card__prices { margin-top: 27px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .product-card__prices span { display: block; color: var(--muted); font-size: 9px; }
 .product-card__prices strong { display: block; margin-top: 3px; font-size: 18px; letter-spacing: -.035em; }
@@ -93,6 +94,7 @@ h1 em { color: var(--green); font-style: normal; }
 .product-card__gap { margin-top: 16px; padding-top: 13px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #edf1ee; color: var(--muted); font-size: 10px; }
 .product-card__gap b { color: var(--green-dark); font-size: 11px; }
 .product-card__gap b.is-alert { color: var(--red); }
+.product-card__gap b.is-pending { color: var(--muted); }
 
 .detail { margin-top: 28px; padding: 27px; border: 1px solid var(--line); border-radius: 25px; background: white; box-shadow: var(--shadow); }
 .product-meta { margin: 6px 0 0; color: var(--muted); font-size: 11px; }

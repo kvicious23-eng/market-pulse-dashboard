@@ -16,6 +16,8 @@ on:
       - "scripts/update-market-data.mjs"
       - "index.html"
       - "acer/**"
+      - "brand/**"
+      - "dist/**"
       - "scripts/update-acer-data.mjs"
   schedule:
     - cron: "0 1 * * *"

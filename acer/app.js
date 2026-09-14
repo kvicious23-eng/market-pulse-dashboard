@@ -7,9 +7,12 @@
   const $ = (selector) => document.querySelector(selector);
   const refs = {
     headerSnapshot: $("#headerSnapshot"),
+    brandSubtitle: $("#brandSubtitle"),
     pageTitle: $("#pageTitle"),
     heroSummary: $("#heroSummary"),
     winCount: $("#winCount"),
+    totalCount: $("#totalCount"),
+    overviewEyebrow: $("#overviewEyebrow"),
     minAdvantage: $("#minAdvantage"),
     sellerCount: $("#sellerCount"),
     productGrid: $("#productGrid"),
@@ -63,7 +66,7 @@
   }
 
   function exportMyProducts() {
-    const brand = document.title.split(/\s+/)[0] || "MarketPulse";
+    const brand = data.meta.brand || document.title.split(/\s+/)[0] || "MarketPulse";
     const headers = [
       "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
       "판매처", "채널", "상태", "SRP", "취소선 표시가격", "즉시할인", "쿠폰",
@@ -146,6 +149,8 @@
     const alerts = stats.filter((item) => item.undercutters.length > 0);
     const advantages = wins.map((item) => item.difference).filter(Number.isFinite);
     const currentSellers = stats.reduce((sum, item) => sum + item.competitors.length, 0);
+    const total = data.products.length;
+    const brand = data.meta.brand || document.title.split(/\s+/)[0] || "Market Pulse";
 
     const snapshotDate = new Date(data.meta.snapshotAt);
     const snapshotParts = new Intl.DateTimeFormat("ko-KR", {
@@ -154,6 +159,9 @@
     }).formatToParts(snapshotDate).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
     refs.headerSnapshot.textContent = `${snapshotParts.year}.${snapshotParts.month}.${snapshotParts.day} ${snapshotParts.hour}:${snapshotParts.minute} KST`;
     refs.winCount.textContent = wins.length;
+    if (refs.totalCount) refs.totalCount.textContent = total;
+    if (refs.overviewEyebrow) refs.overviewEyebrow.textContent = `${total} MTM OVERVIEW`;
+    if (refs.brandSubtitle) refs.brandSubtitle.textContent = `${brand} Notebook · Korea`;
     refs.minAdvantage.textContent = advantages.length ? formatWon(Math.min(...advantages)) : "—";
     refs.sellerCount.textContent = `${currentSellers}곳`;
 
@@ -162,10 +170,10 @@
       refs.pageTitle.innerHTML = `${alerts.length}개 MTM<br /><em>가격 역전.</em>`;
       refs.heroSummary.textContent = "검증된 현재 판매가에서 내 상품보다 저렴한 경쟁 판매처가 발견됐습니다.";
     } else if (compared) {
-      refs.pageTitle.innerHTML = `${compared}개 모델<br /><em>가격 우위.</em>`;
+      refs.pageTitle.innerHTML = `${compared === total ? `${total}개 모델 모두` : `${compared}개 모델`}<br /><em>가격 우위.</em>`;
       refs.heroSummary.textContent = "현재 가격이 확인된 모델의 공개 실구매가를 비교했습니다.";
     } else {
-      refs.pageTitle.innerHTML = `10개 모델<br /><em>가격 확인 중.</em>`;
+      refs.pageTitle.innerHTML = `${total}개 모델<br /><em>가격 확인 중.</em>`;
       refs.heroSummary.textContent = "상품 식별자는 검증 완료했습니다. 내 쿠팡 가격은 직접 확인되거나 마지막으로 검증된 값만 표시합니다.";
     }
 

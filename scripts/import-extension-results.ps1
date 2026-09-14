@@ -72,10 +72,59 @@ function Write-Data($path,$data) {
   [IO.File]::WriteAllText($path,"window.MARKET_DATA = $json;`n",(New-Object Text.UTF8Encoding($false)))
 }
 
+function Get-BrandSlug([string]$brand) {
+  $slug=($brand.Trim().ToLowerInvariant() -replace '[^\p{L}\p{Nd}]+','-').Trim('-')
+  if (-not $slug) { throw "Brand name cannot be converted to a dashboard URL." }
+  return $slug
+}
+
+function New-BrandDashboard([string]$brand,[string]$dataPath) {
+  $directory=Split-Path -Parent $dataPath
+  New-Item -ItemType Directory -Path $directory -Force | Out-Null
+  $indexPath=Join-Path $directory 'index.html'
+  $safeBrand=[Net.WebUtility]::HtmlEncode($brand)
+  $html=[IO.File]::ReadAllText((Join-Path $RepoPath 'acer\index.html'),[Text.Encoding]::UTF8)
+  $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
+  $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
+  $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand Notebook · Korea</small>")
+  $html=$html -replace 'href="\.\/styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
+  $html=$html -replace 'src="\.\/app\.js([^\"]*)"','src="../../dist/app.js$1"'
+  [IO.File]::WriteAllText($indexPath,$html,(New-Object Text.UTF8Encoding($false)))
+  if (-not (Test-Path $dataPath)) {
+    $empty=[pscustomobject]@{
+      meta=[pscustomobject]@{
+        brand=$brand; snapshotAt=$scanKst; sourceFile='product-catalog.json'
+        comparisonBasis='Exact model and item price comparison'
+        exclusions='Personal rewards and unverified benefits are excluded'
+        monitoring=[pscustomobject]@{
+          enabled=$true; quickWatch='Daily 10:00 KST'; fullResearch='Basic and precision scan'
+          dashboardSync='GitHub Pages automatic deployment'; lastAttemptAt=$scanKst
+          lastAttemptStatus='pending'; lastAttemptText='Waiting for first scan'
+          collectionRoute='Windows PC and Chrome extension'
+        }
+      }
+      products=@()
+    }
+    Write-Data $dataPath $empty
+  }
+}
+
 git -C $RepoPath pull --rebase origin main
-foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';Path='acer\market-data.js'})) {
+$specs=@(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';Path='acer\market-data.js'})
+if ($catalog) {
+  $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
+  foreach ($brand in $extraBrands) {
+    $slug=Get-BrandSlug $brand
+    $relativePath="brand\$slug\market-data.js"
+    $fullPath=Join-Path $RepoPath $relativePath
+    New-BrandDashboard $brand $fullPath
+    $specs+=@{Brand=$brand;Path=$relativePath}
+  }
+}
+foreach ($spec in $specs) {
   $path=Join-Path $RepoPath $spec.Path
   $data=Read-Data $path
+  $data.meta | Add-Member -NotePropertyName brand -NotePropertyValue $spec.Brand -Force
   $brandResults=@($payload.results | Where-Object {$_.brand -eq $spec.Brand})
   $catalogProducts=@($catalog.products | Where-Object {$_.brand -eq $spec.Brand -and $_.enabled -ne $false})
   if ($catalog -and $catalogProducts.Count -ge 0) {
@@ -102,7 +151,7 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
       }
       $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
       if ($mine) { $mine.url=[string]$config.url }
-      if ($spec.Brand -eq 'Acer' -and $config.danawaUrl) {
+      if ($config.danawaUrl) {
         $danawaRef=$product.references | Where-Object {$_.url -like 'https://prod.danawa.com/*'} | Select-Object -First 1
         if ($danawaRef) {
           $danawaRef.url=[string]$config.danawaUrl
@@ -149,7 +198,7 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
     } else {
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
     }
-    if ($spec.Brand -eq 'Acer' -and $result.competitors -and @($result.competitors).Count -gt 0) {
+    if ($result.competitors -and @($result.competitors).Count -gt 0) {
       $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
       foreach ($entry in @($result.competitors)) {
         $channel=if($entry.seller -match $text.MarketplacePattern){$text.Marketplace}elseif($entry.seller -match $text.AcerPattern){$text.Manufacturer}else{$text.Specialist}
@@ -168,7 +217,7 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
   $data.meta.snapshotAt=$scanKst
   $data.meta.monitoring.lastAttemptAt=$scanKst
-  if ($spec.Brand -eq 'Acer' -and @($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
+  if (@($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
     $data.meta.monitoring.competitionLastAttemptAt=$scanKst
   }
   $data.meta.monitoring.quickWatch=$text.Schedule
@@ -176,6 +225,7 @@ foreach ($spec in @(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';
   Write-Data $path $data
 }
 git -C $RepoPath add -- dist/market-data.js acer/market-data.js
+if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
   git -C $RepoPath commit -m 'data: import Coupang prices from Chrome extension'

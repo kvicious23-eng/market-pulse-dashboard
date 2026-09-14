@@ -14,7 +14,6 @@ function money(value){return String(value||'').replace(/[^0-9]/g,'');}
 function validate(product,index){
   const errors=[];
   if(!product.brand)errors.push('Brand 필요');
-  if(product.brand&&!['Lenovo','Acer'].includes(product.brand))errors.push('현재 Lenovo/Acer만 대시보드 연동 가능');
   if(!product.mtm)errors.push('MTM 필요');
   if(!product.productId||!product.itemId||!product.vendorItemId)errors.push('쿠팡 URL의 ID 3개 필요');
   if(products.some((x,i)=>i!==index&&x.itemId===product.itemId))errors.push('Item ID 중복');

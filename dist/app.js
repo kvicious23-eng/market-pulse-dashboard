@@ -7,9 +7,12 @@
   const $ = (selector) => document.querySelector(selector);
   const refs = {
     headerSnapshot: $("#headerSnapshot"),
+    brandSubtitle: $("#brandSubtitle"),
     pageTitle: $("#pageTitle"),
     heroSummary: $("#heroSummary"),
     winCount: $("#winCount"),
+    totalCount: $("#totalCount"),
+    overviewEyebrow: $("#overviewEyebrow"),
     minAdvantage: $("#minAdvantage"),
     sellerCount: $("#sellerCount"),
     productGrid: $("#productGrid"),
@@ -63,7 +66,7 @@
   }
 
   function exportMyProducts() {
-    const brand = document.title.split(/\s+/)[0] || "MarketPulse";
+    const brand = data.meta.brand || document.title.split(/\s+/)[0] || "MarketPulse";
     const headers = [
       "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
       "판매처", "채널", "상태", "SRP", "취소선 표시가격", "즉시할인", "쿠폰",
@@ -121,8 +124,9 @@
       .filter((offer) => offer.role === "competitor" && Number.isFinite(offer.finalPrice))
       .sort((a, b) => a.finalPrice - b.finalPrice);
     const competitorBest = competitors[0] || null;
-    const difference = mine && competitorBest ? competitorBest.finalPrice - mine.finalPrice : null;
-    const undercutters = mine ? competitors.filter((offer) => offer.finalPrice < mine.finalPrice) : [];
+    const mineReady = Number.isFinite(mine?.finalPrice);
+    const difference = mineReady && competitorBest ? competitorBest.finalPrice - mine.finalPrice : null;
+    const undercutters = mineReady ? competitors.filter((offer) => offer.finalPrice < mine.finalPrice) : [];
     return { mine, competitors, competitorBest, difference, undercutters };
   }
 
@@ -145,6 +149,8 @@
     const alerts = stats.filter((item) => item.undercutters.length > 0);
     const advantages = wins.map((item) => item.difference).filter(Number.isFinite);
     const currentSellers = stats.reduce((sum, item) => sum + item.competitors.length, 0);
+    const total = data.products.length;
+    const brand = data.meta.brand || document.title.split(/\s+/)[0] || "Market Pulse";
 
     const snapshotDate = new Date(data.meta.snapshotAt);
     const snapshotParts = new Intl.DateTimeFormat("ko-KR", {
@@ -153,15 +159,22 @@
     }).formatToParts(snapshotDate).reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
     refs.headerSnapshot.textContent = `${snapshotParts.year}.${snapshotParts.month}.${snapshotParts.day} ${snapshotParts.hour}:${snapshotParts.minute} KST`;
     refs.winCount.textContent = wins.length;
+    if (refs.totalCount) refs.totalCount.textContent = total;
+    if (refs.overviewEyebrow) refs.overviewEyebrow.textContent = `${total} MTM OVERVIEW`;
+    if (refs.brandSubtitle) refs.brandSubtitle.textContent = `${brand} Notebook · Korea`;
     refs.minAdvantage.textContent = advantages.length ? formatWon(Math.min(...advantages)) : "—";
     refs.sellerCount.textContent = `${currentSellers}곳`;
 
+    const compared = stats.filter((item) => Number.isFinite(item.difference)).length;
     if (alerts.length) {
       refs.pageTitle.innerHTML = `${alerts.length}개 MTM<br /><em>가격 역전.</em>`;
       refs.heroSummary.textContent = "검증된 현재 판매가에서 내 상품보다 저렴한 경쟁 판매처가 발견됐습니다.";
+    } else if (compared) {
+      refs.pageTitle.innerHTML = `${compared === total ? `${total}개 모델 모두` : `${compared}개 모델`}<br /><em>가격 우위.</em>`;
+      refs.heroSummary.textContent = "현재 가격이 확인된 모델의 공개 실구매가를 비교했습니다.";
     } else {
-      refs.pageTitle.innerHTML = `세 모델 모두<br /><em>가격 우위.</em>`;
-      refs.heroSummary.textContent = "공개 확인 가능한 실구매가 기준으로 내 쿠팡 상품이 경쟁 최저가보다 낮습니다.";
+      refs.pageTitle.innerHTML = `${total}개 모델<br /><em>가격 확인 중.</em>`;
+      refs.heroSummary.textContent = "상품 등록을 마쳤습니다. 첫 가격 수집 후 비교 결과가 표시됩니다.";
     }
 
     $("#basisText").textContent = data.meta.comparisonBasis;

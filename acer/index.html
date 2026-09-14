@@ -7,7 +7,7 @@
     <meta name="description" content="Acer 10개 MTM 온라인 가격조사 대시보드" />
     <title>Acer 10MTM 가격 현황</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23009b3a%22/%3E%3Cpath d=%22M15 48 27 16h10l12 32H39l-2-7H26l-2 7Zm14-16h6l-3-10Z%22 fill=%22white%22/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="./styles.css?v=20260914-5" />
+    <link rel="stylesheet" href="./styles.css?v=20260914-6" />
   </head>
   <body>
     <header class="topbar">
@@ -16,7 +16,7 @@
           <span class="brand__mark" aria-hidden="true">P</span>
           <span>
             <strong>MARKET PULSE</strong>
-            <small>Acer Notebook · Korea</small>
+            <small id="brandSubtitle">Acer Notebook · Korea</small>
           </span>
         </a>
         <div class="topbar__meta">
@@ -39,7 +39,7 @@
         <div class="scoreboard" aria-label="시장조사 요약">
           <div class="scoreboard__primary">
             <span>가격 우위 MTM</span>
-            <strong><b id="winCount">—</b> / 10</strong>
+            <strong><b id="winCount">—</b> / <span id="totalCount">10</span></strong>
             <small>공개 실구매가 기준</small>
           </div>
           <div class="scoreboard__item">
@@ -56,7 +56,7 @@
       <section class="overview" aria-labelledby="overviewTitle">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">10 MTM OVERVIEW</p>
+            <p class="eyebrow" id="overviewEyebrow">10 MTM OVERVIEW</p>
             <h2 id="overviewTitle">내 가격 경쟁력</h2>
           </div>
           <p>카드를 누르면 판매처별 근거를 확인할 수 있습니다.</p>
@@ -143,6 +143,6 @@
     </dialog>
 
     <script src="./market-data.js?v=20260914-5"></script>
-    <script src="./app.js?v=20260914-5"></script>
+    <script src="./app.js?v=20260914-6"></script>
   </body>
 </html>
