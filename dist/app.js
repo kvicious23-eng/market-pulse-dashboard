@@ -65,33 +65,50 @@
     return `${value > 0 ? "+" : "−"}${Math.abs(value).toLocaleString("ko-KR")}원`;
   }
 
+  function priceBreakdown(offer) {
+    const srp = Number.isFinite(offer?.srp) ? offer.srp : null;
+    const basisPrice = Number.isFinite(offer?.observedListPrice) ? offer.observedListPrice : null;
+    const preCardPrice = Number.isFinite(offer?.preCardPrice)
+      ? offer.preCardPrice
+      : Number.isFinite(offer?.finalPrice) && Number.isFinite(offer?.cardDiscount)
+        ? offer.finalPrice + offer.cardDiscount
+        : offer?.finalPrice;
+    const instantDiscount = Number.isFinite(srp) && Number.isFinite(basisPrice) && srp >= basisPrice
+      ? srp - basisPrice : null;
+    const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardPrice) && basisPrice >= preCardPrice
+      ? basisPrice - preCardPrice : null;
+    return { srp, basisPrice, preCardPrice, instantDiscount, couponDiscount };
+  }
+
+  function basisTypeText(value) {
+    if (value === "crossed-out") return "취소선 가격";
+    if (value === "top-visible") return "최상단 표시가격";
+    return "미확인";
+  }
+
+  function cardStatusText(value) {
+    if (value === "captured") return "정상 수집";
+    if (value === "none") return "카드 혜택 없음";
+    if (value === "partial") return "상세정보 미수집";
+    return "미확인";
+  }
+
   function exportMyProducts() {
     const brand = data.meta.brand || document.title.split(/\s+/)[0] || "MarketPulse";
     const headers = [
       "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
-      "판매처", "채널", "상태", "SRP", "취소선 표시가격", "즉시할인", "쿠폰",
-      "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
+      "판매처", "채널", "상태", "SRP", "기준가격", "기준가격 종류", "즉시할인", "쿠폰",
+      "카드할인 상태", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
       "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
       "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각"
     ];
     const rows = data.products.map((product) => {
       const mine = product.offers.find((offer) => offer.role === "mine") || {};
-      const srp = Number.isFinite(mine.srp) ? mine.srp : mine.displayPrice;
-      const preCardPrice = Number.isFinite(mine.preCardPrice)
-        ? mine.preCardPrice
-        : Number.isFinite(mine.finalPrice) && Number.isFinite(mine.cardDiscount)
-          ? mine.finalPrice + mine.cardDiscount
-          : mine.finalPrice;
-      const instantDiscount = Number.isFinite(srp) && Number.isFinite(mine.observedListPrice) && srp >= mine.observedListPrice
-        ? srp - mine.observedListPrice
-        : mine.instantDiscount;
-      const couponDiscount = Number.isFinite(mine.observedListPrice) && Number.isFinite(preCardPrice) && mine.observedListPrice >= preCardPrice
-        ? mine.observedListPrice - preCardPrice
-        : mine.couponDiscount;
+      const breakdown = priceBreakdown(mine);
       return [
         brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
-        mine.seller, mine.channel, mine.status, srp, mine.observedListPrice, instantDiscount, couponDiscount,
-        mine.cardDiscount, preCardPrice, mine.finalPrice, mine.shipping,
+        mine.seller, mine.channel, mine.status, breakdown.srp, breakdown.basisPrice, basisTypeText(mine.priceBasisType), breakdown.instantDiscount, breakdown.couponDiscount,
+        cardStatusText(mine.cardBenefitStatus), mine.cardDiscount, breakdown.preCardPrice, mine.finalPrice, mine.shipping,
         Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
         mine.cardRate, mine.cardMaxDiscount, mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
@@ -264,18 +281,10 @@
       const mine = offer.role === "mine";
       const current = activeView === "current";
       const price = current ? offer.finalPrice : offer.referencePrice;
-      const srp = mine && Number.isFinite(offer.srp) ? offer.srp : offer.displayPrice;
-      const preCardPrice = mine && Number.isFinite(offer.preCardPrice)
-        ? offer.preCardPrice
-        : mine && Number.isFinite(offer.finalPrice) && Number.isFinite(offer.cardDiscount)
-          ? offer.finalPrice + offer.cardDiscount
-          : offer.finalPrice;
-      const instantDiscount = mine && Number.isFinite(srp) && Number.isFinite(offer.observedListPrice) && srp >= offer.observedListPrice
-        ? srp - offer.observedListPrice
-        : offer.instantDiscount;
-      const couponDiscount = mine && Number.isFinite(offer.observedListPrice) && Number.isFinite(preCardPrice) && offer.observedListPrice >= preCardPrice
-        ? offer.observedListPrice - preCardPrice
-        : offer.couponDiscount;
+      const breakdown = mine ? priceBreakdown(offer) : null;
+      const srp = mine ? breakdown.srp : offer.displayPrice;
+      const instantDiscount = mine ? breakdown.instantDiscount : offer.instantDiscount;
+      const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
       const difference = current && !mine && Number.isFinite(offer.finalPrice)
         ? offer.finalPrice - stats.mine.finalPrice
         : null;
@@ -301,7 +310,7 @@
             </span>
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
-          <td data-label="SRP">${formatWon(srp)}</td>
+          <td data-label="SRP">${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</td>
           <td data-label="즉시할인">${current ? discountText(instantDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="쿠폰">${current ? discountText(couponDiscount) : '<span class="unknown">—</span>'}</td>
           <td data-label="카드할인">${current ? discountText(offer.cardDiscount) : '<span class="unknown">—</span>'}</td>
@@ -338,7 +347,11 @@
     const offer = list[index];
     if (!offer) return;
 
-    const displayPrice = Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인";
+    const mine = activeView === "current" && offer.role === "mine";
+    const breakdown = mine ? priceBreakdown(offer) : null;
+    const displayPrice = mine
+      ? (Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : "SRP 미입력")
+      : (Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인");
     const finalValue = activeView === "current" ? offer.finalPrice : offer.referencePrice;
     const providers = Array.isArray(offer.cardProviders) ? offer.cardProviders.filter(Boolean).join(', ') : '';
     refs.evidenceTitle.textContent = offer.seller;
@@ -348,6 +361,13 @@
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>SRP</span><strong>${displayPrice}</strong></div>
+      ${mine ? `<div class="evidence__item"><span>기준가격</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>
+      <div class="evidence__item"><span>기준가격 종류</span><strong>${escapeHtml(basisTypeText(offer.priceBasisType))}</strong></div>
+      <div class="evidence__item"><span>즉시할인</span><strong>${discountText(breakdown.instantDiscount)}</strong></div>
+      <div class="evidence__item"><span>쿠폰</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
+      <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
+      <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
+      <div class="evidence__item"><span>카드할인 금액</span><strong>${discountText(offer.cardDiscount)}</strong></div>` : ""}
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       ${providers ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
       ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · 최대 ${formatWon(offer.cardMaxDiscount)}`)}</strong></div>` : ""}
