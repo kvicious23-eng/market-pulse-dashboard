@@ -111,9 +111,12 @@
   }
 
   function effectiveFinalPrice(offer) {
-    if (!offer || !Number.isFinite(offer.finalPrice)) return null;
-    if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
-    return offer.finalPrice;
+    if (!offer) return null;
+    if (offer.role !== "mine") return Number.isFinite(offer.finalPrice) ? offer.finalPrice : null;
+    if (offer.alertEligible === false) return null;
+    // 카드 상세가 미수집이어도 카드 적용 전 공개 실구매가는 비교할 수 있습니다.
+    if (Number.isFinite(offer.preCardPrice)) return offer.preCardPrice;
+    return Number.isFinite(offer.finalPrice) ? offer.finalPrice : null;
   }
 
   function exportMyProducts() {
