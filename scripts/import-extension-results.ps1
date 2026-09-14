@@ -182,7 +182,13 @@ foreach ($spec in $specs) {
       # Publish a final purchase price only when the benefit was captured or
       # the page explicitly confirmed that no card benefit exists.
       $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
-      $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {[long]$result.srp}else{$null}
+      $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {
+        [long]$result.srp
+      } elseif ($null -ne $product.srp -and [long]$product.srp -gt 0) {
+        [long]$product.srp
+      } else {
+        $null
+      }
       $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge [long]$result.price) {[long]$result.strikePrice}else{$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
