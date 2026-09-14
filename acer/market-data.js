@@ -222,8 +222,8 @@ window.MARKET_DATA = {
           "seller": "내 쿠팡 상품",
           "status": "현재가 직접 확인",
           "displayPrice": 1429000,
-          "instantDiscount": 140000,
-          "couponDiscount": 30000,
+          "instantDiscount": 15530,
+          "couponDiscount": 154470,
           "cardDiscount": null,
           "finalPrice": 1259000,
           "shipping": 0,
@@ -235,7 +235,7 @@ window.MARKET_DATA = {
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514",
           "availabilityCheckedAt": "2026-09-14 13:15",
           "srp": 1429000,
-          "observedListPrice": 1289000,
+          "observedListPrice": 1413470,
           "priceCheckedAt": "2026-09-14 13:15"
         },
         {

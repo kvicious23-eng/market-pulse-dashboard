@@ -101,9 +101,10 @@ function readDisplayedPrice(expectedItemId) {
       if (style.display!=='none'&&style.visibility!=='hidden'&&price>=250000&&price<=7000000) strikeCandidates.push({price,selector});
     }
   }
-  const strike=preferred
-    ? strikeCandidates.filter(x=>x.price>=preferred.price).sort((a,b)=>a.price-b.price)[0]
-    : null;
+  // Coupang can render additional crossed-out prices for other variants or
+  // promotions. Preserve selector/DOM priority so the main product price's
+  // visible `.prod-origin-price` wins instead of choosing the lowest value.
+  const strike=preferred ? strikeCandidates.find(x=>x.price>=preferred.price) : null;
   if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
