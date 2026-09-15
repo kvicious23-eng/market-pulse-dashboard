@@ -143,32 +143,41 @@ async function readDisplayedPrice(expectedItemId) {
     let detailRoot=null;
     if (summaryRoot) {
       // Only inspect controls located inside the smallest card-benefit summary.
-      // Never click anchors, generic tabindex elements, surrounding product
-      // areas, or recommendation links.
+      // Coupang sometimes wraps the info icon in a plain span/i instead of a
+      // button, so include those icon wrappers while still excluding links.
       const controls=[...new Set([
         summaryRoot,
-        ...summaryRoot.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg')
-      ].map(node=>node.tagName==='svg'?(node.closest('button,[role="button"]')||node.parentElement):node))]
+        ...summaryRoot.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg,i')
+      ].map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node))]
         .filter(node=>node&&visible(node)&&node.tagName!=='A'&&!node.closest('a[href]'));
+      const hasCapText=text=>/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(text);
       const readDetail=()=>{
         const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
           .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
           .sort((a,b)=>compact(a).length-compact(b).length);
-        return layers.find(node=>/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(compact(node)))||layers[0]||null;
+        const layerWithCap=layers.find(node=>hasCapText(compact(node)));
+        if (layerWithCap) return layerWithCap;
+        // Some Coupang popups use generated class names without modal/layer
+        // keywords. Search visible compact containers only after the card icon
+        // interaction, and require both card/discount wording and a cap amount.
+        const capContainers=[...document.querySelectorAll('div,section,table')]
+          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&hasCapText(compact(node))&&compact(node).length>=20&&compact(node).length<4000)
+          .sort((a,b)=>compact(a).length-compact(b).length);
+        return capContainers[0]||layers[0]||null;
       };
       for (const detailControl of controls.slice(0,5)) {
         detailControl.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
         detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
         await new Promise(resolve=>setTimeout(resolve,700));
         detailRoot=readDetail();
-        if (!detailRoot && (detailControl.tagName==='BUTTON'||detailControl.getAttribute('role')==='button')) {
+        if (!detailRoot && detailControl!==summaryRoot) {
           detailControl.click();
           await new Promise(resolve=>setTimeout(resolve,700));
           detailRoot=readDetail();
         }
         if (detailRoot) {
           detailText=compact(detailRoot);
-          if (/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(detailText)) break;
+          if (hasCapText(detailText)) break;
         }
       }
     }
