@@ -127,6 +127,7 @@ async function readDisplayedPrice(expectedItemId) {
   let cardProviders=[];
   let cardBenefitText='';
   let cardBenefitStatus='none';
+  let cardClickPoint=null;
   if (preferred) {
     const visible=node=>{
       const style=getComputedStyle(node);
@@ -173,6 +174,11 @@ async function readDisplayedPrice(expectedItemId) {
         if (text.length>420||!/카드\s*즉시할인/.test(text)||!/와우\s*전용/.test(text)) break;
         cardRow=parent;
       }
+      const initialRowRect=cardRow.getBoundingClientRect();
+      if (initialRowRect.top<20||initialRowRect.bottom>innerHeight-20) {
+        cardRow.scrollIntoView({block:'center',inline:'nearest'});
+        await new Promise(resolve=>setTimeout(resolve,350));
+      }
       let wowRect=null;
       const walker=document.createTreeWalker(cardRow,NodeFilter.SHOW_TEXT);
       for (let textNode=walker.nextNode();textNode;textNode=walker.nextNode()) {
@@ -184,12 +190,6 @@ async function readDisplayedPrice(expectedItemId) {
         const rect=range.getBoundingClientRect();
         if (rect.width>0&&rect.height>0) { wowRect=rect; break; }
       }
-      const popupCandidates=()=>[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table')]
-        .filter(node=>{
-          const text=compact(node);
-          return visible(node)&&/카드/.test(text)&&text.length>summaryText.length+10&&text.length<12000
-            &&(Number.isFinite(parseCap(text))||/할인율|할인한도|카드사/.test(text));
-        });
       if (wowRect) {
         const clickY=wowRect.top+wowRect.height/2;
         const pointHits=[6,10,14,18,22,26].map(offset=>{
@@ -206,21 +206,7 @@ async function readDisplayedPrice(expectedItemId) {
         const hit=pointHits.find(entry=>entry.infoLike)
           ||pointHits.sort((a,b)=>Math.abs(a.offset-14)-Math.abs(b.offset-14))[0]
           ||null;
-        if (hit) {
-          const before=new Set(popupCandidates());
-          const anchor=hit.target.closest('a[href]');
-          if (anchor) anchor.addEventListener('click',event=>event.preventDefault(),{capture:true,once:true});
-          hit.target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window,clientX:hit.x,clientY:clickY}));
-          await new Promise(resolve=>setTimeout(resolve,900));
-          const opened=popupCandidates().filter(node=>!before.has(node))
-            .sort((a,b)=>{
-              const aCap=Number.isFinite(parseCap(compact(a)))?0:1;
-              const bCap=Number.isFinite(parseCap(compact(b)))?0:1;
-              return aCap-bCap||compact(a).length-compact(b).length;
-            });
-          detailRoot=opened[0]||null;
-          detailText=compact(detailRoot);
-        }
+        if (hit) cardClickPoint={x:Math.round(hit.x),y:Math.round(clickY)};
       }
     }
     cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
@@ -255,8 +241,137 @@ async function readDisplayedPrice(expectedItemId) {
     }
     if (cardBenefitStatus==='none') cardDiscount=0;
   }
-  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, cardClickPoint, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
+}
+
+function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders) {
+  const actualItemId=new URL(location.href).searchParams.get('itemId');
+  if (actualItemId!==expectedItemId) return {captured:false,reason:'item-id-changed'};
+  const visible=node=>{
+    const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+  };
+  const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+  const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
+  const parseKrwAmount=raw=>{
+    const normalized=raw.replace(/[\s,]/g,'');
+    if (!normalized.includes('만')) return Number(normalized);
+    const [tenThousands,remainder='']=normalized.split('만');
+    return Number(tenThousands)*10000+Number(remainder||0);
+  };
+  const parseCap=text=>{
+    const patterns=[
+      /최대\s*(?:할인\s*)?(?:금액|한도)?\s*([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g,
+      /할인\s*(?:금액|한도)[^0-9]{0,20}([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g
+    ];
+    for (const pattern of patterns) {
+      for (const match of text.matchAll(pattern)) {
+        const prefix=text.slice(Math.max(0,match.index-24),match.index);
+        if (/적립|캐시/.test(prefix)) continue;
+        return parseKrwAmount(match[1]);
+      }
+    }
+    return null;
+  };
+  const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
+  const selectors='[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table';
+  const roots=[...document.querySelectorAll(selectors)]
+    .filter(node=>{
+      const text=compact(node),style=getComputedStyle(node);
+      const overlayLike=node.matches('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')
+        ||style.position==='fixed'||style.position==='absolute';
+      return overlayLike&&visible(node)&&/카드/.test(text)&&text.length>summaryText.length+10&&text.length<12000
+        &&(Number.isFinite(parseCap(text))||/할인율|할인한도|카드사|할인금액/.test(text));
+    })
+    .sort((a,b)=>{
+      const aCap=Number.isFinite(parseCap(compact(a)))?0:1;
+      const bCap=Number.isFinite(parseCap(compact(b)))?0:1;
+      return aCap-bCap||compact(a).length-compact(b).length;
+    });
+  const root=roots[0]||null;
+  if (!root) return {captured:false,reason:'card-popup-not-found'};
+  const detailText=compact(root);
+  const rows=[];
+  for (const node of root.querySelectorAll('tr,li,div,p')) {
+    const text=compact(node);
+    if (text.length<5||text.length>900||!/%/.test(text)) continue;
+    const rate=parseRate(text),cap=parseCap(text);
+    if (!rate) continue;
+    const providers=knownCards.filter(card=>text.includes(card));
+    rows.push({rate,cap,providers});
+  }
+  if (!rows.length) {
+    const rate=parseRate(detailText)||parseRate(summaryText);
+    const cap=parseCap(detailText);
+    if (rate) rows.push({rate,cap,providers:knownCards.filter(card=>detailText.includes(card))});
+  }
+  const calculated=rows.map(row=>({
+    ...row,
+    amount:Number.isFinite(row.cap)&&row.cap>0
+      ? Math.min(Math.floor(preCardPrice*row.rate/100),row.cap)
+      : Math.floor(preCardPrice*row.rate/100)
+  })).filter(row=>row.amount>0&&row.amount<=preCardPrice).sort((a,b)=>b.amount-a.amount);
+  const best=calculated[0];
+  if (!best) return {captured:false,reason:'card-popup-unparseable',cardBenefitText:[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000)};
+  return {
+    captured:true,
+    cardBenefitStatus:'captured',
+    cardBenefitText:[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000),
+    cardRate:best.rate,
+    cardMaxDiscount:Number.isFinite(best.cap)&&best.cap>0?best.cap:null,
+    cardDiscount:best.amount,
+    cardProviders:best.providers.length?best.providers:summaryProviders
+  };
+}
+
+async function dispatchTrustedClick(tabId,point) {
+  const target={tabId};
+  let attached=false;
+  try {
+    await chrome.debugger.attach(target,'1.3');
+    attached=true;
+    await chrome.debugger.sendCommand(target,'Page.bringToFront');
+    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y});
+    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',buttons:1,clickCount:1});
+    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',buttons:0,clickCount:1});
+    return {ok:true};
+  } catch (error) {
+    return {ok:false,reason:String(error)};
+  } finally {
+    if (attached) await chrome.debugger.detach(target).catch(()=>{});
+  }
+}
+
+async function scanCoupangTab(tabId,target) {
+  const injected=await chrome.scripting.executeScript({target:{tabId},func:readDisplayedPrice,args:[target.itemId]});
+  const scan=injected?.[0]?.result;
+  if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
+  if (!scan.ok||scan.cardBenefitStatus!=='partial'||!scan.cardClickPoint) return scan;
+  const beforeUrl=(await chrome.tabs.get(tabId)).url;
+  const click=await dispatchTrustedClick(tabId,scan.cardClickPoint);
+  scan.cardInteractionStatus=click.ok?'clicked':click.reason;
+  if (!click.ok) return scan;
+  await wait(1200);
+  const afterUrl=(await chrome.tabs.get(tabId)).url;
+  const beforeLocation=new URL(beforeUrl),afterLocation=new URL(afterUrl);
+  const sameProduct=beforeLocation.origin===afterLocation.origin
+    &&beforeLocation.pathname===afterLocation.pathname
+    &&beforeLocation.searchParams.get('itemId')===afterLocation.searchParams.get('itemId');
+  if (!sameProduct) {
+    scan.cardInteractionStatus='navigation-blocked';
+    await chrome.tabs.update(tabId,{url:beforeUrl});
+    await waitForComplete(tabId);
+    return scan;
+  }
+  const popup=await chrome.scripting.executeScript({
+    target:{tabId},func:readCardPopup,
+    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders]
+  });
+  const card=popup?.[0]?.result;
+  if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured'});
+  else scan.cardInteractionStatus=card?.reason||'card-popup-no-result';
+  return scan;
 }
 
 function readDanawaSellers(expectedMtm) {
@@ -305,13 +420,7 @@ async function scanAll() {
         tab = await chrome.tabs.create({url:target.url, active:true});
         await waitForComplete(tab.id);
         await wait(7000);
-        const injected = await chrome.scripting.executeScript({
-          target:{tabId:tab.id}, func:readDisplayedPrice, args:[target.itemId]
-        });
-        const priceScan=injected?.[0]?.result;
-        if (!priceScan || typeof priceScan !== 'object') {
-          throw new Error('scan-script-no-result');
-        }
+        const priceScan=await scanCoupangTab(tab.id,target);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if (target.danawaUrl) {
           let danawaTab;
@@ -347,10 +456,7 @@ async function scanAll() {
         retryTab=await chrome.tabs.create({url:result.url,active:true});
         await waitForComplete(retryTab.id);
         await wait(10000);
-        const retried=await chrome.scripting.executeScript({
-          target:{tabId:retryTab.id},func:readDisplayedPrice,args:[result.itemId]
-        });
-        const retryScan=retried?.[0]?.result;
+        const retryScan=await scanCoupangTab(retryTab.id,result);
         if (retryScan?.ok) Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
       } catch (_) {
       } finally {
