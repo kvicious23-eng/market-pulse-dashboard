@@ -139,18 +139,36 @@ async function readDisplayedPrice(expectedItemId) {
     const summaryRoot=summaryNodes[0]||null;
     const summaryText=compact(summaryRoot);
     if (summaryRoot) cardBenefitStatus='partial';
+    const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
+    const parseKrwAmount=raw=>{
+      const normalized=raw.replace(/[\s,]/g,'');
+      if (!normalized.includes('만')) return Number(normalized);
+      const [tenThousands,remainder='']=normalized.split('만');
+      return Number(tenThousands)*10000+Number(remainder||0);
+    };
+    const parseCap=text=>{
+      const maxPattern=/최대\s*(?:할인\s*)?(?:금액|한도)?\s*([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g;
+      for (const match of text.matchAll(maxPattern)) {
+        const prefix=text.slice(Math.max(0,match.index-24),match.index);
+        if (/적립|캐시/.test(prefix)) continue;
+        return parseKrwAmount(match[1]);
+      }
+      const direct=text.match(/할인\s*(?:금액|한도)[^0-9]{0,20}([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/);
+      return direct?parseKrwAmount(direct[1]):null;
+    };
     let detailText='';
     let detailRoot=null;
     if (summaryRoot) {
       // Only inspect controls located inside the smallest card-benefit summary.
       // Coupang sometimes wraps the info icon in a plain span/i instead of a
       // button, so include those icon wrappers while still excluding links.
+      const controlScope=summaryRoot.parentElement||summaryRoot;
       const controls=[...new Set([
         summaryRoot,
-        ...summaryRoot.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg,i')
+        ...controlScope.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="help"],svg,i')
       ].map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node))]
         .filter(node=>node&&visible(node)&&node.tagName!=='A'&&!node.closest('a[href]'));
-      const hasCapText=text=>/할인\s*(?:금액|한도)|최대\s*[0-9,.]+\s*(?:만|천)?원/.test(text);
+      const hasCapText=text=>Number.isFinite(parseCap(text));
       const readDetail=()=>{
         const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
           .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
@@ -165,7 +183,7 @@ async function readDisplayedPrice(expectedItemId) {
           .sort((a,b)=>compact(a).length-compact(b).length);
         return capContainers[0]||layers[0]||null;
       };
-      for (const detailControl of controls.slice(0,5)) {
+      for (const detailControl of controls.slice(0,8)) {
         detailControl.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
         detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
         await new Promise(resolve=>setTimeout(resolve,700));
@@ -184,13 +202,6 @@ async function readDisplayedPrice(expectedItemId) {
     cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
     const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
     cardProviders=knownCards.filter(card=>cardBenefitText.includes(card));
-    const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
-    const parseCap=text=>{
-      const match=text.match(/(?:최대\s*(?:할인\s*)?(?:금액|한도)?|할인\s*(?:금액|한도))[^0-9]{0,20}([0-9][0-9,.]*)\s*(만원|천원|원)/);
-      if (!match) return null;
-      const amount=Number(match[1].replace(/,/g,''));
-      return Math.round(amount*(match[2]==='만원'?10000:match[2]==='천원'?1000:1));
-    };
     const benefitRows=[];
     for (const node of detailRoot?.querySelectorAll('tr,li,div,p')||[]) {
       const text=compact(node);
