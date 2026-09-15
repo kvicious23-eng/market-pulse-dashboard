@@ -245,7 +245,25 @@ async function readDisplayedPrice(expectedItemId) {
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
-function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders) {
+function snapshotCardDetailText(expectedItemId) {
+  const actualItemId=new URL(location.href).searchParams.get('itemId');
+  if (actualItemId!==expectedItemId) return {ok:false,reason:'item-id-changed',texts:[]};
+  const visible=node=>{
+    const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0&&rect.width>0&&rect.height>0;
+  };
+  const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+  const texts=new Set();
+  for (const node of document.body?.querySelectorAll('*')||[]) {
+    if (!visible(node)) continue;
+    const text=compact(node);
+    if (text.length<2||text.length>2500||!/(?:카드|할인|와우|한도|%|원)/.test(text)) continue;
+    texts.add(text);
+  }
+  return {ok:true,texts:[...texts].slice(0,6000)};
+}
+
+function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,beforeTexts=[]) {
   const actualItemId=new URL(location.href).searchParams.get('itemId');
   if (actualItemId!==expectedItemId) return {captured:false,reason:'item-id-changed'};
   const visible=node=>{
@@ -261,35 +279,39 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders)
     return Number(tenThousands)*10000+Number(remainder||0);
   };
   const parseCap=text=>{
-    const patterns=[
-      /최대\s*(?:할인\s*)?(?:금액|한도)?\s*([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g,
-      /할인\s*(?:금액|한도)[^0-9]{0,20}([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g
-    ];
-    for (const pattern of patterns) {
-      for (const match of text.matchAll(pattern)) {
-        const prefix=text.slice(Math.max(0,match.index-24),match.index);
-        if (/적립|캐시/.test(prefix)) continue;
-        return parseKrwAmount(match[1]);
-      }
+    const amountPattern=/([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g;
+    for (const match of text.matchAll(amountPattern)) {
+      const start=Math.max(0,(match.index||0)-50),end=Math.min(text.length,(match.index||0)+match[0].length+24);
+      const context=text.slice(start,end);
+      const prefix=text.slice(start,match.index||0);
+      if (/적립|캐시|결제금액|판매가/.test(prefix)) continue;
+      if (!/(?:최대|한도|할인금액)/.test(context)) continue;
+      return parseKrwAmount(match[1]);
     }
     return null;
   };
   const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
-  const selectors='[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table';
+  const before=new Set(beforeTexts);
+  const selectors='[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table,ul,ol';
   const roots=[...document.querySelectorAll(selectors)]
-    .filter(node=>{
+    .map(node=>{
       const text=compact(node),style=getComputedStyle(node);
+      const newlyVisible=!before.has(text);
       const overlayLike=node.matches('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')
         ||style.position==='fixed'||style.position==='absolute';
-      return overlayLike&&visible(node)&&/카드/.test(text)&&text.length>summaryText.length+10&&text.length<12000
-        &&(Number.isFinite(parseCap(text))||/할인율|할인한도|카드사|할인금액/.test(text));
+      const hasRate=Boolean(parseRate(text));
+      const hasCap=Number.isFinite(parseCap(text));
+      const hasCardDetail=/(?:카드|할인율|할인한도|할인금액|최대할인)/.test(text);
+      return {node,text,newlyVisible,overlayLike,hasRate,hasCap,hasCardDetail};
     })
+    .filter(entry=>entry.newlyVisible&&visible(entry.node)&&entry.text.length>=5&&entry.text.length<12000
+      &&entry.hasRate&&entry.hasCardDetail)
     .sort((a,b)=>{
-      const aCap=Number.isFinite(parseCap(compact(a)))?0:1;
-      const bCap=Number.isFinite(parseCap(compact(b)))?0:1;
-      return aCap-bCap||compact(a).length-compact(b).length;
+      const aScore=(a.hasCap?4:0)+(a.overlayLike?2:0)+(/카드사|할인한도|할인금액/.test(a.text)?1:0);
+      const bScore=(b.hasCap?4:0)+(b.overlayLike?2:0)+(/카드사|할인한도|할인금액/.test(b.text)?1:0);
+      return bScore-aScore||a.text.length-b.text.length;
     });
-  const root=roots[0]||null;
+  const root=roots[0]?.node||null;
   if (!root) return {captured:false,reason:'card-popup-not-found'};
   const detailText=compact(root);
   const rows=[];
@@ -348,6 +370,10 @@ async function scanCoupangTab(tabId,target) {
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
   if (!scan.ok||scan.cardBenefitStatus!=='partial'||!scan.cardClickPoint) return scan;
+  const beforePopup=await chrome.scripting.executeScript({
+    target:{tabId},func:snapshotCardDetailText,args:[target.itemId]
+  });
+  const beforeTexts=beforePopup?.[0]?.result?.texts||[];
   const beforeUrl=(await chrome.tabs.get(tabId)).url;
   const click=await dispatchTrustedClick(tabId,scan.cardClickPoint);
   scan.cardInteractionStatus=click.ok?'clicked':click.reason;
@@ -366,7 +392,7 @@ async function scanCoupangTab(tabId,target) {
   }
   const popup=await chrome.scripting.executeScript({
     target:{tabId},func:readCardPopup,
-    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders]
+    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders,beforeTexts]
   });
   const card=popup?.[0]?.result;
   if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured'});
