@@ -159,19 +159,27 @@ async function readDisplayedPrice(expectedItemId) {
     let detailText='';
     let detailRoot=null;
     if (summaryRoot) {
-      // Only inspect controls located inside the smallest card-benefit summary.
-      // Coupang sometimes wraps the info icon in a plain span/i instead of a
-      // button, so include those icon wrappers while still excluding links.
-      const controlScope=summaryRoot.parentElement||summaryRoot;
-      const controls=[...new Set([
-        summaryRoot,
-        ...controlScope.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="help"],svg,i')
-      ].map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node))]
-        .filter(node=>node&&visible(node)&&node.tagName!=='A'&&!node.closest('a[href]'));
+      // Prefer the blue "와우 전용" control. A broad nearby-icon search can
+      // open Coupang's unrelated price-information popup.
+      const controlScope=summaryRoot.parentElement?.parentElement||summaryRoot.parentElement||summaryRoot;
+      const textControls=[...controlScope.querySelectorAll('a,button,[role="button"],span')]
+        .filter(node=>visible(node)&&compact(node).length<120&&/와우\s*전용/.test(compact(node)))
+        .sort((a,b)=>compact(a).length-compact(b).length);
+      const summaryRect=summaryRoot.getBoundingClientRect();
+      const iconControls=[...controlScope.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg,i')]
+        .map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node)
+        .filter(node=>node&&visible(node)&&!node.closest('a[href]:not([href="#"])'))
+        .sort((a,b)=>{
+          const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
+          const ad=Math.hypot(ar.left-summaryRect.right,ar.top-summaryRect.top);
+          const bd=Math.hypot(br.left-summaryRect.right,br.top-summaryRect.top);
+          return ad-bd;
+        });
+      const controls=[...new Set([...textControls,...iconControls])];
       const hasCapText=text=>Number.isFinite(parseCap(text));
       const readDetail=()=>{
         const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
-          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
+          .filter(node=>visible(node)&&/카드/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
           .sort((a,b)=>compact(a).length-compact(b).length);
         const layerWithCap=layers.find(node=>hasCapText(compact(node)));
         if (layerWithCap) return layerWithCap;
@@ -179,7 +187,7 @@ async function readDisplayedPrice(expectedItemId) {
         // keywords. Search visible compact containers only after the card icon
         // interaction, and require both card/discount wording and a cap amount.
         const capContainers=[...document.querySelectorAll('div,section,table')]
-          .filter(node=>visible(node)&&/카드|할인/.test(compact(node))&&hasCapText(compact(node))&&compact(node).length>=20&&compact(node).length<4000)
+          .filter(node=>visible(node)&&/카드/.test(compact(node))&&hasCapText(compact(node))&&compact(node).length>=20&&compact(node).length<4000)
           .sort((a,b)=>compact(a).length-compact(b).length);
         return capContainers[0]||layers[0]||null;
       };
@@ -188,7 +196,10 @@ async function readDisplayedPrice(expectedItemId) {
         detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
         await new Promise(resolve=>setTimeout(resolve,700));
         detailRoot=readDetail();
-        if (!detailRoot && detailControl!==summaryRoot) {
+        if (!detailRoot) {
+          const link=detailControl.closest('a[href]');
+          const preventNavigation=event=>event.preventDefault();
+          if (link) link.addEventListener('click',preventNavigation,{capture:true,once:true});
           detailControl.click();
           await new Promise(resolve=>setTimeout(resolve,700));
           detailRoot=readDetail();
