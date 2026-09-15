@@ -247,7 +247,7 @@ async function readDisplayedPrice(expectedItemId) {
 
 function snapshotCardDetailText(expectedItemId) {
   const actualItemId=new URL(location.href).searchParams.get('itemId');
-  if (actualItemId!==expectedItemId) return {ok:false,reason:'item-id-changed',texts:[]};
+  if (actualItemId&&actualItemId!==expectedItemId) return {ok:false,reason:'item-id-changed',texts:[]};
   const visible=node=>{
     const style=getComputedStyle(node),rect=node.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0&&rect.width>0&&rect.height>0;
@@ -263,15 +263,16 @@ function snapshotCardDetailText(expectedItemId) {
   return {ok:true,texts:[...texts].slice(0,6000)};
 }
 
-function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,beforeTexts=[]) {
+function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,beforeTexts=[],clickPoint=null) {
   const actualItemId=new URL(location.href).searchParams.get('itemId');
-  if (actualItemId!==expectedItemId) return {captured:false,reason:'item-id-changed'};
+  if (actualItemId&&actualItemId!==expectedItemId) return {captured:false,reason:'item-id-changed'};
   const visible=node=>{
     const style=getComputedStyle(node),rect=node.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
   };
   const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
-  const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
+  const parseRates=text=>[...text.matchAll(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/g)].map(match=>Number(match[1])).filter(rate=>rate>0&&rate<=100);
+  const summaryRate=parseRates(summaryText)[0]||null;
   const parseKrwAmount=raw=>{
     const normalized=raw.replace(/[\s,]/g,'');
     if (!normalized.includes('만')) return Number(normalized);
@@ -284,7 +285,7 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,
       const start=Math.max(0,(match.index||0)-50),end=Math.min(text.length,(match.index||0)+match[0].length+24);
       const context=text.slice(start,end);
       const prefix=text.slice(start,match.index||0);
-      if (/적립|캐시|결제금액|판매가/.test(prefix)) continue;
+      if (/적립|캐시|결제금액|판매가|안심케어|무상보증/.test(prefix)||/안심케어|무상보증/.test(context)) continue;
       if (!/(?:최대|한도|할인금액)/.test(context)) continue;
       return parseKrwAmount(match[1]);
     }
@@ -295,17 +296,26 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,
   const selectors='[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table,ul,ol';
   const roots=[...document.querySelectorAll(selectors)]
     .map(node=>{
-      const text=compact(node),style=getComputedStyle(node);
+      const text=compact(node),style=getComputedStyle(node),rect=node.getBoundingClientRect();
       const newlyVisible=!before.has(text);
       const overlayLike=node.matches('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')
         ||style.position==='fixed'||style.position==='absolute';
-      const hasRate=Boolean(parseRate(text));
+      const rates=parseRates(text);
+      const hasExpectedRate=summaryRate!==null&&rates.includes(summaryRate);
       const hasCap=Number.isFinite(parseCap(text));
+      const explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text);
       const hasCardDetail=/(?:카드|할인율|할인한도|할인금액|최대할인)/.test(text);
-      return {node,text,newlyVisible,overlayLike,hasRate,hasCap,hasCardDetail};
+      const smallEnough=rect.width<=1000&&rect.height<=900;
+      const nearClick=!clickPoint||overlayLike||(
+        rect.right>=clickPoint.x-650&&rect.left<=clickPoint.x+650
+        &&rect.bottom>=clickPoint.y-550&&rect.top<=clickPoint.y+550
+      );
+      const forbidden=/추천이런건|쿠팡상품번호|다른 구성 보기|CPU 모델명|상품정보에 문제가/.test(text);
+      return {node,text,newlyVisible,overlayLike,hasExpectedRate,hasCap,explicitlyUncapped,hasCardDetail,smallEnough,nearClick,forbidden};
     })
-    .filter(entry=>entry.newlyVisible&&visible(entry.node)&&entry.text.length>=5&&entry.text.length<12000
-      &&entry.hasRate&&entry.hasCardDetail)
+    .filter(entry=>entry.newlyVisible&&visible(entry.node)&&entry.text.length>=5&&entry.text.length<5000
+      &&entry.hasExpectedRate&&entry.hasCardDetail&&(entry.hasCap||entry.explicitlyUncapped)
+      &&entry.smallEnough&&entry.nearClick&&!entry.forbidden)
     .sort((a,b)=>{
       const aScore=(a.hasCap?4:0)+(a.overlayLike?2:0)+(/카드사|할인한도|할인금액/.test(a.text)?1:0);
       const bScore=(b.hasCap?4:0)+(b.overlayLike?2:0)+(/카드사|할인한도|할인금액/.test(b.text)?1:0);
@@ -318,15 +328,15 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,
   for (const node of root.querySelectorAll('tr,li,div,p')) {
     const text=compact(node);
     if (text.length<5||text.length>900||!/%/.test(text)) continue;
-    const rate=parseRate(text),cap=parseCap(text);
-    if (!rate) continue;
+    const rates=parseRates(text),cap=parseCap(text);
+    if (!summaryRate||!rates.includes(summaryRate)) continue;
     const providers=knownCards.filter(card=>text.includes(card));
-    rows.push({rate,cap,providers});
+    if (Number.isFinite(cap)||/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text)) rows.push({rate:summaryRate,cap,providers});
   }
   if (!rows.length) {
-    const rate=parseRate(detailText)||parseRate(summaryText);
     const cap=parseCap(detailText);
-    if (rate) rows.push({rate,cap,providers:knownCards.filter(card=>detailText.includes(card))});
+    const explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(detailText);
+    if (summaryRate&&(Number.isFinite(cap)||explicitlyUncapped)) rows.push({rate:summaryRate,cap,providers:knownCards.filter(card=>detailText.includes(card))});
   }
   const calculated=rows.map(row=>({
     ...row,
@@ -371,9 +381,9 @@ async function scanCoupangTab(tabId,target) {
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
   if (!scan.ok||scan.cardBenefitStatus!=='partial'||!scan.cardClickPoint) return scan;
   const beforePopup=await chrome.scripting.executeScript({
-    target:{tabId},func:snapshotCardDetailText,args:[target.itemId]
+    target:{tabId,allFrames:true},func:snapshotCardDetailText,args:[target.itemId]
   });
-  const beforeTexts=beforePopup?.[0]?.result?.texts||[];
+  const beforeTexts=[...new Set((beforePopup||[]).flatMap(frame=>frame?.result?.texts||[]))];
   const beforeUrl=(await chrome.tabs.get(tabId)).url;
   const click=await dispatchTrustedClick(tabId,scan.cardClickPoint);
   scan.cardInteractionStatus=click.ok?'clicked':click.reason;
@@ -391,10 +401,12 @@ async function scanCoupangTab(tabId,target) {
     return scan;
   }
   const popup=await chrome.scripting.executeScript({
-    target:{tabId},func:readCardPopup,
-    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders,beforeTexts]
+    target:{tabId,allFrames:true},func:readCardPopup,
+    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders,beforeTexts,scan.cardClickPoint]
   });
-  const card=popup?.[0]?.result;
+  const card=(popup||[]).map(frame=>frame?.result).find(result=>result?.captured)
+    ||(popup||[]).map(frame=>frame?.result).find(result=>result?.reason==='card-popup-unparseable')
+    ||popup?.[0]?.result;
   if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured'});
   else scan.cardInteractionStatus=card?.reason||'card-popup-no-result';
   return scan;
