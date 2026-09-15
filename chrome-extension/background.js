@@ -191,22 +191,26 @@ async function readDisplayedPrice(expectedItemId) {
             &&(Number.isFinite(parseCap(text))||/할인율|할인한도|카드사/.test(text));
         });
       if (wowRect) {
-        const icon=[...cardRow.querySelectorAll('svg,i,button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="tooltip"],span')]
-          .filter(node=>{
-            if (!node||!visible(node)||node.closest('a[href]')||/와우\s*전용/.test(compact(node))) return false;
-            const tag=node.tagName.toLowerCase();
-            const label=[node.getAttribute('aria-label'),node.getAttribute('title'),node.className?.baseVal||node.className,compact(node)].filter(Boolean).join(' ');
-            const infoLike=['svg','i','button'].includes(tag)||node.getAttribute('role')==='button'||/info|tooltip|help|안내|정보|^[ⓘi?]$/i.test(label);
-            if (!infoLike) return false;
-            const rect=node.getBoundingClientRect();
-            const gap=rect.left-wowRect.right;
-            const vertical=Math.abs((rect.top+rect.height/2)-(wowRect.top+wowRect.height/2));
-            return rect.width>0&&rect.width<=32&&rect.height>0&&rect.height<=32&&gap>=-1&&gap<=28&&vertical<=12;
-          })
-          .sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left)[0]||null;
-        if (icon) {
+        const clickY=wowRect.top+wowRect.height/2;
+        const pointHits=[6,10,14,18,22,26].map(offset=>{
+          const x=wowRect.right+offset;
+          const raw=document.elementFromPoint(x,clickY);
+          if (!raw||!cardRow.contains(raw)) return null;
+          const target=raw.closest('svg,i,button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="tooltip"]')||raw;
+          if (!cardRow.contains(target)) return null;
+          const tag=target.tagName.toLowerCase();
+          const label=[target.getAttribute('aria-label'),target.getAttribute('title'),target.className?.baseVal||target.className,compact(target)].filter(Boolean).join(' ');
+          const infoLike=['svg','i','button'].includes(tag)||target.getAttribute('role')==='button'||/info|tooltip|help|안내|정보|^[ⓘi?]$/i.test(label);
+          return {target,x,offset,infoLike};
+        }).filter(Boolean);
+        const hit=pointHits.find(entry=>entry.infoLike)
+          ||pointHits.sort((a,b)=>Math.abs(a.offset-14)-Math.abs(b.offset-14))[0]
+          ||null;
+        if (hit) {
           const before=new Set(popupCandidates());
-          icon.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+          const anchor=hit.target.closest('a[href]');
+          if (anchor) anchor.addEventListener('click',event=>event.preventDefault(),{capture:true,once:true});
+          hit.target.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window,clientX:hit.x,clientY:clickY}));
           await new Promise(resolve=>setTimeout(resolve,900));
           const opened=popupCandidates().filter(node=>!before.has(node))
             .sort((a,b)=>{
