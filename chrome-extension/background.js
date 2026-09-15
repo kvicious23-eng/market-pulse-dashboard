@@ -178,7 +178,7 @@ async function readDisplayedPrice(expectedItemId) {
     const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
     const parseCap=text=>{
       const match=text.match(/(?:최대\s*(?:할인\s*)?(?:금액|한도)?|할인\s*(?:금액|한도))[^0-9]{0,20}([0-9][0-9,.]*)\s*(만원|천원|원)/);
-      if (!match) return 0;
+      if (!match) return null;
       const amount=Number(match[1].replace(/,/g,''));
       return Math.round(amount*(match[2]==='만원'?10000:match[2]==='천원'?1000:1));
     };
@@ -193,17 +193,19 @@ async function readDisplayedPrice(expectedItemId) {
     }
     if (!benefitRows.length) {
       const rate=parseRate(summaryText)||parseRate(detailText);
-      const cap=parseCap(detailText);
-      if (rate&&cap) benefitRows.push({rate,cap,providers:cardProviders});
+      const cap=parseCap(detailText)||parseCap(summaryText);
+      if (rate) benefitRows.push({rate,cap,providers:cardProviders});
     }
     const calculated=benefitRows.map(row=>({
       ...row,
-      amount:Math.min(Math.floor(preferred.price*row.rate/100),row.cap)
+      amount:Number.isFinite(row.cap)&&row.cap>0
+        ? Math.min(Math.floor(preferred.price*row.rate/100),row.cap)
+        : Math.floor(preferred.price*row.rate/100)
     })).sort((a,b)=>b.amount-a.amount);
     if (calculated[0]) {
       cardDiscount=calculated[0].amount;
       cardRate=calculated[0].rate;
-      cardMaxDiscount=calculated[0].cap;
+      cardMaxDiscount=Number.isFinite(calculated[0].cap)&&calculated[0].cap>0?calculated[0].cap:null;
       if (calculated[0].providers.length) cardProviders=calculated[0].providers;
       cardBenefitStatus='captured';
     }

@@ -111,12 +111,10 @@
   }
 
   function effectiveFinalPrice(offer) {
-    if (!offer) return null;
-    if (offer.role !== "mine") return Number.isFinite(offer.finalPrice) ? offer.finalPrice : null;
+    if (!offer || !Number.isFinite(offer.finalPrice)) return null;
     if (offer.alertEligible === false) return null;
-    // 카드 상세가 미수집이어도 카드 적용 전 공개 실구매가는 비교할 수 있습니다.
-    if (Number.isFinite(offer.preCardPrice)) return offer.preCardPrice;
-    return Number.isFinite(offer.finalPrice) ? offer.finalPrice : null;
+    if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
+    return offer.finalPrice;
   }
 
   function exportMyProducts() {
@@ -144,7 +142,9 @@
         Number.isFinite(breakdown.preCardPrice) ? breakdown.preCardPrice : "미확인",
         Number.isFinite(effectiveFinalPrice(mine)) ? effectiveFinalPrice(mine) : "미확인", mine.shipping,
         Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
-        mine.cardRate, mine.cardMaxDiscount, mine.condition, mine.sourceType, mine.confidence,
+        mine.cardRate,
+        Number.isFinite(mine.cardMaxDiscount) ? mine.cardMaxDiscount : mine.cardBenefitStatus === "captured" ? "한도 표기 없음" : "미확인",
+        mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
         safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
       ];
@@ -408,7 +408,7 @@
       <div class="evidence__item"><span>카드할인 금액</span><strong>${cardDiscountText(offer)}</strong></div>` : ""}
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
       ${providers ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
-      ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · 최대 ${formatWon(offer.cardMaxDiscount)}`)}</strong></div>` : ""}
+      ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · ${Number.isFinite(offer.cardMaxDiscount) ? `최대 ${formatWon(offer.cardMaxDiscount)}` : "할인한도 표기 없음"}`)}</strong></div>` : ""}
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
       <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
       ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}
