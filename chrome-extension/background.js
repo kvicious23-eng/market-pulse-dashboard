@@ -387,17 +387,29 @@ function accessibilityStrings(tree) {
 }
 
 async function captureDebuggerText(target) {
-  const result={accessibility:[],domSnapshot:[]};
+  const result={
+    accessibility:[],domSnapshot:[],
+    status:{accessibility:'pending',domSnapshot:'pending'},
+    errors:{}
+  };
   try {
     const tree=await chrome.debugger.sendCommand(target,'Accessibility.getFullAXTree',{});
     result.accessibility=accessibilityStrings(tree);
-  } catch (_) {}
+    result.status.accessibility=result.accessibility.length?'captured':'empty';
+  } catch (error) {
+    result.status.accessibility='error';
+    result.errors.accessibility=String(error).slice(0,500);
+  }
   try {
     const snapshot=await chrome.debugger.sendCommand(target,'DOMSnapshot.captureSnapshot',{
       computedStyles:[],includeDOMRects:false,includePaintOrder:false
     });
     result.domSnapshot=debuggerSnapshotStrings(snapshot);
-  } catch (_) {}
+    result.status.domSnapshot=result.domSnapshot.length?'captured':'empty';
+  } catch (error) {
+    result.status.domSnapshot='error';
+    result.errors.domSnapshot=String(error).slice(0,500);
+  }
   return result;
 }
 
@@ -426,7 +438,31 @@ async function dispatchTrustedClickAndCapture(tabId,point) {
 function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,capture) {
   const parseRates=text=>[...text.matchAll(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/g)].map(match=>Number(match[1])).filter(rate=>rate>0&&rate<=100);
   const expectedRate=parseRates(summaryText)[0]||null;
-  if (!expectedRate) return {captured:false,reason:'card-summary-rate-missing'};
+  const relevantNew=(afterValues,beforeValues)=>{
+    const before=new Set(beforeValues||[]);
+    return (afterValues||[])
+      .filter(value=>!before.has(value)&&/(?:카드|할인|한도|최대|%|원)/.test(value))
+      .map(value=>value.slice(0,300))
+      .slice(0,20);
+  };
+  const cardDebug={
+    expectedRate,
+    beforeStatus:capture?.before?.status||null,
+    afterStatus:capture?.after?.status||null,
+    beforeErrors:capture?.before?.errors||{},
+    afterErrors:capture?.after?.errors||{},
+    counts:{
+      accessibilityBefore:capture?.before?.accessibility?.length||0,
+      accessibilityAfter:capture?.after?.accessibility?.length||0,
+      domSnapshotBefore:capture?.before?.domSnapshot?.length||0,
+      domSnapshotAfter:capture?.after?.domSnapshot?.length||0
+    },
+    newRelevant:{
+      accessibility:relevantNew(capture?.after?.accessibility,capture?.before?.accessibility),
+      domSnapshot:relevantNew(capture?.after?.domSnapshot,capture?.before?.domSnapshot)
+    }
+  };
+  if (!expectedRate) return {captured:false,reason:'card-summary-rate-missing',cardDebug};
   const parseKrwAmount=raw=>{
     const normalized=raw.replace(/[\s,]/g,'');
     if (!normalized.includes('만')) return Number(normalized);
@@ -471,14 +507,16 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
       }
     }
   }
-  if (!candidates.length) return {captured:false,reason:'debugger-card-evidence-not-found'};
+  cardDebug.candidateCount=candidates.length;
+  if (!candidates.length) return {captured:false,reason:'debugger-card-evidence-not-found',cardDebug};
   const bestBySource=[...new Set(candidates.map(candidate=>candidate.source))].map(source=>
     candidates.filter(candidate=>candidate.source===source).sort((a,b)=>b.amount-a.amount)[0]
   );
   if (bestBySource.length>1) {
     const [first,...rest]=bestBySource;
     if (rest.some(candidate=>candidate.rate!==first.rate||candidate.cap!==first.cap||candidate.amount!==first.amount)) {
-      return {captured:false,reason:'debugger-card-evidence-conflict'};
+      cardDebug.conflicts=bestBySource.map(candidate=>({source:candidate.source,rate:candidate.rate,cap:candidate.cap,amount:candidate.amount}));
+      return {captured:false,reason:'debugger-card-evidence-conflict',cardDebug};
     }
   }
   const best=bestBySource.sort((a,b)=>b.amount-a.amount)[0];
@@ -486,6 +524,7 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
     captured:true,
     cardBenefitStatus:'captured',
     cardInteractionStatus:'captured',
+    cardDebug,
     cardEvidenceSource:bestBySource.length>1?'accessibility+dom-snapshot':best.source,
     cardBenefitText:[summaryText,best.text].filter(Boolean).join(' | ').slice(0,4000),
     cardRate:best.rate,
@@ -527,6 +566,7 @@ async function scanCoupangTab(tabId,target) {
     ||(popup||[]).map(frame=>frame?.result).find(result=>result?.reason==='card-popup-unparseable')
     ||popup?.[0]?.result;
   const debuggerCard=parseDebuggerCardEvidence(scan.price,scan.cardBenefitText,scan.cardProviders,click);
+  scan.cardDebug=debuggerCard?.cardDebug||null;
   if (card?.captured&&debuggerCard?.captured) {
     const same=card.cardRate===debuggerCard.cardRate&&card.cardMaxDiscount===debuggerCard.cardMaxDiscount&&card.cardDiscount===debuggerCard.cardDiscount;
     if (same) Object.assign(scan,debuggerCard,{cardEvidenceSource:`dom+${debuggerCard.cardEvidenceSource}`});
