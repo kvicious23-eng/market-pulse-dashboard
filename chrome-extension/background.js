@@ -357,22 +357,142 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,
   };
 }
 
-async function dispatchTrustedClick(tabId,point) {
+function debuggerSnapshotStrings(snapshot) {
+  const strings=snapshot?.strings||[];
+  const values=[];
+  const add=index=>{
+    const value=typeof index==='number'?strings[index]:null;
+    if (typeof value==='string'&&value.trim()) values.push(value.replace(/\s+/g,' ').trim());
+  };
+  for (const document of snapshot?.documents||[]) {
+    for (const index of document?.nodes?.nodeValue||[]) add(index);
+    for (const attrs of document?.nodes?.attributes||[]) for (const index of attrs||[]) add(index);
+    for (const index of document?.layout?.text||[]) add(index);
+  }
+  return values.filter(value=>value.length<=1200).slice(0,12000);
+}
+
+function accessibilityStrings(tree) {
+  const values=[];
+  const add=value=>{
+    if (typeof value==='string'&&value.trim()) values.push(value.replace(/\s+/g,' ').trim());
+  };
+  for (const node of tree?.nodes||[]) {
+    add(node?.name?.value);
+    add(node?.value?.value);
+    add(node?.description?.value);
+    for (const property of node?.properties||[]) add(property?.value?.value);
+  }
+  return values.filter(value=>value.length<=1200).slice(0,12000);
+}
+
+async function captureDebuggerText(target) {
+  const result={accessibility:[],domSnapshot:[]};
+  try {
+    const tree=await chrome.debugger.sendCommand(target,'Accessibility.getFullAXTree',{});
+    result.accessibility=accessibilityStrings(tree);
+  } catch (_) {}
+  try {
+    const snapshot=await chrome.debugger.sendCommand(target,'DOMSnapshot.captureSnapshot',{
+      computedStyles:[],includeDOMRects:false,includePaintOrder:false
+    });
+    result.domSnapshot=debuggerSnapshotStrings(snapshot);
+  } catch (_) {}
+  return result;
+}
+
+async function dispatchTrustedClickAndCapture(tabId,point) {
   const target={tabId};
   let attached=false;
   try {
     await chrome.debugger.attach(target,'1.3');
     attached=true;
     await chrome.debugger.sendCommand(target,'Page.bringToFront');
+    await chrome.debugger.sendCommand(target,'Accessibility.enable').catch(()=>{});
+    const before=await captureDebuggerText(target);
     await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y});
     await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',buttons:1,clickCount:1});
     await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',buttons:0,clickCount:1});
-    return {ok:true};
+    await wait(1200);
+    const after=await captureDebuggerText(target);
+    return {ok:true,before,after};
   } catch (error) {
     return {ok:false,reason:String(error)};
   } finally {
     if (attached) await chrome.debugger.detach(target).catch(()=>{});
   }
+}
+
+function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,capture) {
+  const parseRates=text=>[...text.matchAll(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/g)].map(match=>Number(match[1])).filter(rate=>rate>0&&rate<=100);
+  const expectedRate=parseRates(summaryText)[0]||null;
+  if (!expectedRate) return {captured:false,reason:'card-summary-rate-missing'};
+  const parseKrwAmount=raw=>{
+    const normalized=raw.replace(/[\s,]/g,'');
+    if (!normalized.includes('만')) return Number(normalized);
+    const [tenThousands,remainder='']=normalized.split('만');
+    return Number(tenThousands)*10000+Number(remainder||0);
+  };
+  const parseCaps=text=>{
+    const caps=[];
+    const amountPattern=/([0-9][0-9,]*(?:\s*만\s*[0-9,]*)?)\s*원/g;
+    for (const match of text.matchAll(amountPattern)) {
+      const start=Math.max(0,(match.index||0)-60),end=Math.min(text.length,(match.index||0)+match[0].length+30);
+      const context=text.slice(start,end),prefix=text.slice(start,match.index||0);
+      if (/적립|캐시|결제금액|판매가|안심케어|무상보증/.test(prefix)||/안심케어|무상보증/.test(context)) continue;
+      if (!/(?:최대|한도|할인금액)/.test(context)) continue;
+      const cap=parseKrwAmount(match[1]);
+      if (Number.isFinite(cap)&&cap>0&&cap<=preCardPrice) caps.push(cap);
+    }
+    return [...new Set(caps)];
+  };
+  const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
+  const candidates=[];
+  for (const [source,afterValues,beforeValues] of [
+    ['accessibility',capture?.after?.accessibility||[],capture?.before?.accessibility||[]],
+    ['dom-snapshot',capture?.after?.domSnapshot||[],capture?.before?.domSnapshot||[]]
+  ]) {
+    const before=new Set(beforeValues);
+    for (let index=0;index<afterValues.length;index++) {
+      const anchor=afterValues[index];
+      if (before.has(anchor)||!/(?:원|한도|할인|카드|%)/.test(anchor)) continue;
+      const text=afterValues.slice(Math.max(0,index-10),Math.min(afterValues.length,index+11)).join(' | ');
+      if (/추천이런건|쿠팡상품번호|다른 구성 보기|CPU 모델명|상품정보에 문제가/.test(text)) continue;
+      const rates=parseRates(text),providers=knownCards.filter(card=>text.includes(card));
+      const matchingProviders=providers.filter(card=>summaryProviders.includes(card));
+      const caps=parseCaps(text),explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text);
+      const rateMatches=rates.includes(expectedRate);
+      const cardContext=/(?:카드|할인한도|할인금액|최대할인)/.test(text);
+      if (!cardContext||(!rateMatches&&!matchingProviders.length)||(!caps.length&&!explicitlyUncapped)) continue;
+      if (rates.length&&!rateMatches) continue;
+      for (const cap of caps.length?caps:[null]) {
+        const amount=Number.isFinite(cap)?Math.min(Math.floor(preCardPrice*expectedRate/100),cap):Math.floor(preCardPrice*expectedRate/100);
+        candidates.push({source,rate:expectedRate,cap,amount,providers:matchingProviders,text});
+      }
+    }
+  }
+  if (!candidates.length) return {captured:false,reason:'debugger-card-evidence-not-found'};
+  const bestBySource=[...new Set(candidates.map(candidate=>candidate.source))].map(source=>
+    candidates.filter(candidate=>candidate.source===source).sort((a,b)=>b.amount-a.amount)[0]
+  );
+  if (bestBySource.length>1) {
+    const [first,...rest]=bestBySource;
+    if (rest.some(candidate=>candidate.rate!==first.rate||candidate.cap!==first.cap||candidate.amount!==first.amount)) {
+      return {captured:false,reason:'debugger-card-evidence-conflict'};
+    }
+  }
+  const best=bestBySource.sort((a,b)=>b.amount-a.amount)[0];
+  return {
+    captured:true,
+    cardBenefitStatus:'captured',
+    cardInteractionStatus:'captured',
+    cardEvidenceSource:bestBySource.length>1?'accessibility+dom-snapshot':best.source,
+    cardBenefitText:[summaryText,best.text].filter(Boolean).join(' | ').slice(0,4000),
+    cardRate:best.rate,
+    cardMaxDiscount:Number.isFinite(best.cap)?best.cap:null,
+    cardDiscount:best.amount,
+    cardProviders:best.providers.length?best.providers:summaryProviders
+  };
 }
 
 async function scanCoupangTab(tabId,target) {
@@ -385,10 +505,9 @@ async function scanCoupangTab(tabId,target) {
   });
   const beforeTexts=[...new Set((beforePopup||[]).flatMap(frame=>frame?.result?.texts||[]))];
   const beforeUrl=(await chrome.tabs.get(tabId)).url;
-  const click=await dispatchTrustedClick(tabId,scan.cardClickPoint);
+  const click=await dispatchTrustedClickAndCapture(tabId,scan.cardClickPoint);
   scan.cardInteractionStatus=click.ok?'clicked':click.reason;
   if (!click.ok) return scan;
-  await wait(1200);
   const afterUrl=(await chrome.tabs.get(tabId)).url;
   const beforeLocation=new URL(beforeUrl),afterLocation=new URL(afterUrl);
   const sameProduct=beforeLocation.origin===afterLocation.origin
@@ -407,8 +526,14 @@ async function scanCoupangTab(tabId,target) {
   const card=(popup||[]).map(frame=>frame?.result).find(result=>result?.captured)
     ||(popup||[]).map(frame=>frame?.result).find(result=>result?.reason==='card-popup-unparseable')
     ||popup?.[0]?.result;
-  if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured'});
-  else scan.cardInteractionStatus=card?.reason||'card-popup-no-result';
+  const debuggerCard=parseDebuggerCardEvidence(scan.price,scan.cardBenefitText,scan.cardProviders,click);
+  if (card?.captured&&debuggerCard?.captured) {
+    const same=card.cardRate===debuggerCard.cardRate&&card.cardMaxDiscount===debuggerCard.cardMaxDiscount&&card.cardDiscount===debuggerCard.cardDiscount;
+    if (same) Object.assign(scan,debuggerCard,{cardEvidenceSource:`dom+${debuggerCard.cardEvidenceSource}`});
+    else scan.cardInteractionStatus='card-evidence-conflict';
+  } else if (debuggerCard?.captured) Object.assign(scan,debuggerCard);
+  else if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
+  else scan.cardInteractionStatus=debuggerCard?.reason||card?.reason||'card-popup-no-result';
   return scan;
 }
 
