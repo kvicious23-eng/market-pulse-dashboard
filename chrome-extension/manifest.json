@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Market Pulse Coupang Scanner",
-  "version": "1.3.8",
+  "version": "1.3.9",
   "description": "Reads exact Coupang item prices in a normal Chrome session.",
   "permissions": ["alarms", "downloads", "scripting", "storage", "tabs"],
   "host_permissions": ["https://www.coupang.com/*", "https://prod.danawa.com/*"],

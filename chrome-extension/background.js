@@ -126,17 +126,22 @@ async function readDisplayedPrice(expectedItemId) {
   let cardMaxDiscount=null;
   let cardProviders=[];
   let cardBenefitText='';
-  let cardBenefitStatus=/카드\s*즉시할인/.test(bodyText)?'partial':'none';
+  let cardBenefitStatus='none';
   if (preferred) {
     const visible=node=>{
       const style=getComputedStyle(node);
       return style.display!=='none'&&style.visibility!=='hidden'&&node.getBoundingClientRect().width>0;
     };
     const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+    const mainPriceTop=positionedPrices
+      .filter(entry=>entry.price===preferred.price)
+      .reduce((top,entry)=>Math.min(top,entry.top),Infinity);
     const summaryNodes=[...document.querySelectorAll('div,li,p')]
-      .filter(node=>visible(node)&&/카드\s*즉시할인/.test(compact(node))&&compact(node).length<700)
-      .sort((a,b)=>compact(a).length-compact(b).length);
-    const summaryRoot=summaryNodes[0]||null;
+      .filter(node=>visible(node)&&/카드\s*즉시할인/.test(compact(node))&&compact(node).length<260)
+      .map(node=>({node,top:node.getBoundingClientRect().top+scrollY,text:compact(node)}))
+      .filter(entry=>!Number.isFinite(mainPriceTop)||(entry.top>=mainPriceTop-120&&entry.top<=mainPriceTop+700))
+      .sort((a,b)=>a.top-b.top||a.text.length-b.text.length);
+    const summaryRoot=summaryNodes[0]?.node||null;
     const summaryText=compact(summaryRoot);
     if (summaryRoot) cardBenefitStatus='partial';
     const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
@@ -159,54 +164,48 @@ async function readDisplayedPrice(expectedItemId) {
     let detailText='';
     let detailRoot=null;
     if (summaryRoot) {
-      // Prefer the blue "와우 전용" control. A broad nearby-icon search can
-      // open Coupang's unrelated price-information popup.
-      const controlScope=summaryRoot.parentElement?.parentElement||summaryRoot.parentElement||summaryRoot;
-      const textControls=[...controlScope.querySelectorAll('a,button,[role="button"],span')]
-        .filter(node=>visible(node)&&compact(node).length<120&&/와우\s*전용/.test(compact(node)))
-        .sort((a,b)=>compact(a).length-compact(b).length);
-      const summaryRect=summaryRoot.getBoundingClientRect();
-      const iconControls=[...controlScope.querySelectorAll('button,[role="button"],[aria-label],[data-tooltip],svg,i')]
-        .map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node)
-        .filter(node=>node&&visible(node)&&!node.closest('a[href]:not([href="#"])'))
-        .sort((a,b)=>{
-          const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
-          const ad=Math.hypot(ar.left-summaryRect.right,ar.top-summaryRect.top);
-          const bd=Math.hypot(br.left-summaryRect.right,br.top-summaryRect.top);
-          return ad-bd;
+      // Expand only to the compact row that still contains the exact card
+      // summary and the adjacent "와우 전용" label.
+      let cardRow=summaryRoot;
+      for (let depth=0;depth<4&&cardRow.parentElement;depth++) {
+        const parent=cardRow.parentElement;
+        const text=compact(parent);
+        if (text.length>420||!/카드\s*즉시할인/.test(text)||!/와우\s*전용/.test(text)) break;
+        cardRow=parent;
+      }
+      const wowNode=[...cardRow.querySelectorAll('a,button,span,strong,em')]
+        .filter(node=>visible(node)&&/와우\s*전용/.test(compact(node))&&compact(node).length<=30)
+        .sort((a,b)=>compact(a).length-compact(b).length)[0]||null;
+      const popupCandidates=()=>[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section,table')]
+        .filter(node=>{
+          const text=compact(node);
+          return visible(node)&&/카드/.test(text)&&text.length>summaryText.length+10&&text.length<12000
+            &&(Number.isFinite(parseCap(text))||/할인율|할인한도|카드사/.test(text));
         });
-      const controls=[...new Set([...textControls,...iconControls])];
-      const hasCapText=text=>Number.isFinite(parseCap(text));
-      const readDetail=()=>{
-        const layers=[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')]
-          .filter(node=>visible(node)&&/카드/.test(compact(node))&&compact(node).length>=20&&compact(node).length<12000)
-          .sort((a,b)=>compact(a).length-compact(b).length);
-        const layerWithCap=layers.find(node=>hasCapText(compact(node)));
-        if (layerWithCap) return layerWithCap;
-        // Some Coupang popups use generated class names without modal/layer
-        // keywords. Search visible compact containers only after the card icon
-        // interaction, and require both card/discount wording and a cap amount.
-        const capContainers=[...document.querySelectorAll('div,section,table')]
-          .filter(node=>visible(node)&&/카드/.test(compact(node))&&hasCapText(compact(node))&&compact(node).length>=20&&compact(node).length<4000)
-          .sort((a,b)=>compact(a).length-compact(b).length);
-        return capContainers[0]||layers[0]||null;
-      };
-      for (const detailControl of controls.slice(0,8)) {
-        detailControl.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
-        detailControl.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true}));
-        await new Promise(resolve=>setTimeout(resolve,700));
-        detailRoot=readDetail();
-        if (!detailRoot) {
-          const link=detailControl.closest('a[href]');
-          const preventNavigation=event=>event.preventDefault();
-          if (link) link.addEventListener('click',preventNavigation,{capture:true,once:true});
-          detailControl.click();
-          await new Promise(resolve=>setTimeout(resolve,700));
-          detailRoot=readDetail();
-        }
-        if (detailRoot) {
+      if (wowNode) {
+        const wowRect=wowNode.getBoundingClientRect();
+        const icon=[...cardRow.querySelectorAll('svg,i,button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="tooltip"],span')]
+          .map(node=>['svg','i'].includes(node.tagName.toLowerCase())?(node.closest('button,[role="button"]')||node.parentElement):node)
+          .filter(node=>{
+            if (!node||!visible(node)||node.closest('a[href]')||/와우\s*전용/.test(compact(node))) return false;
+            const rect=node.getBoundingClientRect();
+            const gap=rect.left-wowRect.right;
+            const vertical=Math.abs((rect.top+rect.height/2)-(wowRect.top+wowRect.height/2));
+            return rect.width>0&&rect.width<=48&&rect.height>0&&rect.height<=48&&gap>=-2&&gap<=36&&vertical<=16;
+          })
+          .sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left)[0]||null;
+        if (icon) {
+          const before=new Set(popupCandidates());
+          icon.click();
+          await new Promise(resolve=>setTimeout(resolve,900));
+          const opened=popupCandidates().filter(node=>!before.has(node))
+            .sort((a,b)=>{
+              const aCap=Number.isFinite(parseCap(compact(a)))?0:1;
+              const bCap=Number.isFinite(parseCap(compact(b)))?0:1;
+              return aCap-bCap||compact(a).length-compact(b).length;
+            });
+          detailRoot=opened[0]||null;
           detailText=compact(detailRoot);
-          if (hasCapText(detailText)) break;
         }
       }
     }
@@ -222,7 +221,7 @@ async function readDisplayedPrice(expectedItemId) {
       const providers=knownCards.filter(card=>text.includes(card));
       benefitRows.push({rate,cap,providers});
     }
-    if (!benefitRows.length) {
+    if (!benefitRows.length&&detailRoot) {
       const rate=parseRate(summaryText)||parseRate(detailText);
       const cap=parseCap(detailText)||parseCap(summaryText);
       if (rate) benefitRows.push({rate,cap,providers:cardProviders});
