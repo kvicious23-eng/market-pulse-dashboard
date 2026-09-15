@@ -359,31 +359,54 @@ function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,
 
 function debuggerSnapshotStrings(snapshot) {
   const strings=snapshot?.strings||[];
-  const values=[];
-  const add=index=>{
+  const values=[],seen=new Set();
+  const relevant=value=>/(?:카드|할인|한도|최대|%|원|신한|BC|우리|농협|하나|삼성|현대|롯데|국민|KB)/i.test(value);
+  const add=(index,force=false)=>{
     const value=typeof index==='number'?strings[index]:null;
-    if (typeof value==='string'&&value.trim()) values.push(value.replace(/\s+/g,' ').trim());
+    if (typeof value!=='string'||!value.trim()) return;
+    const compact=value.replace(/\s+/g,' ').trim();
+    if (compact.length>1200||(!force&&!relevant(compact))||seen.has(compact)) return;
+    seen.add(compact);
+    values.push(compact);
+  };
+  const addRelevantWithNeighbors=indexes=>{
+    for (let position=0;position<indexes.length;position++) {
+      const value=strings[indexes[position]]||'';
+      if (!relevant(value)) continue;
+      for (let nearby=Math.max(0,position-4);nearby<=Math.min(indexes.length-1,position+4);nearby++) add(indexes[nearby],true);
+    }
   };
   for (const document of snapshot?.documents||[]) {
-    for (const index of document?.nodes?.nodeValue||[]) add(index);
+    addRelevantWithNeighbors(document?.nodes?.nodeValue||[]);
     for (const attrs of document?.nodes?.attributes||[]) for (const index of attrs||[]) add(index);
-    for (const index of document?.layout?.text||[]) add(index);
+    addRelevantWithNeighbors(document?.layout?.text||[]);
   }
-  return values.filter(value=>value.length<=1200).slice(0,12000);
+  for (let index=0;index<strings.length;index++) add(index);
+  return values;
 }
 
 function accessibilityStrings(tree) {
-  const values=[];
+  const values=[],seen=new Set(),nodes=tree?.nodes||[],byId=new Map(nodes.map(node=>[node.nodeId,node]));
+  const ownText=node=>[
+    node?.name?.value,node?.value?.value,node?.description?.value,
+    ...(node?.properties||[]).map(property=>property?.value?.value)
+  ].filter(value=>typeof value==='string'&&value.trim()).map(value=>value.replace(/\s+/g,' ').trim());
   const add=value=>{
-    if (typeof value==='string'&&value.trim()) values.push(value.replace(/\s+/g,' ').trim());
+    if (typeof value!=='string'||!value.trim()) return;
+    const compact=value.replace(/\s+/g,' ').trim();
+    if (compact.length>1200||seen.has(compact)) return;
+    seen.add(compact);
+    values.push(compact);
   };
-  for (const node of tree?.nodes||[]) {
-    add(node?.name?.value);
-    add(node?.value?.value);
-    add(node?.description?.value);
-    for (const property of node?.properties||[]) add(property?.value?.value);
+  for (const node of nodes) for (const value of ownText(node)) add(value);
+  for (const node of nodes) {
+    const text=ownText(node).join(' | ');
+    if (!/(?:카드\s*혜택|카드\s*즉시할인|할인한도|할인금액)/.test(text)) continue;
+    const related=[node,byId.get(node.parentId),...(node.childIds||[]).map(id=>byId.get(id))].filter(Boolean);
+    const context=related.flatMap(ownText).join(' | ');
+    add(context);
   }
-  return values.filter(value=>value.length<=1200).slice(0,12000);
+  return values;
 }
 
 async function captureDebuggerText(target) {
@@ -457,6 +480,7 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
       domSnapshotBefore:capture?.before?.domSnapshot?.length||0,
       domSnapshotAfter:capture?.after?.domSnapshot?.length||0
     },
+    collectionMode:'relevant-with-neighbors-no-hard-cap',
     newRelevant:{
       accessibility:relevantNew(capture?.after?.accessibility,capture?.before?.accessibility),
       domSnapshot:relevantNew(capture?.after?.domSnapshot,capture?.before?.domSnapshot)
