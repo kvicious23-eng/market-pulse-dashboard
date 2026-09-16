@@ -90,11 +90,24 @@
       : Number.isFinite(offer?.finalPrice) && Number.isFinite(offer?.cardDiscount)
         ? offer.finalPrice + offer.cardDiscount
         : offer?.finalPrice;
-    const instantDiscount = Number.isFinite(srp) && Number.isFinite(basisPrice) && srp >= basisPrice
+    const matchingDifference = Number.isFinite(srp) && Number.isFinite(basisPrice)
       ? srp - basisPrice : null;
     const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardPrice) && basisPrice >= preCardPrice
       ? basisPrice - preCardPrice : null;
-    return { srp, basisPrice, preCardPrice, instantDiscount, couponDiscount };
+    return { srp, basisPrice, preCardPrice, matchingDifference, couponDiscount };
+  }
+
+  function checkoutDiscounts(offer, couponTotal) {
+    const instant = Number.isFinite(offer?.wowInstantDiscount) ? offer.wowInstantDiscount : null;
+    const coupon = Number.isFinite(offer?.wowCouponDiscount) ? offer.wowCouponDiscount : null;
+    const captured = offer?.checkoutDiscountStatus === "captured"
+      && Number.isFinite(instant) && Number.isFinite(coupon)
+      && Number.isFinite(couponTotal) && instant + coupon === couponTotal;
+    return { instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured };
+  }
+
+  function checkoutDiscountText(value) {
+    return Number.isFinite(value) ? discountText(value) : '<span class="unknown">미수집</span>';
   }
 
   function basisTypeText(value) {
@@ -139,7 +152,8 @@
     const brand = data.meta.brand || document.title.split(/\s+/)[0] || "MarketPulse";
     const headers = [
       "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
-      "판매처", "채널", "상태", "SRP", "기준가격", "기준가격 종류", "즉시할인", "쿠폰",
+      "판매처", "채널", "상태", "SRP", "표시가", "표시가 종류", "매칭차액",
+      "와우 전용 즉시할인", "와우 전용 쿠폰할인", "쿠폰할인 총금액",
       "카드할인 상태", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
       "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
       "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각",
@@ -148,14 +162,17 @@
     const rows = data.products.map((product) => {
       const mine = product.offers.find((offer) => offer.role === "mine") || {};
       const breakdown = priceBreakdown(mine);
+      const checkout = checkoutDiscounts(mine, breakdown.couponDiscount);
       return [
         brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
         mine.seller, mine.channel, mine.status,
         Number.isFinite(breakdown.srp) ? breakdown.srp : "SRP 미입력",
         Number.isFinite(breakdown.basisPrice) ? breakdown.basisPrice : "미확인",
         basisTypeText(mine.priceBasisType),
-        Number.isFinite(breakdown.instantDiscount) ? breakdown.instantDiscount : "미확인",
-        Number.isFinite(breakdown.couponDiscount) ? breakdown.couponDiscount : "미확인",
+        Number.isFinite(breakdown.matchingDifference) ? breakdown.matchingDifference : "미확인",
+        Number.isFinite(checkout.instant) ? checkout.instant : "미수집",
+        Number.isFinite(checkout.coupon) ? checkout.coupon : "미수집",
+        Number.isFinite(checkout.total) ? checkout.total : "미확인",
         cardStatusText(mine.cardBenefitStatus),
         mine.cardBenefitStatus === "none" ? 0 : Number.isFinite(mine.cardDiscount) ? mine.cardDiscount : "미확인",
         Number.isFinite(breakdown.preCardPrice) ? breakdown.preCardPrice : "미확인",
@@ -345,8 +362,9 @@
       const price = current ? offer.finalPrice : offer.referencePrice;
       const breakdown = mine ? priceBreakdown(offer) : null;
       const srp = mine ? breakdown.srp : offer.displayPrice;
-      const instantDiscount = mine ? breakdown.instantDiscount : offer.instantDiscount;
+      const matchingDifference = mine ? breakdown.matchingDifference : null;
       const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
+      const checkout = mine ? checkoutDiscounts(offer, couponDiscount) : { instant: null, coupon: null, total: couponDiscount };
       const offerFinalPrice = current ? effectiveFinalPrice(offer) : null;
       const difference = current && !mine && Number.isFinite(offerFinalPrice) && Number.isFinite(stats.mineFinalPrice)
         ? offerFinalPrice - stats.mineFinalPrice
@@ -374,8 +392,11 @@
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
           <td data-label="SRP">${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</td>
-          <td data-label="즉시할인">${current ? discountText(instantDiscount) : '<span class="unknown">—</span>'}</td>
-          <td data-label="쿠폰">${current ? discountText(couponDiscount) : '<span class="unknown">—</span>'}</td>
+          <td data-label="표시가">${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</td>
+          <td data-label="매칭차액">${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</td>
+          <td data-label="와우 전용 즉시할인">${current && mine ? checkoutDiscountText(checkout.instant) : '<span class="unknown">—</span>'}</td>
+          <td data-label="와우 전용 쿠폰할인">${current && mine ? checkoutDiscountText(checkout.coupon) : '<span class="unknown">—</span>'}</td>
+          <td data-label="쿠폰할인 총금액">${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</td>
           <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
@@ -424,10 +445,12 @@
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>SRP</span><strong>${displayPrice}</strong></div>
-      ${mine ? `<div class="evidence__item"><span>기준가격</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>
-      <div class="evidence__item"><span>기준가격 종류</span><strong>${escapeHtml(basisTypeText(offer.priceBasisType))}</strong></div>
-      <div class="evidence__item"><span>즉시할인</span><strong>${discountText(breakdown.instantDiscount)}</strong></div>
-      <div class="evidence__item"><span>쿠폰</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
+      ${mine ? `<div class="evidence__item"><span>표시가</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>
+      <div class="evidence__item"><span>표시가 종류</span><strong>${escapeHtml(basisTypeText(offer.priceBasisType))}</strong></div>
+      <div class="evidence__item"><span>매칭차액</span><strong>${formatDiff(breakdown.matchingDifference)}</strong></div>
+      <div class="evidence__item"><span>와우 전용 즉시할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).instant)}</strong></div>
+      <div class="evidence__item"><span>와우 전용 쿠폰할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).coupon)}</strong></div>
+      <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
       <div class="evidence__item"><span>카드할인 금액</span><strong>${cardDiscountText(offer)}</strong></div>` : ""}

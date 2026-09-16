@@ -763,6 +763,118 @@ async function schedule() {
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
 }
 
+function enterCheckoutDiagnostic(expectedItemId) {
+  const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+  const params=new URL(location.href).searchParams;
+  if(params.get('itemId')!==String(expectedItemId)) return {ok:false,reason:'item-id-mismatch'};
+  const visible=element=>{
+    const style=getComputedStyle(element),rect=element.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+  };
+  const quantity=[...document.querySelectorAll('input[type="number"],input[class*="quantity"]')]
+    .find(visible);
+  if(quantity&&Number(quantity.value)!==1) return {ok:false,reason:'quantity-is-not-one'};
+  const selectedCare=[...document.querySelectorAll('input[type="radio"]:checked')]
+    .map(input=>clean(input.closest('label')?.innerText||input.parentElement?.innerText))
+    .find(text=>/무상보증|안심케어/.test(text)&&!/선택안함/.test(text));
+  if(selectedCare) return {ok:false,reason:'care-option-selected'};
+  const button=[...document.querySelectorAll('button,a,[role="button"]')]
+    .filter(visible)
+    .find(element=>/^바로구매(?:\s|>|›|$)/.test(clean(element.innerText||element.textContent)));
+  if(!button) return {ok:false,reason:'buy-now-button-not-found'};
+  if(button.disabled||button.getAttribute('aria-disabled')==='true'||/disabled|sold-?out|품절/i.test(button.className)) {
+    return {ok:false,reason:'buy-now-button-disabled'};
+  }
+  button.click();
+  return {ok:true};
+}
+
+function readCheckoutDiscounts() {
+  const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+  const visible=element=>{
+    const style=getComputedStyle(element),rect=element.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+  };
+  const readAmount=label=>{
+    const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
+      .filter(visible)
+      .map(element=>({element,text:clean(element.innerText||element.textContent)}))
+      .filter(entry=>entry.text.includes(label)&&entry.text.length<240)
+      .sort((a,b)=>a.text.length-b.text.length);
+    for(const entry of candidates){
+      let node=entry.element;
+      for(let depth=0;node&&depth<5;depth++,node=node.parentElement){
+        const text=clean(node.innerText||node.textContent);
+        if(text.length>500) break;
+        const index=text.indexOf(label);
+        if(index<0) continue;
+        const after=text.slice(index+label.length,index+label.length+120);
+        const match=after.match(/-?\s*([0-9][0-9,]*)\s*원/);
+        if(!match) continue;
+        const amount=Number(match[1].replace(/,/g,''));
+        if(Number.isInteger(amount)&&amount>=0&&amount<=7000000) return {status:'captured',amount};
+      }
+    }
+    return {status:'missing',amount:null};
+  };
+  const bodyText=clean(document.body?.innerText);
+  const paymentButtonPresent=[...document.querySelectorAll('button,[role="button"]')]
+    .filter(visible).some(button=>clean(button.innerText||button.textContent)==='결제하기');
+  if(!/주문\s*\/\s*결제/.test(bodyText)||!paymentButtonPresent){
+    return {ok:false,reason:'checkout-page-not-confirmed',host:location.hostname,path:location.pathname};
+  }
+  return {
+    ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
+    wowInstantDiscount:readAmount('와우 전용 즉시할인'),
+    wowCouponDiscount:readAmount('와우 전용 쿠폰할인'),
+    paymentButtonPresent
+  };
+}
+
+async function diagnoseCheckoutDiscounts() {
+  const [activeTab]=await chrome.tabs.query({active:true,currentWindow:true});
+  if(!activeTab?.url) return {ok:false,reason:'active-product-tab-not-found'};
+  let activeUrl;
+  try { activeUrl=new URL(activeTab.url); } catch (_) { return {ok:false,reason:'active-product-url-invalid'}; }
+  if(activeUrl.hostname!=='www.coupang.com'||!activeUrl.pathname.startsWith('/vp/products/')) {
+    return {ok:false,reason:'open-a-registered-coupang-product-first'};
+  }
+  const itemId=activeUrl.searchParams.get('itemId');
+  const targets=await getTargets();
+  const target=targets.find(entry=>entry.enabled!==false&&String(entry.itemId)===String(itemId));
+  if(!target) return {ok:false,reason:'registered-item-id-not-found'};
+  let tab;
+  try {
+    tab=await chrome.tabs.create({url:target.url,active:true});
+    await waitForComplete(tab.id);
+    await wait(7000);
+    const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
+    if(!entered?.[0]?.result?.ok) return entered?.[0]?.result||{ok:false,reason:'checkout-entry-failed'};
+    for(let i=0;i<30;i++){
+      await wait(500);
+      const current=await chrome.tabs.get(tab.id);
+      if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
+    }
+    await wait(4000);
+    const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
+    const page=read?.[0]?.result;
+    if(!page?.ok) return page||{ok:false,reason:'checkout-read-failed'};
+    const payload={
+      diagnosticType:'checkout-wow-discounts',extensionVersion:chrome.runtime.getManifest().version,
+      mtm:target.mtm,itemId:String(target.itemId),capturedAt:page.capturedAt,
+      wowInstantDiscount:page.wowInstantDiscount,wowCouponDiscount:page.wowCouponDiscount,
+      safety:{checkoutReadOnly:true,paymentButtonClicked:false,pageInteractionAfterEntry:false}
+    };
+    const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
+    await chrome.downloads.download({url,filename:'MarketPulse/checkout-discount-diagnostic.json',conflictAction:'overwrite',saveAs:false});
+    return {ok:true};
+  } catch(error) {
+    return {ok:false,reason:String(error)};
+  } finally {
+    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+  }
+}
+
 function readSupplierHubStructure() {
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim().slice(0,240);
   const visible=element=>{
@@ -949,6 +1061,10 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   }
   if (message?.type==='COLLECT_SUPPLIER_INVENTORY') {
     collectSupplierInventory().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
+    return true;
+  }
+  if (message?.type==='DIAGNOSE_CHECKOUT_DISCOUNTS') {
+    diagnoseCheckoutDiscounts().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
     return true;
   }
 });
