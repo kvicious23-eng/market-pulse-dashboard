@@ -334,7 +334,7 @@
       const rowClass = mine ? "is-mine" : alert ? "is-alert" : best ? "is-best" : "";
       const statusClass = current ? "active" : "stale";
       const finalCell = current
-        ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>${offer.conditionalBest ? `<span class="conditional">${escapeHtml(offer.conditionalLabel)} ${formatWon(offer.conditionalBest)}</span>` : ""}`
+        ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
       const diffCell = mine
         ? '<span class="diff diff--base">비교 기준</span>'
