@@ -110,10 +110,13 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 ## 8. Windows 자동 실행
 
 - 설치 위치: `C:\MarketPulse`
-- Chrome 시작 예약: 매일 07:58
+- Supplier Hub 사전 로그인용 Chrome 시작 예약: 매일 07:50
 - 확장프로그램 자동 수집: 매일 08:00 KST
 - 결과 가져오기·업로드 예약: 매일 08:30
 - 예약 작업은 `StartWhenAvailable`을 사용해 예정 시각에 PC가 꺼져 있었으면 다음 부팅 후 실행될 수 있게 한다.
+- Supplier Hub 로그인 정보는 Market Pulse 코드·GitHub·JSON·로그에 저장하지 않는다. 사용자가 변경한 비밀번호를 Chrome 비밀번호 관리자에 직접 저장하고 Chrome의 자동 로그인 기능을 사용한다.
+- 07:50에 Supplier Hub 재고 화면을 먼저 열어 자동 로그인 세션을 준비하고, 08:00에 재고 및 가격 수집을 시작한다.
+- CAPTCHA·OTP·추가 인증 또는 로그인 실패가 발생하면 이를 우회하지 않는다. 재고는 잘못된 0개가 아니라 `미수집`으로 처리한다.
 - 정상 운영 확장은 `C:\MarketPulse\chrome-extension` 하나만 사용한다. 과거 `%LOCALAPPDATA%\MarketPulseDashboard` 확장은 중복 실행 방지를 위해 비활성화하거나 제거한다.
 - 자동 수집 중 사용자가 Chrome 창을 조작하면 탭 선택이나 팝업 수집이 방해될 수 있으므로 완료까지 조작하지 않는다.
 

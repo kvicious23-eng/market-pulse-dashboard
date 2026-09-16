@@ -61,10 +61,10 @@ $chromeCandidates = @(
 $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $chrome) { throw "Google Chrome is required for the visible-browser scanner." }
 
-$taskAction = New-ScheduledTaskAction -Execute $chrome -Argument '--new-window https://www.coupang.com/'
-$taskTrigger = New-ScheduledTaskTrigger -Daily -At "07:58"
+$taskAction = New-ScheduledTaskAction -Execute $chrome -Argument '--new-window https://supplier.coupang.com/rpd/web-v2/basic/rocket'
+$taskTrigger = New-ScheduledTaskTrigger -Daily -At "07:50"
 $taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Open Chrome before the daily Coupang scan" -Force | Out-Host
+Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Settings $taskSettings -Description "Open Supplier Hub for Chrome password-manager sign-in before the daily scan" -Force | Out-Host
 if (-not (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)) {
   throw "Failed to create the daily Chrome start task."
 }
@@ -79,6 +79,7 @@ if (-not (Get-ScheduledTask -TaskName $importTaskName -ErrorAction SilentlyConti
 }
 
 Write-Host "The scheduled uploader will import only a current-day Chrome scan."
+Write-Host "Chrome will open Supplier Hub at 07:50. Keep the rotated Supplier Hub credential saved in Chrome and enable automatic sign-in."
 
 Unregister-ScheduledTask -TaskName "Market Pulse Coupang Price Scan" -Confirm:$false -ErrorAction SilentlyContinue
 $extensionPath = Join-Path $InstallPath 'chrome-extension'
