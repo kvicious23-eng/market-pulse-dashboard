@@ -128,6 +128,7 @@ async function readDisplayedPrice(expectedItemId) {
   let cardBenefitText='';
   let cardBenefitStatus='none';
   let cardClickPoint=null;
+  let cardClickDebug={summaryFound:false,reason:'card-summary-not-found',candidates:[]};
   if (preferred) {
     const visible=node=>{
       const style=getComputedStyle(node);
@@ -144,7 +145,10 @@ async function readDisplayedPrice(expectedItemId) {
       .sort((a,b)=>a.top-b.top||a.text.length-b.text.length);
     const summaryRoot=summaryNodes[0]?.node||null;
     const summaryText=compact(summaryRoot);
-    if (summaryRoot) cardBenefitStatus='partial';
+    if (summaryRoot) {
+      cardBenefitStatus='partial';
+      cardClickDebug={summaryFound:true,reason:'wow-label-not-found',candidates:[]};
+    }
     const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
     const parseKrwAmount=raw=>{
       const normalized=raw.replace(/[\s,]/g,'');
@@ -191,22 +195,57 @@ async function readDisplayedPrice(expectedItemId) {
         if (rect.width>0&&rect.height>0) { wowRect=rect; break; }
       }
       if (wowRect) {
-        const clickY=wowRect.top+wowRect.height/2;
-        const pointHits=[6,10,14,18,22,26].map(offset=>{
-          const x=wowRect.right+offset;
-          const raw=document.elementFromPoint(x,clickY);
-          if (!raw||!cardRow.contains(raw)) return null;
-          const target=raw.closest('svg,i,button,[role="button"],[aria-label],[data-tooltip],[class*="info"],[class*="tooltip"]')||raw;
-          if (!cardRow.contains(target)) return null;
+        const wowCenterY=wowRect.top+wowRect.height/2;
+        const rowRect=cardRow.getBoundingClientRect();
+        cardClickDebug.wowRect={left:Math.round(wowRect.left),right:Math.round(wowRect.right),top:Math.round(wowRect.top),bottom:Math.round(wowRect.bottom)};
+        cardClickDebug.rowRect={left:Math.round(rowRect.left),right:Math.round(rowRect.right),top:Math.round(rowRect.top),bottom:Math.round(rowRect.bottom)};
+        const describe=target=>{
+          const rect=target.getBoundingClientRect();
           const tag=target.tagName.toLowerCase();
           const label=[target.getAttribute('aria-label'),target.getAttribute('title'),target.className?.baseVal||target.className,compact(target)].filter(Boolean).join(' ');
           const infoLike=['svg','i','button'].includes(tag)||target.getAttribute('role')==='button'||/info|tooltip|help|안내|정보|^[ⓘi?]$/i.test(label);
-          return {target,x,offset,infoLike};
-        }).filter(Boolean);
-        const hit=pointHits.find(entry=>entry.infoLike)
-          ||pointHits.sort((a,b)=>Math.abs(a.offset-14)-Math.abs(b.offset-14))[0]
-          ||null;
-        if (hit) cardClickPoint={x:Math.round(hit.x),y:Math.round(clickY)};
+          const centerX=rect.left+rect.width/2,centerY=rect.top+rect.height/2;
+          return {target,tag,label:label.slice(0,160),infoLike,rect,centerX,centerY,dx:centerX-wowRect.right,dy:centerY-wowCenterY};
+        };
+        const iconSelector='svg,i,button,[role="button"],[aria-label],[title],[data-tooltip],[class*="info"],[class*="tooltip"]';
+        const direct=[...document.querySelectorAll(iconSelector)]
+          .filter(visible)
+          .map(describe)
+          .filter(entry=>entry.rect.width>=4&&entry.rect.height>=4&&entry.rect.width<=72&&entry.rect.height<=72
+            &&entry.dx>=-8&&entry.dx<=160&&Math.abs(entry.dy)<=48);
+        const probed=[];
+        for (const yOffset of [0,-8,8,-16,16,-28,28]) {
+          for (let xOffset=4;xOffset<=140;xOffset+=4) {
+            const x=wowRect.right+xOffset,y=wowCenterY+yOffset;
+            for (const raw of document.elementsFromPoint(x,y)) {
+              const target=raw.closest(iconSelector);
+              if (!target||probed.some(entry=>entry.target===target)) continue;
+              const entry=describe(target);
+              if (entry.rect.width>=4&&entry.rect.height>=4&&entry.rect.width<=72&&entry.rect.height<=72&&entry.dx>=-8&&entry.dx<=160&&Math.abs(entry.dy)<=48) probed.push(entry);
+            }
+          }
+        }
+        const all=[...direct,...probed].filter((entry,index,list)=>list.findIndex(other=>other.target===entry.target)===index);
+        all.sort((a,b)=>(b.infoLike-a.infoLike)||Math.abs(a.dy)-Math.abs(b.dy)||Math.abs(a.dx-12)-Math.abs(b.dx-12));
+        cardClickDebug.candidates=all.slice(0,20).map(entry=>({
+          tag:entry.tag,label:entry.label,infoLike:entry.infoLike,
+          x:Math.round(entry.centerX),y:Math.round(entry.centerY),
+          width:Math.round(entry.rect.width),height:Math.round(entry.rect.height),
+          dx:Math.round(entry.dx),dy:Math.round(entry.dy)
+        }));
+        const hit=all.find(entry=>entry.infoLike)||null;
+        if (hit) {
+          cardClickPoint={x:Math.round(hit.centerX),y:Math.round(hit.centerY)};
+          cardClickDebug.reason='selected';
+          cardClickDebug.selected={
+            tag:hit.tag,label:hit.label,infoLike:hit.infoLike,
+            x:Math.round(hit.centerX),y:Math.round(hit.centerY),
+            width:Math.round(hit.rect.width),height:Math.round(hit.rect.height),
+            dx:Math.round(hit.dx),dy:Math.round(hit.dy)
+          };
+        } else {
+          cardClickDebug.reason=all.length?'no-info-like-candidate':'no-nearby-icon-candidate';
+        }
       }
     }
     cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
@@ -241,7 +280,7 @@ async function readDisplayedPrice(expectedItemId) {
     }
     if (cardBenefitStatus==='none') cardDiscount=0;
   }
-  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, cardClickPoint, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, cardClickPoint, cardClickDebug, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
@@ -562,7 +601,11 @@ async function scanCoupangTab(tabId,target) {
   const injected=await chrome.scripting.executeScript({target:{tabId},func:readDisplayedPrice,args:[target.itemId]});
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
-  if (!scan.ok||scan.cardBenefitStatus!=='partial'||!scan.cardClickPoint) return scan;
+  if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
+  if (!scan.cardClickPoint) {
+    scan.cardInteractionStatus='card-click-target-not-found';
+    return scan;
+  }
   const beforePopup=await chrome.scripting.executeScript({
     target:{tabId,allFrames:true},func:snapshotCardDetailText,args:[target.itemId]
   });
