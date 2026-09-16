@@ -210,11 +210,13 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue ([string]$result.cardBenefitText) -Force
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $true -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=$text.Current; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail
       $confirmed++
     } else {
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
     }
     if ($result.competitors -and @($result.competitors).Count -gt 0) {

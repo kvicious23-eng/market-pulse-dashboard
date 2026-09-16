@@ -112,11 +112,8 @@
 
   function effectiveFinalPrice(offer) {
     if (!offer || !Number.isFinite(offer.finalPrice)) return null;
-    if (offer.role === "mine") {
-      if (!["captured", "none"].includes(offer.cardBenefitStatus)) return null;
-      return offer.finalPrice;
-    }
     if (offer.alertEligible === false) return null;
+    if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
     return offer.finalPrice;
   }
 
