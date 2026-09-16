@@ -756,6 +756,60 @@ async function schedule() {
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
 }
 
+function readSupplierHubStructure() {
+  const clean=value=>String(value||'').replace(/\s+/g,' ').trim().slice(0,240);
+  const visible=element=>{
+    const style=getComputedStyle(element);
+    const rect=element.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+  };
+  const unique=list=>[...new Set(list.filter(Boolean))];
+  const textList=selector=>unique([...document.querySelectorAll(selector)]
+    .filter(visible).map(element=>clean(element.innerText||element.textContent))).slice(0,200);
+  const links=[...document.querySelectorAll('a[href]')].filter(visible).slice(0,300).map(link=>{
+    let path='';
+    try {
+      const parsed=new URL(link.href,location.href);
+      path=parsed.origin===location.origin?parsed.pathname:'';
+    } catch (_) {}
+    return {text:clean(link.innerText||link.textContent),path};
+  }).filter(link=>link.text||link.path);
+  const controls=[...document.querySelectorAll('input,select,textarea')].filter(visible).slice(0,200).map(control=>({
+    tag:control.tagName.toLowerCase(),type:clean(control.getAttribute('type')),
+    name:clean(control.getAttribute('name')),placeholder:clean(control.getAttribute('placeholder')),
+    ariaLabel:clean(control.getAttribute('aria-label'))
+  }));
+  const tables=[...document.querySelectorAll('table')].filter(visible).slice(0,30).map(table=>({
+    headers:unique([...table.querySelectorAll('th')].map(header=>clean(header.innerText||header.textContent))),
+    rowCount:table.querySelectorAll('tbody tr').length,
+    columnCounts:[...table.querySelectorAll('tbody tr')].slice(0,5).map(row=>row.querySelectorAll('td').length)
+  }));
+  const testIds=unique([...document.querySelectorAll('[data-testid]')]
+    .map(element=>clean(element.getAttribute('data-testid')))).slice(0,300);
+  return {
+    version:1,capturedAt:new Date().toISOString(),title:clean(document.title),
+    path:location.pathname,headings:textList('h1,h2,h3,h4,[role="heading"]'),
+    buttons:textList('button,[role="button"]'),labels:textList('label'),links,controls,tables,testIds
+  };
+}
+
+async function scanSupplierHubStructure() {
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+  if (!tab?.id||!tab.url) return {ok:false,reason:'현재 활성 탭을 찾지 못했어.'};
+  let parsed;
+  try { parsed=new URL(tab.url); } catch (_) { return {ok:false,reason:'현재 탭 주소를 확인하지 못했어.'}; }
+  if (parsed.protocol!=='https:'||parsed.hostname!=='supplier.coupang.com') {
+    return {ok:false,reason:'로그인된 supplier.coupang.com 탭에서 실행해줘.'};
+  }
+  const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierHubStructure});
+  const page=injected?.[0]?.result;
+  if (!page) return {ok:false,reason:'Supplier Hub 화면 구조를 읽지 못했어.'};
+  const payload={diagnosticType:'supplier-hub-structure',extensionVersion:chrome.runtime.getManifest().version,page};
+  const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
+  await chrome.downloads.download({url,filename:'MarketPulse/supplier-hub-diagnostic.json',conflictAction:'overwrite',saveAs:false});
+  return {ok:true};
+}
+
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   await schedule();
@@ -780,5 +834,9 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='RUN_SCAN') {
     scanAll();
     sendResponse({ok:true});
+  }
+  if (message?.type==='SCAN_SUPPLIER_HUB') {
+    scanSupplierHubStructure().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
+    return true;
   }
 });

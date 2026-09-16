@@ -27,6 +27,8 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 - Chrome 확장프로그램 화면에서 개발자 모드를 켠 후 `C:\MarketPulse\chrome-extension` 폴더를 `압축해제된 확장 프로그램 로드`로 등록해야 합니다.
 - 기존 `%LOCALAPPDATA%\MarketPulseDashboard\chrome-extension` 확장이 남아 있다면 중복 실행을 막기 위해 사용 중지하거나 제거합니다.
 - 오전 8시에 PC가 꺼져 있었다면 다음에 PC와 Chrome이 켜진 뒤 누락된 조사를 실행합니다. 실행 시 인터넷 연결이 필요합니다.
+- Supplier Hub 구조를 확인할 때는 로그인된 `https://supplier.coupang.com/` 화면에서 확장 아이콘의 `Supplier Hub 화면 진단`을 누릅니다. 결과는 `Downloads\MarketPulse\supplier-hub-diagnostic.json`에 저장됩니다.
+- Supplier Hub 진단은 화면의 메뉴·제목·표 머리글·입력 필드 구조만 저장하며 입력값, 비밀번호, 쿠키, 로컬 저장소는 수집하지 않습니다.
 - Windows 계정에 로그인된 상태에서 실행하는 구성이 가장 안정적입니다.
 ## 수동 시험
 
