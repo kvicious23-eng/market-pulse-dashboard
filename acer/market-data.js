@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-09-16T12:21:32+09:00",
+    "snapshotAt": "2026-09-17T08:02:59+09:00",
     "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "정확한 MTM·용량이 일치하는 개별 상품 페이지의 공개 판매가와 배송비 기준",
     "exclusions": "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
@@ -9,11 +9,11 @@ window.MARKET_DATA = {
       "quickWatch": "매일 08:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-09-16T12:21:32+09:00",
+      "lastAttemptAt": "2026-09-16T12:21:00+09:00",
       "lastAttemptStatus": "success",
-      "lastAttemptText": "Acer 일반 Chrome 조사 · 현재가 확인 10/10",
+      "lastAttemptText": "Acer Chrome 현재가 10/10 확인 · GitHub 경쟁가 0/10 확인",
       "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
-      "competitionLastAttemptAt": "2026-09-16T12:21:32+09:00"
+      "competitionLastAttemptAt": "2026-09-17T08:02:59+09:00"
     },
     "brand": "Acer"
   },
@@ -197,7 +197,7 @@ window.MARKET_DATA = {
           "referencePrice": 1665610,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122672194"
@@ -411,7 +411,7 @@ window.MARKET_DATA = {
           "referencePrice": 1309000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=123650595"
@@ -571,7 +571,7 @@ window.MARKET_DATA = {
           "referencePrice": 1439000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=123763381"
@@ -720,7 +720,7 @@ window.MARKET_DATA = {
           "referencePrice": 3675000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=93445997"
@@ -952,7 +952,7 @@ window.MARKET_DATA = {
           "referencePrice": 1559000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122719782"
@@ -1166,7 +1166,7 @@ window.MARKET_DATA = {
           "referencePrice": 1358790,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122636128"
@@ -1272,7 +1272,7 @@ window.MARKET_DATA = {
           "referencePrice": 1808080,
           "condition": "정확한 MTM 상품 페이지가 현재 일시 품절",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122702450"
@@ -1493,7 +1493,7 @@ window.MARKET_DATA = {
           "referencePrice": 2365000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122636236"
@@ -1707,7 +1707,7 @@ window.MARKET_DATA = {
           "referencePrice": 1400000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=122719720"
@@ -1849,7 +1849,7 @@ window.MARKET_DATA = {
           "referencePrice": 2159000,
           "condition": "정확한 MTM·용량 상품 페이지의 배송비 포함 공개 최저가",
           "sourceType": "다나와 개별 상품 페이지",
-          "checkedAt": "2026-09-16 10:08",
+          "checkedAt": "2026-09-17 08:02",
           "confidence": "C",
           "confidenceText": "동일 MTM의 개별 판매처를 확인하지 못해 비교에서 제외",
           "url": "https://prod.danawa.com/info/?pcode=107769113"
