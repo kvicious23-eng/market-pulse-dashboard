@@ -699,6 +699,20 @@ async function scanAll() {
         await wait(7000);
         const priceScan=await scanCoupangTab(tab.id,target);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
+        if(priceScan?.ok) {
+          const expectedCouponTotal=priceScan.strikeReliable===true
+            &&Number.isFinite(priceScan.strikePrice)&&Number.isFinite(priceScan.price)
+            &&priceScan.strikePrice>=priceScan.price
+            ? priceScan.strikePrice-priceScan.price : null;
+          if(Number.isFinite(expectedCouponTotal)) {
+            Object.assign(result,await collectCheckoutDiscountsForTarget(target,expectedCouponTotal));
+          } else {
+            Object.assign(result,{
+              checkoutDiscountStatus:'missing',checkoutDiscountReason:'coupon-total-unavailable',
+              wowInstantDiscount:null,wowCouponDiscount:null
+            });
+          }
+        }
         if (target.danawaUrl) {
           let danawaTab;
           try {
@@ -734,7 +748,21 @@ async function scanAll() {
         await waitForComplete(retryTab.id);
         await wait(10000);
         const retryScan=await scanCoupangTab(retryTab.id,result);
-        if (retryScan?.ok) Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+        if (retryScan?.ok) {
+          Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+          const expectedCouponTotal=retryScan.strikeReliable===true
+            &&Number.isFinite(retryScan.strikePrice)&&Number.isFinite(retryScan.price)
+            &&retryScan.strikePrice>=retryScan.price
+            ? retryScan.strikePrice-retryScan.price : null;
+          if(Number.isFinite(expectedCouponTotal)) {
+            Object.assign(result,await collectCheckoutDiscountsForTarget(result,expectedCouponTotal));
+          } else {
+            Object.assign(result,{
+              checkoutDiscountStatus:'missing',checkoutDiscountReason:'coupon-total-unavailable',
+              wowInstantDiscount:null,wowCouponDiscount:null
+            });
+          }
+        }
       } catch (_) {
       } finally {
         if (retryTab?.id) await closeChildTabs(retryTab.id).catch(()=>{});
@@ -831,6 +859,49 @@ function readCheckoutDiscounts() {
   };
 }
 
+async function collectCheckoutDiscountsForTarget(target,expectedCouponTotal=null) {
+  let tab;
+  try {
+    tab=await chrome.tabs.create({url:target.url,active:false});
+    await waitForComplete(tab.id);
+    await wait(7000);
+    const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
+    if(!entered?.[0]?.result?.ok) {
+      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:entered?.[0]?.result?.reason||'checkout-entry-failed',wowInstantDiscount:null,wowCouponDiscount:null};
+    }
+    for(let i=0;i<30;i++){
+      await wait(500);
+      const current=await chrome.tabs.get(tab.id);
+      if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
+    }
+    await wait(4000);
+    const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
+    const page=read?.[0]?.result;
+    if(!page?.ok) {
+      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',wowInstantDiscount:null,wowCouponDiscount:null};
+    }
+    const instant=page.wowInstantDiscount?.status==='captured'?page.wowInstantDiscount.amount:null;
+    const coupon=page.wowCouponDiscount?.status==='captured'?page.wowCouponDiscount.amount:null;
+    if(!Number.isFinite(instant)||!Number.isFinite(coupon)) {
+      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:'checkout-discount-label-missing',wowInstantDiscount:null,wowCouponDiscount:null};
+    }
+    const total=instant+coupon;
+    if(Number.isFinite(expectedCouponTotal)&&total!==expectedCouponTotal) {
+      return {checkoutDiscountStatus:'unverified',checkoutDiscountReason:'checkout-discount-total-mismatch',wowInstantDiscount:null,wowCouponDiscount:null,checkoutObservedTotal:total,checkoutExpectedTotal:expectedCouponTotal};
+    }
+    return {
+      checkoutDiscountStatus:Number.isFinite(expectedCouponTotal)?'captured':'diagnostic',
+      checkoutDiscountReason:Number.isFinite(expectedCouponTotal)?'total-matched':'diagnostic-captured',
+      wowInstantDiscount:instant,wowCouponDiscount:coupon,checkoutDiscountTotal:total,
+      checkoutDiscountCapturedAt:page.capturedAt
+    };
+  } catch(error) {
+    return {checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),wowInstantDiscount:null,wowCouponDiscount:null};
+  } finally {
+    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+  }
+}
+
 async function diagnoseCheckoutDiscounts() {
   const [activeTab]=await chrome.tabs.query({active:true,currentWindow:true});
   if(!activeTab?.url) return {ok:false,reason:'active-product-tab-not-found'};
@@ -843,29 +914,14 @@ async function diagnoseCheckoutDiscounts() {
   const targets=await getTargets();
   const target=targets.find(entry=>entry.enabled!==false&&String(entry.itemId)===String(itemId));
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
-  let tab;
   try {
-    // Keep the extension popup alive while the diagnostic runs. Opening an
-    // active tab closes the popup and can disconnect its long-lived response
-    // channel before the checkout JSON is downloaded.
-    tab=await chrome.tabs.create({url:target.url,active:false});
-    await waitForComplete(tab.id);
-    await wait(7000);
-    const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
-    if(!entered?.[0]?.result?.ok) return entered?.[0]?.result||{ok:false,reason:'checkout-entry-failed'};
-    for(let i=0;i<30;i++){
-      await wait(500);
-      const current=await chrome.tabs.get(tab.id);
-      if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
-    }
-    await wait(4000);
-    const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
-    const page=read?.[0]?.result;
-    if(!page?.ok) return page||{ok:false,reason:'checkout-read-failed'};
+    const checkout=await collectCheckoutDiscountsForTarget(target);
+    if(checkout.checkoutDiscountStatus!=='diagnostic') return {ok:false,reason:checkout.checkoutDiscountReason};
     const payload={
       diagnosticType:'checkout-wow-discounts',extensionVersion:chrome.runtime.getManifest().version,
-      mtm:target.mtm,itemId:String(target.itemId),capturedAt:page.capturedAt,
-      wowInstantDiscount:page.wowInstantDiscount,wowCouponDiscount:page.wowCouponDiscount,
+      mtm:target.mtm,itemId:String(target.itemId),capturedAt:checkout.checkoutDiscountCapturedAt,
+      wowInstantDiscount:{status:'captured',amount:checkout.wowInstantDiscount},
+      wowCouponDiscount:{status:'captured',amount:checkout.wowCouponDiscount},
       safety:{checkoutReadOnly:true,paymentButtonClicked:false,pageInteractionAfterEntry:false}
     };
     const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
@@ -873,8 +929,6 @@ async function diagnoseCheckoutDiscounts() {
     return {ok:true};
   } catch(error) {
     return {ok:false,reason:String(error)};
-  } finally {
-    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
   }
 }
 

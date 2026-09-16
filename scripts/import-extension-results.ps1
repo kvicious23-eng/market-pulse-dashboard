@@ -259,6 +259,29 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue ([string]$result.cardBenefitText) -Force
+      $couponTotal=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
+      $checkoutStatus=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
+      $wowInstant=$null
+      $wowCoupon=$null
+      if ($checkoutStatus -eq 'captured' -and $null -ne $couponTotal -and $null -ne $result.wowInstantDiscount -and $null -ne $result.wowCouponDiscount) {
+        $candidateInstant=[long]$result.wowInstantDiscount
+        $candidateCoupon=[long]$result.wowCouponDiscount
+        if ($candidateInstant -ge 0 -and $candidateCoupon -ge 0 -and ($candidateInstant+$candidateCoupon) -eq $couponTotal) {
+          $wowInstant=$candidateInstant
+          $wowCoupon=$candidateCoupon
+        } else {
+          $checkoutStatus='unverified'
+        }
+      }
+      if ($checkoutStatus -ne 'captured') {
+        $wowInstant=$null
+        $wowCoupon=$null
+      }
+      $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$result.checkoutDiscountReason) -Force
+      $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
+      $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $true -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=$text.Current; $mine.confidence='A'
