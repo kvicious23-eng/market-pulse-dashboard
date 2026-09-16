@@ -200,7 +200,19 @@ window.MARKET_DATA = {
       "vendorItemId": "95415897534",
       "category": "Notebook",
       "skuid": "73525884",
-      "srp": 1109000
+      "srp": 1109000,
+      "inventory": {
+        "status": "missing",
+        "asOfDate": "2026-09-15",
+        "total": null,
+        "fc": null,
+        "rc": null,
+        "other": null,
+        "sourceRowCount": 0,
+        "source": "Coupang Supplier Hub · 기본 물류 지표(Rocket)",
+        "sourceFile": "latest-supplier-inventory.json",
+        "reason": "skuid-not-present-for-date"
+      }
     },
     {
       "storage": "1TB",
@@ -352,7 +364,19 @@ window.MARKET_DATA = {
       "vendorItemId": "95415897535",
       "category": "Notebook",
       "skuid": "73525886",
-      "srp": 1159000
+      "srp": 1159000,
+      "inventory": {
+        "status": "missing",
+        "asOfDate": "2026-09-15",
+        "total": null,
+        "fc": null,
+        "rc": null,
+        "other": null,
+        "sourceRowCount": 0,
+        "source": "Coupang Supplier Hub · 기본 물류 지표(Rocket)",
+        "sourceFile": "latest-supplier-inventory.json",
+        "reason": "skuid-not-present-for-date"
+      }
     },
     {
       "storage": "512GB",
@@ -504,7 +528,19 @@ window.MARKET_DATA = {
       "vendorItemId": "95415897536",
       "category": "Notebook",
       "skuid": "73525899",
-      "srp": 1199000
+      "srp": 1199000,
+      "inventory": {
+        "status": "missing",
+        "asOfDate": "2026-09-15",
+        "total": null,
+        "fc": null,
+        "rc": null,
+        "other": null,
+        "sourceRowCount": 0,
+        "source": "Coupang Supplier Hub · 기본 물류 지표(Rocket)",
+        "sourceFile": "latest-supplier-inventory.json",
+        "reason": "skuid-not-present-for-date"
+      }
     }
   ],
   "history": [
