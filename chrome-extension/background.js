@@ -845,7 +845,10 @@ async function diagnoseCheckoutDiscounts() {
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
   let tab;
   try {
-    tab=await chrome.tabs.create({url:target.url,active:true});
+    // Keep the extension popup alive while the diagnostic runs. Opening an
+    // active tab closes the popup and can disconnect its long-lived response
+    // channel before the checkout JSON is downloaded.
+    tab=await chrome.tabs.create({url:target.url,active:false});
     await waitForComplete(tab.id);
     await wait(7000);
     const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
