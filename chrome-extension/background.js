@@ -1,22 +1,26 @@
 const TARGETS = [
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',skuid:'',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',skuid:'',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',skuid:'',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',skuid:'73525884',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',skuid:'73525886',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',skuid:'73525899',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
   {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',skuid:'74357773',srp:1558000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
   {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',skuid:'77524457',srp:1429000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
-  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',skuid:'',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
-  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',skuid:'',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',skuid:'',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',skuid:'',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',skuid:'',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',skuid:'',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',skuid:'',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
-  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',skuid:'',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',skuid:'77524458',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
+  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',skuid:'62173228',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',skuid:'75574102',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',skuid:'72157300',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',skuid:'70646376',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',skuid:'71847372',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',skuid:'75574103',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
+  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',skuid:'70743710',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
 ];
 
 async function getTargets() {
   const state=await chrome.storage.local.get(['products']);
-  return Array.isArray(state.products) ? state.products : TARGETS;
+  if (!Array.isArray(state.products)) return TARGETS;
+  return state.products.map(product=>{
+    const fallback=TARGETS.find(target=>String(target.itemId)===String(product.itemId));
+    return {...fallback,...product,skuid:String(product.skuid||fallback?.skuid||'')};
+  });
 }
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -684,6 +688,9 @@ async function scanAll() {
   };
   try {
     const targets=(await getTargets()).filter(x=>x.enabled!==false);
+    // Inventory is collected first from the authenticated Supplier Hub session.
+    // A failure must not stop the independent public-price scan.
+    await collectSupplierInventory().catch(()=>({ok:false}));
     for (const target of targets) {
       let tab;
       try {
@@ -793,6 +800,107 @@ function readSupplierHubStructure() {
   };
 }
 
+async function readSupplierInventory(skuidList, asOfDate) {
+  const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
+  const digits=value=>clean(value).replace(/[^0-9-]/g,'');
+  const dateDigits=value=>clean(value).replace(/[^0-9]/g,'').slice(0,8);
+  const setInput=(input,value)=>{
+    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;
+    if (setter) setter.call(input,value); else input.value=value;
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+    input.dispatchEvent(new Event('blur',{bubbles:true}));
+  };
+  const tableRows=()=>[...document.querySelectorAll('table tbody tr')].map(row=>
+    [...row.querySelectorAll('td')].map(cell=>clean(cell.innerText||cell.textContent))
+  );
+  const rowSignature=()=>JSON.stringify(tableRows().slice(0,3));
+  const waitForRows=async before=>{
+    for(let i=0;i<30;i++){
+      await new Promise(resolve=>setTimeout(resolve,500));
+      const loading=[...document.querySelectorAll('[role="progressbar"],.loading,[class*="loading"]')]
+        .some(node=>getComputedStyle(node).display!=='none');
+      if(!loading&&(rowSignature()!==before||i>=7)) return;
+    }
+  };
+  const searchButton=()=>[...document.querySelectorAll('button,[role="button"]')]
+    .find(button=>clean(button.innerText||button.textContent)==='검색');
+  if(location.pathname!=='/rpd/web-v2/basic/rocket') {
+    return {ok:false,reason:'supplier-page-mismatch',path:location.pathname,results:[]};
+  }
+  const skuInput=document.querySelector('input[name="skuVendorItemName"]');
+  const fromInput=document.querySelector('input[name="dateFrom"],[aria-label="dateFrom"]');
+  const toInput=document.querySelector('input[name="dateTo"],[aria-label="dateTo"]');
+  if(!skuInput||!fromInput||!toInput||!searchButton()) {
+    return {ok:false,reason:'supplier-filter-not-found',path:location.pathname,results:[]};
+  }
+  setInput(fromInput,asOfDate);
+  setInput(toInput,asOfDate);
+  const targetDate=asOfDate.replace(/-/g,'');
+  const results=[];
+  for(const skuid of skuidList){
+    const before=rowSignature();
+    setInput(skuInput,String(skuid));
+    searchButton().click();
+    await waitForRows(before);
+    const matched=tableRows().filter(cells=>dateDigits(cells[0])===targetDate&&clean(cells[2])===String(skuid));
+    if(!matched.length){
+      results.push({skuid:String(skuid),status:'missing',total:null,fc:null,rc:null,other:null,rowCount:0});
+      continue;
+    }
+    let total=0,fc=0,rc=0,other=0,invalid=false;
+    for(const cells of matched){
+      const value=Number(digits(cells[9]));
+      if(!Number.isFinite(value)){ invalid=true; continue; }
+      total+=value;
+      const center=clean(cells[1]).toUpperCase();
+      if(center==='FC') fc+=value;
+      else if(center==='RC') rc+=value;
+      else other+=value;
+    }
+    results.push(invalid
+      ? {skuid:String(skuid),status:'error',reason:'inventory-value-invalid',total:null,fc:null,rc:null,other:null,rowCount:matched.length}
+      : {skuid:String(skuid),status:'captured',total,fc,rc,other,rowCount:matched.length});
+  }
+  return {ok:true,path:location.pathname,results};
+}
+
+function previousKstDay() {
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'})
+    .formatToParts(new Date()).reduce((out,part)=>(out[part.type]=part.value,out),{});
+  const previous=new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day)-1));
+  return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth()+1).padStart(2,'0')}-${String(previous.getUTCDate()).padStart(2,'0')}`;
+}
+
+async function collectSupplierInventory() {
+  const targets=(await getTargets()).filter(target=>target.enabled!==false&&/^\d+$/.test(String(target.skuid||'')));
+  const skuidList=[...new Set(targets.map(target=>String(target.skuid)))];
+  const asOfDate=previousKstDay();
+  if(!skuidList.length) return {ok:false,reason:'registered-skuid-not-found'};
+  let tab;
+  try {
+    tab=await chrome.tabs.create({url:'https://supplier.coupang.com/rpd/web-v2/basic/rocket',active:true});
+    await waitForComplete(tab.id);
+    await wait(8000);
+    const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierInventory,args:[skuidList,asOfDate]});
+    const page=injected?.[0]?.result;
+    if(!page?.ok) return {ok:false,reason:page?.reason||'supplier-inventory-read-failed',path:page?.path||''};
+    const payload={
+      version:1,inventoryType:'supplier-hub-previous-day',extensionVersion:chrome.runtime.getManifest().version,
+      collectedAt:new Date().toISOString(),asOfDate,source:'Coupang Supplier Hub · 기본 물류 지표(Rocket)',
+      results:page.results
+    };
+    const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
+    await chrome.downloads.download({url,filename:'MarketPulse/latest-supplier-inventory.json',conflictAction:'overwrite',saveAs:false});
+    await chrome.storage.local.set({lastInventoryResult:payload});
+    return {ok:true,asOfDate,captured:payload.results.filter(result=>result.status==='captured').length,total:payload.results.length};
+  } catch(error) {
+    return {ok:false,reason:String(error)};
+  } finally {
+    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+  }
+}
+
 async function scanSupplierHubStructure() {
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
   if (!tab?.id||!tab.url) return {ok:false,reason:'현재 활성 탭을 찾지 못했어.'};
@@ -837,6 +945,10 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   }
   if (message?.type==='SCAN_SUPPLIER_HUB') {
     scanSupplierHubStructure().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
+    return true;
+  }
+  if (message?.type==='COLLECT_SUPPLIER_INVENTORY') {
+    collectSupplierInventory().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
     return true;
   }
 });

@@ -3,6 +3,14 @@ document.querySelector('#scan').addEventListener('click',async()=>{
   await chrome.runtime.sendMessage({type:'RUN_SCAN'});
   document.querySelector('#status').textContent='수집을 시작했어. 열린 탭을 그대로 두면 돼.';
 });
+document.querySelector('#inventory').addEventListener('click',async()=>{
+  const status=document.querySelector('#status');
+  status.textContent='Supplier Hub에서 전일 재고를 수집 중이야.';
+  const result=await chrome.runtime.sendMessage({type:'COLLECT_SUPPLIER_INVENTORY'});
+  status.textContent=result?.ok
+    ? `${result.asOfDate} 재고 JSON 저장 완료 (${result.captured}/${result.total})`
+    : (result?.reason||'전일 재고 수집에 실패했어. Supplier Hub 로그인 상태를 확인해줘.');
+});
 document.querySelector('#supplier').addEventListener('click',async()=>{
   const status=document.querySelector('#status');
   status.textContent='현재 Supplier Hub 화면 구조를 확인 중이야.';

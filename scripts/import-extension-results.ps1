@@ -40,6 +40,23 @@ if ([int]$payload.version -lt 2) {
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
+$inventoryPath = Join-Path $resultFolder 'latest-supplier-inventory.json'
+$todayKstDate = [TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
+$expectedInventoryDate = $todayKstDate.AddDays(-1).ToString('yyyy-MM-dd')
+$inventoryPayload = $null
+if (Test-Path $inventoryPath) {
+  try {
+    $candidateInventory = Get-Content -Raw -Encoding UTF8 $inventoryPath | ConvertFrom-Json
+    $inventoryCollectedDay = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$candidateInventory.collectedAt,$kstZone).ToString('yyyy-MM-dd')
+    if ($candidateInventory.inventoryType -eq 'supplier-hub-previous-day' -and
+        $candidateInventory.asOfDate -eq $expectedInventoryDate -and
+        $inventoryCollectedDay -eq $todayKstDate.ToString('yyyy-MM-dd')) {
+      $inventoryPayload = $candidateInventory
+    }
+  } catch {
+    Write-Host "Ignoring invalid Supplier Hub inventory JSON: $($_.Exception.Message)"
+  }
+}
 
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
@@ -154,6 +171,7 @@ foreach ($spec in $specs) {
         $data.products+= $product
       }
       foreach ($field in @('mtm','productId','itemId','vendorItemId','category','skuid','srp')) {
+        if ($field -eq 'skuid' -and -not [string]$config.skuid) { continue }
         $product | Add-Member -NotePropertyName $field -NotePropertyValue $config.PSObject.Properties[$field].Value -Force
       }
       $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
@@ -177,6 +195,37 @@ foreach ($spec in $specs) {
   foreach ($product in $data.products) {
     $result=$brandResults | Where-Object {$_.itemId -eq [string]$product.itemId} | Select-Object -First 1
     $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
+    if (-not [string]$product.skuid -and $result -and [string]$result.skuid) {
+      $product | Add-Member -NotePropertyName skuid -NotePropertyValue ([string]$result.skuid) -Force
+    }
+    $inventoryResult = if ($inventoryPayload -and $product.skuid) {
+      $inventoryPayload.results | Where-Object {[string]$_.skuid -eq [string]$product.skuid} | Select-Object -First 1
+    } else { $null }
+    $inventoryStatus = 'missing'
+    $inventoryReason = if (-not $inventoryPayload) {'current-inventory-json-not-found'} elseif (-not $product.skuid) {'registered-skuid-not-found'} elseif (-not $inventoryResult) {'skuid-result-not-found'} else {[string]$inventoryResult.reason}
+    $inventoryTotal = $null; $inventoryFc = $null; $inventoryRc = $null; $inventoryOther = $null; $inventoryRowCount = 0
+    if ($inventoryResult -and $inventoryResult.status -eq 'captured') {
+      $candidateTotal=[long]$inventoryResult.total
+      $candidateFc=[long]$inventoryResult.fc
+      $candidateRc=[long]$inventoryResult.rc
+      $candidateOther=[long]$inventoryResult.other
+      if ($candidateTotal -ge 0 -and $candidateFc -ge 0 -and $candidateRc -ge 0 -and $candidateOther -ge 0 -and
+          $candidateTotal -eq ($candidateFc + $candidateRc + $candidateOther)) {
+        $inventoryStatus='captured'; $inventoryReason=''
+        $inventoryTotal=$candidateTotal; $inventoryFc=$candidateFc; $inventoryRc=$candidateRc; $inventoryOther=$candidateOther
+        $inventoryRowCount=[int]$inventoryResult.rowCount
+      } else {
+        $inventoryReason='inventory-sum-invalid'
+      }
+    } elseif ($inventoryResult -and $inventoryResult.status -eq 'missing') {
+      $inventoryReason='skuid-not-present-for-date'
+    }
+    $product | Add-Member -NotePropertyName inventory -NotePropertyValue ([pscustomobject]@{
+      status=$inventoryStatus; asOfDate=$expectedInventoryDate
+      total=$inventoryTotal; fc=$inventoryFc; rc=$inventoryRc; other=$inventoryOther
+      sourceRowCount=$inventoryRowCount; source='Coupang Supplier Hub · 기본 물류 지표(Rocket)'
+      sourceFile='latest-supplier-inventory.json'; reason=$inventoryReason
+    }) -Force
     if (-not $mine -or -not $result) { continue }
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
