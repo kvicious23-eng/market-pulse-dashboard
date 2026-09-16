@@ -20,7 +20,7 @@ on:
       - "dist/**"
       - "scripts/update-acer-data.mjs"
   schedule:
-    - cron: "0 1 * * *"
+    - cron: "0 23 * * *"
 
 permissions:
   contents: write

@@ -10,7 +10,7 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 - 공개 저장소: `kvicious23-eng/market-pulse-dashboard`
 - Windows 설치 경로: `C:\MarketPulse`
-- Chrome 확장프로그램 검증 버전: `1.6.3`
+- Chrome 확장프로그램 검증 버전: `1.6.4`
 - 대시보드 경로: Lenovo `/brand/lenovo/`, Acer `/brand/acer/`
 - 현재 활성 상품: Lenovo 3개, Acer 10개
 - 마지막 전체 성공 검증: 2026-09-16 수동 수집, 13개 상품 가격 수집 성공
@@ -109,9 +109,9 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 ## 8. Windows 자동 실행
 
 - 설치 위치: `C:\MarketPulse`
-- Chrome 시작 예약: 매일 09:58
-- 확장프로그램 자동 수집: 매일 10:00 KST
-- 결과 가져오기·업로드 예약: 매일 10:30
+- Chrome 시작 예약: 매일 07:58
+- 확장프로그램 자동 수집: 매일 08:00 KST
+- 결과 가져오기·업로드 예약: 매일 08:30
 - 예약 작업은 `StartWhenAvailable`을 사용해 예정 시각에 PC가 꺼져 있었으면 다음 부팅 후 실행될 수 있게 한다.
 - 정상 운영 확장은 `C:\MarketPulse\chrome-extension` 하나만 사용한다. 과거 `%LOCALAPPDATA%\MarketPulseDashboard` 확장은 중복 실행 방지를 위해 비활성화하거나 제거한다.
 - 자동 수집 중 사용자가 Chrome 창을 조작하면 탭 선택이나 팝업 수집이 방해될 수 있으므로 완료까지 조작하지 않는다.

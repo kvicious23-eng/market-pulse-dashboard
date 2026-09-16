@@ -172,7 +172,7 @@ data.meta.snapshotAt = stamp;
 const latestChromeCheck = data.products
   .map((product) => product.offers.find((offer) => offer.role === "mine")?.priceCheckedAt)
   .filter(Boolean).sort().at(-1);
-data.meta.monitoring.quickWatch = "매일 10:00 KST";
+data.meta.monitoring.quickWatch = "매일 08:00 KST";
 data.meta.monitoring.collectionRoute = "Windows PC · 일반 Chrome 확장프로그램";
 data.meta.monitoring.lastAttemptAt = latestChromeCheck
   ? latestChromeCheck.replace(" ", "T") + ":00+09:00"

@@ -750,7 +750,7 @@ async function schedule() {
   const kstParts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(now);
   const p = Object.fromEntries(kstParts.map(x=>[x.type,x.value]));
   const kstNowAsUtc = Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
-  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,10,0);
+  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,8,0);
   if (nextKst <= kstNowAsUtc) nextKst += 86400000;
   const delay = nextKst - kstNowAsUtc;
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
@@ -764,7 +764,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
   const state=await chrome.storage.local.get(['lastRunDay']);
   const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()));
-  if (hour>=10 && state.lastRunDay!==localDay()) scanAll();
+  if (hour>=8 && state.lastRunDay!==localDay()) scanAll();
 });
 chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='daily-scan') scanAll();});
 chrome.action.onClicked.addListener(scanAll);
