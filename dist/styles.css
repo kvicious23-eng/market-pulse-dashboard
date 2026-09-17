@@ -121,7 +121,7 @@ h1 em { color: var(--green); font-style: normal; }
 .signal__price strong { font-size: 17px; }
 
 .table-shell { margin-top: 18px; overflow-x: auto; border: 1px solid var(--line); border-radius: 15px; }
-table { width: 100%; min-width: 1320px; border-collapse: collapse; }
+table { width: 100%; min-width: 1450px; border-collapse: collapse; }
 th { padding: 12px 13px; border-bottom: 1px solid var(--line); background: #f7f9f7; color: var(--muted); text-align: right; font-size: 9px; white-space: nowrap; }
 th:first-child { text-align: left; }
 td { padding: 15px 13px; border-bottom: 1px solid #edf1ee; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }

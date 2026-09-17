@@ -98,12 +98,13 @@
   }
 
   function checkoutDiscounts(offer, couponTotal) {
+    const regular = Number.isFinite(offer?.checkoutCouponDiscount) ? offer.checkoutCouponDiscount : null;
     const instant = Number.isFinite(offer?.wowInstantDiscount) ? offer.wowInstantDiscount : null;
     const coupon = Number.isFinite(offer?.wowCouponDiscount) ? offer.wowCouponDiscount : null;
     const captured = offer?.checkoutDiscountStatus === "captured"
-      && Number.isFinite(instant) && Number.isFinite(coupon)
-      && Number.isFinite(couponTotal) && instant + coupon === couponTotal;
-    return { instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured };
+      && Number.isFinite(regular) && Number.isFinite(instant) && Number.isFinite(coupon)
+      && Number.isFinite(couponTotal) && regular + instant + coupon === couponTotal;
+    return { regular: captured ? regular : null, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured };
   }
 
   function checkoutDiscountText(value) {
@@ -153,7 +154,7 @@
     const headers = [
       "브랜드", "모델명(MTM)", "제품명/화면", "용량", "Product ID", "Item ID", "VendorItem ID",
       "판매처", "채널", "상태", "SRP", "표시가", "표시가 종류", "매칭차액",
-      "와우 전용 즉시할인", "와우 전용 쿠폰할인", "쿠폰할인 총금액",
+      "일반 쿠폰할인", "와우 전용 즉시할인", "와우 전용 쿠폰할인", "쿠폰할인 총금액",
       "카드할인 상태", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
       "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
       "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각",
@@ -170,6 +171,7 @@
         Number.isFinite(breakdown.basisPrice) ? breakdown.basisPrice : "미확인",
         basisTypeText(mine.priceBasisType),
         Number.isFinite(breakdown.matchingDifference) ? breakdown.matchingDifference : "미확인",
+        Number.isFinite(checkout.regular) ? checkout.regular : "미수집",
         Number.isFinite(checkout.instant) ? checkout.instant : "미수집",
         Number.isFinite(checkout.coupon) ? checkout.coupon : "미수집",
         Number.isFinite(checkout.total) ? checkout.total : "미확인",
@@ -364,7 +366,7 @@
       const srp = mine ? breakdown.srp : offer.displayPrice;
       const matchingDifference = mine ? breakdown.matchingDifference : null;
       const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
-      const checkout = mine ? checkoutDiscounts(offer, couponDiscount) : { instant: null, coupon: null, total: couponDiscount };
+      const checkout = mine ? checkoutDiscounts(offer, couponDiscount) : { regular: null, instant: null, coupon: null, total: couponDiscount };
       const offerFinalPrice = current ? effectiveFinalPrice(offer) : null;
       const difference = current && !mine && Number.isFinite(offerFinalPrice) && Number.isFinite(stats.mineFinalPrice)
         ? offerFinalPrice - stats.mineFinalPrice
@@ -394,6 +396,7 @@
           <td data-label="SRP">${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</td>
           <td data-label="표시가">${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</td>
           <td data-label="매칭차액">${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</td>
+          <td data-label="일반 쿠폰할인">${current && mine ? checkoutDiscountText(checkout.regular) : '<span class="unknown">—</span>'}</td>
           <td data-label="와우 전용 즉시할인">${current && mine ? checkoutDiscountText(checkout.instant) : '<span class="unknown">—</span>'}</td>
           <td data-label="와우 전용 쿠폰할인">${current && mine ? checkoutDiscountText(checkout.coupon) : '<span class="unknown">—</span>'}</td>
           <td data-label="쿠폰할인 총금액">${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</td>
@@ -448,6 +451,7 @@
       ${mine ? `<div class="evidence__item"><span>표시가</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>
       <div class="evidence__item"><span>표시가 종류</span><strong>${escapeHtml(basisTypeText(offer.priceBasisType))}</strong></div>
       <div class="evidence__item"><span>매칭차액</span><strong>${formatDiff(breakdown.matchingDifference)}</strong></div>
+      <div class="evidence__item"><span>일반 쿠폰할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).regular)}</strong></div>
       <div class="evidence__item"><span>와우 전용 즉시할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).instant)}</strong></div>
       <div class="evidence__item"><span>와우 전용 쿠폰할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).coupon)}</strong></div>
       <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>

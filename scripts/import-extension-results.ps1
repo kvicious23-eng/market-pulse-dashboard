@@ -271,12 +271,15 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue ([string]$result.cardBenefitText) -Force
       $couponTotal=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
       $checkoutStatus=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
+      $checkoutCoupon=$null
       $wowInstant=$null
       $wowCoupon=$null
-      if ($checkoutStatus -eq 'captured' -and $null -ne $couponTotal -and $null -ne $result.wowInstantDiscount -and $null -ne $result.wowCouponDiscount) {
+      if ($checkoutStatus -eq 'captured' -and $null -ne $couponTotal -and $null -ne $result.checkoutCouponDiscount -and $null -ne $result.wowInstantDiscount -and $null -ne $result.wowCouponDiscount) {
+        $candidateCheckoutCoupon=[long]$result.checkoutCouponDiscount
         $candidateInstant=[long]$result.wowInstantDiscount
         $candidateCoupon=[long]$result.wowCouponDiscount
-        if ($candidateInstant -ge 0 -and $candidateCoupon -ge 0 -and ($candidateInstant+$candidateCoupon) -eq $couponTotal) {
+        if ($candidateCheckoutCoupon -ge 0 -and $candidateInstant -ge 0 -and $candidateCoupon -ge 0 -and ($candidateCheckoutCoupon+$candidateInstant+$candidateCoupon) -eq $couponTotal) {
+          $checkoutCoupon=$candidateCheckoutCoupon
           $wowInstant=$candidateInstant
           $wowCoupon=$candidateCoupon
         } else {
@@ -284,11 +287,13 @@ foreach ($spec in $specs) {
         }
       }
       if ($checkoutStatus -ne 'captured') {
+        $checkoutCoupon=$null
         $wowInstant=$null
         $wowCoupon=$null
       }
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$result.checkoutDiscountReason) -Force
+      $mine | Add-Member -NotePropertyName checkoutCouponDiscount -NotePropertyValue $checkoutCoupon -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
