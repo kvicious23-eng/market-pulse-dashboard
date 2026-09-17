@@ -10,7 +10,7 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 - 공개 저장소: `kvicious23-eng/market-pulse-dashboard`
 - Windows 설치 경로: `C:\MarketPulse`
-- Chrome 확장프로그램 기준 버전: `1.7.2` (주문서 3종 할인 분리·Supplier Hub 인증 권한 보강)
+- Chrome 확장프로그램 기준 버전: `1.7.3` (Chrome 저장 자격증명 기반 Supplier Hub 로그인 제출 자동화)
 - 대시보드 경로: Lenovo `/brand/lenovo/`, Acer `/brand/acer/`
 - 현재 활성 상품: Lenovo 3개, Acer 10개
 - 마지막 전체 성공 검증: 2026-09-16 수동 수집, 13개 상품 가격 수집 성공
@@ -140,15 +140,16 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 - 결과 가져오기·업로드 예약: 매일 08:30
 - GitHub Actions의 08:00 서버 조사는 실측 PC 수집과 중복되므로 사용하지 않는다. 정기 원천은 Windows PC 확장프로그램 수집과 08:30 업로드다.
 - 예약 작업은 `StartWhenAvailable`을 사용해 예정 시각에 PC가 꺼져 있었으면 다음 부팅 후 실행될 수 있게 한다.
-- Supplier Hub 로그인 정보는 Market Pulse 코드·GitHub·JSON·로그에 저장하지 않는다. 사용자가 변경한 비밀번호를 Chrome 비밀번호 관리자에 직접 저장하고 Chrome의 자동 로그인 기능을 사용한다.
-- 07:50에 Supplier Hub 재고 화면을 먼저 열어 자동 로그인 세션을 준비하고, 08:00에 재고 및 가격 수집을 시작한다.
+- Supplier Hub 로그인 정보는 Market Pulse 코드·GitHub·JSON·로그에 저장하지 않는다. 사용자가 변경한 비밀번호를 Chrome 비밀번호 관리자에 직접 저장한다.
+- 07:50에 Supplier Hub 재고 화면을 먼저 열어 인증 화면을 준비하고, 08:00 수집 시 Chrome이 저장된 계정·비밀번호를 채운 상태에서 확장프로그램이 로그인 버튼을 1회 누른다.
+- 확장프로그램은 계정값과 비밀번호 내용을 JSON·로그·저장소로 반환하지 않고, 두 입력란이 비어 있지 않은지만 확인한다.
 - CAPTCHA·OTP·추가 인증 또는 로그인 실패가 발생하면 이를 우회하지 않는다. 재고는 잘못된 0개가 아니라 `미수집`으로 처리한다.
 - 정상 운영 확장은 `C:\MarketPulse\chrome-extension` 하나만 사용한다. 과거 `%LOCALAPPDATA%\MarketPulseDashboard` 확장은 중복 실행 방지를 위해 비활성화하거나 제거한다.
 - 자동 수집 중 사용자가 Chrome 창을 조작하면 탭 선택이나 팝업 수집이 방해될 수 있으므로 완료까지 조작하지 않는다.
 
 ## 10. Supplier Hub 진단
 
-- Supplier Hub 접근은 사용자가 네 PC의 Chrome에서 직접 로그인한 기존 세션만 사용하며 ID·비밀번호·OTP·쿠키를 저장하거나 전송하지 않는다.
+- Supplier Hub 접근은 네 PC의 Chrome 세션과 Chrome에 사용자가 직접 저장한 자격증명만 사용하며 ID·비밀번호·OTP·쿠키를 Market Pulse에 저장하거나 전송하지 않는다.
 - 확장 프로그램의 `Supplier Hub 화면 진단`은 사용자가 현재 열어 둔 `https://supplier.coupang.com/` 탭에서 수동으로 실행한다.
 - 진단 파일은 `Downloads\MarketPulse\supplier-hub-diagnostic.json`에만 저장한다.
 - 진단에는 화면의 메뉴·제목·버튼·링크 경로·표 머리글과 행/열 개수·입력 필드 구조만 포함한다. 입력값, 비밀번호, 쿠키, 로컬 저장소는 포함하지 않는다.

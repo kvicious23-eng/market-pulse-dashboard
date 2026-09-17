@@ -1071,6 +1071,62 @@ function previousKstDay() {
   return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth()+1).padStart(2,'0')}-${String(previous.getUTCDate()).padStart(2,'0')}`;
 }
 
+function submitSupplierSavedLogin() {
+  const visible=element=>{
+    const style=getComputedStyle(element),rect=element.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
+  };
+  const blocked=Boolean(
+    document.querySelector('iframe[src*="captcha" i],[class*="captcha" i],[id*="captcha" i],input[autocomplete="one-time-code"],input[name*="otp" i],input[id*="otp" i]')
+  );
+  if(blocked) return {ok:false,reason:'supplier-additional-auth-required'};
+  const password=[...document.querySelectorAll('input[type="password"]')].find(visible);
+  const username=[...document.querySelectorAll('input[type="email"],input[type="text"],input[name*="user" i],input[name*="login" i]')]
+    .find(input=>visible(input)&&input!==password);
+  if(!password||!username) return {ok:false,reason:'supplier-login-form-not-found',retryable:true};
+  // Check only whether Chrome filled the fields. Never return or store values.
+  if(!Boolean(username.value)||!Boolean(password.value)) return {ok:false,reason:'supplier-saved-login-not-filled',retryable:true};
+  const buttons=[...document.querySelectorAll('button,input[type="submit"],[role="button"]')].filter(visible);
+  const submit=buttons.find(button=>button.type==='submit')
+    ||buttons.find(button=>/^(?:로그인|sign\s*in|log\s*in)$/i.test(String(button.innerText||button.value||'').trim()));
+  if(!submit) return {ok:false,reason:'supplier-login-button-not-found',retryable:true};
+  if(submit.disabled||submit.getAttribute('aria-disabled')==='true') return {ok:false,reason:'supplier-login-button-disabled',retryable:true};
+  submit.click();
+  return {ok:true,submitted:true};
+}
+
+async function ensureSupplierSession(tabId,targetUrl) {
+  let submitted=false;
+  for(let attempt=0;attempt<45;attempt++){
+    const tab=await chrome.tabs.get(tabId);
+    let current;
+    try { current=new URL(tab.url||''); } catch (_) { current=null; }
+    if(current?.hostname==='supplier.coupang.com'&&!current.pathname.startsWith('/login/')) {
+      if(!current.pathname.startsWith('/rpd/web-v2/basic/rocket')) {
+        await chrome.tabs.update(tabId,{url:targetUrl});
+        await waitForComplete(tabId);
+        await wait(3000);
+        continue;
+      }
+      return {ok:true,loginSubmitted:submitted};
+    }
+    if(current?.hostname==='xauth.coupang.com') {
+      const result=await chrome.scripting.executeScript({target:{tabId},func:submitSupplierSavedLogin});
+      const login=result?.[0]?.result;
+      if(login?.ok&&login.submitted) {
+        submitted=true;
+        await wait(3000);
+        continue;
+      }
+      if(login&&!login.retryable) return {ok:false,reason:login.reason};
+    } else if(current&&current.hostname!=='supplier.coupang.com') {
+      return {ok:false,reason:`supplier-unexpected-auth-host:${current.hostname}`};
+    }
+    await wait(1000);
+  }
+  return {ok:false,reason:submitted?'supplier-login-redirect-timeout':'supplier-saved-login-not-filled'};
+}
+
 async function collectSupplierInventory() {
   const targets=(await getTargets()).filter(target=>target.enabled!==false&&/^\d+$/.test(String(target.skuid||'')));
   const skuidList=[...new Set(targets.map(target=>String(target.skuid)))];
@@ -1093,18 +1149,24 @@ async function collectSupplierInventory() {
   }
   let tab;
   try {
-    tab=await chrome.tabs.create({url:'https://supplier.coupang.com/rpd/web-v2/basic/rocket',active:true});
+    const supplierUrl='https://supplier.coupang.com/rpd/web-v2/basic/rocket';
+    tab=await chrome.tabs.create({url:supplierUrl,active:true});
     await waitForComplete(tab.id);
+    const session=await ensureSupplierSession(tab.id,supplierUrl);
+    if(!session.ok) {
+      await savePayload(false,session.reason,null,'');
+      return {ok:false,reason:session.reason,asOfDate,captured:0,total:skuidList.length,loginSubmitted:false};
+    }
     await wait(8000);
     const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierInventory,args:[skuidList,asOfDate]});
     const page=injected?.[0]?.result;
     if(!page?.ok) {
       const reason=page?.reason||'supplier-inventory-read-failed';
       await savePayload(false,reason,null,page?.path||'');
-      return {ok:false,reason,path:page?.path||'',asOfDate,captured:0,total:skuidList.length};
+      return {ok:false,reason,path:page?.path||'',asOfDate,captured:0,total:skuidList.length,loginSubmitted:session.loginSubmitted};
     }
     const payload=await savePayload(true,'',page.results,page.path||'');
-    return {ok:true,asOfDate,captured:payload.results.filter(result=>result.status==='captured').length,total:payload.results.length};
+    return {ok:true,asOfDate,captured:payload.results.filter(result=>result.status==='captured').length,total:payload.results.length,loginSubmitted:session.loginSubmitted};
   } catch(error) {
     const reason=String(error);
     await savePayload(false,reason).catch(()=>{});
