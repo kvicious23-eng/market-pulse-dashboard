@@ -202,7 +202,17 @@ foreach ($spec in $specs) {
       $inventoryPayload.results | Where-Object {[string]$_.skuid -eq [string]$product.skuid} | Select-Object -First 1
     } else { $null }
     $inventoryStatus = 'missing'
-    $inventoryReason = if (-not $inventoryPayload) {'current-inventory-json-not-found'} elseif (-not $product.skuid) {'registered-skuid-not-found'} elseif (-not $inventoryResult) {'skuid-result-not-found'} else {[string]$inventoryResult.reason}
+    $inventoryReason = if (-not $inventoryPayload) {
+      'current-inventory-json-not-found'
+    } elseif ($inventoryPayload.collectionStatus -eq 'failed') {
+      [string]$inventoryPayload.collectionReason
+    } elseif (-not $product.skuid) {
+      'registered-skuid-not-found'
+    } elseif (-not $inventoryResult) {
+      'skuid-result-not-found'
+    } else {
+      [string]$inventoryResult.reason
+    }
     $inventoryTotal = $null; $inventoryFc = $null; $inventoryRc = $null; $inventoryOther = $null; $inventoryRowCount = 0
     if ($inventoryResult -and $inventoryResult.status -eq 'captured') {
       $candidateTotal=[long]$inventoryResult.total
@@ -217,8 +227,8 @@ foreach ($spec in $specs) {
       } else {
         $inventoryReason='inventory-sum-invalid'
       }
-    } elseif ($inventoryResult -and $inventoryResult.status -eq 'missing') {
-      $inventoryReason='skuid-not-present-for-date'
+    } elseif ($inventoryResult -and $inventoryResult.status -eq 'missing' -and $inventoryPayload.collectionStatus -ne 'failed') {
+      $inventoryReason=if ($inventoryResult.reason) {[string]$inventoryResult.reason}else{'skuid-not-present-for-date'}
     }
     $product | Add-Member -NotePropertyName inventory -NotePropertyValue ([pscustomobject]@{
       status=$inventoryStatus; asOfDate=$expectedInventoryDate

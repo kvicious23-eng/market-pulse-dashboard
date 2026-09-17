@@ -19,9 +19,6 @@ on:
       - "brand/**"
       - "dist/**"
       - "scripts/update-acer-data.mjs"
-  schedule:
-    - cron: "0 23 * * *"
-
 permissions:
   contents: write
   pages: write

@@ -690,7 +690,12 @@ async function scanAll() {
     const targets=(await getTargets()).filter(x=>x.enabled!==false);
     // Inventory is collected first from the authenticated Supplier Hub session.
     // A failure must not stop the independent public-price scan.
-    await collectSupplierInventory().catch(()=>({ok:false}));
+    let inventoryCollection=await collectSupplierInventory().catch(error=>({ok:false,reason:String(error)}));
+    if(!inventoryCollection.ok) {
+      await wait(15000);
+      inventoryCollection=await collectSupplierInventory().catch(error=>({ok:false,reason:String(error)}));
+      inventoryCollection.retried=true;
+    }
     for (const target of targets) {
       let tab;
       try {
@@ -770,7 +775,7 @@ async function scanAll() {
       }
       await wait(20000);
     }
-    const payload = {version:2, scannedAt:new Date().toISOString(), results};
+    const payload = {version:3, scannedAt:new Date().toISOString(), inventoryCollection, results};
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
     await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
@@ -846,16 +851,22 @@ function readCheckoutDiscounts() {
     return {status:'missing',amount:null};
   };
   const bodyText=clean(document.body?.innerText);
+  const discountEvidence=[...new Set([...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
+    .filter(visible)
+    .map(element=>clean(element.innerText||element.textContent))
+    .filter(text=>text.length>=3&&text.length<=180&&/(?:와우|쿠폰|즉시)s*(?:전용s*)?할인|와우s*전용/.test(text))
+    .filter(text=>!/https?:|mercury\.coupang|thumbnail|impressionLog/i.test(text)))]
+    .sort((a,b)=>a.length-b.length).slice(0,20);
   const paymentButtonPresent=[...document.querySelectorAll('button,[role="button"]')]
     .filter(visible).some(button=>clean(button.innerText||button.textContent)==='결제하기');
   if(!/주문\s*\/\s*결제/.test(bodyText)||!paymentButtonPresent){
-    return {ok:false,reason:'checkout-page-not-confirmed',host:location.hostname,path:location.pathname};
+    return {ok:false,reason:'checkout-page-not-confirmed',host:location.hostname,path:location.pathname,discountEvidence};
   }
   return {
     ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
     wowInstantDiscount:readAmount('와우 전용 즉시할인'),
     wowCouponDiscount:readAmount('와우 전용 쿠폰할인'),
-    paymentButtonPresent
+    paymentButtonPresent,discountEvidence
   };
 }
 
@@ -875,15 +886,30 @@ async function collectCheckoutDiscountsForTarget(target,expectedCouponTotal=null
       if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
     }
     await wait(4000);
-    const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
-    const page=read?.[0]?.result;
-    if(!page?.ok) {
-      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',wowInstantDiscount:null,wowCouponDiscount:null};
+    let page;
+    for(let attempt=0;attempt<4;attempt++){
+      const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
+      page=read?.[0]?.result;
+      const instantReady=page?.wowInstantDiscount?.status==='captured';
+      const couponReady=page?.wowCouponDiscount?.status==='captured';
+      if(page?.ok&&(instantReady||couponReady)) break;
+      if(attempt<3) await wait(2500);
     }
-    const instant=page.wowInstantDiscount?.status==='captured'?page.wowInstantDiscount.amount:null;
-    const coupon=page.wowCouponDiscount?.status==='captured'?page.wowCouponDiscount.amount:null;
+    if(!page?.ok) {
+      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page?.discountEvidence||[]};
+    }
+    let instant=page.wowInstantDiscount?.status==='captured'?page.wowInstantDiscount.amount:null;
+    let coupon=page.wowCouponDiscount?.status==='captured'?page.wowCouponDiscount.amount:null;
+    let inferredZeroField=null;
+    if(Number.isFinite(expectedCouponTotal)) {
+      if(!Number.isFinite(instant)&&Number.isFinite(coupon)&&coupon===expectedCouponTotal) {
+        instant=0; inferredZeroField='wowInstantDiscount';
+      } else if(Number.isFinite(instant)&&!Number.isFinite(coupon)&&instant===expectedCouponTotal) {
+        coupon=0; inferredZeroField='wowCouponDiscount';
+      }
+    }
     if(!Number.isFinite(instant)||!Number.isFinite(coupon)) {
-      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:'checkout-discount-label-missing',wowInstantDiscount:null,wowCouponDiscount:null};
+      return {checkoutDiscountStatus:'missing',checkoutDiscountReason:'checkout-discount-label-missing',wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page.discountEvidence||[]};
     }
     const total=instant+coupon;
     if(Number.isFinite(expectedCouponTotal)&&total!==expectedCouponTotal) {
@@ -891,9 +917,10 @@ async function collectCheckoutDiscountsForTarget(target,expectedCouponTotal=null
     }
     return {
       checkoutDiscountStatus:Number.isFinite(expectedCouponTotal)?'captured':'diagnostic',
-      checkoutDiscountReason:Number.isFinite(expectedCouponTotal)?'total-matched':'diagnostic-captured',
+      checkoutDiscountReason:Number.isFinite(expectedCouponTotal)?(inferredZeroField?'total-matched-one-label-omitted':'total-matched'):'diagnostic-captured',
       wowInstantDiscount:instant,wowCouponDiscount:coupon,checkoutDiscountTotal:total,
-      checkoutDiscountCapturedAt:page.capturedAt
+      checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroField:inferredZeroField,
+      checkoutDiscountEvidence:page.discountEvidence||[]
     };
   } catch(error) {
     return {checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),wowInstantDiscount:null,wowCouponDiscount:null};
@@ -1045,7 +1072,22 @@ async function collectSupplierInventory() {
   const targets=(await getTargets()).filter(target=>target.enabled!==false&&/^\d+$/.test(String(target.skuid||'')));
   const skuidList=[...new Set(targets.map(target=>String(target.skuid)))];
   const asOfDate=previousKstDay();
-  if(!skuidList.length) return {ok:false,reason:'registered-skuid-not-found'};
+  const savePayload=async(ok,reason,results,path='')=>{
+    const payload={
+      version:2,inventoryType:'supplier-hub-previous-day',extensionVersion:chrome.runtime.getManifest().version,
+      collectedAt:new Date().toISOString(),asOfDate,source:'Coupang Supplier Hub · 기본 물류 지표(Rocket)',
+      collectionStatus:ok?'captured':'failed',collectionReason:reason||'',path,
+      results:results||skuidList.map(skuid=>({skuid,status:'missing',reason:reason||'supplier-inventory-read-failed',total:null,fc:null,rc:null,other:null,rowCount:0}))
+    };
+    const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
+    await chrome.downloads.download({url,filename:'MarketPulse/latest-supplier-inventory.json',conflictAction:'overwrite',saveAs:false});
+    await chrome.storage.local.set({lastInventoryResult:payload});
+    return payload;
+  };
+  if(!skuidList.length) {
+    await savePayload(false,'registered-skuid-not-found',[]);
+    return {ok:false,reason:'registered-skuid-not-found',asOfDate,captured:0,total:0};
+  }
   let tab;
   try {
     tab=await chrome.tabs.create({url:'https://supplier.coupang.com/rpd/web-v2/basic/rocket',active:true});
@@ -1053,18 +1095,17 @@ async function collectSupplierInventory() {
     await wait(8000);
     const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierInventory,args:[skuidList,asOfDate]});
     const page=injected?.[0]?.result;
-    if(!page?.ok) return {ok:false,reason:page?.reason||'supplier-inventory-read-failed',path:page?.path||''};
-    const payload={
-      version:1,inventoryType:'supplier-hub-previous-day',extensionVersion:chrome.runtime.getManifest().version,
-      collectedAt:new Date().toISOString(),asOfDate,source:'Coupang Supplier Hub · 기본 물류 지표(Rocket)',
-      results:page.results
-    };
-    const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
-    await chrome.downloads.download({url,filename:'MarketPulse/latest-supplier-inventory.json',conflictAction:'overwrite',saveAs:false});
-    await chrome.storage.local.set({lastInventoryResult:payload});
+    if(!page?.ok) {
+      const reason=page?.reason||'supplier-inventory-read-failed';
+      await savePayload(false,reason,null,page?.path||'');
+      return {ok:false,reason,path:page?.path||'',asOfDate,captured:0,total:skuidList.length};
+    }
+    const payload=await savePayload(true,'',page.results,page.path||'');
     return {ok:true,asOfDate,captured:payload.results.filter(result=>result.status==='captured').length,total:payload.results.length};
   } catch(error) {
-    return {ok:false,reason:String(error)};
+    const reason=String(error);
+    await savePayload(false,reason).catch(()=>{});
+    return {ok:false,reason,asOfDate,captured:0,total:skuidList.length};
   } finally {
     if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
   }
