@@ -43,6 +43,14 @@ $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalo
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
 }
+function Get-SafeCardBenefitText([string]$value) {
+  $compact=[regex]::Replace([string]$value,'https?://\S+',' ')
+  $compact=[regex]::Replace($compact,'\s+',' ').Trim()
+  $summary=[regex]::Match($compact,'^.*?카드\s*즉시할인\s*\([^)]*\)')
+  if ($summary.Success) { return $summary.Value }
+  if ($compact.Length -gt 240) { return $compact.Substring(0,240) }
+  return $compact
+}
 $text = @{
   Current = Decode-Utf8 '7ZiE7J6s6rCAIOyngeygkSDtmZXsnbg='
   CurrentDetail = Decode-Utf8 '64+Z7J28IEl0ZW0gSUTsnZgg7J2867CYIENocm9tZSDtmZTrqbTsl5DshJwg6rCA6rKpIO2ZleyduA=='
@@ -208,7 +216,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
-      $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue ([string]$result.cardBenefitText) -Force
+      $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
       $couponTotal=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
       $checkoutStatus=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
       $checkoutCoupon=$null
