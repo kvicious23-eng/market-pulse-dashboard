@@ -828,11 +828,11 @@ function readCheckoutDiscounts() {
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
   };
-  const readAmount=label=>{
+  const readAmount=(label,excludedText='')=>{
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
       .map(element=>({element,text:clean(element.innerText||element.textContent)}))
-      .filter(entry=>entry.text.includes(label)&&entry.text.length<240)
+      .filter(entry=>entry.text.includes(label)&&entry.text.length<240&&(!excludedText||!entry.text.includes(excludedText)))
       .sort((a,b)=>a.text.length-b.text.length);
     for(const entry of candidates){
       let node=entry.element;
@@ -864,7 +864,7 @@ function readCheckoutDiscounts() {
   }
   return {
     ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
-    couponDiscount:readAmount('쿠폰할인 변경'),
+    couponDiscount:readAmount('쿠폰할인 변경','와우 전용 쿠폰할인'),
     wowInstantDiscount:readAmount('와우 전용 즉시할인'),
     wowCouponDiscount:readAmount('와우 전용 쿠폰할인'),
     paymentButtonPresent,discountEvidence
@@ -919,7 +919,7 @@ async function collectCheckoutDiscountsForTarget(target,expectedCouponTotal=null
     }
     return {
       checkoutDiscountStatus:Number.isFinite(expectedCouponTotal)?'captured':'diagnostic',
-      checkoutDiscountReason:Number.isFinite(expectedCouponTotal)?(inferredZeroField?'total-matched-one-label-omitted':'total-matched'):'diagnostic-captured',
+      checkoutDiscountReason:Number.isFinite(expectedCouponTotal)?(inferredZeroFields.length?'total-matched-one-or-more-labels-omitted':'total-matched'):'diagnostic-captured',
       checkoutCouponDiscount:regular,wowInstantDiscount:instant,wowCouponDiscount:coupon,checkoutDiscountTotal:total,
       checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroFields:inferredZeroFields,
       checkoutDiscountEvidence:page.discountEvidence||[]
@@ -1101,6 +1101,7 @@ function readCurrentPageLocation() {
 
 async function ensureSupplierSession(tabId,targetUrl) {
   let submitted=false;
+  let stableSupplierChecks=0;
   for(let attempt=0;attempt<45;attempt++){
     let current;
     try {
@@ -1112,14 +1113,17 @@ async function ensureSupplierSession(tabId,targetUrl) {
     }
     if(current?.hostname==='supplier.coupang.com'&&!current.pathname.startsWith('/login/')) {
       if(!current.pathname.startsWith('/rpd/web-v2/basic/rocket')) {
+        stableSupplierChecks=0;
         await chrome.tabs.update(tabId,{url:targetUrl});
         await waitForComplete(tabId);
         await wait(3000);
         continue;
       }
-      return {ok:true,loginSubmitted:submitted};
+      stableSupplierChecks++;
+      if(stableSupplierChecks>=4) return {ok:true,loginSubmitted:submitted};
     }
     if(current?.hostname==='xauth.coupang.com') {
+      stableSupplierChecks=0;
       const result=await chrome.scripting.executeScript({target:{tabId},func:submitSupplierSavedLogin});
       const login=result?.[0]?.result;
       if(login?.ok&&login.submitted) {
@@ -1129,6 +1133,7 @@ async function ensureSupplierSession(tabId,targetUrl) {
       }
       if(login&&!login.retryable) return {ok:false,reason:login.reason};
     } else if(current&&current.hostname!=='supplier.coupang.com') {
+      stableSupplierChecks=0;
       return {ok:false,reason:`supplier-unexpected-auth-host:${current.hostname}`};
     }
     await wait(1000);
@@ -1161,6 +1166,7 @@ async function collectSupplierInventory() {
     const supplierUrl='https://supplier.coupang.com/rpd/web-v2/basic/rocket';
     tab=await chrome.tabs.create({url:supplierUrl,active:true});
     await waitForComplete(tab.id);
+    await wait(2000);
     const session=await ensureSupplierSession(tab.id,supplierUrl);
     if(!session.ok) {
       await savePayload(false,session.reason,null,'');
