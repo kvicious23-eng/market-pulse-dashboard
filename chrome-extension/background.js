@@ -124,7 +124,11 @@ async function readDisplayedPrice(expectedItemId) {
   const strike=jsonStrike
     ? {price:jsonStrike.price,selector:jsonStrike.source,basisType:'crossed-out'}
     : preferred ? ((()=>{const candidate=strikeCandidates.find(x=>x.price>=preferred.price);return candidate?{...candidate,basisType:'crossed-out'}:null;})()
-      || (topVisiblePrice?{price:topVisiblePrice.price,selector:'top-visible-price',basisType:'top-visible'}:null)) : null;
+      || (topVisiblePrice?{price:topVisiblePrice.price,selector:'top-visible-price',basisType:'top-visible'}:null)
+      // Some Coupang layouts expose the primary price only through JSON-LD
+      // and plain visible text. With no crossed-out price, that primary price
+      // is the displayed-price basis, so a zero coupon total remains verifiable.
+      || {price:preferred.price,selector:`primary-${preferred.source}`,basisType:'top-visible'}) : null;
   let cardDiscount=null;
   let cardRate=null;
   let cardMaxDiscount=null;

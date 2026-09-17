@@ -91,7 +91,7 @@
         ? offer.finalPrice + offer.cardDiscount
         : offer?.finalPrice;
     const matchingDifference = Number.isFinite(srp) && Number.isFinite(basisPrice)
-      ? srp - basisPrice : null;
+      ? basisPrice - srp : null;
     const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardPrice) && basisPrice >= preCardPrice
       ? basisPrice - preCardPrice : null;
     return { srp, basisPrice, preCardPrice, matchingDifference, couponDiscount };
@@ -272,29 +272,22 @@
   }
 
   function renderCards() {
-    refs.productGrid.innerHTML = data.products.map((product) => {
-      const stats = productStats(product);
-      const known = Number.isFinite(stats.difference);
-      const winning = known && stats.difference >= 0;
+    const rows = data.products.map((product) => {
+      const mine = productStats(product).mine || {};
+      const breakdown = priceBreakdown(mine);
       return `
-        <button class="product-card" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}">
-          <span class="product-card__top">
-            <span>
-              <strong class="product-card__mtm">${escapeHtml(product.mtm)}</strong>
-              <span class="product-card__spec">${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</span>
-            </span>
-            <span class="status status--${known ? (winning ? "win" : "lose") : "pending"}">${known ? (winning ? "내 상품 우위" : "가격 역전") : "확인 중"}</span>
-          </span>
-          <span class="product-card__prices">
-            <span><span>내 쿠팡 실구매가</span><strong>${formatWon(stats.mineFinalPrice)}</strong></span>
-            <span><span>경쟁 최저가</span><strong>${formatWon(stats.competitorBest?.finalPrice)}</strong></span>
-          </span>
-          <span class="product-card__gap">
-            <span>${escapeHtml(stats.competitorBest?.seller || "경쟁 판매처 없음")}</span>
-            <b class="${known ? (winning ? "" : "is-alert") : "is-pending"}">${known ? (winning ? `내 상품이 ${formatWon(stats.difference)} 저렴` : `경쟁사가 ${formatWon(Math.abs(stats.difference))} 저렴`) : "가격 검증 진행 중"}</b>
-          </span>
+        <button class="overview-row" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}">
+          <span class="overview-model"><strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small></span>
+          <span data-label="SRP">${Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : '<span class="unknown">SRP 미입력</span>'}</span>
+          <span data-label="표시가">${formatWon(breakdown.basisPrice)}</span>
+          <span data-label="쿠폰할인">${discountText(breakdown.couponDiscount)}</span>
+          <span data-label="카드할인">${cardDiscountText(mine)}</span>
+          <span class="overview-final" data-label="최종 실구매가">${formatWon(effectiveFinalPrice(mine))}</span>
         </button>`;
     }).join("");
+    refs.productGrid.innerHTML = `
+      <div class="overview-head" aria-hidden="true"><span>내 쿠팡상품</span><span>SRP</span><span>표시가</span><span>쿠폰할인</span><span>카드할인</span><span>최종 실구매가</span></div>
+      ${rows}`;
   }
 
   function renderSignal(product) {
@@ -368,13 +361,17 @@
             </span>
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
-          <td data-label="SRP">${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</td>
-          <td data-label="표시가">${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</td>
-          <td data-label="매칭차액">${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</td>
-          <td data-label="일반 쿠폰할인">${current && mine ? checkoutDiscountText(checkout.regular) : '<span class="unknown">—</span>'}</td>
-          <td data-label="와우 전용 즉시할인">${current && mine ? checkoutDiscountText(checkout.instant) : '<span class="unknown">—</span>'}</td>
-          <td data-label="와우 전용 쿠폰할인">${current && mine ? checkoutDiscountText(checkout.coupon) : '<span class="unknown">—</span>'}</td>
-          <td data-label="쿠폰할인 총금액">${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</td>
+          <td data-label="가격 기준" class="cell-stack">
+            <span><small>SRP</small>${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</span>
+            <span><small>표시가</small>${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</span>
+            <span><small>매칭차액</small>${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</span>
+          </td>
+          <td data-label="할인 상세" class="cell-stack cell-stack--discount">
+            <span><small>일반 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.regular) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 즉시</small>${current && mine ? checkoutDiscountText(checkout.instant) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon) : '<span class="unknown">—</span>'}</span>
+            <span class="cell-stack__total"><small>합계</small>${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</span>
+          </td>
           <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
