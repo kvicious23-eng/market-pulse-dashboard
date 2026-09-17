@@ -6,7 +6,7 @@ window.MARKET_DATA = {
                  "exclusions":  "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
                  "monitoring":  {
                                     "enabled":  true,
-                                    "quickWatch":  "매일 10:00 KST",
+                                    "quickWatch":  "매일 08:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
                                     "lastAttemptAt":  "2026-09-18T08:16:13+09:00",

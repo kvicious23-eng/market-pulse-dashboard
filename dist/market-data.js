@@ -6,7 +6,7 @@ window.MARKET_DATA = {
                  "exclusions":  "개인화 쿠폰·적립금·조건부 카드/멤버십 가격은 기본 비교에서 제외. 다나와 쿠팡 항목은 당일 Item ID 미검증 시 참고로 분리",
                  "monitoring":  {
                                     "enabled":  true,
-                                    "quickWatch":  "매일 10:00 KST",
+                                    "quickWatch":  "매일 08:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
                                     "lastAttemptAt":  "2026-09-18T08:16:13+09:00",
