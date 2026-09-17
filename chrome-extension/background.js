@@ -1095,12 +1095,21 @@ function submitSupplierSavedLogin() {
   return {ok:true,submitted:true};
 }
 
+function readCurrentPageLocation() {
+  return {hostname:location.hostname,pathname:location.pathname};
+}
+
 async function ensureSupplierSession(tabId,targetUrl) {
   let submitted=false;
   for(let attempt=0;attempt<45;attempt++){
-    const tab=await chrome.tabs.get(tabId);
     let current;
-    try { current=new URL(tab.url||''); } catch (_) { current=null; }
+    try {
+      const inspected=await chrome.scripting.executeScript({target:{tabId},func:readCurrentPageLocation});
+      current=inspected?.[0]?.result;
+    } catch (_) {
+      await wait(1000);
+      continue;
+    }
     if(current?.hostname==='supplier.coupang.com'&&!current.pathname.startsWith('/login/')) {
       if(!current.pathname.startsWith('/rpd/web-v2/basic/rocket')) {
         await chrome.tabs.update(tabId,{url:targetUrl});
