@@ -22,7 +22,7 @@ function validate(product,index){
 }
 function readCard(card){
   const ids=parseCoupangUrl(card.querySelector('.url').value.trim());
-  return {brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),skuid:money(card.querySelector('.skuid').value),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),...ids};
+  return {brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),...ids};
 }
 function syncCard(card,index){
   const p=readCard(card); products[index]=p;
@@ -35,9 +35,9 @@ function render(){
   cards.replaceChildren();
   const query=document.querySelector('#search').value.trim().toLowerCase();
   products.forEach((p,index)=>{
-    if(query&&!`${p.brand} ${p.mtm} ${p.skuid}`.toLowerCase().includes(query))return;
+    if(query&&!`${p.brand} ${p.mtm}`.toLowerCase().includes(query))return;
     const card=template.content.firstElementChild.cloneNode(true);card.dataset.index=index;
-    for(const key of ['brand','category','mtm','skuid','url','danawaUrl'])card.querySelector('.'+key).value=p[key]??'';
+    for(const key of ['brand','category','mtm','url','danawaUrl'])card.querySelector('.'+key).value=p[key]??'';
     card.querySelector('.srp').value=p.srp?Number(p.srp).toLocaleString('ko-KR'):'';card.querySelector('.enabled').checked=p.enabled!==false;
     card.querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>syncCard(card,index)));
     card.querySelector('.remove').addEventListener('click',()=>{if(confirm(`${p.mtm||'이 상품'}을 목록에서 제거할까?`)){products.splice(index,1);render();}});
@@ -55,6 +55,6 @@ async function save(){
   await chrome.downloads.download({url,filename:'MarketPulse/product-catalog.json',conflictAction:'overwrite',saveAs:false});
   notice.textContent='저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
 }
-document.querySelector('#add').addEventListener('click',()=>{products.unshift({brand:'Acer',category:'Notebook',mtm:'',skuid:'',srp:null,enabled:true,url:'',danawaUrl:'',productId:'',itemId:'',vendorItemId:''});render();window.scrollTo({top:0,behavior:'smooth'});});
+document.querySelector('#add').addEventListener('click',()=>{products.unshift({brand:'Acer',category:'Notebook',mtm:'',srp:null,enabled:true,url:'',danawaUrl:'',productId:'',itemId:'',vendorItemId:''});render();window.scrollTo({top:0,behavior:'smooth'});});
 document.querySelector('#save').addEventListener('click',save);document.querySelector('#saveBottom').addEventListener('click',save);document.querySelector('#search').addEventListener('input',render);
 chrome.runtime.sendMessage({type:'GET_PRODUCTS'},response=>{products=response?.products||[];render();});

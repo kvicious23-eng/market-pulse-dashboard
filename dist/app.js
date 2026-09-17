@@ -124,24 +124,6 @@
     return "미확인";
   }
 
-  function inventoryText(product) {
-    const inventory = product?.inventory;
-    return inventory?.status === "captured" && Number.isFinite(inventory.total)
-      ? `전일 재고 ${inventory.total.toLocaleString("ko-KR")}개`
-      : "전일 재고 미수집";
-  }
-
-  function inventoryDetail(product) {
-    const inventory = product?.inventory;
-    if (inventory?.status !== "captured" || !Number.isFinite(inventory.total)) return "미수집";
-    const centers = [
-      Number.isFinite(inventory.fc) ? `FC ${inventory.fc.toLocaleString("ko-KR")}` : null,
-      Number.isFinite(inventory.rc) ? `RC ${inventory.rc.toLocaleString("ko-KR")}` : null,
-      Number.isFinite(inventory.other) && inventory.other ? `기타 ${inventory.other.toLocaleString("ko-KR")}` : null
-    ].filter(Boolean).join(" · ");
-    return `${inventory.total.toLocaleString("ko-KR")}개${centers ? ` (${centers})` : ""}`;
-  }
-
   function effectiveFinalPrice(offer) {
     if (!offer || !Number.isFinite(offer.finalPrice)) return null;
     if (offer.alertEligible === false) return null;
@@ -157,8 +139,7 @@
       "일반 쿠폰할인", "와우 전용 즉시할인", "와우 전용 쿠폰할인", "쿠폰할인 총금액",
       "카드할인 상태", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
       "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
-      "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각",
-      "재고 기준일", "전일 총재고", "FC 재고", "RC 재고", "재고 수집 상태"
+      "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각"
     ];
     const rows = data.products.map((product) => {
       const mine = product.offers.find((offer) => offer.role === "mine") || {};
@@ -184,12 +165,7 @@
         Number.isFinite(mine.cardMaxDiscount) ? mine.cardMaxDiscount : mine.cardBenefitStatus === "captured" ? "한도 표기 없음" : "미확인",
         mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
-        safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt,
-        product.inventory?.asOfDate || "",
-        Number.isFinite(product.inventory?.total) ? product.inventory.total : "미수집",
-        Number.isFinite(product.inventory?.fc) ? product.inventory.fc : "미수집",
-        Number.isFinite(product.inventory?.rc) ? product.inventory.rc : "미수집",
-        product.inventory?.status === "captured" ? "수집 완료" : "미수집"
+        safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
       ];
     });
     if (!window.MarketPulseXlsx?.createWorkbook) throw new Error("Excel 생성 모듈을 불러오지 못했습니다.");
@@ -306,7 +282,6 @@
             <span>
               <strong class="product-card__mtm">${escapeHtml(product.mtm)}</strong>
               <span class="product-card__spec">${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</span>
-              <span class="product-card__inventory ${product.inventory?.status === "captured" ? "" : "is-missing"}">${escapeHtml(inventoryText(product))}</span>
             </span>
             <span class="status status--${known ? (winning ? "win" : "lose") : "pending"}">${known ? (winning ? "내 상품 우위" : "가격 역전") : "확인 중"}</span>
           </span>
@@ -411,7 +386,7 @@
 
   function renderDetail() {
     const product = activeProduct();
-    refs.productMeta.innerHTML = `<strong>${escapeHtml(product.mtm)}</strong> · ${escapeHtml(product.storage)} · ${escapeHtml(product.display)} · Item ID ${escapeHtml(product.itemId)} · ${escapeHtml(product.inventory?.asOfDate || "재고 기준일 미확인")} 재고 ${escapeHtml(inventoryDetail(product))}`;
+    refs.productMeta.innerHTML = `<strong>${escapeHtml(product.mtm)}</strong> · ${escapeHtml(product.storage)} · ${escapeHtml(product.display)} · Item ID ${escapeHtml(product.itemId)}`;
     refs.referenceCount.textContent = product.references.length;
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.classList.toggle("is-active", button.dataset.view === activeView);

@@ -1,17 +1,17 @@
 const TARGETS = [
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',skuid:'73525884',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',skuid:'73525886',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',skuid:'73525899',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
-  {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',skuid:'74357773',srp:1558000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
-  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',skuid:'77524457',srp:1429000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
-  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',skuid:'77524458',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
-  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',skuid:'62173228',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',skuid:'75574102',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',skuid:'72157300',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',skuid:'70646376',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',skuid:'71847372',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',skuid:'75574103',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
-  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',skuid:'70743710',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
+  {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',srp:1558000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',srp:1429000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
+  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
+  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
 ];
 
 async function getTargets() {
@@ -19,7 +19,7 @@ async function getTargets() {
   if (!Array.isArray(state.products)) return TARGETS;
   return state.products.map(product=>{
     const fallback=TARGETS.find(target=>String(target.itemId)===String(product.itemId));
-    return {...fallback,...product,skuid:String(product.skuid||fallback?.skuid||'')};
+    return {...fallback,...product};
   });
 }
 
@@ -688,14 +688,6 @@ async function scanAll() {
   };
   try {
     const targets=(await getTargets()).filter(x=>x.enabled!==false);
-    // Inventory is collected first from the authenticated Supplier Hub session.
-    // A failure must not stop the independent public-price scan.
-    let inventoryCollection=await collectSupplierInventory().catch(error=>({ok:false,reason:String(error)}));
-    if(!inventoryCollection.ok) {
-      await wait(15000);
-      inventoryCollection=await collectSupplierInventory().catch(error=>({ok:false,reason:String(error)}));
-      inventoryCollection.retried=true;
-    }
     for (const target of targets) {
       let tab;
       try {
@@ -775,7 +767,7 @@ async function scanAll() {
       }
       await wait(20000);
     }
-    const payload = {version:3, scannedAt:new Date().toISOString(), inventoryCollection, results};
+    const payload = {version:3, scannedAt:new Date().toISOString(), results};
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
     await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
@@ -962,252 +954,6 @@ async function diagnoseCheckoutDiscounts() {
   }
 }
 
-function readSupplierHubStructure() {
-  const clean=value=>String(value||'').replace(/\s+/g,' ').trim().slice(0,240);
-  const visible=element=>{
-    const style=getComputedStyle(element);
-    const rect=element.getBoundingClientRect();
-    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
-  };
-  const unique=list=>[...new Set(list.filter(Boolean))];
-  const textList=selector=>unique([...document.querySelectorAll(selector)]
-    .filter(visible).map(element=>clean(element.innerText||element.textContent))).slice(0,200);
-  const links=[...document.querySelectorAll('a[href]')].filter(visible).slice(0,300).map(link=>{
-    let path='';
-    try {
-      const parsed=new URL(link.href,location.href);
-      path=parsed.origin===location.origin?parsed.pathname:'';
-    } catch (_) {}
-    return {text:clean(link.innerText||link.textContent),path};
-  }).filter(link=>link.text||link.path);
-  const controls=[...document.querySelectorAll('input,select,textarea')].filter(visible).slice(0,200).map(control=>({
-    tag:control.tagName.toLowerCase(),type:clean(control.getAttribute('type')),
-    name:clean(control.getAttribute('name')),placeholder:clean(control.getAttribute('placeholder')),
-    ariaLabel:clean(control.getAttribute('aria-label'))
-  }));
-  const tables=[...document.querySelectorAll('table')].filter(visible).slice(0,30).map(table=>({
-    headers:unique([...table.querySelectorAll('th')].map(header=>clean(header.innerText||header.textContent))),
-    rowCount:table.querySelectorAll('tbody tr').length,
-    columnCounts:[...table.querySelectorAll('tbody tr')].slice(0,5).map(row=>row.querySelectorAll('td').length)
-  }));
-  const testIds=unique([...document.querySelectorAll('[data-testid]')]
-    .map(element=>clean(element.getAttribute('data-testid')))).slice(0,300);
-  return {
-    version:1,capturedAt:new Date().toISOString(),title:clean(document.title),
-    path:location.pathname,headings:textList('h1,h2,h3,h4,[role="heading"]'),
-    buttons:textList('button,[role="button"]'),labels:textList('label'),links,controls,tables,testIds
-  };
-}
-
-async function readSupplierInventory(skuidList, asOfDate) {
-  const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
-  const digits=value=>clean(value).replace(/[^0-9-]/g,'');
-  const dateDigits=value=>clean(value).replace(/[^0-9]/g,'').slice(0,8);
-  const setInput=(input,value)=>{
-    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;
-    if (setter) setter.call(input,value); else input.value=value;
-    input.dispatchEvent(new Event('input',{bubbles:true}));
-    input.dispatchEvent(new Event('change',{bubbles:true}));
-    input.dispatchEvent(new Event('blur',{bubbles:true}));
-  };
-  const tableRows=()=>[...document.querySelectorAll('table tbody tr')].map(row=>
-    [...row.querySelectorAll('td')].map(cell=>clean(cell.innerText||cell.textContent))
-  );
-  const rowSignature=()=>JSON.stringify(tableRows().slice(0,3));
-  const waitForRows=async before=>{
-    for(let i=0;i<30;i++){
-      await new Promise(resolve=>setTimeout(resolve,500));
-      const loading=[...document.querySelectorAll('[role="progressbar"],.loading,[class*="loading"]')]
-        .some(node=>getComputedStyle(node).display!=='none');
-      if(!loading&&(rowSignature()!==before||i>=7)) return;
-    }
-  };
-  const searchButton=()=>[...document.querySelectorAll('button,[role="button"]')]
-    .find(button=>clean(button.innerText||button.textContent)==='검색');
-  if(location.pathname!=='/rpd/web-v2/basic/rocket') {
-    return {ok:false,reason:'supplier-page-mismatch',path:location.pathname,results:[]};
-  }
-  const skuInput=document.querySelector('input[name="skuVendorItemName"]');
-  const fromInput=document.querySelector('input[name="dateFrom"],[aria-label="dateFrom"]');
-  const toInput=document.querySelector('input[name="dateTo"],[aria-label="dateTo"]');
-  if(!skuInput||!fromInput||!toInput||!searchButton()) {
-    return {ok:false,reason:'supplier-filter-not-found',path:location.pathname,results:[]};
-  }
-  setInput(fromInput,asOfDate);
-  setInput(toInput,asOfDate);
-  const targetDate=asOfDate.replace(/-/g,'');
-  const results=[];
-  for(const skuid of skuidList){
-    const before=rowSignature();
-    setInput(skuInput,String(skuid));
-    searchButton().click();
-    await waitForRows(before);
-    const matched=tableRows().filter(cells=>dateDigits(cells[0])===targetDate&&clean(cells[2])===String(skuid));
-    if(!matched.length){
-      results.push({skuid:String(skuid),status:'missing',total:null,fc:null,rc:null,other:null,rowCount:0});
-      continue;
-    }
-    let total=0,fc=0,rc=0,other=0,invalid=false;
-    for(const cells of matched){
-      const value=Number(digits(cells[9]));
-      if(!Number.isFinite(value)){ invalid=true; continue; }
-      total+=value;
-      const center=clean(cells[1]).toUpperCase();
-      if(center==='FC') fc+=value;
-      else if(center==='RC') rc+=value;
-      else other+=value;
-    }
-    results.push(invalid
-      ? {skuid:String(skuid),status:'error',reason:'inventory-value-invalid',total:null,fc:null,rc:null,other:null,rowCount:matched.length}
-      : {skuid:String(skuid),status:'captured',total,fc,rc,other,rowCount:matched.length});
-  }
-  return {ok:true,path:location.pathname,results};
-}
-
-function previousKstDay() {
-  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'})
-    .formatToParts(new Date()).reduce((out,part)=>(out[part.type]=part.value,out),{});
-  const previous=new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day)-1));
-  return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth()+1).padStart(2,'0')}-${String(previous.getUTCDate()).padStart(2,'0')}`;
-}
-
-function submitSupplierSavedLogin() {
-  const visible=element=>{
-    const style=getComputedStyle(element),rect=element.getBoundingClientRect();
-    return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
-  };
-  const blocked=Boolean(
-    document.querySelector('iframe[src*="captcha" i],[class*="captcha" i],[id*="captcha" i],input[autocomplete="one-time-code"],input[name*="otp" i],input[id*="otp" i]')
-  );
-  if(blocked) return {ok:false,reason:'supplier-additional-auth-required'};
-  const password=[...document.querySelectorAll('input[type="password"]')].find(visible);
-  const username=[...document.querySelectorAll('input[type="email"],input[type="text"],input[name*="user" i],input[name*="login" i]')]
-    .find(input=>visible(input)&&input!==password);
-  if(!password||!username) return {ok:false,reason:'supplier-login-form-not-found',retryable:true};
-  // Check only whether Chrome filled the fields. Never return or store values.
-  if(!Boolean(username.value)||!Boolean(password.value)) return {ok:false,reason:'supplier-saved-login-not-filled',retryable:true};
-  const buttons=[...document.querySelectorAll('button,input[type="submit"],[role="button"]')].filter(visible);
-  const submit=buttons.find(button=>button.type==='submit')
-    ||buttons.find(button=>/^(?:로그인|sign\s*in|log\s*in)$/i.test(String(button.innerText||button.value||'').trim()));
-  if(!submit) return {ok:false,reason:'supplier-login-button-not-found',retryable:true};
-  if(submit.disabled||submit.getAttribute('aria-disabled')==='true') return {ok:false,reason:'supplier-login-button-disabled',retryable:true};
-  submit.click();
-  return {ok:true,submitted:true};
-}
-
-function readCurrentPageLocation() {
-  return {hostname:location.hostname,pathname:location.pathname};
-}
-
-async function ensureSupplierSession(tabId,targetUrl) {
-  let submitted=false;
-  let stableSupplierChecks=0;
-  for(let attempt=0;attempt<45;attempt++){
-    let current;
-    try {
-      const inspected=await chrome.scripting.executeScript({target:{tabId},func:readCurrentPageLocation});
-      current=inspected?.[0]?.result;
-    } catch (_) {
-      await wait(1000);
-      continue;
-    }
-    if(current?.hostname==='supplier.coupang.com'&&!current.pathname.startsWith('/login/')) {
-      if(!current.pathname.startsWith('/rpd/web-v2/basic/rocket')) {
-        stableSupplierChecks=0;
-        await chrome.tabs.update(tabId,{url:targetUrl});
-        await waitForComplete(tabId);
-        await wait(3000);
-        continue;
-      }
-      stableSupplierChecks++;
-      if(stableSupplierChecks>=4) return {ok:true,loginSubmitted:submitted};
-    }
-    if(current?.hostname==='xauth.coupang.com') {
-      stableSupplierChecks=0;
-      const result=await chrome.scripting.executeScript({target:{tabId},func:submitSupplierSavedLogin});
-      const login=result?.[0]?.result;
-      if(login?.ok&&login.submitted) {
-        submitted=true;
-        await wait(3000);
-        continue;
-      }
-      if(login&&!login.retryable) return {ok:false,reason:login.reason};
-    } else if(current&&current.hostname!=='supplier.coupang.com') {
-      stableSupplierChecks=0;
-      return {ok:false,reason:`supplier-unexpected-auth-host:${current.hostname}`};
-    }
-    await wait(1000);
-  }
-  return {ok:false,reason:submitted?'supplier-login-redirect-timeout':'supplier-saved-login-not-filled'};
-}
-
-async function collectSupplierInventory() {
-  const targets=(await getTargets()).filter(target=>target.enabled!==false&&/^\d+$/.test(String(target.skuid||'')));
-  const skuidList=[...new Set(targets.map(target=>String(target.skuid)))];
-  const asOfDate=previousKstDay();
-  const savePayload=async(ok,reason,results,path='')=>{
-    const payload={
-      version:2,inventoryType:'supplier-hub-previous-day',extensionVersion:chrome.runtime.getManifest().version,
-      collectedAt:new Date().toISOString(),asOfDate,source:'Coupang Supplier Hub · 기본 물류 지표(Rocket)',
-      collectionStatus:ok?'captured':'failed',collectionReason:reason||'',path,
-      results:results||skuidList.map(skuid=>({skuid,status:'missing',reason:reason||'supplier-inventory-read-failed',total:null,fc:null,rc:null,other:null,rowCount:0}))
-    };
-    const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
-    await chrome.downloads.download({url,filename:'MarketPulse/latest-supplier-inventory.json',conflictAction:'overwrite',saveAs:false});
-    await chrome.storage.local.set({lastInventoryResult:payload});
-    return payload;
-  };
-  if(!skuidList.length) {
-    await savePayload(false,'registered-skuid-not-found',[]);
-    return {ok:false,reason:'registered-skuid-not-found',asOfDate,captured:0,total:0};
-  }
-  let tab;
-  try {
-    const supplierUrl='https://supplier.coupang.com/rpd/web-v2/basic/rocket';
-    tab=await chrome.tabs.create({url:supplierUrl,active:true});
-    await waitForComplete(tab.id);
-    await wait(2000);
-    const session=await ensureSupplierSession(tab.id,supplierUrl);
-    if(!session.ok) {
-      await savePayload(false,session.reason,null,'');
-      return {ok:false,reason:session.reason,asOfDate,captured:0,total:skuidList.length,loginSubmitted:false};
-    }
-    await wait(8000);
-    const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierInventory,args:[skuidList,asOfDate]});
-    const page=injected?.[0]?.result;
-    if(!page?.ok) {
-      const reason=page?.reason||'supplier-inventory-read-failed';
-      await savePayload(false,reason,null,page?.path||'');
-      return {ok:false,reason,path:page?.path||'',asOfDate,captured:0,total:skuidList.length,loginSubmitted:session.loginSubmitted};
-    }
-    const payload=await savePayload(true,'',page.results,page.path||'');
-    return {ok:true,asOfDate,captured:payload.results.filter(result=>result.status==='captured').length,total:payload.results.length,loginSubmitted:session.loginSubmitted};
-  } catch(error) {
-    const reason=String(error);
-    await savePayload(false,reason).catch(()=>{});
-    return {ok:false,reason,asOfDate,captured:0,total:skuidList.length};
-  } finally {
-    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
-  }
-}
-
-async function scanSupplierHubStructure() {
-  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-  if (!tab?.id||!tab.url) return {ok:false,reason:'현재 활성 탭을 찾지 못했어.'};
-  let parsed;
-  try { parsed=new URL(tab.url); } catch (_) { return {ok:false,reason:'현재 탭 주소를 확인하지 못했어.'}; }
-  if (parsed.protocol!=='https:'||parsed.hostname!=='supplier.coupang.com') {
-    return {ok:false,reason:'로그인된 supplier.coupang.com 탭에서 실행해줘.'};
-  }
-  const injected=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readSupplierHubStructure});
-  const page=injected?.[0]?.result;
-  if (!page) return {ok:false,reason:'Supplier Hub 화면 구조를 읽지 못했어.'};
-  const payload={diagnosticType:'supplier-hub-structure',extensionVersion:chrome.runtime.getManifest().version,page};
-  const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
-  await chrome.downloads.download({url,filename:'MarketPulse/supplier-hub-diagnostic.json',conflictAction:'overwrite',saveAs:false});
-  return {ok:true};
-}
-
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   await schedule();
@@ -1232,14 +978,6 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='RUN_SCAN') {
     scanAll();
     sendResponse({ok:true});
-  }
-  if (message?.type==='SCAN_SUPPLIER_HUB') {
-    scanSupplierHubStructure().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
-    return true;
-  }
-  if (message?.type==='COLLECT_SUPPLIER_INVENTORY') {
-    collectSupplierInventory().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
-    return true;
   }
   if (message?.type==='DIAGNOSE_CHECKOUT_DISCOUNTS') {
     diagnoseCheckoutDiscounts().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
