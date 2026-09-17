@@ -84,8 +84,6 @@ h1 em { color: var(--green); font-style: normal; }
 .product-card__top { display: flex; justify-content: space-between; gap: 10px; }
 .product-card__mtm { font-size: 14px; font-weight: 900; }
 .product-card__spec { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.product-card__inventory { display: inline-block; margin-top: 7px; padding: 4px 7px; border-radius: 999px; background: #e9f8ef; color: var(--green-dark); font-size: 9px; font-weight: 800; }
-.product-card__inventory.is-missing { background: #f0f3f1; color: var(--muted); }
 .status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 900; }
 .status--win { background: var(--green-soft); color: var(--green-dark); }
 .status--lose { background: var(--red-soft); color: var(--red); }
