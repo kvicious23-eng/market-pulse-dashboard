@@ -126,9 +126,31 @@
 
   function effectiveFinalPrice(offer) {
     if (!offer || !Number.isFinite(offer.finalPrice)) return null;
+    if (isSoldOut(offer)) return null;
     if (offer.alertEligible === false) return null;
     if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
     return offer.finalPrice;
+  }
+
+  function isSoldOut(offer) {
+    return offer?.checkoutDiscountReason === "buy-now-button-not-found" || offer?.status === "품절";
+  }
+
+  function offerStatus(offer) {
+    return isSoldOut(offer) ? "품절" : (offer?.status || "미확인");
+  }
+
+  function downloadWorkbook(headers, rows, sheetName, filename) {
+    if (!window.MarketPulseXlsx?.createWorkbook) throw new Error("Excel 생성 모듈을 불러오지 못했습니다.");
+    const blob = window.MarketPulseXlsx.createWorkbook(headers, rows, sheetName);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   function exportMyProducts() {
@@ -147,7 +169,7 @@
       const checkout = checkoutDiscounts(mine, breakdown.couponDiscount);
       return [
         brand, product.mtm, product.display, product.storage, product.productId, product.itemId, product.vendorItemId,
-        mine.seller, mine.channel, mine.status,
+        mine.seller, mine.channel, offerStatus(mine),
         Number.isFinite(breakdown.srp) ? breakdown.srp : "SRP 미입력",
         Number.isFinite(breakdown.basisPrice) ? breakdown.basisPrice : "미확인",
         basisTypeText(mine.priceBasisType),
@@ -168,17 +190,8 @@
         safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
       ];
     });
-    if (!window.MarketPulseXlsx?.createWorkbook) throw new Error("Excel 생성 모듈을 불러오지 못했습니다.");
-    const blob = window.MarketPulseXlsx.createWorkbook(headers, rows, "내 쿠팡상품");
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
     const date = String(data.meta.snapshotAt || new Date().toISOString()).slice(0, 10);
-    link.href = url;
-    link.download = `MarketPulse_${brand}_내상품_${date}.xlsx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadWorkbook(headers, rows, "내 쿠팡상품", `MarketPulse_${brand}_내상품_${date}.xlsx`);
   }
 
   function productStats(product) {
@@ -275,18 +288,44 @@
     const rows = data.products.map((product) => {
       const mine = productStats(product).mine || {};
       const breakdown = priceBreakdown(mine);
+      const checkout = checkoutDiscounts(mine, breakdown.couponDiscount);
+      const providers = Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "";
+      const cardCondition = Number.isFinite(mine.cardRate)
+        ? `${mine.cardRate}% · ${Number.isFinite(mine.cardMaxDiscount) ? `최대 ${formatWon(mine.cardMaxDiscount)}` : "한도 표기 없음"}`
+        : cardStatusText(mine.cardBenefitStatus);
+      const checkedAt = mine.priceCheckedAt || mine.checkedAt || "미확인";
+      const soldOut = isSoldOut(mine);
       return `
         <button class="overview-row" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}">
-          <span class="overview-model"><strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small></span>
-          <span data-label="SRP">${Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : '<span class="unknown">SRP 미입력</span>'}</span>
-          <span data-label="표시가">${formatWon(breakdown.basisPrice)}</span>
-          <span data-label="쿠폰할인">${discountText(breakdown.couponDiscount)}</span>
-          <span data-label="카드할인">${cardDiscountText(mine)}</span>
-          <span class="overview-final" data-label="최종 실구매가">${formatWon(effectiveFinalPrice(mine))}</span>
+          <span class="overview-model" data-label="내 쿠팡상품">
+            <strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small>
+            <i class="overview-status ${soldOut ? "overview-status--soldout" : ""}">${escapeHtml(offerStatus(mine))}</i>
+          </span>
+          <span class="overview-stack" data-label="가격 기준">
+            <span><small>SRP</small>${Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : '<span class="unknown">미입력</span>'}</span>
+            <span><small>표시가</small>${formatWon(breakdown.basisPrice)}</span>
+            <span><small>매칭차액</small>${formatDiff(breakdown.matchingDifference)}</span>
+          </span>
+          <span class="overview-stack" data-label="할인 상세">
+            <span><small>일반 쿠폰</small>${checkoutDiscountText(checkout.regular)}</span>
+            <span><small>와우 즉시</small>${checkoutDiscountText(checkout.instant)}</span>
+            <span><small>와우 쿠폰</small>${checkoutDiscountText(checkout.coupon)}</span>
+            <span class="overview-stack__total"><small>합계</small>${discountText(checkout.total)}</span>
+          </span>
+          <span class="overview-stack" data-label="카드 상세">
+            <span><small>할인 전</small>${formatWon(breakdown.preCardPrice)}</span>
+            <span><small>카드할인</small>${cardDiscountText(mine)}</span>
+            <span><small>조건</small>${escapeHtml(cardCondition)}</span>
+            ${providers ? `<span><small>카드사</small>${escapeHtml(providers)}</span>` : ""}
+          </span>
+          <span class="overview-result" data-label="최종 실구매가">
+            <strong>${soldOut ? '<span class="unknown">구매 불가</span>' : formatWon(effectiveFinalPrice(mine))}</strong>
+            <small>확인 ${escapeHtml(checkedAt)}${checkedAt === "미확인" ? "" : " KST"}</small>
+          </span>
         </button>`;
     }).join("");
     refs.productGrid.innerHTML = `
-      <div class="overview-head" aria-hidden="true"><span>내 쿠팡상품</span><span>SRP</span><span>표시가</span><span>쿠폰할인</span><span>카드할인</span><span>최종 실구매가</span></div>
+      <div class="overview-head" aria-hidden="true"><span>내 쿠팡상품 · 상태</span><span>가격 기준</span><span>할인 상세</span><span>카드 상세</span><span>최종 실구매가</span></div>
       ${rows}`;
   }
 
@@ -342,7 +381,8 @@
       const best = current && !mine && offer === stats.competitorBest;
       const alert = current && !mine && difference < 0;
       const rowClass = mine ? "is-mine" : alert ? "is-alert" : best ? "is-best" : "";
-      const statusClass = current ? "active" : "stale";
+      const soldOut = current && isSoldOut(offer);
+      const statusClass = soldOut ? "soldout" : current ? "active" : "stale";
       const finalCell = current
         ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
@@ -360,7 +400,7 @@
               <span><strong>${escapeHtml(offer.seller)}</strong><small>${escapeHtml(offer.channel)}${best ? " · 경쟁 최저" : ""}</small></span>
             </span>
           </td>
-          <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offer.status)}</span></td>
+          <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offerStatus(offer))}</span></td>
           <td data-label="가격 기준" class="cell-stack">
             <span><small>SRP</small>${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</span>
             <span><small>표시가</small>${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</span>
@@ -468,7 +508,6 @@
   });
 
   refs.exportExcel.addEventListener("click", exportMyProducts);
-
   $("#methodButton").addEventListener("click", () => refs.methodDialog.showModal());
   document.querySelectorAll("[data-close-modal]").forEach((button) => {
     button.addEventListener("click", () => button.closest("dialog").close());

@@ -70,6 +70,7 @@ $text = @{
   ScanSummary = Decode-Utf8 '7J2867CYIENocm9tZSDsobDsgqwgwrcg7ZiE7J6s6rCAIO2ZleyduA=='
   Coupang = Decode-Utf8 '7L+g7Yyh'
   MyProduct = Decode-Utf8 '64K0IOy/oO2MoSDsg4Htkog='
+  SoldOut = Decode-Utf8 '7ZKI7KCI'
   ManagedUrl = Decode-Utf8 '6rSA66as7ZmU66m0IOuTseuhnSBVUkw='
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
@@ -99,9 +100,9 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand Notebook · Korea</small>")
-  $html=$html -replace 'href="\.\/styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
+  $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
   $html=$html -replace 'src="\.\.\/dist\/xlsx-export\.js([^\"]*)"','src="../../dist/xlsx-export.js$1"'
-  $html=$html -replace 'src="\.\/app\.js([^\"]*)"','src="../../dist/app.js$1"'
+  $html=$html -replace 'src="(?:\.\.\/dist\/|\.\/)app\.js([^\"]*)"','src="../../dist/app.js$1"'
   [IO.File]::WriteAllText($indexPath,$html,(New-Object Text.UTF8Encoding($false)))
   if (-not (Test-Path $dataPath)) {
     $empty=[pscustomobject]@{
@@ -123,6 +124,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
 }
 
 git -C $RepoPath pull --rebase origin main
+$historyRows=@()
 $specs=@(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';Path='acer\market-data.js'})
 if ($catalog) {
   $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
@@ -245,9 +247,10 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
-      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $true -Force
+      $soldOut=([string]$result.checkoutDiscountReason -eq 'buy-now-button-not-found')
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue (-not $soldOut) -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
-      $mine.status=$text.Current; $mine.confidence='A'
+      $mine.status=if($soldOut){$text.SoldOut}else{$text.Current}; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail
       $confirmed++
     } else {
@@ -268,6 +271,36 @@ foreach ($spec in $specs) {
         }
       }
     }
+    $historySrp=if($null -ne $mine.srp){$mine.srp}elseif($null -ne $product.srp){$product.srp}else{$null}
+    $historyBasis=$mine.observedListPrice
+    $historyPreCard=$mine.preCardPrice
+    $historyMatch=if($null -ne $historyBasis -and $null -ne $historySrp){[long]$historyBasis-[long]$historySrp}else{$null}
+    $historyCouponTotal=if($null -ne $historyBasis -and $null -ne $historyPreCard -and [long]$historyBasis -ge [long]$historyPreCard){[long]$historyBasis-[long]$historyPreCard}else{$null}
+    $historyRows += [pscustomobject][ordered]@{
+      '수집일'=$scanKst.Substring(0,10)
+      '수집시각'=$scanKst
+      '브랜드'=$spec.Brand
+      'MTM'=[string]$product.mtm
+      '상태'=[string]$mine.status
+      '수집결과'=if($result.ok){'success'}else{'failed'}
+      'SRP'=$historySrp
+      '표시가'=$historyBasis
+      '표시가 종류'=[string]$mine.priceBasisType
+      '매칭차액'=$historyMatch
+      '일반 쿠폰할인'=$mine.checkoutCouponDiscount
+      '와우 전용 즉시할인'=$mine.wowInstantDiscount
+      '와우 전용 쿠폰할인'=$mine.wowCouponDiscount
+      '쿠폰할인 총금액'=$historyCouponTotal
+      '카드할인 전 가격'=$historyPreCard
+      '카드할인 상태'=[string]$mine.cardBenefitStatus
+      '카드할인'=$mine.cardDiscount
+      '적용 카드사'=(@($mine.cardProviders) -join ', ')
+      '카드 할인율(%)'=$mine.cardRate
+      '최대 할인한도'=$mine.cardMaxDiscount
+      '최종 실구매가'=$mine.finalPrice
+      '가격 확인 시각'=[string]$mine.priceCheckedAt
+      '상품 URL'=[string]$mine.url
+    }
   }
   $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq $brandResults.Count){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
@@ -279,6 +312,19 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
+}
+$historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
+if ($historyRows.Count -gt 0) {
+  New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
+  $combined=@()
+  if (Test-Path $historyPath) { $combined+=@(Import-Csv -Path $historyPath -Encoding UTF8) }
+  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($row in $combined) { [void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)") }
+  foreach ($row in $historyRows) {
+    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
+    if ($keys.Add($key)) { $combined+=$row }
+  }
+  $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
 }
 git -C $RepoPath add -- dist/market-data.js acer/market-data.js
 if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
