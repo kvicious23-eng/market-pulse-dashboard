@@ -1,6 +1,7 @@
 ﻿param(
   [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
-  [switch]$WaitForToday
+  [switch]$WaitForToday,
+  [int]$MaxScanAgeHours = 24
 )
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
@@ -22,21 +23,34 @@ do {
   $resultPath = Get-LatestResultPath
   $payload = if ($resultPath) { Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json } else { $null }
   if ($payload) {
-    $resultDay = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-dd')
-    $todayKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-dd')
-    if (-not $WaitForToday -or $resultDay -eq $todayKst) { break }
+    try { $scanAt = [DateTimeOffset]$payload.scannedAt } catch { $scanAt = $null }
+    if ($scanAt) {
+      $age = [DateTimeOffset]::UtcNow - $scanAt.ToUniversalTime()
+      if ($age.TotalMinutes -lt -10) { throw 'The scan timestamp is in the future. Check the Windows clock and time zone.' }
+      $resultDay = [TimeZoneInfo]::ConvertTime($scanAt,$kstZone).ToString('yyyy-MM-dd')
+      $todayKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-dd')
+      $fresh = $age.TotalHours -le $MaxScanAgeHours
+      if ($fresh -and (-not $WaitForToday -or $resultDay -eq $todayKst)) { break }
+    }
   }
-  if (-not $WaitForToday -or [DateTime]::UtcNow -ge $deadline) { exit 0 }
+  if (-not $WaitForToday) { throw 'No fresh Market Pulse scan result was found.' }
+  if ([DateTime]::UtcNow -ge $deadline) { throw 'Timed out waiting for a fresh Market Pulse scan result.' }
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Version 1 results were produced before reliable main-price and card-detail
-# capture. Ignore them so installing an update cannot overwrite good dashboard
-# data with a stale, incompatible scan.
-if ([int]$payload.version -lt 2) {
-  Write-Host 'Skipping an older scan file. Run scanner version 1.2.3 or newer.'
-  exit 0
+# Layered checkout fields and exact-item validation require payload version 3+.
+if ([int]$payload.version -lt 3) {
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.3 or newer and scan again.'
 }
+
+$payloadResults=@($payload.results)
+if ($payloadResults.Count -eq 0) { throw 'The scan contains no product results.' }
+$duplicateItemIds=@($payloadResults | Group-Object {[string]$_.itemId} | Where-Object {$_.Name -and $_.Count -gt 1})
+if ($duplicateItemIds.Count -gt 0) { throw "Duplicate itemId values were found in the scan: $(@($duplicateItemIds.Name) -join ', ')" }
+if ($null -ne $payload.targetCount -and [int]$payload.targetCount -ne $payloadResults.Count) {
+  throw "Incomplete scan: expected $($payload.targetCount) products but found $($payloadResults.Count)."
+}
+if ($null -ne $payload.complete -and $payload.complete -ne $true) { throw 'The scanner marked this result as incomplete.' }
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
@@ -62,6 +76,9 @@ function Get-CheckoutEvidenceAmount($evidence,[string]$pattern,[string]$excludeP
 }
 function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
   $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
+  if ($status -notin @('captured','summary')) {
+    return [pscustomobject]@{Status=$status;Reason=[string]$result.checkoutDiscountReason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+  }
   $regular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
   $instant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
   $coupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
@@ -107,6 +124,7 @@ $text = @{
   Coupang = Decode-Utf8 '7L+g7Yyh'
   MyProduct = Decode-Utf8 '64K0IOy/oO2MoSDsg4Htkog='
   SoldOut = Decode-Utf8 '7ZKI7KCI'
+  Partial = Decode-Utf8 '6rCA6rKpwrftlaDsnbgg7J2867aAIO2ZleyduA=='
   ManagedUrl = Decode-Utf8 '6rSA66as7ZmU66m0IOuTseuhnSBVUkw='
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
@@ -220,9 +238,20 @@ foreach ($spec in $specs) {
   }
   $confirmed=0
   foreach ($product in $data.products) {
-    $result=$brandResults | Where-Object {$_.itemId -eq [string]$product.itemId} | Select-Object -First 1
+    $result=$brandResults | Where-Object {
+      [string]$_.itemId -eq [string]$product.itemId -and
+      (-not $_.productId -or [string]$_.productId -eq [string]$product.productId) -and
+      (-not $_.vendorItemId -or [string]$_.vendorItemId -eq [string]$product.vendorItemId)
+    } | Select-Object -First 1
     $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
-    if (-not $mine -or -not $result) { continue }
+    if (-not $mine) { continue }
+    if (-not $result) {
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
+      $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $null -Force
+      $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue 'unavailable' -Force
+      $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
+      continue
+    }
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
@@ -246,18 +275,23 @@ foreach ($spec in $specs) {
       $preCardItemPrice=if ($checkoutStatus -eq 'captured' -and $null -ne $wowCoupon -and $wowCoupon -le $productPagePrice) {$productPagePrice-$wowCoupon}else{$productPagePrice}
       $preCardPrice=$preCardItemPrice + [long]($mine.shipping)
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
+      if ($cardBenefitStatus -notin @('none','captured','partial','unverified')) { $cardBenefitStatus='unverified' }
+      $cardProviders=@($result.cardProviders | Where-Object { $_ })
+      $cardRateValid=$null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0 -and [decimal]$result.cardRate -le 100
+      $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0
+      if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
       $cardDiscount=if ($cardBenefitStatus -eq 'none') {
         0
-      } elseif ($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0) {
+      } elseif ($cardCapturedValid) {
         $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
         if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
       } else {
         $null
       }
-      # A missing card-detail result is not the same as a zero discount.
-      # Publish a final purchase price only when the benefit was captured or
-      # the page explicitly confirmed that no card benefit exists.
-      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
+      $soldOut=([string]$result.checkoutDiscountReason -eq 'buy-now-button-not-found')
+      # A missing checkout layer or card detail is not a verified current final price.
+      $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount
+      $final=if ($alertEligible){$preCardPrice-$cardDiscount}else{$null}
       $couponTotal=if ($null -ne $strike -and $strike -ge $preCardItemPrice){$strike-$preCardItemPrice}else{$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
@@ -271,7 +305,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
       $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
-      $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
+      $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue $cardProviders -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
@@ -279,16 +313,16 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
-      $soldOut=([string]$result.checkoutDiscountReason -eq 'buy-now-button-not-found')
-      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue (-not $soldOut) -Force
-      $priceChange=if(-not $soldOut -and $null -ne $final -and $null -ne $previousFinalPrice){[long]$final-[long]$previousFinalPrice}else{$null}
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $alertEligible -Force
+      $priceChange=if($alertEligible -and $null -ne $previousFinalPrice){[long]$final-[long]$previousFinalPrice}else{$null}
       $priceTrend=if($null -eq $priceChange){'unavailable'}elseif($priceChange -lt 0){'down'}elseif($priceChange -gt 0){'up'}else{'same'}
       $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $priceChange -Force
       $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue $priceTrend -Force
       $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue $previousPriceCheckedAt -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
-      $mine.status=if($soldOut){$text.SoldOut}else{$text.Current}; $mine.confidence='A'
-      $mine.confidenceText=$text.CurrentDetail
+      $mine.status=if($soldOut){$text.SoldOut}elseif($alertEligible){$text.Current}else{$text.Partial}
+      $mine.confidence=if($alertEligible -or $soldOut){'A'}else{'B'}
+      $mine.confidenceText=if($alertEligible -or $soldOut){$text.CurrentDetail}else{$text.Partial}
       $confirmed++
     } else {
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
@@ -342,7 +376,7 @@ foreach ($spec in $specs) {
       '상품 URL'=[string]$mine.url
     }
   }
-  $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq $brandResults.Count){'success'}else{'partial'}
+  $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq @($data.products).Count){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
   $data.meta.snapshotAt=$scanKst
   $data.meta.monitoring.lastAttemptAt=$scanKst
