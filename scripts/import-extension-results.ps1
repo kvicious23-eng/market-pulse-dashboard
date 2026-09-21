@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
   [switch]$WaitForToday
 )
@@ -51,6 +51,42 @@ function Get-SafeCardBenefitText([string]$value) {
   if ($compact.Length -gt 240) { return $compact.Substring(0,240) }
   return $compact
 }
+function Get-CheckoutEvidenceAmount($evidence,[string]$pattern,[string]$excludePattern='') {
+  foreach ($line in @($evidence)) {
+    $text=[string]$line
+    if ($excludePattern -and $text -match $excludePattern) { continue }
+    $match=[regex]::Match($text,$pattern)
+    if ($match.Success) { return [long]($match.Groups[1].Value -replace ',','') }
+  }
+  return $null
+}
+function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
+  $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
+  $regular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
+  $instant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
+  $coupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
+  if ($status -eq 'summary' -and $result.checkoutDiscountEvidence) {
+    $regular=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '쿠폰할인 변경\s*-?\s*([0-9][0-9,]*)\s*원' '와우.*쿠폰할인 변경'
+    $instant=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '와우\s*(?:전용|회원)?\s*즉시할인\s*-?\s*([0-9][0-9,]*)\s*원'
+    $coupon=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '와우\s*(?:전용|회원)?\s*쿠폰할인(?:\s*변경)?\s*-?\s*([0-9][0-9,]*)\s*원'
+  }
+  if ($null -ne $productPageDiscount) {
+    if ($null -eq $regular -and $null -ne $instant -and $instant -le $productPageDiscount) { $regular=$productPageDiscount-$instant }
+    if ($null -eq $instant -and $null -ne $regular -and $regular -le $productPageDiscount) { $instant=$productPageDiscount-$regular }
+  }
+  if ($null -eq $coupon -and $null -ne $regular -and $null -ne $instant) { $coupon=0 }
+  if ($null -ne $regular -and $null -ne $instant -and $null -ne $coupon -and
+      $regular -ge 0 -and $instant -ge 0 -and $coupon -ge 0 -and
+      ($null -eq $productPageDiscount -or ($regular+$instant) -eq $productPageDiscount)) {
+    $total=$regular+$instant+$coupon
+    if ($null -ne $result.checkoutDiscountTotal -and [long]$result.checkoutDiscountTotal -ne $total -and $status -ne 'summary') {
+      return [pscustomobject]@{Status='unverified';Reason='checkout-full-total-mismatch';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+    }
+    $reason=if($status -eq 'summary'){'evidence-layer-totals-matched'}else{[string]$result.checkoutDiscountReason}
+    return [pscustomobject]@{Status='captured';Reason=$reason;Regular=$regular;Instant=$instant;Coupon=$coupon;Total=$total}
+  }
+  return [pscustomobject]@{Status=$status;Reason=[string]$result.checkoutDiscountReason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+}
 $text = @{
   Current = Decode-Utf8 '7ZiE7J6s6rCAIOyngeygkSDtmZXsnbg='
   CurrentDetail = Decode-Utf8 '64+Z7J28IEl0ZW0gSUTsnZgg7J2867CYIENocm9tZSDtmZTrqbTsl5DshJwg6rCA6rKpIO2ZleyduA=='
@@ -63,14 +99,13 @@ $text = @{
   SellerCondition = Decode-Utf8 '64uk64KY7JmAIOuwsOyGoeu5hCDtj6ztlagg6rO16rCcIO2MkOunpOqwgC4g7LaU6rCAIOy/oO2PsMK37Lm065Oc7ZWg7J247J2AIOuvuO2ZleyduC4='
   SellerSource = Decode-Utf8 '64uk64KY7JmAIOqwgOqyqeu5hOq1kCDtjJDrp6Tsspgg66qp66Gd'
   SellerDetail = Decode-Utf8 '7KCV7ZmV7ZWcIE1UTeydmCDsh7ztlZHrqrDrs4Qg7YyQ66ek6rCA66W8IOydvOuwmCBDaHJvbWXsl5DshJwg7ZmV7J24'
-  Schedule = '매일 08:00 KST'
+  Schedule = Decode-Utf8 '66ek7J28IDEwOjAwIEtTVA=='
   Route = Decode-Utf8 'V2luZG93cyBQQyDCtyDsnbzrsJggQ2hyb21lIO2Zleyepe2UhOuhnOq3uOueqA=='
   MarketplacePattern = Decode-Utf8 'MTHrsojqsIB87Jil7IWYfEfrp4jsvJN866Gv642wT0587L+g7YyhfFNTR3zrhKTsnbTrsoQ='
   AcerPattern = Decode-Utf8 'QWNlcnzsl5DsnbTshJw='
   ScanSummary = Decode-Utf8 '7J2867CYIENocm9tZSDsobDsgqwgwrcg7ZiE7J6s6rCAIO2ZleyduA=='
   Coupang = Decode-Utf8 '7L+g7Yyh'
   MyProduct = Decode-Utf8 '64K0IOy/oO2MoSDsg4Htkog='
-  SoldOut = Decode-Utf8 '7ZKI7KCI'
   ManagedUrl = Decode-Utf8 '6rSA66as7ZmU66m0IOuTseuhnSBVUkw='
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
@@ -100,9 +135,9 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand Notebook · Korea</small>")
-  $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
+  $html=$html -replace 'href="\.\/styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
   $html=$html -replace 'src="\.\.\/dist\/xlsx-export\.js([^\"]*)"','src="../../dist/xlsx-export.js$1"'
-  $html=$html -replace 'src="(?:\.\.\/dist\/|\.\/)app\.js([^\"]*)"','src="../../dist/app.js$1"'
+  $html=$html -replace 'src="\.\/app\.js([^\"]*)"','src="../../dist/app.js$1"'
   [IO.File]::WriteAllText($indexPath,$html,(New-Object Text.UTF8Encoding($false)))
   if (-not (Test-Path $dataPath)) {
     $empty=[pscustomobject]@{
@@ -124,7 +159,6 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
 }
 
 git -C $RepoPath pull --rebase origin main
-$historyRows=@()
 $specs=@(@{Brand='Lenovo';Path='dist\market-data.js'},@{Brand='Acer';Path='acer\market-data.js'})
 if ($catalog) {
   $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
@@ -190,15 +224,7 @@ foreach ($spec in $specs) {
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
-      $previousFinalPrice=if($mine.alertEligible -eq $true -and $null -ne $mine.finalPrice){[long]$mine.finalPrice}else{$null}
-      $previousPriceCheckedAt=if($null -ne $previousFinalPrice){[string]$mine.priceCheckedAt}else{''}
-      $preCardPrice=[long]$result.price + [long]($mine.shipping)
-      $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
-      $cardDiscount=if ($cardBenefitStatus -eq 'none') {0}elseif($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
-      # A missing card-detail result is not the same as a zero discount.
-      # Publish a final purchase price only when the benefit was captured or
-      # the page explicitly confirmed that no card benefit exists.
-      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
+      $productPagePrice=[long]$result.price
       $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {
         [long]$result.srp
       } elseif ($null -ne $product.srp -and [long]$product.srp -gt 0) {
@@ -206,11 +232,33 @@ foreach ($spec in $specs) {
       } else {
         $null
       }
-      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge [long]$result.price) {[long]$result.strikePrice}else{$null}
+      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice) {[long]$result.strikePrice}else{$null}
+      $productPageDiscount=if ($null -ne $strike){$strike-$productPagePrice}else{$null}
+      $checkout=Resolve-CheckoutDiscounts $result $productPageDiscount
+      $checkoutStatus=[string]$checkout.Status
+      $checkoutCoupon=$checkout.Regular
+      $wowInstant=$checkout.Instant
+      $wowCoupon=$checkout.Coupon
+      $preCardItemPrice=if ($checkoutStatus -eq 'captured' -and $null -ne $wowCoupon -and $wowCoupon -le $productPagePrice) {$productPagePrice-$wowCoupon}else{$productPagePrice}
+      $preCardPrice=$preCardItemPrice + [long]($mine.shipping)
+      $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
+      $cardDiscount=if ($cardBenefitStatus -eq 'none') {
+        0
+      } elseif ($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0) {
+        $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
+        if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+      } else {
+        $null
+      }
+      # A missing card-detail result is not the same as a zero discount.
+      # Publish a final purchase price only when the benefit was captured or
+      # the page explicitly confirmed that no card benefit exists.
+      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
+      $couponTotal=if ($null -ne $strike -and $strike -ge $preCardItemPrice){$strike-$preCardItemPrice}else{$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
-      $mine.couponDiscount=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
+      $mine.couponDiscount=$couponTotal
       $mine.cardDiscount=$cardDiscount
       $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
@@ -221,50 +269,19 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
-      $couponTotal=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
-      $checkoutStatus=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
-      $checkoutCoupon=$null
-      $wowInstant=$null
-      $wowCoupon=$null
-      if ($checkoutStatus -eq 'captured' -and $null -ne $couponTotal -and $null -ne $result.checkoutCouponDiscount -and $null -ne $result.wowInstantDiscount -and $null -ne $result.wowCouponDiscount) {
-        $candidateCheckoutCoupon=[long]$result.checkoutCouponDiscount
-        $candidateInstant=[long]$result.wowInstantDiscount
-        $candidateCoupon=[long]$result.wowCouponDiscount
-        if ($candidateCheckoutCoupon -ge 0 -and $candidateInstant -ge 0 -and $candidateCoupon -ge 0 -and ($candidateCheckoutCoupon+$candidateInstant+$candidateCoupon) -eq $couponTotal) {
-          $checkoutCoupon=$candidateCheckoutCoupon
-          $wowInstant=$candidateInstant
-          $wowCoupon=$candidateCoupon
-        } else {
-          $checkoutStatus='unverified'
-        }
-      }
-      if ($checkoutStatus -ne 'captured') {
-        $checkoutCoupon=$null
-        $wowInstant=$null
-        $wowCoupon=$null
-      }
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
-      $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$result.checkoutDiscountReason) -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
       $mine | Add-Member -NotePropertyName checkoutCouponDiscount -NotePropertyValue $checkoutCoupon -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
-      $soldOut=([string]$result.checkoutDiscountReason -eq 'buy-now-button-not-found')
-      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue (-not $soldOut) -Force
-      $priceChange=if(-not $soldOut -and $null -ne $final -and $null -ne $previousFinalPrice){[long]$final-[long]$previousFinalPrice}else{$null}
-      $priceTrend=if($null -eq $priceChange){'unavailable'}elseif($priceChange -lt 0){'down'}elseif($priceChange -gt 0){'up'}else{'same'}
-      $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $priceChange -Force
-      $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue $priceTrend -Force
-      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue $previousPriceCheckedAt -Force
+      $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $true -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
-      $mine.status=if($soldOut){$text.SoldOut}else{$text.Current}; $mine.confidence='A'
+      $mine.status=$text.Current; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail
       $confirmed++
     } else {
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
-      $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $null -Force
-      $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue 'unavailable' -Force
-      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue '' -Force
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
     }
     if ($result.competitors -and @($result.competitors).Count -gt 0) {
@@ -281,36 +298,6 @@ foreach ($spec in $specs) {
         }
       }
     }
-    $historySrp=if($null -ne $mine.srp){$mine.srp}elseif($null -ne $product.srp){$product.srp}else{$null}
-    $historyBasis=$mine.observedListPrice
-    $historyPreCard=$mine.preCardPrice
-    $historyMatch=if($null -ne $historyBasis -and $null -ne $historySrp){[long]$historyBasis-[long]$historySrp}else{$null}
-    $historyCouponTotal=if($null -ne $historyBasis -and $null -ne $historyPreCard -and [long]$historyBasis -ge [long]$historyPreCard){[long]$historyBasis-[long]$historyPreCard}else{$null}
-    $historyRows += [pscustomobject][ordered]@{
-      '수집일'=$scanKst.Substring(0,10)
-      '수집시각'=$scanKst
-      '브랜드'=$spec.Brand
-      'MTM'=[string]$product.mtm
-      '상태'=[string]$mine.status
-      '수집결과'=if($result.ok){'success'}else{'failed'}
-      'SRP'=$historySrp
-      '표시가'=$historyBasis
-      '표시가 종류'=[string]$mine.priceBasisType
-      '매칭차액'=$historyMatch
-      '일반 쿠폰할인'=$mine.checkoutCouponDiscount
-      '와우 전용 즉시할인'=$mine.wowInstantDiscount
-      '와우 전용 쿠폰할인'=$mine.wowCouponDiscount
-      '쿠폰할인 총금액'=$historyCouponTotal
-      '카드할인 전 가격'=$historyPreCard
-      '카드할인 상태'=[string]$mine.cardBenefitStatus
-      '카드할인'=$mine.cardDiscount
-      '적용 카드사'=(@($mine.cardProviders) -join ', ')
-      '카드 할인율(%)'=$mine.cardRate
-      '최대 할인한도'=$mine.cardMaxDiscount
-      '최종 실구매가'=$mine.finalPrice
-      '가격 확인 시각'=[string]$mine.priceCheckedAt
-      '상품 URL'=[string]$mine.url
-    }
   }
   $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq $brandResults.Count){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
@@ -323,28 +310,11 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
 }
-$historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
-if ($historyRows.Count -gt 0) {
-  New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
-  $combined=@()
-  if (Test-Path $historyPath) { $combined+=@(Import-Csv -Path $historyPath -Encoding UTF8) }
-  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
-  foreach ($row in $combined) { [void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)") }
-  foreach ($row in $historyRows) {
-    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
-    if ($keys.Add($key)) { $combined+=$row }
-  }
-  $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
-  Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
-}
 git -C $RepoPath add -- dist/market-data.js acer/market-data.js
 if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
   git -C $RepoPath commit -m 'data: import Coupang prices from Chrome extension'
-  if ($LASTEXITCODE -ne 0) { throw 'Dashboard data commit failed.' }
   git -C $RepoPath pull --rebase origin main
-  if ($LASTEXITCODE -ne 0) { throw 'Dashboard update failed before upload.' }
   git -C $RepoPath push origin main
-  if ($LASTEXITCODE -ne 0) { throw 'Dashboard upload to GitHub failed.' }
 }
