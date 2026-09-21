@@ -136,8 +136,22 @@
     return offer.finalPrice;
   }
 
+  function collectionDay(offer) {
+    const value = offer?.priceCheckedAt || offer?.checkedAt;
+    const match = String(value || "").match(/^\d{4}-\d{2}-\d{2}/);
+    return match?.[0] || null;
+  }
+
+  function effectiveCompetitorPrice(offer, mine) {
+    const price = effectiveFinalPrice(offer);
+    const competitorDay = collectionDay(offer);
+    const mineDay = collectionDay(mine);
+    if (!Number.isFinite(price) || !competitorDay || !mineDay || competitorDay !== mineDay) return null;
+    return price;
+  }
+
   function isSoldOut(offer) {
-    return offer?.checkoutDiscountReason === "buy-now-button-not-found" || offer?.status === "품절";
+    return ["buy-now-button-not-found", "buy-now-button-sold-out"].includes(offer?.checkoutDiscountReason) || offer?.status === "품절";
   }
 
   function offerStatus(offer) {
@@ -210,14 +224,15 @@
   function productStats(product) {
     const mine = product.offers.find((offer) => offer.role === "mine");
     const competitors = product.offers
-      .filter((offer) => offer.role === "competitor" && Number.isFinite(offer.finalPrice))
-      .sort((a, b) => a.finalPrice - b.finalPrice);
+      .filter((offer) => offer.role === "competitor" && Number.isFinite(effectiveCompetitorPrice(offer, mine)))
+      .sort((a, b) => effectiveCompetitorPrice(a, mine) - effectiveCompetitorPrice(b, mine));
     const competitorBest = competitors[0] || null;
     const mineFinalPrice = effectiveFinalPrice(mine);
+    const competitorBestPrice = competitorBest ? effectiveCompetitorPrice(competitorBest, mine) : null;
     const mineReady = Number.isFinite(mineFinalPrice);
-    const difference = mineReady && competitorBest ? competitorBest.finalPrice - mineFinalPrice : null;
-    const undercutters = mineReady ? competitors.filter((offer) => offer.finalPrice < mineFinalPrice) : [];
-    return { mine, mineFinalPrice, competitors, competitorBest, difference, undercutters };
+    const difference = mineReady && Number.isFinite(competitorBestPrice) ? competitorBestPrice - mineFinalPrice : null;
+    const undercutters = mineReady ? competitors.filter((offer) => effectiveCompetitorPrice(offer, mine) < mineFinalPrice) : [];
+    return { mine, mineFinalPrice, competitors, competitorBest, competitorBestPrice, difference, undercutters };
   }
 
   function activeProduct() {
@@ -354,7 +369,7 @@
     }
 
     const stats = productStats(product);
-    const ready = Number.isFinite(stats.mineFinalPrice) && Number.isFinite(stats.competitorBest?.finalPrice);
+    const ready = Number.isFinite(stats.mineFinalPrice) && Number.isFinite(stats.competitorBestPrice);
     if (!ready) {
       refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>비교가격을 확인하지 못했습니다.</strong><span>카드 상세정보와 경쟁가격이 모두 확인된 경우에만 최종 가격을 비교합니다.</span></span></span></div>';
       return;
@@ -389,7 +404,9 @@
       const matchingDifference = mine ? breakdown.matchingDifference : null;
       const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
       const checkout = mine ? checkoutDiscounts(offer, couponDiscount) : { regular: null, instant: null, coupon: null, total: couponDiscount };
-      const offerFinalPrice = current ? effectiveFinalPrice(offer) : null;
+      const offerFinalPrice = current
+        ? (mine ? effectiveFinalPrice(offer) : effectiveCompetitorPrice(offer, stats.mine))
+        : null;
       const difference = current && !mine && Number.isFinite(offerFinalPrice) && Number.isFinite(stats.mineFinalPrice)
         ? offerFinalPrice - stats.mineFinalPrice
         : null;
@@ -466,7 +483,9 @@
     const displayPrice = mine
       ? (Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : "SRP 미입력")
       : (Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인");
-    const finalValue = activeView === "current" ? effectiveFinalPrice(offer) : offer.referencePrice;
+    const finalValue = activeView === "current"
+      ? (mine ? effectiveFinalPrice(offer) : effectiveCompetitorPrice(offer, productStats(product).mine))
+      : offer.referencePrice;
     const providers = Array.isArray(offer.cardProviders) ? offer.cardProviders.filter(Boolean).join(', ') : '';
     refs.evidenceTitle.textContent = offer.seller;
     const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
