@@ -9,6 +9,8 @@ on:
         default: precision
         type: choice
         options: [daily, precision]
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -19,6 +21,10 @@ on:
       - "brand/**"
       - "dist/**"
       - "scripts/update-acer-data.mjs"
+      - "scripts/validate-market-data.mjs"
+      - "scripts/import-extension-results.ps1"
+      - "chrome-extension/**"
+      - "PROJECT_RULES.md"
 permissions:
   contents: write
   pages: write
@@ -46,17 +52,42 @@ jobs:
             echo "value=precision" >> "$GITHUB_OUTPUT"
           fi
       - name: Run market scan
-        if: github.event_name != 'push'
+        if: github.event_name == 'workflow_dispatch'
         env:
           SCAN_MODE: ${{ steps.mode.outputs.value }}
         run: node scripts/update-market-data.mjs
       - name: Run Acer market scan
-        if: github.event_name != 'push'
+        if: github.event_name == 'workflow_dispatch'
         env:
           SCAN_MODE: ${{ steps.mode.outputs.value }}
         run: node scripts/update-acer-data.mjs
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          node --check dist/app.js
+          node --check dist/xlsx-export.js
+          node --check chrome-extension/background.js
+          node --check chrome-extension/options.js
+          node --check chrome-extension/popup.js
+          node --check scripts/validate-market-data.mjs
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          $failed=$false
+          Get-ChildItem scripts -Filter '*.ps1' | ForEach-Object {
+            $tokens=$null
+            $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
+            if ($errors.Count -gt 0) {
+              $failed=$true
+              $errors | ForEach-Object { Write-Error "$($_.Extent.File):$($_.Extent.StartLineNumber) $($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+      - name: Validate dashboard data
+        run: node scripts/validate-market-data.mjs
       - name: Commit refreshed data
-        if: github.event_name != 'push'
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           if git diff --quiet -- dist/market-data.js acer/market-data.js; then exit 0; fi
@@ -69,7 +100,7 @@ jobs:
 
   deploy:
     needs: update
-    if: always() && needs.update.result == 'success'
+    if: always() && github.event_name != 'pull_request' && needs.update.result == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
