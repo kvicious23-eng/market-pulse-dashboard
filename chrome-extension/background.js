@@ -824,19 +824,22 @@ function readCheckoutDiscounts() {
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
   };
-  const readAmount=(label,excludedText='')=>{
+  const readAmount=(labels,excludedLabels=[])=>{
+    const accepted=(Array.isArray(labels)?labels:[labels]).filter(Boolean).sort((a,b)=>b.length-a.length);
+    const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean);
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
       .map(element=>({element,text:clean(element.innerText||element.textContent)}))
-      .filter(entry=>entry.text.includes(label)&&entry.text.length<240&&(!excludedText||!entry.text.includes(excludedText)))
+      .filter(entry=>entry.text.length<240&&accepted.some(label=>entry.text.includes(label))&&!excluded.some(label=>entry.text.includes(label)))
       .sort((a,b)=>a.text.length-b.text.length);
     for(const entry of candidates){
       let node=entry.element;
       for(let depth=0;node&&depth<5;depth++,node=node.parentElement){
         const text=clean(node.innerText||node.textContent);
         if(text.length>500) break;
+        const label=accepted.find(value=>text.includes(value));
+        if(!label||excluded.some(value=>text.includes(value))) continue;
         const index=text.indexOf(label);
-        if(index<0) continue;
         const after=text.slice(index+label.length,index+label.length+120);
         const match=after.match(/-?\s*([0-9][0-9,]*)\s*원/);
         if(!match) continue;
@@ -850,7 +853,7 @@ function readCheckoutDiscounts() {
   const discountEvidence=[...new Set([...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
     .filter(visible)
     .map(element=>clean(element.innerText||element.textContent))
-    .filter(text=>text.length>=3&&text.length<=120&&/(?:와우 전용 즉시할인|와우 전용 쿠폰할인|쿠폰할인 변경)/.test(text))
+    .filter(text=>text.length>=3&&text.length<=120&&/(?:일반 쿠폰할인|상품\s*쿠폰(?:할인)?|쿠폰할인 변경|와우(?:회원| 전용)?\s*즉시할인|와우(?:회원| 전용)?\s*쿠폰할인)/.test(text))
     .filter(text=>!/(?:결제수단|신용|체크카드|카드번호|쿠페이|캐시|약관|개인정보|https?:|mercury\.coupang|thumbnail|impressionLog)/i.test(text)))]
     .sort((a,b)=>a.length-b.length).slice(0,20);
   const paymentButtonPresent=[...document.querySelectorAll('button,[role="button"]')]
@@ -860,9 +863,9 @@ function readCheckoutDiscounts() {
   }
   return {
     ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
-    couponDiscount:readAmount('쿠폰할인 변경','와우 전용 쿠폰할인'),
-    wowInstantDiscount:readAmount('와우 전용 즉시할인'),
-    wowCouponDiscount:readAmount('와우 전용 쿠폰할인'),
+    couponDiscount:readAmount(['쿠폰할인 변경','일반 쿠폰할인','상품 쿠폰할인','상품쿠폰 할인','상품쿠폰'],['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']),
+    wowInstantDiscount:readAmount(['와우 전용 즉시할인','와우회원 즉시할인','와우 즉시할인']),
+    wowCouponDiscount:readAmount(['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']),
     paymentButtonPresent,discountEvidence
   };
 }
@@ -907,6 +910,14 @@ async function collectCheckoutDiscountsForTarget(target,expectedCouponTotal=null
       if(!Number.isFinite(coupon)) { coupon=0; inferredZeroFields.push('wowCouponDiscount'); }
     }
     if(!Number.isFinite(regular)||!Number.isFinite(instant)||!Number.isFinite(coupon)) {
+      if(Number.isFinite(expectedCouponTotal)) {
+        return {
+          checkoutDiscountStatus:'summary',checkoutDiscountReason:'coupon-total-known-checkout-detail-missing',
+          checkoutCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null,
+          checkoutDiscountTotal:expectedCouponTotal,checkoutDiscountCapturedAt:page.capturedAt,
+          checkoutDiscountEvidence:page.discountEvidence||[]
+        };
+      }
       return {checkoutDiscountStatus:'missing',checkoutDiscountReason:'checkout-discount-label-missing',checkoutCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page.discountEvidence||[]};
     }
     const total=regular+instant+coupon;
