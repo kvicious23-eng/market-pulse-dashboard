@@ -342,6 +342,9 @@ if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
   git -C $RepoPath commit -m 'data: import Coupang prices from Chrome extension'
+  if ($LASTEXITCODE -ne 0) { throw 'Dashboard data commit failed.' }
   git -C $RepoPath pull --rebase origin main
+  if ($LASTEXITCODE -ne 0) { throw 'Dashboard update failed before upload.' }
   git -C $RepoPath push origin main
+  if ($LASTEXITCODE -ne 0) { throw 'Dashboard upload to GitHub failed.' }
 }
