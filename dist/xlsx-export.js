@@ -22,7 +22,7 @@
   function buildSheet(headers, rows) {
     const widths = headers.map((header, index) => Math.min(55, Math.max(11, String(header).length * 1.7 + 2, ...rows.map((row) => String(row[index] ?? "").length + 2))));
     const cols = widths.map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`).join("");
-    const moneyHeaders = new Set(["SRP", "기준가격", "즉시할인", "쿠폰", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "최대 할인한도"]);
+    const moneyHeaders = new Set(["SRP", "표시가", "매칭차액", "일반 쿠폰할인", "와우 전용 즉시할인", "와우 전용 쿠폰할인", "쿠폰할인 총금액", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "최대 할인한도"]);
     const body = [headers, ...rows].map((row, rowIndex) => `<row r="${rowIndex + 1}">${row.map((value, columnIndex) => {
       const ref = `${columnName(columnIndex)}${rowIndex + 1}`;
       if (rowIndex > 0 && typeof value === "number" && Number.isFinite(value)) {
