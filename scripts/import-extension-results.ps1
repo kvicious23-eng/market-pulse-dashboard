@@ -190,6 +190,8 @@ foreach ($spec in $specs) {
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
+      $previousFinalPrice=if($mine.alertEligible -eq $true -and $null -ne $mine.finalPrice){[long]$mine.finalPrice}else{$null}
+      $previousPriceCheckedAt=if($null -ne $previousFinalPrice){[string]$mine.priceCheckedAt}else{''}
       $preCardPrice=[long]$result.price + [long]($mine.shipping)
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
       $cardDiscount=if ($cardBenefitStatus -eq 'none') {0}elseif($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
@@ -249,12 +251,20 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
       $soldOut=([string]$result.checkoutDiscountReason -eq 'buy-now-button-not-found')
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue (-not $soldOut) -Force
+      $priceChange=if(-not $soldOut -and $null -ne $final -and $null -ne $previousFinalPrice){[long]$final-[long]$previousFinalPrice}else{$null}
+      $priceTrend=if($null -eq $priceChange){'unavailable'}elseif($priceChange -lt 0){'down'}elseif($priceChange -gt 0){'up'}else{'same'}
+      $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $priceChange -Force
+      $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue $priceTrend -Force
+      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue $previousPriceCheckedAt -Force
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=if($soldOut){$text.SoldOut}else{$text.Current}; $mine.confidence='A'
       $mine.confidenceText=$text.CurrentDetail
       $confirmed++
     } else {
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
+      $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $null -Force
+      $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue 'unavailable' -Force
+      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue '' -Force
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
     }
     if ($result.competitors -and @($result.competitors).Count -gt 0) {
@@ -325,6 +335,7 @@ if ($historyRows.Count -gt 0) {
     if ($keys.Add($key)) { $combined+=$row }
   }
   $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
+  Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
 git -C $RepoPath add -- dist/market-data.js acer/market-data.js
 if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
