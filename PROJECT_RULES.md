@@ -140,11 +140,12 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 ## 9. Windows 자동 실행
 
 - 설치 위치: `C:\MarketPulse`
-- 확장프로그램 자동 수집: 매일 08:00 KST
+- Windows 예약 작업 `Market Pulse Chrome Start`: PC 현지시각 매일 08:00. 한국 운영 PC의 표준 시간대는 `(UTC+09:00) 서울`로 유지한다.
+- 확장프로그램 자동 수집: 매일 08:00 KST. Chrome이 닫혀 있으면 위 예약 작업이 Chrome을 시작해 확장프로그램의 당일 보충 실행을 유도한다.
 - 매일 08:00 자동 수집에는 등록 상품의 가격·카드할인과 주문서 일반 쿠폰할인·와우 전용 즉시할인·와우 전용 쿠폰할인 수집이 포함된다.
-- 결과 가져오기·업로드 예약: 매일 08:30
+- Windows 예약 작업 `Market Pulse Result Upload`: PC 현지시각 매일 08:30에 당일 결과를 가져와 업로드한다.
 - GitHub Actions의 08:00 서버 조사는 실측 PC 수집과 중복되므로 사용하지 않는다. 정기 원천은 Windows PC 확장프로그램 수집과 08:30 업로드다.
-- 예약 작업은 `StartWhenAvailable`을 사용해 예정 시각에 PC가 꺼져 있었으면 다음 부팅 후 실행될 수 있게 한다.
+- 두 예약 작업은 `WakeToRun`과 `StartWhenAvailable`을 사용한다. 절전 상태에서는 깨우기 타이머로 실행하고, 완전히 종료되어 있었다면 다음 부팅·로그인 뒤 누락 작업을 실행한다.
 - 정상 운영 확장은 `C:\MarketPulse\chrome-extension` 하나만 사용한다. 과거 `%LOCALAPPDATA%\MarketPulseDashboard` 확장은 중복 실행 방지를 위해 비활성화하거나 제거한다.
 - 자동 수집 중 사용자가 Chrome 창을 조작하면 탭 선택이나 팝업 수집이 방해될 수 있으므로 완료까지 조작하지 않는다.
 

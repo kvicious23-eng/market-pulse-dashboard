@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "INSTALLER=%TEMP%\install-local-scanner.ps1"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/kvicious23-eng/market-pulse-dashboard/main/scripts/install-local-scanner.ps1?v=20260917-1' -OutFile '%INSTALLER%'"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/kvicious23-eng/market-pulse-dashboard/main/scripts/install-local-scanner.ps1?v=20260921-1' -OutFile '%INSTALLER%'"
 if errorlevel 1 goto :error
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER%" -InstallPath "C:\MarketPulse"
 if errorlevel 1 goto :error
