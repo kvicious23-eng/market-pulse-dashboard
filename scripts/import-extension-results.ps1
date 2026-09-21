@@ -377,7 +377,7 @@ foreach ($spec in $specs) {
     }
   }
   $data.meta.monitoring.lastAttemptStatus=if($confirmed -eq @($data.products).Count){'success'}else{'partial'}
-  $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$($brandResults.Count)"
+  $data.meta.monitoring.lastAttemptText="$($spec.Brand) $($text.ScanSummary) $confirmed/$(@($data.products).Count)"
   $data.meta.snapshotAt=$scanKst
   $data.meta.monitoring.lastAttemptAt=$scanKst
   if (@($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
