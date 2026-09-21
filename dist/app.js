@@ -104,11 +104,15 @@
     const captured = offer?.checkoutDiscountStatus === "captured"
       && Number.isFinite(regular) && Number.isFinite(instant) && Number.isFinite(coupon)
       && Number.isFinite(couponTotal) && regular + instant + coupon === couponTotal;
-    return { regular: captured ? regular : null, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured };
+    const detailStatus = captured ? "captured" : offer?.checkoutDiscountStatus === "summary" ? "summary" : "missing";
+    return { regular: captured ? regular : null, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured, detailStatus };
   }
 
-  function checkoutDiscountText(value) {
-    return Number.isFinite(value) ? discountText(value) : '<span class="unknown">미수집</span>';
+  function checkoutDiscountText(value, detailStatus = "missing") {
+    if (Number.isFinite(value)) return discountText(value);
+    return detailStatus === "summary"
+      ? '<span class="unknown">상세 구분 미확인</span>'
+      : '<span class="unknown">미수집</span>';
   }
 
   function basisTypeText(value) {
@@ -183,9 +187,9 @@
         Number.isFinite(breakdown.basisPrice) ? breakdown.basisPrice : "미확인",
         basisTypeText(mine.priceBasisType),
         Number.isFinite(breakdown.matchingDifference) ? breakdown.matchingDifference : "미확인",
-        Number.isFinite(checkout.regular) ? checkout.regular : "미수집",
-        Number.isFinite(checkout.instant) ? checkout.instant : "미수집",
-        Number.isFinite(checkout.coupon) ? checkout.coupon : "미수집",
+        Number.isFinite(checkout.regular) ? checkout.regular : checkout.detailStatus === "summary" ? "상세 구분 미확인" : "미수집",
+        Number.isFinite(checkout.instant) ? checkout.instant : checkout.detailStatus === "summary" ? "상세 구분 미확인" : "미수집",
+        Number.isFinite(checkout.coupon) ? checkout.coupon : checkout.detailStatus === "summary" ? "상세 구분 미확인" : "미수집",
         Number.isFinite(checkout.total) ? checkout.total : "미확인",
         cardStatusText(mine.cardBenefitStatus),
         mine.cardBenefitStatus === "none" ? 0 : Number.isFinite(mine.cardDiscount) ? mine.cardDiscount : "미확인",
@@ -317,9 +321,9 @@
             <span><small>매칭차액</small>${formatDiff(breakdown.matchingDifference)}</span>
           </span>
           <span class="overview-stack" data-label="할인 상세">
-            <span><small>일반 쿠폰</small>${checkoutDiscountText(checkout.regular)}</span>
-            <span><small>와우 즉시</small>${checkoutDiscountText(checkout.instant)}</span>
-            <span><small>와우 쿠폰</small>${checkoutDiscountText(checkout.coupon)}</span>
+            <span><small>일반 쿠폰</small>${checkoutDiscountText(checkout.regular, checkout.detailStatus)}</span>
+            <span><small>와우 즉시</small>${checkoutDiscountText(checkout.instant, checkout.detailStatus)}</span>
+            <span><small>와우 쿠폰</small>${checkoutDiscountText(checkout.coupon, checkout.detailStatus)}</span>
             <span class="overview-stack__total"><small>합계</small>${discountText(checkout.total)}</span>
           </span>
           <span class="overview-stack" data-label="카드 상세">
@@ -418,9 +422,9 @@
             <span><small>매칭차액</small>${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</span>
           </td>
           <td data-label="할인 상세" class="cell-stack cell-stack--discount">
-            <span><small>일반 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.regular) : '<span class="unknown">—</span>'}</span>
-            <span><small>와우 즉시</small>${current && mine ? checkoutDiscountText(checkout.instant) : '<span class="unknown">—</span>'}</span>
-            <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon) : '<span class="unknown">—</span>'}</span>
+            <span><small>일반 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.regular, checkout.detailStatus) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 즉시</small>${current && mine ? checkoutDiscountText(checkout.instant, checkout.detailStatus) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon, checkout.detailStatus) : '<span class="unknown">—</span>'}</span>
             <span class="cell-stack__total"><small>합계</small>${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</span>
           </td>
           <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
@@ -467,6 +471,7 @@
     refs.evidenceTitle.textContent = offer.seller;
     const priceCheckedAt = offer.priceCheckedAt || offer.checkedAt || "미확인";
     const accessCheckedAt = offer.availabilityCheckedAt || null;
+    const checkout = mine ? checkoutDiscounts(offer, breakdown.couponDiscount) : null;
     refs.evidenceContent.innerHTML = `
       <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
@@ -474,9 +479,9 @@
       ${mine ? `<div class="evidence__item"><span>표시가</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>
       <div class="evidence__item"><span>표시가 종류</span><strong>${escapeHtml(basisTypeText(offer.priceBasisType))}</strong></div>
       <div class="evidence__item"><span>매칭차액</span><strong>${formatDiff(breakdown.matchingDifference)}</strong></div>
-      <div class="evidence__item"><span>일반 쿠폰할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).regular)}</strong></div>
-      <div class="evidence__item"><span>와우 전용 즉시할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).instant)}</strong></div>
-      <div class="evidence__item"><span>와우 전용 쿠폰할인</span><strong>${checkoutDiscountText(checkoutDiscounts(offer, breakdown.couponDiscount).coupon)}</strong></div>
+      <div class="evidence__item"><span>일반 쿠폰할인</span><strong>${checkoutDiscountText(checkout.regular, checkout.detailStatus)}</strong></div>
+      <div class="evidence__item"><span>와우 전용 즉시할인</span><strong>${checkoutDiscountText(checkout.instant, checkout.detailStatus)}</strong></div>
+      <div class="evidence__item"><span>와우 전용 쿠폰할인</span><strong>${checkoutDiscountText(checkout.coupon, checkout.detailStatus)}</strong></div>
       <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
