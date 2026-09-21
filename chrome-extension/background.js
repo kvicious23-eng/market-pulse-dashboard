@@ -649,6 +649,13 @@ async function scanCoupangTab(tabId,target) {
   } else if (debuggerCard?.captured) Object.assign(scan,debuggerCard);
   else if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
   else scan.cardInteractionStatus=debuggerCard?.reason||card?.reason||'card-popup-no-result';
+  if (scan.cardBenefitStatus==='captured'&&(!Array.isArray(scan.cardProviders)||!scan.cardProviders.some(Boolean))) {
+    scan.cardBenefitStatus='partial';
+    scan.cardInteractionStatus='card-provider-missing';
+    scan.cardDiscount=null;
+    scan.cardRate=null;
+    scan.cardMaxDiscount=null;
+  }
   return scan;
 }
 
@@ -682,6 +689,7 @@ async function scanAll() {
   // lock so a second manual click cannot start an overlapping scan.
   if (lock.running && lock.runningStartedAt && lockAge < 60 * 60 * 1000) return;
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
+  const scanStartedAt = new Date().toISOString();
   const results = [];
   const closeChildTabs = async (openerTabId) => {
     const childIds=(await chrome.tabs.query({}))
@@ -771,7 +779,19 @@ async function scanAll() {
       }
       await wait(20000);
     }
-    const payload = {version:3, scannedAt:new Date().toISOString(), results};
+    const completedAt=new Date().toISOString();
+    const itemIds=results.map(result=>String(result.itemId||''));
+    const payload = {
+      version:4,
+      extensionVersion:chrome.runtime.getManifest().version,
+      startedAt:scanStartedAt,
+      scannedAt:completedAt,
+      completedAt,
+      targetCount:targets.length,
+      resultCount:results.length,
+      complete:results.length===targets.length&&new Set(itemIds).size===targets.length,
+      results
+    };
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
     await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});

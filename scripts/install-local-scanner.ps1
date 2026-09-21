@@ -1,5 +1,5 @@
 param(
-  [string]$InstallPath = "$env:LOCALAPPDATA\MarketPulseDashboard"
+  [string]$InstallPath = "C:\MarketPulse"
 )
 
 $ErrorActionPreference = "Stop"
