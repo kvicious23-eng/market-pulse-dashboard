@@ -7,7 +7,7 @@ if not exist "%REPO%\.git" goto :missing_repo
 git -C "%REPO%" pull --rebase origin main
 if errorlevel 1 goto :error
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$f=Get-ChildItem -Path '%RESULTS%' -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue ^| Sort-Object LastWriteTime -Descending ^| Select-Object -First 1; if(-not $f -or $f.LastWriteTime -lt (Get-Date).AddMinutes(-30)){exit 2}; Write-Host ('Using scan: ' + $f.FullName); Write-Host ('Created:    ' + $f.LastWriteTime)"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$f=Get-ChildItem -Path '%RESULTS%' -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if(-not $f -or $f.LastWriteTime -lt (Get-Date).AddMinutes(-30)){exit 2}; Write-Host ('Using scan: ' + $f.FullName); Write-Host ('Created:    ' + $f.LastWriteTime)"
 if errorlevel 1 goto :missing_scan
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%REPO%\scripts\import-extension-results.ps1" -RepoPath "%REPO%" -WaitForToday
