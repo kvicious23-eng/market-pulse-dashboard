@@ -60,7 +60,10 @@ window.MARKET_DATA = {
                                             "wowCouponDiscount":  null,
                                             "checkoutDiscountCheckedAt":  "",
                                             "alertEligible":  true,
-                                            "priceCheckedAt":  "2026-09-21 10:56"
+                                            "priceCheckedAt":  "2026-09-21 10:56",
+                                            "priceChange":  147800,
+                                            "priceTrend":  "up",
+                                            "priceComparisonAt":  "2026-09-18 08:03"
                                         },
                                         {
                                             "role":  "competitor",
@@ -636,7 +639,10 @@ window.MARKET_DATA = {
                                             "wowCouponDiscount":  0,
                                             "checkoutDiscountCheckedAt":  "2026-09-21T02:00:40.378Z",
                                             "alertEligible":  true,
-                                            "priceCheckedAt":  "2026-09-21 11:00"
+                                            "priceCheckedAt":  "2026-09-21 11:00",
+                                            "priceChange":  -227700,
+                                            "priceTrend":  "down",
+                                            "priceComparisonAt":  "2026-09-18 08:07"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1002,7 +1008,10 @@ window.MARKET_DATA = {
                                             "wowCouponDiscount":  null,
                                             "checkoutDiscountCheckedAt":  "",
                                             "alertEligible":  true,
-                                            "priceCheckedAt":  "2026-09-21 11:02"
+                                            "priceCheckedAt":  "2026-09-21 11:02",
+                                            "priceChange":  119900,
+                                            "priceTrend":  "up",
+                                            "priceComparisonAt":  "2026-09-18 08:09"
                                         },
                                         {
                                             "role":  "competitor",

@@ -140,6 +140,15 @@
     return isSoldOut(offer) ? "품절" : (offer?.status || "미확인");
   }
 
+  function priceTrend(offer) {
+    const current = effectiveFinalPrice(offer);
+    const change = Number.isFinite(offer?.priceChange) ? offer.priceChange : null;
+    if (!Number.isFinite(current) || !Number.isFinite(change)) return { className: "", label: "" };
+    if (change < 0) return { className: "overview-row--price-down", label: `직전 대비 ↓ ${formatWon(Math.abs(change))}` };
+    if (change > 0) return { className: "overview-row--price-up", label: `직전 대비 ↑ ${formatWon(change)}` };
+    return { className: "", label: "직전과 동일" };
+  }
+
   function downloadWorkbook(headers, rows, sheetName, filename) {
     if (!window.MarketPulseXlsx?.createWorkbook) throw new Error("Excel 생성 모듈을 불러오지 못했습니다.");
     const blob = window.MarketPulseXlsx.createWorkbook(headers, rows, sheetName);
@@ -295,8 +304,9 @@
         : cardStatusText(mine.cardBenefitStatus);
       const checkedAt = mine.priceCheckedAt || mine.checkedAt || "미확인";
       const soldOut = isSoldOut(mine);
+      const trend = priceTrend(mine);
       return `
-        <button class="overview-row" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}">
+        <button class="overview-row ${trend.className}" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}"${trend.label ? ` title="${escapeHtml(trend.label)}"` : ""}>
           <span class="overview-model" data-label="내 쿠팡상품">
             <strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small>
             <i class="overview-status ${soldOut ? "overview-status--soldout" : ""}">${escapeHtml(offerStatus(mine))}</i>
@@ -321,6 +331,7 @@
           <span class="overview-result" data-label="최종 실구매가">
             <strong>${soldOut ? '<span class="unknown">구매 불가</span>' : formatWon(effectiveFinalPrice(mine))}</strong>
             <small>확인 ${escapeHtml(checkedAt)}${checkedAt === "미확인" ? "" : " KST"}</small>
+            ${trend.label ? `<small class="overview-trend ${trend.className ? `overview-trend--${mine.priceTrend}` : ""}">${escapeHtml(trend.label)}</small>` : ""}
           </span>
         </button>`;
     }).join("");
