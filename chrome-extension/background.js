@@ -831,8 +831,15 @@ function enterCheckoutDiagnostic(expectedItemId) {
     .filter(visible)
     .find(element=>/^바로구매(?:\s|>|›|$)/.test(clean(element.innerText||element.textContent)));
   if(!button) return {ok:false,reason:'buy-now-button-not-found'};
-  if(button.disabled||button.getAttribute('aria-disabled')==='true'||/disabled|sold-?out|품절/i.test(button.className)) {
-    return {ok:false,reason:'buy-now-button-disabled'};
+  const buttonEvidence=clean([
+    button.innerText||button.textContent,
+    button.className,
+    button.getAttribute('aria-label'),
+    button.getAttribute('title')
+  ].filter(Boolean).join(' '));
+  const disabled=button.disabled||button.getAttribute('aria-disabled')==='true'||/disabled/i.test(button.className);
+  if(disabled) {
+    return {ok:false,reason:/sold-?out|품절/i.test(buttonEvidence)?'buy-now-button-sold-out':'buy-now-button-disabled'};
   }
   button.click();
   return {ok:true};
@@ -906,10 +913,6 @@ function reconcileCheckoutDiscounts(regular,instant,coupon,expectedProductDiscou
   if(!Number.isFinite(coupon)&&Number.isFinite(wowMemberTotal)&&Number.isFinite(instant)&&wowMemberTotal>=instant) {
     coupon=wowMemberTotal-instant;
     if(coupon===0) inferredZeroFields.push('wowCouponDiscount');
-  }
-  if(!Number.isFinite(coupon)&&Number.isFinite(regular)&&Number.isFinite(instant)) {
-    coupon=0;
-    inferredZeroFields.push('wowCouponDiscount');
   }
   if(!Number.isFinite(regular)||!Number.isFinite(instant)||!Number.isFinite(coupon)) {
     return {status:'summary',reason:'coupon-total-known-checkout-detail-missing'};
