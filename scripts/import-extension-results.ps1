@@ -51,6 +51,42 @@ function Get-SafeCardBenefitText([string]$value) {
   if ($compact.Length -gt 240) { return $compact.Substring(0,240) }
   return $compact
 }
+function Get-CheckoutEvidenceAmount($evidence,[string]$pattern,[string]$excludePattern='') {
+  foreach ($line in @($evidence)) {
+    $text=[string]$line
+    if ($excludePattern -and $text -match $excludePattern) { continue }
+    $match=[regex]::Match($text,$pattern)
+    if ($match.Success) { return [long]($match.Groups[1].Value -replace ',','') }
+  }
+  return $null
+}
+function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
+  $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
+  $regular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
+  $instant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
+  $coupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
+  if ($status -eq 'summary' -and $result.checkoutDiscountEvidence) {
+    $regular=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '쿠폰할인 변경\s*-?\s*([0-9][0-9,]*)\s*원' '와우.*쿠폰할인 변경'
+    $instant=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '와우\s*(?:전용|회원)?\s*즉시할인\s*-?\s*([0-9][0-9,]*)\s*원'
+    $coupon=Get-CheckoutEvidenceAmount $result.checkoutDiscountEvidence '와우\s*(?:전용|회원)?\s*쿠폰할인(?:\s*변경)?\s*-?\s*([0-9][0-9,]*)\s*원'
+  }
+  if ($null -ne $productPageDiscount) {
+    if ($null -eq $regular -and $null -ne $instant -and $instant -le $productPageDiscount) { $regular=$productPageDiscount-$instant }
+    if ($null -eq $instant -and $null -ne $regular -and $regular -le $productPageDiscount) { $instant=$productPageDiscount-$regular }
+  }
+  if ($null -eq $coupon -and $null -ne $regular -and $null -ne $instant) { $coupon=0 }
+  if ($null -ne $regular -and $null -ne $instant -and $null -ne $coupon -and
+      $regular -ge 0 -and $instant -ge 0 -and $coupon -ge 0 -and
+      ($null -eq $productPageDiscount -or ($regular+$instant) -eq $productPageDiscount)) {
+    $total=$regular+$instant+$coupon
+    if ($null -ne $result.checkoutDiscountTotal -and [long]$result.checkoutDiscountTotal -ne $total -and $status -ne 'summary') {
+      return [pscustomobject]@{Status='unverified';Reason='checkout-full-total-mismatch';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+    }
+    $reason=if($status -eq 'summary'){'evidence-layer-totals-matched'}else{[string]$result.checkoutDiscountReason}
+    return [pscustomobject]@{Status='captured';Reason=$reason;Regular=$regular;Instant=$instant;Coupon=$coupon;Total=$total}
+  }
+  return [pscustomobject]@{Status=$status;Reason=[string]$result.checkoutDiscountReason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+}
 $text = @{
   Current = Decode-Utf8 '7ZiE7J6s6rCAIOyngeygkSDtmZXsnbg='
   CurrentDetail = Decode-Utf8 '64+Z7J28IEl0ZW0gSUTsnZgg7J2867CYIENocm9tZSDtmZTrqbTsl5DshJwg6rCA6rKpIO2ZleyduA=='
@@ -192,13 +228,7 @@ foreach ($spec in $specs) {
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
       $previousFinalPrice=if($mine.alertEligible -eq $true -and $null -ne $mine.finalPrice){[long]$mine.finalPrice}else{$null}
       $previousPriceCheckedAt=if($null -ne $previousFinalPrice){[string]$mine.priceCheckedAt}else{''}
-      $preCardPrice=[long]$result.price + [long]($mine.shipping)
-      $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
-      $cardDiscount=if ($cardBenefitStatus -eq 'none') {0}elseif($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardDiscount -and [long]$result.cardDiscount -gt 0 -and [long]$result.cardDiscount -le $preCardPrice) {[long]$result.cardDiscount}else{$null}
-      # A missing card-detail result is not the same as a zero discount.
-      # Publish a final purchase price only when the benefit was captured or
-      # the page explicitly confirmed that no card benefit exists.
-      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
+      $productPagePrice=[long]$result.price
       $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {
         [long]$result.srp
       } elseif ($null -ne $product.srp -and [long]$product.srp -gt 0) {
@@ -206,11 +236,33 @@ foreach ($spec in $specs) {
       } else {
         $null
       }
-      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge [long]$result.price) {[long]$result.strikePrice}else{$null}
+      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice) {[long]$result.strikePrice}else{$null}
+      $productPageDiscount=if ($null -ne $strike){$strike-$productPagePrice}else{$null}
+      $checkout=Resolve-CheckoutDiscounts $result $productPageDiscount
+      $checkoutStatus=[string]$checkout.Status
+      $checkoutCoupon=$checkout.Regular
+      $wowInstant=$checkout.Instant
+      $wowCoupon=$checkout.Coupon
+      $preCardItemPrice=if ($checkoutStatus -eq 'captured' -and $null -ne $wowCoupon -and $wowCoupon -le $productPagePrice) {$productPagePrice-$wowCoupon}else{$productPagePrice}
+      $preCardPrice=$preCardItemPrice + [long]($mine.shipping)
+      $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
+      $cardDiscount=if ($cardBenefitStatus -eq 'none') {
+        0
+      } elseif ($cardBenefitStatus -eq 'captured' -and $null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0) {
+        $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
+        if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+      } else {
+        $null
+      }
+      # A missing card-detail result is not the same as a zero discount.
+      # Publish a final purchase price only when the benefit was captured or
+      # the page explicitly confirmed that no card benefit exists.
+      $final=if ($null -ne $cardDiscount){$preCardPrice-$cardDiscount}else{$null}
+      $couponTotal=if ($null -ne $strike -and $strike -ge $preCardItemPrice){$strike-$preCardItemPrice}else{$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
-      $mine.couponDiscount=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
+      $mine.couponDiscount=$couponTotal
       $mine.cardDiscount=$cardDiscount
       $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
@@ -221,30 +273,8 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($result.cardProviders) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
-      $couponTotal=if ($null -ne $strike -and $strike -ge [long]$result.price){$strike-[long]$result.price}else{$null}
-      $checkoutStatus=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
-      $checkoutCoupon=$null
-      $wowInstant=$null
-      $wowCoupon=$null
-      if ($checkoutStatus -eq 'captured' -and $null -ne $couponTotal -and $null -ne $result.checkoutCouponDiscount -and $null -ne $result.wowInstantDiscount -and $null -ne $result.wowCouponDiscount) {
-        $candidateCheckoutCoupon=[long]$result.checkoutCouponDiscount
-        $candidateInstant=[long]$result.wowInstantDiscount
-        $candidateCoupon=[long]$result.wowCouponDiscount
-        if ($candidateCheckoutCoupon -ge 0 -and $candidateInstant -ge 0 -and $candidateCoupon -ge 0 -and ($candidateCheckoutCoupon+$candidateInstant+$candidateCoupon) -eq $couponTotal) {
-          $checkoutCoupon=$candidateCheckoutCoupon
-          $wowInstant=$candidateInstant
-          $wowCoupon=$candidateCoupon
-        } else {
-          $checkoutStatus='unverified'
-        }
-      }
-      if ($checkoutStatus -ne 'captured') {
-        $checkoutCoupon=$null
-        $wowInstant=$null
-        $wowCoupon=$null
-      }
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
-      $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$result.checkoutDiscountReason) -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
       $mine | Add-Member -NotePropertyName checkoutCouponDiscount -NotePropertyValue $checkoutCoupon -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
