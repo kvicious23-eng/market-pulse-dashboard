@@ -50,6 +50,9 @@ if ($duplicateItemIds.Count -gt 0) { throw "Duplicate itemId values were found i
 if ($null -ne $payload.targetCount -and [int]$payload.targetCount -ne $payloadResults.Count) {
   throw "Incomplete scan: expected $($payload.targetCount) products but found $($payloadResults.Count)."
 }
+if ($null -ne $payload.resultCount -and [int]$payload.resultCount -ne $payloadResults.Count) {
+  throw "Inconsistent scan: resultCount is $($payload.resultCount) but the file contains $($payloadResults.Count) results."
+}
 if ($null -ne $payload.complete -and $payload.complete -ne $true) { throw 'The scanner marked this result as incomplete.' }
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
