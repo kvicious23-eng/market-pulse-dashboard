@@ -3,7 +3,7 @@ import path from "node:path";
 import vm from "node:vm";
 
 const root=process.cwd();
-const files=["dist/market-data.js","acer/market-data.js"];
+const files=[];
 const brandRoot=path.join(root,"brand");
 if(fs.existsSync(brandRoot)){
   for(const entry of fs.readdirSync(brandRoot,{withFileTypes:true})){

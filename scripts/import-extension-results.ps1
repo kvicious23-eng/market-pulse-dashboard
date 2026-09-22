@@ -179,8 +179,8 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
 git -C $RepoPath pull --rebase origin main
 $historyRows=@()
 $specs=@(
-  @{Brand='Lenovo';Path='brand\lenovo\market-data.js';LegacyPath='dist\market-data.js'},
-  @{Brand='Acer';Path='brand\acer\market-data.js';LegacyPath='acer\market-data.js'}
+  @{Brand='Lenovo';Path='brand\lenovo\market-data.js'},
+  @{Brand='Acer';Path='brand\acer\market-data.js'}
 )
 if ($catalog) {
   $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
@@ -189,7 +189,7 @@ if ($catalog) {
     $relativePath="brand\$slug\market-data.js"
     $fullPath=Join-Path $RepoPath $relativePath
     New-BrandDashboard $brand $fullPath
-    $specs+=@{Brand=$brand;Path=$relativePath;LegacyPath=$null}
+    $specs+=@{Brand=$brand;Path=$relativePath}
   }
 }
 foreach ($spec in $specs) {
@@ -421,9 +421,6 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
-  if ($spec.LegacyPath) {
-    Write-Data (Join-Path $RepoPath $spec.LegacyPath) $data
-  }
 }
 $historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
 if ($historyRows.Count -gt 0) {
@@ -439,7 +436,6 @@ if ($historyRows.Count -gt 0) {
   $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
   Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
-git -C $RepoPath add -- dist/market-data.js acer/market-data.js
 if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {

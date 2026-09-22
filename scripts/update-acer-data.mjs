@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-const FILE = new URL("../acer/market-data.js", import.meta.url);
+const FILE = new URL("../brand/acer/market-data.js", import.meta.url);
 const mode = process.env.SCAN_MODE || "precision";
 const now = new Date();
 const stamp = new Intl.DateTimeFormat("sv-SE", {

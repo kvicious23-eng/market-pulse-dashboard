@@ -131,10 +131,10 @@ New-Item -ItemType Directory -Path $profile -Force | Out-Null
 git -C $RepoPath pull --rebase origin main
 if ($LASTEXITCODE -ne 0) { throw "Git 최신화에 실패했습니다." }
 
-$lenovo = Update-Brand "dist\market-data.js" "Lenovo" $chrome $profile
-$acer = Update-Brand "acer\market-data.js" "Acer" $chrome $profile
+$lenovo = Update-Brand "brand\lenovo\market-data.js" "Lenovo" $chrome $profile
+$acer = Update-Brand "brand\acer\market-data.js" "Acer" $chrome $profile
 
-git -C $RepoPath add -- "dist/market-data.js" "acer/market-data.js"
+git -C $RepoPath add -- "brand"
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -eq 0) {
   Write-Host "변경된 가격이 없습니다. Lenovo $lenovo/3, Acer $acer/10"

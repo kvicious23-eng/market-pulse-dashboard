@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-const DATA_FILE = new URL("../dist/market-data.js", import.meta.url);
+const DATA_FILE = new URL("../brand/lenovo/market-data.js", import.meta.url);
 const mode = process.env.SCAN_MODE || "daily";
 const now = new Date();
 const checkedAt = new Intl.DateTimeFormat("sv-SE", {
