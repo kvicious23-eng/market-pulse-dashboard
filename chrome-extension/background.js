@@ -768,7 +768,7 @@ async function scanAll() {
     const completedAt=new Date().toISOString();
     const itemIds=results.map(result=>String(result.itemId||''));
     const payload = {
-      version:4,
+      version:5,
       extensionVersion:chrome.runtime.getManifest().version,
       startedAt:scanStartedAt,
       scannedAt:completedAt,
@@ -864,7 +864,7 @@ function readCheckoutDiscounts() {
   const discountEvidence=[...new Set([...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
     .filter(visible)
     .map(element=>clean(element.innerText||element.textContent))
-    .filter(text=>text.length>=3&&text.length<=120&&/(?:일반 쿠폰할인|상품\s*쿠폰(?:할인)?|쿠폰할인 변경|와우(?:회원| 전용)?\s*즉시할인|와우(?:회원| 전용)?\s*쿠폰할인)/.test(text))
+    .filter(text=>text.length>=3&&text.length<=120&&/(?:일반\s*쿠폰할인|상품\s*쿠폰(?:할인)?|쿠폰할인(?:\s*변경)?|와우(?:회원| 전용)?\s*즉시할인|와우(?:회원| 전용)?\s*쿠폰할인)/.test(text))
     .filter(text=>!/(?:결제수단|신용|체크카드|카드번호|쿠페이|캐시|약관|개인정보|https?:|mercury\.coupang|thumbnail|impressionLog)/i.test(text)))]
     .sort((a,b)=>a.length-b.length).slice(0,20);
   const paymentButtonPresent=[...document.querySelectorAll('button,[role="button"]')]
@@ -874,6 +874,10 @@ function readCheckoutDiscounts() {
   }
   return {
     ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
+    regularCouponDiscount:readAmount(
+      ['일반 쿠폰할인','상품 쿠폰할인','쿠폰할인'],
+      ['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인','쿠폰할인 변경']
+    ),
     wowInstantDiscount:readAmount(['와우 전용 즉시할인','와우회원 즉시할인','와우 즉시할인']),
     wowCouponDiscount:readAmount(['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']),
     wowMemberTotal:readAmount(['와우회원 총 추가 혜택','와우 회원 총 추가 혜택','와우 총 추가 혜택']),
@@ -881,10 +885,14 @@ function readCheckoutDiscounts() {
   };
 }
 
-function reconcileCheckoutWowDiscounts(instant,coupon,wowMemberTotal=null) {
+function reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal=null) {
   const inferredZeroFields=[];
   // Reaching and confirming the checkout page is the evidence boundary. If a
-  // WOW line is absent there, the corresponding benefit is zero, not unknown.
+  // discount line is absent there, the corresponding benefit is zero, not unknown.
+  if(!Number.isFinite(regular)) {
+    regular=0;
+    inferredZeroFields.push('checkoutCouponDiscount');
+  }
   if(!Number.isFinite(instant)) {
     instant=0;
     inferredZeroFields.push('wowInstantDiscount');
@@ -895,9 +903,13 @@ function reconcileCheckoutWowDiscounts(instant,coupon,wowMemberTotal=null) {
   }
   const wowTotal=instant+coupon;
   if(Number.isFinite(wowMemberTotal)&&wowTotal!==wowMemberTotal) {
-    return {status:'unverified',reason:'wow-member-total-mismatch',instant,coupon,wowTotal};
+    return {status:'unverified',reason:'wow-member-total-mismatch',regular,instant,coupon,wowTotal};
   }
-  return {status:'captured',reason:inferredZeroFields.length?'checkout-confirmed-absent-wow-fields-zero':'checkout-wow-fields-captured',instant,coupon,wowTotal,inferredZeroFields};
+  return {
+    status:'captured',
+    reason:inferredZeroFields.length?'checkout-confirmed-absent-discount-fields-zero':'checkout-three-discount-fields-captured',
+    regular,instant,coupon,wowTotal,inferredZeroFields
+  };
 }
 
 async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscount=null) {
@@ -908,9 +920,12 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     await wait(7000);
     const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
     if(!entered?.[0]?.result?.ok) {
+      const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
+      const soldOut=['buy-now-button-not-found','buy-now-button-sold-out'].includes(reason);
       return {
-        checkoutDiscountStatus:'missing',checkoutDiscountReason:entered?.[0]?.result?.reason||'checkout-entry-failed',
-        checkoutCouponDiscount:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
+        checkoutDiscountStatus:'missing',checkoutDiscountReason:reason,
+        checkoutCouponDiscount:soldOut&&Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
+        checkoutCouponSource:soldOut?'product-page-soldout':null,
         wowInstantDiscount:null,wowCouponDiscount:null
       };
     }
@@ -920,47 +935,54 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
       if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
     }
     await wait(4000);
-    let page,reconciled;
+    let page,confirmedPage,reconciled;
+    let regular=null,instant=null,coupon=null,wowMemberTotal=null;
     for(let attempt=0;attempt<4;attempt++){
       const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
       page=read?.[0]?.result;
-      const instant=page?.wowInstantDiscount?.status==='captured'?page.wowInstantDiscount.amount:null;
-      const coupon=page?.wowCouponDiscount?.status==='captured'?page.wowCouponDiscount.amount:null;
-      const wowMemberTotal=page?.wowMemberTotal?.status==='captured'?page.wowMemberTotal.amount:null;
-      reconciled=page?.ok?reconcileCheckoutWowDiscounts(instant,coupon,wowMemberTotal):null;
-      if(page?.ok&&reconciled.status==='captured') break;
+      if(page?.ok) confirmedPage=page;
+      if(page?.regularCouponDiscount?.status==='captured') regular=page.regularCouponDiscount.amount;
+      if(page?.wowInstantDiscount?.status==='captured') instant=page.wowInstantDiscount.amount;
+      if(page?.wowCouponDiscount?.status==='captured') coupon=page.wowCouponDiscount.amount;
+      if(page?.wowMemberTotal?.status==='captured') wowMemberTotal=page.wowMemberTotal.amount;
+      // Retry absent rows because checkout discounts can render after the page
+      // shell. Only after the final read are stable absences converted to zero.
+      if(page?.ok&&Number.isFinite(regular)&&Number.isFinite(instant)&&Number.isFinite(coupon)) break;
       if(attempt<3) await wait(2500);
     }
+    page=confirmedPage||page;
     if(!page?.ok) {
       return {
         checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',
-        checkoutCouponDiscount:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
+        checkoutCouponDiscount:null,checkoutCouponSource:null,
         wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page?.discountEvidence||[]
       };
     }
+    reconciled=reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal);
     if(!reconciled||reconciled.status!=='captured') {
       return {
         checkoutDiscountStatus:reconciled?.status||'missing',checkoutDiscountReason:reconciled?.reason||'checkout-discount-label-missing',
-        checkoutCouponDiscount:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null,
+        checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null,
         checkoutProductDiscount:productPageCouponDiscount,
-        checkoutWowMemberTotal:reconciled?.wowTotal??null,checkoutDiscountCapturedAt:page.capturedAt,
+        checkoutWowMemberTotal:wowMemberTotal,checkoutDiscountCapturedAt:page.capturedAt,
         checkoutDiscountEvidence:page.discountEvidence||[]
       };
     }
     return {
-      checkoutDiscountStatus:Number.isFinite(productPageCouponDiscount)?'captured':'diagnostic',
-      checkoutDiscountReason:Number.isFinite(productPageCouponDiscount)?reconciled.reason:'diagnostic-captured',
-      checkoutCouponDiscount:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
+      checkoutDiscountStatus:'captured',
+      checkoutDiscountReason:reconciled.reason,
+      checkoutCouponDiscount:reconciled.regular,checkoutCouponSource:'checkout',
       wowInstantDiscount:reconciled.instant,wowCouponDiscount:reconciled.coupon,
-      checkoutDiscountTotal:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount+reconciled.wowTotal:null,
-      checkoutProductDiscount:productPageCouponDiscount,checkoutWowMemberTotal:reconciled.wowTotal,
+      checkoutDiscountTotal:reconciled.regular+reconciled.wowTotal,
+      checkoutProductDiscount:productPageCouponDiscount,
+      checkoutWowMemberTotal:wowMemberTotal,
       checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroFields:reconciled.inferredZeroFields,
       checkoutDiscountEvidence:page.discountEvidence||[]
     };
   } catch(error) {
     return {
       checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),
-      checkoutCouponDiscount:Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
+      checkoutCouponDiscount:null,checkoutCouponSource:null,
       wowInstantDiscount:null,wowCouponDiscount:null
     };
   } finally {
@@ -986,13 +1008,12 @@ async function diagnoseCheckoutDiscounts() {
     const productPageCouponDiscount=priceScan?.ok&&priceScan.strikeReliable===true
       &&Number.isFinite(priceScan.strikePrice)&&Number.isFinite(priceScan.price)&&priceScan.strikePrice>=priceScan.price
       ? priceScan.strikePrice-priceScan.price : null;
-    if(!Number.isFinite(productPageCouponDiscount)) return {ok:false,reason:'product-page-coupon-unavailable'};
     const checkout=await collectCheckoutDiscountsForTarget(target,productPageCouponDiscount);
     if(checkout.checkoutDiscountStatus!=='captured') return {ok:false,reason:checkout.checkoutDiscountReason};
     const payload={
-      diagnosticType:'checkout-wow-discounts',extensionVersion:chrome.runtime.getManifest().version,
+      diagnosticType:'checkout-three-discounts',extensionVersion:chrome.runtime.getManifest().version,
       mtm:target.mtm,itemId:String(target.itemId),capturedAt:checkout.checkoutDiscountCapturedAt,
-      couponDiscount:{status:'captured',source:'product-page',amount:checkout.checkoutCouponDiscount},
+      couponDiscount:{status:'captured',source:'checkout',amount:checkout.checkoutCouponDiscount},
       wowInstantDiscount:{status:'captured',amount:checkout.wowInstantDiscount},
       wowCouponDiscount:{status:'captured',amount:checkout.wowCouponDiscount},
       safety:{checkoutReadOnly:true,paymentButtonClicked:false,pageInteractionAfterEntry:false}

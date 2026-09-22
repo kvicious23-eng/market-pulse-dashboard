@@ -49,10 +49,10 @@ for(const file of [...new Set(files)]){
         if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
       }
     }
-    if(finite(mine.observedListPrice)&&finite(mine.productPagePrice)){
+    if(soldOut(mine)&&finite(mine.observedListPrice)&&finite(mine.productPagePrice)){
       const expectedGeneral=mine.observedListPrice-mine.productPagePrice;
       if(expectedGeneral<0) fail(file,`${label}: product-page price exceeds displayed basis price`);
-      if(mine.checkoutCouponDiscount!==expectedGeneral) fail(file,`${label}: general coupon ${mine.checkoutCouponDiscount} does not equal product-page discount ${expectedGeneral}`);
+      if(mine.checkoutCouponDiscount!==expectedGeneral) fail(file,`${label}: sold-out general coupon ${mine.checkoutCouponDiscount} does not equal product-page discount ${expectedGeneral}`);
     }
     if(soldOut(mine)&&finite(mine.productPagePrice)){
       if(finite(mine.wowInstantDiscount)||finite(mine.wowCouponDiscount)) fail(file,`${label}: sold-out offer cannot have current checkout WOW discounts`);

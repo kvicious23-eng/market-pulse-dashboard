@@ -107,12 +107,15 @@
     const captured = offer?.checkoutDiscountStatus === "captured"
       && Number.isFinite(regular) && Number.isFinite(instant) && Number.isFinite(coupon)
       && Number.isFinite(couponTotal) && regular + instant + coupon === couponTotal;
-    const detailStatus = captured ? "captured" : offer?.checkoutDiscountStatus === "summary" ? "summary" : "missing";
+    const detailStatus = isSoldOut(offer)
+      ? "soldout"
+      : captured ? "captured" : offer?.checkoutDiscountStatus === "summary" ? "summary" : "missing";
     return { regular, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured, detailStatus };
   }
 
   function checkoutDiscountText(value, detailStatus = "missing") {
     if (Number.isFinite(value)) return discountText(value);
+    if (detailStatus === "soldout") return '<span class="unknown">품절로 미적용</span>';
     return detailStatus === "summary"
       ? '<span class="unknown">상세 구분 미확인</span>'
       : '<span class="unknown">미수집</span>';
