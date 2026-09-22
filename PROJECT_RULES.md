@@ -12,7 +12,7 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 - Windows 설치 경로: `C:\MarketPulse`
 - Chrome 확장프로그램 기준 버전: `1.8.6` (상품페이지 일반쿠폰과 주문서 와우 할인 2종을 출처별로 분리)
 - 대시보드 경로: Lenovo `/brand/lenovo/`, Acer `/brand/acer/`
-- 모든 브랜드의 정식 경로와 데이터는 `/brand/{slug}/index.html`, `/brand/{slug}/market-data.js` 구조를 사용한다. `/`와 `/acer/`는 기존 링크 호환용 별칭이다.
+- 모든 브랜드의 정식 경로와 데이터는 `/brand/{slug}/index.html`, `/brand/{slug}/market-data.js` 구조만 사용한다. `/`는 `/brand/lenovo/`, `/acer/`는 `/brand/acer/`로 즉시 이동하며 별도 화면·데이터·수집 경로를 갖지 않는다.
 - 현재 활성 상품: Lenovo 3개, Acer 10개
 - 마지막 전체 성공 검증: 2026-09-21 수동 수집, 13개 상품 결과 누락·중복 없이 수집 성공
 - 마지막 주문서 할인 성공 검증: 2026-09-21 ANV16-I31-514Z 최종가 1,223,775원, SFG14-75-508U 최종가 1,079,100원으로 층별 할인과 카드 재계산 일치
@@ -206,4 +206,4 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 - `바로구매` 버튼이 없거나 비활성화된 상품은 품절로 기록한다.
 - 기술적 수집 실패 행은 히스토리에 실패 사실만 남기고 과거 가격을 새 수집 시각의 가격처럼 복제하지 않는다.
 - 배포 워크플로는 JavaScript·PowerShell 구문과 시장 데이터 구조·가격 계산 관계를 검증한 뒤에만 GitHub Pages를 배포한다.
-- 브랜드별 데이터 파일은 `/brand/{slug}/market-data.js`를 정본으로 사용하며, 기존 루트 경로 데이터는 호환용으로 같은 내용이 동기화되어야 한다.
+- 브랜드별 데이터 파일은 `/brand/{slug}/market-data.js`만 정본으로 사용한다. 기존 `dist/market-data.js`와 `acer/market-data.js`는 생성·동기화·검증·배포하지 않는다.

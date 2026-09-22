@@ -23,6 +23,7 @@ on:
       - "scripts/update-acer-data.mjs"
       - "scripts/validate-market-data.mjs"
       - "scripts/test-discount-rules.mjs"
+      - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
       - "scripts/set-local-schedule.ps1"
@@ -64,11 +65,6 @@ jobs:
         env:
           SCAN_MODE: ${{ steps.mode.outputs.value }}
         run: node scripts/update-acer-data.mjs
-      - name: Sync canonical brand data
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          cp dist/market-data.js brand/lenovo/market-data.js
-          cp acer/market-data.js brand/acer/market-data.js
       - name: Check JavaScript syntax
         shell: bash
         run: |
@@ -79,6 +75,7 @@ jobs:
           node --check chrome-extension/popup.js
           node --check scripts/validate-market-data.mjs
           node --check scripts/test-discount-rules.mjs
+          node --check scripts/test-canonical-routes.mjs
       - name: Check PowerShell syntax
         shell: pwsh
         run: |
@@ -97,14 +94,15 @@ jobs:
         run: |
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
+          node scripts/test-canonical-routes.mjs
       - name: Commit refreshed data
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          if git diff --quiet -- dist/market-data.js acer/market-data.js brand; then exit 0; fi
+          if git diff --quiet -- brand; then exit 0; fi
           git config user.name "market-pulse-bot"
           git config user.email "market-pulse-bot@users.noreply.github.com"
-          git add dist/market-data.js acer/market-data.js brand
+          git add brand
           git commit -m "data: refresh market scan"
           git pull --rebase origin main
           git push

@@ -10,10 +10,7 @@ function Read-Data([string]$path) {
   return ($raw -replace '^\s*window\.MARKET_DATA\s*=\s*','' -replace ';\s*$','') | ConvertFrom-Json
 }
 
-$specs = @(
-  @{ Brand='Lenovo'; Path='dist\market-data.js' },
-  @{ Brand='Acer'; Path='acer\market-data.js' }
-)
+$specs = @()
 $brandRoot = Join-Path $RepoPath 'brand'
 if (Test-Path $brandRoot) {
   Get-ChildItem $brandRoot -Directory | ForEach-Object {
@@ -35,8 +32,10 @@ foreach ($spec in $specs) {
     $srp = if ($null -ne $mine.srp) { $mine.srp } elseif ($null -ne $product.srp) { $product.srp } else { $null }
     $basis = $mine.observedListPrice
     $preCard = $mine.preCardPrice
+    $shipping = if ($null -ne $mine.shipping) { [long]$mine.shipping } else { 0 }
+    $preCardItem = if ($null -ne $preCard) { [long]$preCard-$shipping } else { $null }
     $match = if ($null -ne $basis -and $null -ne $srp) { [long]$basis-[long]$srp } else { $null }
-    $couponTotal = if ($null -ne $basis -and $null -ne $preCard -and [long]$basis -ge [long]$preCard) { [long]$basis-[long]$preCard } else { $null }
+    $couponTotal = if ($null -ne $basis -and $null -ne $preCardItem -and [long]$basis -ge [long]$preCardItem) { [long]$basis-[long]$preCardItem } else { $null }
     $rows += [pscustomobject][ordered]@{
       '수집일'=$collectedAt.Substring(0,10)
       '수집시각'=$collectedAt
