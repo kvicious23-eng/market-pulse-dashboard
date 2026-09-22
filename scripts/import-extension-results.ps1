@@ -38,16 +38,16 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v4 and scanner 1.8.6 are required for strict identifiers, product-page
-# coupon separation, checkout WOW zero handling, and explicit sold-out reasons.
-if ([int]$payload.version -ne 4) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.6 and scan again.'
+# Payload v5 and scanner 1.8.7 are required for checkout capture of all three
+# discount layers, checkout zero handling, and sold-out product-page fallback.
+if ([int]$payload.version -ne 5) {
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.7 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.8.6') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.8.6 and scan again.'
+if ($extensionVersion -lt [version]'1.8.7') {
+  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.8.7 and scan again.'
 }
 
 $payloadResults=@($payload.results)
@@ -78,14 +78,24 @@ function Get-SafeCardBenefitText([string]$value) {
 function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
   $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
   $reason=[string]$result.checkoutDiscountReason
-  $regular=if ($null -ne $productPageDiscount) {[long]$productPageDiscount}else{$null}
-  if ($null -ne $result.checkoutCouponDiscount -and $null -ne $regular -and [long]$result.checkoutCouponDiscount -ne $regular) {
-    return [pscustomobject]@{Status='unverified';Reason='product-page-coupon-mismatch';Regular=$regular;Instant=$null;Coupon=$null;Total=$null}
+  $soldOut=$reason -in @('buy-now-button-not-found','buy-now-button-sold-out')
+  if ($soldOut) {
+    if ([string]$result.checkoutCouponSource -ne 'product-page-soldout') {
+      return [pscustomobject]@{Status='unverified';Reason='soldout-coupon-source-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+    }
+    $regular=if ($null -ne $productPageDiscount) {[long]$productPageDiscount}else{$null}
+    if ($null -ne $result.checkoutCouponDiscount -and $null -ne $regular -and [long]$result.checkoutCouponDiscount -ne $regular) {
+      return [pscustomobject]@{Status='unverified';Reason='soldout-product-page-coupon-mismatch';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+    }
+    return [pscustomobject]@{Status='soldout';Reason=$reason;Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
   }
   if ($status -ne 'captured') {
-    $resolvedStatus=if ($reason -in @('buy-now-button-not-found','buy-now-button-sold-out')) {'soldout'} else {$status}
-    return [pscustomobject]@{Status=$resolvedStatus;Reason=$reason;Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
+    return [pscustomobject]@{Status=$status;Reason=$reason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
   }
+  if ([string]$result.checkoutCouponSource -ne 'checkout') {
+    return [pscustomobject]@{Status='unverified';Reason='checkout-coupon-source-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+  }
+  $regular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
   $instant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
   $coupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
   $wowTotal=if ($null -ne $result.checkoutWowMemberTotal) {[long]$result.checkoutWowMemberTotal}else{$null}
@@ -101,7 +111,7 @@ function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
     }
     return [pscustomobject]@{Status='captured';Reason=$reason;Regular=$regular;Instant=$instant;Coupon=$coupon;Total=$total}
   }
-  return [pscustomobject]@{Status='unverified';Reason='checkout-wow-fields-invalid';Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
+  return [pscustomobject]@{Status='unverified';Reason='checkout-three-fields-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
 }
 $text = @{
   Current = Decode-Utf8 '7ZiE7J6s6rCAIOyngeygkSDtmZXsnbg='
@@ -288,7 +298,7 @@ foreach ($spec in $specs) {
           $null -ne $checkoutCoupon -and $null -ne $wowInstant -and $null -ne $wowCoupon) {
         [long]$strike-[long]$checkoutCoupon-[long]$wowInstant-[long]$wowCoupon
       } else {$null}
-      if ($null -ne $preCardItemPrice -and ($preCardItemPrice -lt 0 -or $preCardItemPrice -gt $productPagePrice)) {
+      if ($null -ne $preCardItemPrice -and ($preCardItemPrice -lt 0 -or $preCardItemPrice -gt $strike)) {
         $checkoutStatus='unverified'
         $checkout.Reason='pre-card-price-out-of-range'
         $preCardItemPrice=$null
@@ -334,6 +344,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
       $mine | Add-Member -NotePropertyName checkoutCouponDiscount -NotePropertyValue $checkoutCoupon -Force
+      $mine | Add-Member -NotePropertyName checkoutCouponSource -NotePropertyValue ([string]$result.checkoutCouponSource) -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force

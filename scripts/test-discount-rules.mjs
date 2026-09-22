@@ -3,37 +3,51 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const source=fs.readFileSync("chrome-extension/background.js","utf8");
-const start=source.indexOf("function reconcileCheckoutWowDiscounts(");
+const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
+const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
+assert.equal(manifest.version,"1.8.7");
+assert.match(source,/version:5,/);
+assert.match(source,/checkoutCouponSource:'checkout'/);
+assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
+assert.match(importer,/payload\.version -ne 5/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.8\.7'/);
+const start=source.indexOf("function reconcileCheckoutDiscounts(");
 const end=source.indexOf("\n\nasync function collectCheckoutDiscountsForTarget",start);
-assert.ok(start>=0&&end>start,"checkout WOW reconciler was not found");
+assert.ok(start>=0&&end>start,"checkout three-discount reconciler was not found");
 const context={};
-vm.runInNewContext(`${source.slice(start,end)};this.reconcileCheckoutWowDiscounts=reconcileCheckoutWowDiscounts;`,context);
-const reconcile=context.reconcileCheckoutWowDiscounts;
+vm.runInNewContext(`${source.slice(start,end)};this.reconcileCheckoutDiscounts=reconcileCheckoutDiscounts;`,context);
+const reconcile=context.reconcileCheckoutDiscounts;
 
 assert.deepEqual(
-  JSON.parse(JSON.stringify(reconcile(null,null,null))),
-  {status:"captured",reason:"checkout-confirmed-absent-wow-fields-zero",instant:0,coupon:0,wowTotal:0,inferredZeroFields:["wowInstantDiscount","wowCouponDiscount"]}
+  JSON.parse(JSON.stringify(reconcile(null,null,null,null))),
+  {status:"captured",reason:"checkout-confirmed-absent-discount-fields-zero",regular:0,instant:0,coupon:0,wowTotal:0,inferredZeroFields:["checkoutCouponDiscount","wowInstantDiscount","wowCouponDiscount"]}
 );
-assert.equal(reconcile(80000,null,80000).coupon,0);
-assert.equal(reconcile(null,150000,150000).instant,0);
-assert.equal(reconcile(80000,150000,230000).status,"captured");
-assert.equal(reconcile(80000,150000,200000).status,"unverified");
+assert.equal(reconcile(30000,80000,null,80000).coupon,0);
+assert.equal(reconcile(30000,null,150000,150000).instant,0);
+assert.equal(reconcile(30000,80000,150000,230000).status,"captured");
+assert.equal(reconcile(30000,80000,150000,200000).status,"unverified");
 
-const calculate=({display,productPage,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
-  const general=display-productPage;
+const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
   const preCard=display-general-wowInstant-wowCoupon;
   const calculated=Math.floor(preCard*cardRate/100);
   const card=Number.isFinite(cardCap)?Math.min(calculated,cardCap):calculated;
   return {general,preCard,card,final:preCard-card};
 };
 
+const calculateSoldOut=({display,productPage})=>({
+  general:display-productPage,
+  preCard:null,
+  card:null,
+  final:null
+});
+
 assert.deepEqual(
-  calculate({display:2369000,productPage:2159000,wowInstant:0,wowCoupon:0}),
-  {general:210000,preCard:2159000,card:0,final:2159000}
+  calculateSoldOut({display:2369000,productPage:2159000}),
+  {general:210000,preCard:null,card:null,final:null}
 );
 assert.deepEqual(
-  calculate({display:1558000,productPage:1408000,wowInstant:80000,wowCoupon:150000,cardRate:8,cardCap:109060}),
-  {general:150000,preCard:1178000,card:94240,final:1083760}
+  calculateAvailable({display:1558000,general:30000,wowInstant:80000,wowCoupon:150000,cardRate:8,cardCap:109060}),
+  {general:30000,preCard:1298000,card:103840,final:1194160}
 );
 
 console.log("Discount source and calculation rules passed.");
