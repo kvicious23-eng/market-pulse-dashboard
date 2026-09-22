@@ -34,11 +34,19 @@ for(const file of [...new Set(files)]){
     ids.add(String(product.itemId));
     const mine=product.offers?.find(offer=>offer.role==="mine");
     if(!mine){fail(file,`${label}: mine offer is missing`);continue;}
+    for(const offer of product.offers||[]){
+      if(offer.role==="competitor"&&offer.alertEligible!==true&&offer.alertEligible!==false) {
+        fail(file,`${label}: competitor eligibility must be explicitly true or false`);
+      }
+    }
     if(soldOut(mine)&&mine.alertEligible===true) fail(file,`${label}: sold-out offer cannot be alert eligible`);
     if(mine.alertEligible===true){
       if(mine.checkoutDiscountStatus!=="captured") fail(file,`${label}: eligible offer needs captured checkout discounts`);
       if(!["captured","none"].includes(mine.cardBenefitStatus)) fail(file,`${label}: eligible offer needs captured/none card status`);
       if(!finite(mine.finalPrice)||mine.finalPrice<0) fail(file,`${label}: eligible finalPrice is invalid`);
+      if(finite(mine.preCardPrice)&&finite(mine.cardDiscount)&&mine.finalPrice!==mine.preCardPrice-mine.cardDiscount) {
+        fail(file,`${label}: finalPrice does not equal preCardPrice minus cardDiscount`);
+      }
     }
     if(mine.checkoutDiscountStatus==="captured"){
       const layers=[mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.wowCouponDiscount];
@@ -47,6 +55,10 @@ for(const file of [...new Set(files)]){
         const expected=mine.observedListPrice-(mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0));
         const total=layers.reduce((sum,value)=>sum+value,0);
         if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
+      }
+      if(finite(mine.productPagePrice)&&finite(mine.preCardPrice)){
+        const itemPrice=mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0);
+        if(itemPrice!==mine.productPagePrice) fail(file,`${label}: pre-card item price does not equal the product-page price`);
       }
     }
     if(soldOut(mine)&&finite(mine.observedListPrice)&&finite(mine.productPagePrice)){
@@ -67,6 +79,9 @@ for(const file of [...new Set(files)]){
         const expected=finite(mine.cardMaxDiscount)&&mine.cardMaxDiscount>0?Math.min(calculated,mine.cardMaxDiscount):calculated;
         if(mine.cardDiscount!==expected) fail(file,`${label}: cardDiscount ${mine.cardDiscount} does not equal ${expected}`);
       }
+    }
+    if(mine.cardBenefitStatus==="none"&&finite(mine.cardDiscount)&&mine.cardDiscount!==0) {
+      fail(file,`${label}: no-card-benefit offer must have a zero card discount`);
     }
     if("inventory" in product||"inventory" in mine||"stock" in product||"stock" in mine) fail(file,`${label}: inventory fields are not allowed`);
   }

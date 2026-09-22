@@ -38,22 +38,58 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v5 and scanner 1.9.2 are required for evidence-aware checkout capture of all three
+# Payload v5 and scanner 1.9.3 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
 if ([int]$payload.version -ne 5) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.2 and scan again.'
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.3 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.9.2') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.2 and scan again.'
+if ($extensionVersion -lt [version]'1.9.3') {
+  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.3 and scan again.'
+}
+
+try {
+  $startedAt=[DateTimeOffset]$payload.startedAt
+  $completedAt=[DateTimeOffset]$payload.completedAt
+  $scannedAt=[DateTimeOffset]$payload.scannedAt
+} catch {
+  throw 'The scan does not contain valid startedAt, completedAt, and scannedAt timestamps.'
+}
+if ($completedAt -lt $startedAt) { throw 'The scan completedAt timestamp is earlier than startedAt.' }
+if (($completedAt-$startedAt).TotalHours -gt 3) { throw 'The scan duration exceeds the three-hour safety limit.' }
+if ([math]::Abs(($scannedAt-$completedAt).TotalMinutes) -gt 10) {
+  throw 'The scan completedAt and scannedAt timestamps do not describe the same scan.'
 }
 
 $payloadResults=@($payload.results)
 if ($payloadResults.Count -eq 0) { throw 'The scan contains no product results.' }
 $duplicateItemIds=@($payloadResults | Group-Object {[string]$_.itemId} | Where-Object {$_.Name -and $_.Count -gt 1})
 if ($duplicateItemIds.Count -gt 0) { throw "Duplicate itemId values were found in the scan: $(@($duplicateItemIds.Name) -join ', ')" }
+$duplicateVendorItemIds=@($payloadResults | Group-Object {[string]$_.vendorItemId} | Where-Object {$_.Name -and $_.Count -gt 1})
+if ($duplicateVendorItemIds.Count -gt 0) { throw "Duplicate vendorItemId values were found in the scan: $(@($duplicateVendorItemIds.Name) -join ', ')" }
+$duplicateBrandMtms=@($payloadResults | Group-Object {("$([string]$_.brand)|$([string]$_.mtm)").ToLowerInvariant()} | Where-Object {$_.Name -and $_.Count -gt 1})
+if ($duplicateBrandMtms.Count -gt 0) { throw "Duplicate brand and MTM pairs were found in the scan: $(@($duplicateBrandMtms.Name) -join ', ')" }
+foreach ($result in $payloadResults) {
+  if (-not $result.productId -or -not $result.itemId -or -not $result.vendorItemId -or -not $result.brand -or -not $result.mtm) {
+    throw 'Every scan result must contain brand, MTM, productId, itemId, and vendorItemId.'
+  }
+  try { $resultCheckedAt=[DateTimeOffset]$result.checkedAt } catch {
+    throw "The scan result for $($result.mtm) has an invalid checkedAt timestamp."
+  }
+  if ($resultCheckedAt -lt $startedAt.AddMinutes(-5) -or $resultCheckedAt -gt $completedAt.AddMinutes(10)) {
+    throw "The scan result for $($result.mtm) falls outside the scan time window."
+  }
+  if ($result.checkoutDiscountCapturedAt) {
+    try { $checkoutCapturedAt=[DateTimeOffset]$result.checkoutDiscountCapturedAt } catch {
+      throw "The scan result for $($result.mtm) has an invalid checkout capture timestamp."
+    }
+    if ($checkoutCapturedAt -lt $startedAt.AddMinutes(-5) -or $checkoutCapturedAt -gt $completedAt.AddMinutes(10)) {
+      throw "The checkout result for $($result.mtm) falls outside the scan time window."
+    }
+  }
+}
 if ($null -ne $payload.targetCount -and [int]$payload.targetCount -ne $payloadResults.Count) {
   throw "Incomplete scan: expected $($payload.targetCount) products but found $($payloadResults.Count)."
 }
@@ -209,6 +245,14 @@ $specs=@(
   @{Brand='Acer';Path='brand\acer\market-data.js'}
 )
 if ($catalog) {
+  $slugOwners=@{}
+  foreach ($brand in @($catalog.products | Where-Object {$_.brand} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)) {
+    $slug=Get-BrandSlug $brand
+    if ($slugOwners.ContainsKey($slug) -and $slugOwners[$slug] -ne $brand) {
+      throw "Brand names '$($slugOwners[$slug])' and '$brand' produce the same dashboard slug '$slug'."
+    }
+    $slugOwners[$slug]=$brand
+  }
   $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
   foreach ($brand in $extraBrands) {
     $slug=Get-BrandSlug $brand
@@ -298,10 +342,12 @@ foreach ($spec in $specs) {
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
     if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
       $productPagePrice=[long]$result.price
-      $srp=if ($null -ne $result.srp -and [long]$result.srp -gt 0) {
-        [long]$result.srp
-      } elseif ($null -ne $product.srp -and [long]$product.srp -gt 0) {
+      # The managed catalog/dashboard value is authoritative. A scan result can
+      # be older than a catalog edit, so it must not overwrite the current SRP.
+      $srp=if ($null -ne $product.srp -and [long]$product.srp -gt 0) {
         [long]$product.srp
+      } elseif ($null -ne $result.srp -and [long]$result.srp -gt 0) {
+        [long]$result.srp
       } else {
         $null
       }
@@ -321,6 +367,11 @@ foreach ($spec in $specs) {
         $checkout.Reason='pre-card-price-out-of-range'
         $preCardItemPrice=$null
       }
+      if ($null -ne $preCardItemPrice -and $preCardItemPrice -ne $productPagePrice) {
+        $checkoutStatus='unverified'
+        $checkout.Reason='pre-card-price-does-not-match-product-page'
+        $preCardItemPrice=$null
+      }
       $preCardPrice=if($null -ne $preCardItemPrice){$preCardItemPrice+[long]($mine.shipping)}else{$null}
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
       if ($cardBenefitStatus -notin @('none','captured','partial','unverified')) { $cardBenefitStatus='unverified' }
@@ -331,10 +382,17 @@ foreach ($spec in $specs) {
       $cardDiscount=if ($null -eq $preCardItemPrice) {
         $null
       } elseif ($cardBenefitStatus -eq 'none') {
-        0
+        if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
+          $cardBenefitStatus='unverified'
+          $null
+        } else { 0 }
       } elseif ($cardCapturedValid) {
         $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
-        if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+        $verifiedCardDiscount=if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+        if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $verifiedCardDiscount) {
+          $cardBenefitStatus='unverified'
+          $null
+        } else { $verifiedCardDiscount }
       } else {
         $null
       }

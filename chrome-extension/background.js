@@ -23,6 +23,41 @@ async function getTargets() {
   });
 }
 
+function validateProductCatalog(products) {
+  if(!Array.isArray(products)) return ['product-catalog-is-not-an-array'];
+  const errors=[];
+  const seenItemIds=new Set(),seenVendorItemIds=new Set(),seenBrandMtms=new Set(),slugOwners=new Map();
+  for(const [index,product] of products.entries()){
+    const label=String(product?.mtm||`row-${index+1}`).trim();
+    const brand=String(product?.brand||'').trim();
+    const mtm=String(product?.mtm||'').trim();
+    const productId=String(product?.productId||'').trim();
+    const itemId=String(product?.itemId||'').trim();
+    const vendorItemId=String(product?.vendorItemId||'').trim();
+    if(!brand||!mtm||!productId||!itemId||!vendorItemId) errors.push(`${label}:required-fields-missing`);
+    try{
+      const url=new URL(String(product?.url||''));
+      const urlProductId=url.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||'';
+      if(url.protocol!=='https:'||url.hostname!=='www.coupang.com'||urlProductId!==productId
+          ||url.searchParams.get('itemId')!==itemId||url.searchParams.get('vendorItemId')!==vendorItemId){
+        errors.push(`${label}:coupang-url-identifiers-mismatch`);
+      }
+    }catch{ errors.push(`${label}:coupang-url-invalid`); }
+    if(itemId){ if(seenItemIds.has(itemId)) errors.push(`${label}:duplicate-item-id`); else seenItemIds.add(itemId); }
+    if(vendorItemId){ if(seenVendorItemIds.has(vendorItemId)) errors.push(`${label}:duplicate-vendor-item-id`); else seenVendorItemIds.add(vendorItemId); }
+    const brandMtm=`${brand}|${mtm}`.toLowerCase();
+    if(brand&&mtm){ if(seenBrandMtms.has(brandMtm)) errors.push(`${label}:duplicate-brand-mtm`); else seenBrandMtms.add(brandMtm); }
+    const slug=brand.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'');
+    if(brand&&slug){
+      const owner=slugOwners.get(slug);
+      if(owner&&owner!==brand) errors.push(`${label}:duplicate-brand-slug`);
+      else slugOwners.set(slug,brand);
+    }
+    if(product?.srp!==null&&product?.srp!==undefined&&(!Number.isFinite(product.srp)||product.srp<=0)) errors.push(`${label}:srp-invalid`);
+  }
+  return [...new Set(errors)];
+}
+
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function localDay() {
@@ -40,11 +75,16 @@ async function waitForComplete(tabId) {
   return false;
 }
 
-async function readDisplayedPrice(expectedItemId) {
-  const params = new URL(location.href).searchParams;
+async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId) {
+  const currentUrl = new URL(location.href);
+  const params = currentUrl.searchParams;
+  const actualProductId = currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
   const actualItemId = params.get('itemId');
+  const actualVendorItemId = params.get('vendorItemId');
   const bodyText = document.body?.innerText || '';
-  if (actualItemId !== expectedItemId) return {ok:false, reason:'item-id-mismatch', actualItemId};
+  if (actualProductId!==String(expectedProductId)||actualItemId!==String(expectedItemId)||actualVendorItemId!==String(expectedVendorItemId)) {
+    return {ok:false,reason:'product-identifiers-mismatch',actualProductId,actualItemId,actualVendorItemId};
+  }
   if (/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i.test(bodyText)) {
     return {ok:false, reason:'access-check'};
   }
@@ -292,9 +332,14 @@ async function readDisplayedPrice(expectedItemId) {
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 
-function snapshotCardDetailText(expectedItemId) {
-  const actualItemId=new URL(location.href).searchParams.get('itemId');
-  if (actualItemId&&actualItemId!==expectedItemId) return {ok:false,reason:'item-id-changed',texts:[]};
+function snapshotCardDetailText(expectedProductId,expectedItemId,expectedVendorItemId) {
+  const currentUrl=new URL(location.href);
+  const actualProductId=currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
+  const actualItemId=currentUrl.searchParams.get('itemId');
+  const actualVendorItemId=currentUrl.searchParams.get('vendorItemId');
+  if (actualProductId!==String(expectedProductId)||actualItemId!==String(expectedItemId)||actualVendorItemId!==String(expectedVendorItemId)) {
+    return {ok:false,reason:'product-identifiers-changed',texts:[]};
+  }
   const visible=node=>{
     const style=getComputedStyle(node),rect=node.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0&&rect.width>0&&rect.height>0;
@@ -310,9 +355,14 @@ function snapshotCardDetailText(expectedItemId) {
   return {ok:true,texts:[...texts].slice(0,6000)};
 }
 
-function readCardPopup(expectedItemId,preCardPrice,summaryText,summaryProviders,beforeTexts=[],clickPoint=null) {
-  const actualItemId=new URL(location.href).searchParams.get('itemId');
-  if (actualItemId&&actualItemId!==expectedItemId) return {captured:false,reason:'item-id-changed'};
+function readCardPopup(expectedProductId,expectedItemId,expectedVendorItemId,preCardPrice,summaryText,summaryProviders,beforeTexts=[],clickPoint=null) {
+  const currentUrl=new URL(location.href);
+  const actualProductId=currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
+  const actualItemId=currentUrl.searchParams.get('itemId');
+  const actualVendorItemId=currentUrl.searchParams.get('vendorItemId');
+  if (actualProductId!==String(expectedProductId)||actualItemId!==String(expectedItemId)||actualVendorItemId!==String(expectedVendorItemId)) {
+    return {captured:false,reason:'product-identifiers-changed'};
+  }
   const visible=node=>{
     const style=getComputedStyle(node),rect=node.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
@@ -606,7 +656,9 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
 }
 
 async function scanCoupangTab(tabId,target) {
-  const injected=await chrome.scripting.executeScript({target:{tabId},func:readDisplayedPrice,args:[target.itemId]});
+  const injected=await chrome.scripting.executeScript({
+    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId]
+  });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
   if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
@@ -615,7 +667,7 @@ async function scanCoupangTab(tabId,target) {
     return scan;
   }
   const beforePopup=await chrome.scripting.executeScript({
-    target:{tabId,allFrames:true},func:snapshotCardDetailText,args:[target.itemId]
+    target:{tabId,allFrames:true},func:snapshotCardDetailText,args:[target.productId,target.itemId,target.vendorItemId]
   });
   const beforeTexts=[...new Set((beforePopup||[]).flatMap(frame=>frame?.result?.texts||[]))];
   const beforeUrl=(await chrome.tabs.get(tabId)).url;
@@ -626,7 +678,8 @@ async function scanCoupangTab(tabId,target) {
   const beforeLocation=new URL(beforeUrl),afterLocation=new URL(afterUrl);
   const sameProduct=beforeLocation.origin===afterLocation.origin
     &&beforeLocation.pathname===afterLocation.pathname
-    &&beforeLocation.searchParams.get('itemId')===afterLocation.searchParams.get('itemId');
+    &&beforeLocation.searchParams.get('itemId')===afterLocation.searchParams.get('itemId')
+    &&beforeLocation.searchParams.get('vendorItemId')===afterLocation.searchParams.get('vendorItemId');
   if (!sameProduct) {
     scan.cardInteractionStatus='navigation-blocked';
     await chrome.tabs.update(tabId,{url:beforeUrl});
@@ -635,7 +688,7 @@ async function scanCoupangTab(tabId,target) {
   }
   const popup=await chrome.scripting.executeScript({
     target:{tabId,allFrames:true},func:readCardPopup,
-    args:[target.itemId,scan.price,scan.cardBenefitText,scan.cardProviders,beforeTexts,scan.cardClickPoint]
+    args:[target.productId,target.itemId,target.vendorItemId,scan.price,scan.cardBenefitText,scan.cardProviders,beforeTexts,scan.cardClickPoint]
   });
   const card=(popup||[]).map(frame=>frame?.result).find(result=>result?.captured)
     ||(popup||[]).map(frame=>frame?.result).find(result=>result?.reason==='card-popup-unparseable')
@@ -699,7 +752,10 @@ async function scanAll() {
     if (childIds.length) await chrome.tabs.remove(childIds).catch(()=>{});
   };
   try {
-    const targets=(await getTargets()).filter(x=>x.enabled!==false);
+    const configuredTargets=await getTargets();
+    const catalogErrors=validateProductCatalog(configuredTargets);
+    if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
+    const targets=configuredTargets.filter(x=>x.enabled!==false);
     for (const target of targets) {
       let tab;
       try {
@@ -798,10 +854,14 @@ async function schedule() {
   await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
 }
 
-function enterCheckoutDiagnostic(expectedItemId) {
+function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendorItemId) {
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
-  const params=new URL(location.href).searchParams;
-  if(params.get('itemId')!==String(expectedItemId)) return {ok:false,reason:'item-id-mismatch'};
+  const currentUrl=new URL(location.href);
+  const actualProductId=currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
+  const params=currentUrl.searchParams;
+  if(actualProductId!==String(expectedProductId)||params.get('itemId')!==String(expectedItemId)||params.get('vendorItemId')!==String(expectedVendorItemId)) {
+    return {ok:false,reason:'product-identifiers-mismatch'};
+  }
   const visible=element=>{
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
@@ -890,30 +950,36 @@ function readCheckoutDiscounts() {
         for(const match of excludedOccurrences) for(let i=match.start;i<match.end;i++) chars[i]=' ';
         searchable=chars.join('');
       }
-      const target=occurrences(searchable,accepted)[0];
-      if(!target) return {labelSeen:false,amount:null};
-      const boundaries=occurrences(mapped.value,allDiscountLabels)
-        .filter(match=>match.start!==target.start||match.end!==target.end);
-      const previous=boundaries.filter(match=>match.end<=target.start).sort((a,b)=>b.end-a.end)[0];
-      const next=boundaries.filter(match=>match.start>=target.end).sort((a,b)=>a.start-b.start)[0];
-      const rawStart=target.start<mapped.rawIndexes.length?mapped.rawIndexes[target.start]:0;
-      const rawEndIndex=Math.min(target.end-1,mapped.rawIndexes.length-1);
-      const rawEnd=rawEndIndex>=0?mapped.rawIndexes[rawEndIndex]+1:rawStart;
-      const beforeBoundary=previous&&previous.end<mapped.rawIndexes.length?mapped.rawIndexes[previous.end]:Math.max(0,rawStart-160);
-      const afterBoundary=next&&next.start<mapped.rawIndexes.length?mapped.rawIndexes[next.start]:Math.min(mapped.raw.length,rawEnd+200);
-      const after=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+160));
-      const afterAmounts=parseAmounts(after);
-      if(afterAmounts.length) return {labelSeen:true,amount:afterAmounts[0].amount};
-      const before=mapped.raw.slice(Math.max(beforeBoundary,rawStart-120),rawStart);
-      const beforeAmounts=parseAmounts(before);
-      if(beforeAmounts.length) return {labelSeen:true,amount:beforeAmounts[beforeAmounts.length-1].amount};
-      // Coupang always renders a plain "쿠폰할인" section heading. It is not
-      // evidence of an applied regular coupon. A real generic coupon row has
-      // either a readable amount or the adjacent "변경" control. More specific
-      // labels such as 일반/상품 쿠폰할인 remain evidence even without a value.
-      const targetTail=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+60));
-      const rowSpecific=target.label!=='쿠폰할인'||/변경/.test(targetTail);
-      return {labelSeen:rowSpecific,amount:null};
+      const targets=occurrences(searchable,accepted).filter((match,index,list)=>
+        !list.some((other,otherIndex)=>otherIndex!==index&&other.start<=match.start&&other.end>=match.end
+          &&(other.start<match.start||other.end>match.end))
+      );
+      if(!targets.length) return {labelSeen:false,amount:null};
+      let labelSeen=false;
+      for(const target of targets){
+        const boundaries=occurrences(mapped.value,allDiscountLabels)
+          .filter(match=>match.start!==target.start||match.end!==target.end);
+        const previous=boundaries.filter(match=>match.end<=target.start).sort((a,b)=>b.end-a.end)[0];
+        const next=boundaries.filter(match=>match.start>=target.end).sort((a,b)=>a.start-b.start)[0];
+        const rawStart=target.start<mapped.rawIndexes.length?mapped.rawIndexes[target.start]:0;
+        const rawEndIndex=Math.min(target.end-1,mapped.rawIndexes.length-1);
+        const rawEnd=rawEndIndex>=0?mapped.rawIndexes[rawEndIndex]+1:rawStart;
+        const beforeBoundary=previous&&previous.end<mapped.rawIndexes.length?mapped.rawIndexes[previous.end]:Math.max(0,rawStart-160);
+        const afterBoundary=next&&next.start<mapped.rawIndexes.length?mapped.rawIndexes[next.start]:Math.min(mapped.raw.length,rawEnd+200);
+        const after=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+160));
+        const afterAmounts=parseAmounts(after);
+        if(afterAmounts.length) return {labelSeen:true,amount:afterAmounts[0].amount};
+        const before=mapped.raw.slice(Math.max(beforeBoundary,rawStart-120),rawStart);
+        const beforeAmounts=parseAmounts(before);
+        if(beforeAmounts.length) return {labelSeen:true,amount:beforeAmounts[beforeAmounts.length-1].amount};
+        // Coupang always renders a plain "쿠폰할인" section heading. It is not
+        // evidence of an applied regular coupon. A real generic coupon row has
+        // either a readable amount or the adjacent "변경" control. More specific
+        // labels such as 일반/상품 쿠폰할인 remain evidence even without a value.
+        const targetTail=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+60));
+        if(target.label!=='쿠폰할인'||/변경/.test(targetTail)) labelSeen=true;
+      }
+      return {labelSeen,amount:null};
     };
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
@@ -996,7 +1062,9 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     tab=await chrome.tabs.create({url:target.url,active:false});
     await waitForComplete(tab.id);
     await wait(7000);
-    const entered=await chrome.scripting.executeScript({target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.itemId]});
+    const entered=await chrome.scripting.executeScript({
+      target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId]
+    });
     if(!entered?.[0]?.result?.ok) {
       const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
       const soldOut=['buy-now-button-not-found','buy-now-button-sold-out'].includes(reason);
@@ -1104,7 +1172,9 @@ async function diagnoseCheckoutDiscounts() {
   const target=targets.find(entry=>entry.enabled!==false&&String(entry.itemId)===String(itemId));
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
   try {
-    const read=await chrome.scripting.executeScript({target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.itemId]});
+    const read=await chrome.scripting.executeScript({
+      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId]
+    });
     const priceScan=read?.[0]?.result;
     const productPageCouponDiscount=priceScan?.ok&&priceScan.strikeReliable===true
       &&Number.isFinite(priceScan.strikePrice)&&Number.isFinite(priceScan.price)&&priceScan.strikePrice>=priceScan.price
@@ -1145,7 +1215,9 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='SAVE_PRODUCTS') {
-    chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
+    const errors=validateProductCatalog(message.products);
+    if(errors.length) sendResponse({ok:false,error:`product-catalog-invalid:${errors.join(',')}`});
+    else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
     return true;
   }
   if (message?.type==='RUN_SCAN') {

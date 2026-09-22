@@ -96,11 +96,11 @@ for (const product of data.products) {
   product.validation = "identifiers-verified";
   identifiers++;
 
-  // Coupang prices are owned by the visible Chrome collector. GitHub only preserves them.
-  if (mine && Number.isFinite(mine.finalPrice) && mine.priceCheckedAt) {
-    mine.status = "현재가 직접 확인";
-    mine.confidence = "A";
-    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 가격 확인";
+  // Coupang prices and their eligibility are owned by the visible Chrome
+  // collector. GitHub competition refreshes must never promote an old value.
+  if (mine && mine.alertEligible === true && mine.checkoutDiscountStatus === "captured"
+      && ["captured", "none"].includes(mine.cardBenefitStatus)
+      && Number.isFinite(mine.finalPrice) && mine.priceCheckedAt) {
     minePrices++;
   }
 
@@ -137,9 +137,11 @@ for (const product of data.products) {
           cardDiscount: null,
           finalPrice: entry.price,
           shipping: 0,
+          alertEligible: true,
           condition: "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
           sourceType: "다나와 가격비교 판매처 목록",
           checkedAt: display,
+          priceCheckedAt: display,
           confidence: "B",
           confidenceText: "정확한 MTM의 쇼핑몰별 판매가를 다나와 상세 페이지에서 확인",
           url: danawa.url
@@ -147,6 +149,7 @@ for (const product of data.products) {
       }
       currentPrices++;
     } else {
+      for (const offer of preservedCompetitors) offer.alertEligible = false;
       Object.assign(danawa, {
         status: html.includes("일시 품절 상품입니다") ? "일시 품절" : "판매처 재검증 대기",
         displayPrice: null,
@@ -157,6 +160,7 @@ for (const product of data.products) {
       });
     }
   } catch {
+    for (const offer of preservedCompetitors) offer.alertEligible = false;
     Object.assign(danawa, {
       status: "접근 제한·재검증 대기",
       displayPrice: null,

@@ -76,6 +76,8 @@ jobs:
           node --check scripts/validate-market-data.mjs
           node --check scripts/test-discount-rules.mjs
           node --check scripts/test-canonical-routes.mjs
+          node --check scripts/update-market-data.mjs
+          node --check scripts/update-acer-data.mjs
       - name: Check PowerShell syntax
         shell: pwsh
         run: |

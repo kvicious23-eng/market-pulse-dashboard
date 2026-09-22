@@ -6,12 +6,21 @@ const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
-assert.equal(manifest.version,"1.9.2");
+const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
+const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
+assert.equal(manifest.version,"1.9.3");
 assert.match(source,/version:5,/);
+assert.match(source,/actualProductId!==String\(expectedProductId\).*actualItemId!==String\(expectedItemId\).*actualVendorItemId!==String\(expectedVendorItemId\)/s);
+assert.match(source,/args:\[target\.productId,target\.itemId,target\.vendorItemId\]/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.2'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.3'/);
+assert.match(importer,/pre-card-price-does-not-match-product-page/);
+assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
+assert.match(importer,/Duplicate vendorItemId values/);
+assert.match(importer,/produce the same dashboard slug/);
+assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$verifiedCardDiscount/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
 assert.match(importer,/checkoutUnparsedFields/);
 assert.match(importer,/checkoutDiscountFieldStatus/);
@@ -19,8 +28,27 @@ assert.match(importer,/checkoutDiscountEvidence/);
 assert.match(dashboard,/checkoutDiscountFieldStatus/);
 assert.match(dashboard,/금액 판독 실패/);
 assert.match(dashboard,/주문서 할인 근거/);
+assert.match(dashboard,/offer\.alertEligible !== true/);
+assert.doesNotMatch(lenovoRefresh,/mine\.alertEligible\s*=\s*true/);
+assert.doesNotMatch(acerRefresh,/mine\.alertEligible\s*=\s*true/);
 assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
 assert.match(importer,/'수집결과'=if\(\$historyCollectionSucceeded\)\{'success'\}else\{'failed'\}/);
+
+const catalogStart=source.indexOf("function validateProductCatalog(");
+const catalogEnd=source.indexOf("\n\nconst wait",catalogStart);
+assert.ok(catalogStart>=0&&catalogEnd>catalogStart,"catalog validator was not found");
+const targetLiteral=source.match(/const TARGETS\s*=\s*([\s\S]*?\n\];)/)?.[1];
+assert.ok(targetLiteral,"default catalog was not found");
+const catalogContext={URL,Set,Map};
+vm.runInNewContext(`${source.slice(catalogStart,catalogEnd)};this.validateProductCatalog=validateProductCatalog;`,catalogContext);
+const defaultTargets=vm.runInNewContext(targetLiteral);
+assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog(defaultTargets))),[]);
+const duplicateVendor=structuredClone(defaultTargets);
+duplicateVendor[1].vendorItemId=duplicateVendor[0].vendorItemId;
+assert.ok(catalogContext.validateProductCatalog(duplicateVendor).some(value=>value.includes("duplicate-vendor-item-id")));
+const mismatchedUrl=structuredClone(defaultTargets);
+mismatchedUrl[0].url=mismatchedUrl[0].url.replace(mismatchedUrl[0].vendorItemId,"99999999999");
+assert.ok(catalogContext.validateProductCatalog(mismatchedUrl).some(value=>value.includes("coupang-url-identifiers-mismatch")));
 
 const checkoutStart=source.indexOf("function readCheckoutDiscounts(");
 const checkoutEnd=source.indexOf("\n\nfunction reconcileCheckoutDiscounts",checkoutStart);
@@ -81,6 +109,9 @@ assert.deepEqual(readCheckoutRows([
 });
 assert.deepEqual(readCheckoutRows([
   element("쿠폰할인 변경 -130,000원 와우전용 즉시할인 -80,000원 와우전용 쿠폰할인 변경 -147,800원 와우회원 총 추가 혜택 -227,800원")
+]),expectedCheckoutRead);
+assert.deepEqual(readCheckoutRows([
+  element("쿠폰할인 쿠폰할인 변경 -130,000원 와우전용 즉시할인 -80,000원 와우전용 쿠폰할인 변경 -147,800원 와우회원 총 추가 혜택 -227,800원")
 ]),expectedCheckoutRead);
 assert.deepEqual(readCheckoutRows([
   element("−130,000원 쿠폰 할인 변경"),

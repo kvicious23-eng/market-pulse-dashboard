@@ -79,11 +79,14 @@ for (const product of data.products) {
       offer.displayPrice = price;
       offer.finalPrice = price + (offer.shipping || 0);
       offer.checkedAt = displayTime;
+      offer.priceCheckedAt = displayTime;
+      offer.alertEligible = true;
       offer.confidence = offer.url.includes("lenovo.com") ? "A" : "B";
       offer.confidenceText = "자동 조사에서 MTM과 가격을 함께 재확인";
       successes += 1;
     } catch {
-      // 접근 제한 시 마지막 검증값을 보존합니다.
+      // 접근 제한 시 마지막 값은 보존하되 현재 비교에서는 제외합니다.
+      offer.alertEligible = false;
     }
   }));
 
@@ -91,19 +94,13 @@ for (const product of data.products) {
   const mine = product.offers.find((offer) => offer.role === "mine");
   const todayKst = displayTime.slice(0, 10);
   const mineIsFresh = mine && Number.isFinite(mine.finalPrice)
+    && mine.alertEligible === true
+    && mine.checkoutDiscountStatus === "captured"
+    && ["captured", "none"].includes(mine.cardBenefitStatus)
     && typeof mine.priceCheckedAt === "string"
     && mine.priceCheckedAt.startsWith(todayKst);
   if (mineIsFresh) {
-    mine.status = "현재가 직접 확인";
-    mine.confidence = "A";
-    mine.confidenceText = "동일 Item ID의 일반 Chrome 화면에서 당일 가격 확인";
-    mine.alertEligible = true;
     minePrices += 1;
-  } else if (mine) {
-    mine.status = "직전 직접 확인 · 당일 미확인";
-    mine.confidence = "C";
-    mine.confidenceText = "동일 Item ID의 과거 직접 확인값이며 당일 현재가가 아님";
-    mine.alertEligible = false;
   }
 }
 

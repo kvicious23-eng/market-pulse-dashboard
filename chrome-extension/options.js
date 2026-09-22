@@ -6,6 +6,7 @@ let products=[];
 function parseCoupangUrl(value){
   try{
     const url=new URL(value);
+    if(url.protocol!=="https:"||url.hostname!=="www.coupang.com")return {productId:'',itemId:'',vendorItemId:''};
     const productId=url.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||'';
     return {productId,itemId:url.searchParams.get('itemId')||'',vendorItemId:url.searchParams.get('vendorItemId')||''};
   }catch{return {productId:'',itemId:'',vendorItemId:''};}
@@ -17,6 +18,10 @@ function validate(product,index){
   if(!product.mtm)errors.push('MTM 필요');
   if(!product.productId||!product.itemId||!product.vendorItemId)errors.push('쿠팡 URL의 ID 3개 필요');
   if(products.some((x,i)=>i!==index&&x.itemId===product.itemId))errors.push('Item ID 중복');
+  if(products.some((x,i)=>i!==index&&x.vendorItemId===product.vendorItemId))errors.push('VendorItem ID 중복');
+  if(products.some((x,i)=>i!==index&&x.brand.toLowerCase()===product.brand.toLowerCase()&&x.mtm.toLowerCase()===product.mtm.toLowerCase()))errors.push('브랜드·MTM 중복');
+  const slug=value=>value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'');
+  if(product.brand&&products.some((x,i)=>i!==index&&x.brand&&x.brand!==product.brand&&slug(x.brand)===slug(product.brand)))errors.push('브랜드 URL 이름 중복');
   if(product.srp!==null&&(!Number.isFinite(product.srp)||product.srp<=0))errors.push('SRP 확인');
   return errors;
 }

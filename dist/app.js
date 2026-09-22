@@ -159,7 +159,9 @@
   function effectiveFinalPrice(offer) {
     if (!offer || !Number.isFinite(offer.finalPrice)) return null;
     if (isSoldOut(offer)) return null;
-    if (offer.alertEligible === false) return null;
+    // Current comparisons are opt-in. Missing eligibility on legacy or
+    // server-refreshed offers must never be interpreted as verified.
+    if (offer.alertEligible !== true) return null;
     if (offer.role === "mine" && !["captured", "none"].includes(offer.cardBenefitStatus)) return null;
     return offer.finalPrice;
   }
