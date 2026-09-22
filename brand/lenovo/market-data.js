@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-09-22T15:15:52+09:00",
+                 "snapshotAt":  "2026-09-22T16:40:43+09:00",
                  "sourceFile":  "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
                  "comparisonBasis":  "동일 MTM·용량의 당일 공개가와 배송비 기준. 내 쿠팡은 exact Item ID 직접 수집가의 카드 적용 전 공개 실구매가를 사용",
                  "exclusions":  "개인화 쿠폰·적립금·조건부 카드/멤버십 가격은 기본 비교에서 제외. 다나와 쿠팡 항목은 당일 Item ID 미검증 시 참고로 분리",
@@ -9,11 +9,11 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-09-22T15:15:52+09:00",
+                                    "lastAttemptAt":  "2026-09-22T16:40:43+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Lenovo 수집 결과: 검증 3, 품절 0, 일부 0 / 전체 3",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-09-22T15:15:52+09:00",
+                                    "competitionLastAttemptAt":  "2026-09-22T16:40:43+09:00",
                                     "alertEvaluation":  "83N3003DKR 가격 역전 1,000원 확인"
                                 },
                  "updatedAt":  "2026-09-14T19:42:57+09:00",
@@ -37,7 +37,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확 Item ID 직접 확인: SRP 1,109,000원 → 표시가 879,000원 → 공개 쿠폰 30,000원 → 카드 적용 전 849,000원. 카드 혜택 없음.",
                                             "sourceType":  "쿠팡 exact Item ID · Windows Chrome 직접 수집",
-                                            "checkedAt":  "2026-09-22 15:02",
+                                            "checkedAt":  "2026-09-22 16:26",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303279355\u0026vendorItemId=95415897534",
@@ -45,7 +45,7 @@ window.MARKET_DATA = {
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
                                             "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-22 15:02",
+                                            "availabilityCheckedAt":  "2026-09-22 16:26",
                                             "srp":  1109000,
                                             "observedListPrice":  1109000,
                                             "productPagePrice":  849000,
@@ -64,14 +64,26 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-22T06:02:34.542Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-22T07:27:13.785Z",
+                                            "checkoutUnparsedFields":  [
+
+                                                                       ],
+                                            "checkoutDiscountFieldStatus":  null,
+                                            "checkoutDiscountEvidence":  [
+                                                                             "쿠폰할인",
+                                                                             "쿠폰할인 변경",
+                                                                             "와우 전용 즉시할인",
+                                                                             "쿠폰할인 변경 -130,000원",
+                                                                             "와우 전용 즉시할인 -130,000원",
+                                                                             "와우회원 총 추가 혜택 -130,000원 와우 전용 즉시할인 -130,000원 배송비 0원"
+                                                                         ],
                                             "alertEligible":  true,
-                                            "priceChange":  130000,
-                                            "priceTrend":  "up",
-                                            "priceComparisonAt":  "2026-09-22 13:12",
+                                            "priceChange":  0,
+                                            "priceTrend":  "same",
+                                            "priceComparisonAt":  "2026-09-22 15:02",
                                             "lastVerifiedFinalPrice":  849000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 15:02",
-                                            "priceCheckedAt":  "2026-09-22 15:02"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 16:26",
+                                            "priceCheckedAt":  "2026-09-22 16:26"
                                         },
                                         {
                                             "role":  "competitor",
@@ -236,7 +248,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확 Item ID 직접 확인: SRP 1,159,000원 → 표시가 1,089,000원 → 공개 쿠폰 42,000원 → 카드 적용 전 1,047,000원. 카드 세부 할인은 미수집.",
                                             "sourceType":  "쿠팡 exact Item ID · Windows Chrome 직접 수집",
-                                            "checkedAt":  "2026-09-22 15:03",
+                                            "checkedAt":  "2026-09-22 16:27",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303268765\u0026vendorItemId=95415897535",
@@ -244,7 +256,7 @@ window.MARKET_DATA = {
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
                                             "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-22 15:03",
+                                            "availabilityCheckedAt":  "2026-09-22 16:27",
                                             "srp":  1159000,
                                             "observedListPrice":  1129920,
                                             "productPagePrice":  899000,
@@ -263,14 +275,26 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-22T06:03:36.572Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-22T07:28:16.880Z",
+                                            "checkoutUnparsedFields":  [
+
+                                                                       ],
+                                            "checkoutDiscountFieldStatus":  null,
+                                            "checkoutDiscountEvidence":  [
+                                                                             "쿠폰할인",
+                                                                             "쿠폰할인 변경",
+                                                                             "와우 전용 즉시할인",
+                                                                             "쿠폰할인 변경 -100,920원",
+                                                                             "와우 전용 즉시할인 -130,000원",
+                                                                             "와우회원 총 추가 혜택 -130,000원 와우 전용 즉시할인 -130,000원 배송비 0원"
+                                                                         ],
                                             "alertEligible":  true,
-                                            "priceChange":  130000,
-                                            "priceTrend":  "up",
-                                            "priceComparisonAt":  "2026-09-22 13:13",
+                                            "priceChange":  0,
+                                            "priceTrend":  "same",
+                                            "priceComparisonAt":  "2026-09-22 15:03",
                                             "lastVerifiedFinalPrice":  899000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 15:03",
-                                            "priceCheckedAt":  "2026-09-22 15:03"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 16:27",
+                                            "priceCheckedAt":  "2026-09-22 16:27"
                                         },
                                         {
                                             "role":  "competitor",
@@ -405,7 +429,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확 Item ID 직접 확인: SRP 1,199,000원 → 표시가 998,000원 → 공개 쿠폰 59,000원 → 카드 적용 전 939,000원. 카드 세부 할인은 미수집.",
                                             "sourceType":  "쿠팡 exact Item ID · Windows Chrome 직접 수집",
-                                            "checkedAt":  "2026-09-22 15:04",
+                                            "checkedAt":  "2026-09-22 16:28",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/8708708250?itemId=25515648568\u0026vendorItemId=95415897536",
@@ -413,7 +437,7 @@ window.MARKET_DATA = {
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
                                             "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-22 15:04",
+                                            "availabilityCheckedAt":  "2026-09-22 16:28",
                                             "srp":  1199000,
                                             "observedListPrice":  1199000,
                                             "productPagePrice":  939000,
@@ -432,14 +456,26 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-22T06:04:35.696Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-22T07:29:11.657Z",
+                                            "checkoutUnparsedFields":  [
+
+                                                                       ],
+                                            "checkoutDiscountFieldStatus":  null,
+                                            "checkoutDiscountEvidence":  [
+                                                                             "쿠폰할인",
+                                                                             "쿠폰할인 변경",
+                                                                             "와우 전용 즉시할인",
+                                                                             "쿠폰할인 변경 -130,000원",
+                                                                             "와우 전용 즉시할인 -130,000원",
+                                                                             "와우회원 총 추가 혜택 -130,000원 와우 전용 즉시할인 -130,000원 배송비 0원"
+                                                                         ],
                                             "alertEligible":  true,
-                                            "priceChange":  130000,
-                                            "priceTrend":  "up",
-                                            "priceComparisonAt":  "2026-09-22 13:14",
+                                            "priceChange":  0,
+                                            "priceTrend":  "same",
+                                            "priceComparisonAt":  "2026-09-22 15:04",
                                             "lastVerifiedFinalPrice":  939000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 15:04",
-                                            "priceCheckedAt":  "2026-09-22 15:04"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-22 16:28",
+                                            "priceCheckedAt":  "2026-09-22 16:28"
                                         },
                                         {
                                             "role":  "competitor",
