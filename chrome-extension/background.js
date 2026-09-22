@@ -838,33 +838,43 @@ function readCheckoutDiscounts() {
   const readAmount=(labels,excludedLabels=[])=>{
     const accepted=(Array.isArray(labels)?labels:[labels]).filter(Boolean).sort((a,b)=>b.length-a.length);
     const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean);
+    const scrubExcluded=text=>excluded.reduce(
+      (value,label)=>value.split(label).join(' '.repeat(label.length)),text
+    );
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
       .map(element=>({element,text:clean(element.innerText||element.textContent)}))
-      .filter(entry=>entry.text.length<240&&accepted.some(label=>entry.text.includes(label))&&!excluded.some(label=>entry.text.includes(label)))
+      .filter(entry=>entry.text.length<240&&accepted.some(label=>scrubExcluded(entry.text).includes(label)))
       .sort((a,b)=>a.text.length-b.text.length);
+    let labelSeen=candidates.length>0;
     for(const entry of candidates){
       let node=entry.element;
       for(let depth=0;node&&depth<5;depth++,node=node.parentElement){
         const text=clean(node.innerText||node.textContent);
         if(text.length>500) break;
-        const label=accepted.find(value=>text.includes(value));
-        if(!label||excluded.some(value=>text.includes(value))) continue;
-        const index=text.indexOf(label);
-        const after=text.slice(index+label.length,index+label.length+120);
+        const searchable=scrubExcluded(text);
+        const label=accepted.find(value=>searchable.includes(value));
+        if(!label) continue;
+        labelSeen=true;
+        const index=searchable.indexOf(label);
+        const tail=text.slice(index+label.length);
+        const nextLabelIndexes=[...accepted,...excluded]
+          .map(value=>tail.indexOf(value)).filter(value=>value>=0);
+        const boundary=nextLabelIndexes.length?Math.min(...nextLabelIndexes):tail.length;
+        const after=tail.slice(0,Math.min(boundary,120));
         const match=after.match(/-?\s*([0-9][0-9,]*)\s*원/);
         if(!match) continue;
         const amount=Number(match[1].replace(/,/g,''));
         if(Number.isInteger(amount)&&amount>=0&&amount<=7000000) return {status:'captured',amount};
       }
     }
-    return {status:'missing',amount:null};
+    return {status:labelSeen?'unverified':'missing',amount:null};
   };
   const bodyText=clean(document.body?.innerText);
   const discountEvidence=[...new Set([...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
     .filter(visible)
     .map(element=>clean(element.innerText||element.textContent))
-    .filter(text=>text.length>=3&&text.length<=120&&/(?:일반\s*쿠폰할인|상품\s*쿠폰(?:할인)?|쿠폰할인(?:\s*변경)?|와우(?:회원| 전용)?\s*즉시할인|와우(?:회원| 전용)?\s*쿠폰할인)/.test(text))
+    .filter(text=>text.length>=3&&text.length<=120&&/(?:일반\s*쿠폰할인|상품\s*쿠폰(?:할인)?|쿠폰할인(?:\s*변경)?|와우(?:회원|\s*전용)?\s*즉시할인|와우(?:회원|\s*전용)?\s*쿠폰할인)/.test(text))
     .filter(text=>!/(?:결제수단|신용|체크카드|카드번호|쿠페이|캐시|약관|개인정보|https?:|mercury\.coupang|thumbnail|impressionLog)/i.test(text)))]
     .sort((a,b)=>a.length-b.length).slice(0,20);
   const paymentButtonPresent=[...document.querySelectorAll('button,[role="button"]')]
@@ -937,13 +947,17 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     await wait(4000);
     let page,confirmedPage,reconciled;
     let regular=null,instant=null,coupon=null,wowMemberTotal=null;
+    let regularStatus='missing',instantStatus='missing',couponStatus='missing';
     for(let attempt=0;attempt<4;attempt++){
       const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
       page=read?.[0]?.result;
       if(page?.ok) confirmedPage=page;
-      if(page?.regularCouponDiscount?.status==='captured') regular=page.regularCouponDiscount.amount;
-      if(page?.wowInstantDiscount?.status==='captured') instant=page.wowInstantDiscount.amount;
-      if(page?.wowCouponDiscount?.status==='captured') coupon=page.wowCouponDiscount.amount;
+      if(page?.regularCouponDiscount?.status==='captured') { regular=page.regularCouponDiscount.amount; regularStatus='captured'; }
+      else if(page?.regularCouponDiscount?.status==='unverified'&&regularStatus!=='captured') regularStatus='unverified';
+      if(page?.wowInstantDiscount?.status==='captured') { instant=page.wowInstantDiscount.amount; instantStatus='captured'; }
+      else if(page?.wowInstantDiscount?.status==='unverified'&&instantStatus!=='captured') instantStatus='unverified';
+      if(page?.wowCouponDiscount?.status==='captured') { coupon=page.wowCouponDiscount.amount; couponStatus='captured'; }
+      else if(page?.wowCouponDiscount?.status==='unverified'&&couponStatus!=='captured') couponStatus='unverified';
       if(page?.wowMemberTotal?.status==='captured') wowMemberTotal=page.wowMemberTotal.amount;
       // Retry absent rows because checkout discounts can render after the page
       // shell. Only after the final read are stable absences converted to zero.
@@ -956,6 +970,19 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
         checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',
         checkoutCouponDiscount:null,checkoutCouponSource:null,
         wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page?.discountEvidence||[]
+      };
+    }
+    const unparsedFields=[];
+    if(!Number.isFinite(regular)&&regularStatus==='unverified') unparsedFields.push('checkoutCouponDiscount');
+    if(!Number.isFinite(instant)&&instantStatus==='unverified') unparsedFields.push('wowInstantDiscount');
+    if(!Number.isFinite(coupon)&&couponStatus==='unverified') unparsedFields.push('wowCouponDiscount');
+    if(unparsedFields.length){
+      return {
+        checkoutDiscountStatus:'unverified',checkoutDiscountReason:'checkout-discount-label-present-amount-unparsed',
+        checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null,
+        checkoutProductDiscount:productPageCouponDiscount,
+        checkoutWowMemberTotal:wowMemberTotal,checkoutDiscountCapturedAt:page.capturedAt,
+        checkoutUnparsedFields:unparsedFields,checkoutDiscountEvidence:page.discountEvidence||[]
       };
     }
     reconciled=reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal);

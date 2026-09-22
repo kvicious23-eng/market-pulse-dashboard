@@ -5,12 +5,13 @@ import vm from "node:vm";
 const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
-assert.equal(manifest.version,"1.8.9");
+assert.equal(manifest.version,"1.9.0");
 assert.match(source,/version:5,/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.8\.9'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.0'/);
+assert.match(source,/checkout-discount-label-present-amount-unparsed/);
 assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
 assert.match(importer,/'수집결과'=if\(\$historyCollectionSucceeded\)\{'success'\}else\{'failed'\}/);
 
@@ -61,6 +62,20 @@ assert.deepEqual(readCheckoutRows([
   element("와우회원 총 추가 혜택 -227,800원")
 ]),{
   regular:{status:"missing",amount:null},
+  instant:{status:"captured",amount:80000},
+  coupon:{status:"captured",amount:147800},
+  wowTotal:{status:"captured",amount:227800}
+});
+assert.deepEqual(readCheckoutRows([
+  element("쿠폰할인 변경 -130,000원 와우전용 즉시할인 -80,000원 와우전용 쿠폰할인 변경 -147,800원 와우회원 총 추가 혜택 -227,800원")
+]),expectedCheckoutRead);
+assert.deepEqual(readCheckoutRows([
+  element("쿠폰할인 변경"),
+  element("와우전용 즉시할인 -80,000원"),
+  element("와우전용 쿠폰할인 변경 -147,800원"),
+  element("와우회원 총 추가 혜택 -227,800원")
+]),{
+  regular:{status:"unverified",amount:null},
   instant:{status:"captured",amount:80000},
   coupon:{status:"captured",amount:147800},
   wowTotal:{status:"captured",amount:227800}

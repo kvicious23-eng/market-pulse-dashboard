@@ -38,16 +38,16 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v5 and scanner 1.8.9 are required for checkout capture of all three
+# Payload v5 and scanner 1.9.0 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
 if ([int]$payload.version -ne 5) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.9 and scan again.'
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.0 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.8.9') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.8.9 and scan again.'
+if ($extensionVersion -lt [version]'1.9.0') {
+  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.0 and scan again.'
 }
 
 $payloadResults=@($payload.results)
