@@ -5,12 +5,12 @@ import vm from "node:vm";
 const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
-assert.equal(manifest.version,"1.8.8");
+assert.equal(manifest.version,"1.8.9");
 assert.match(source,/version:5,/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.8\.8'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.8\.9'/);
 assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
 assert.match(importer,/'수집결과'=if\(\$historyCollectionSucceeded\)\{'success'\}else\{'failed'\}/);
 
@@ -21,38 +21,50 @@ const element=text=>({
   innerText:text,textContent:text,parentElement:null,
   getBoundingClientRect:()=>({width:100,height:20})
 });
-const checkoutRows=[
-  element("쿠폰할인 변경 -130,000원"),
-  element("와우 전용 즉시할인 -80,000원"),
-  element("와우 전용 쿠폰할인 변경 -147,800원"),
-  element("와우회원 총 추가 혜택 -227,800원")
-];
 const paymentButton=element("결제하기");
-const checkoutContext={
-  document:{
-    body:{innerText:"주문 / 결제"},
-    querySelectorAll:selector=>selector==="dt,dd,li,tr,div,span,p"?checkoutRows:selector==='button,[role="button"]'?[paymentButton]:[]
-  },
-  getComputedStyle:()=>({display:"block",visibility:"visible"}),
-  location:{hostname:"checkout.coupang.com",pathname:"/order"},
-  Date
+const readCheckoutRows=rows=>{
+  const checkoutContext={
+    document:{
+      body:{innerText:"주문 / 결제"},
+      querySelectorAll:selector=>selector==="dt,dd,li,tr,div,span,p"?rows:selector==='button,[role="button"]'?[paymentButton]:[]
+    },
+    getComputedStyle:()=>({display:"block",visibility:"visible"}),
+    location:{hostname:"checkout.coupang.com",pathname:"/order"},
+    Date
+  };
+  vm.runInNewContext(`${source.slice(checkoutStart,checkoutEnd)};this.readCheckoutDiscounts=readCheckoutDiscounts;`,checkoutContext);
+  const read=checkoutContext.readCheckoutDiscounts();
+  return JSON.parse(JSON.stringify({
+    regular:read.regularCouponDiscount,
+    instant:read.wowInstantDiscount,
+    coupon:read.wowCouponDiscount,
+    wowTotal:read.wowMemberTotal
+  }));
 };
-vm.runInNewContext(`${source.slice(checkoutStart,checkoutEnd)};this.readCheckoutDiscounts=readCheckoutDiscounts;`,checkoutContext);
-const checkoutRead=checkoutContext.readCheckoutDiscounts();
-assert.deepEqual(
-  JSON.parse(JSON.stringify({
-    regular:checkoutRead.regularCouponDiscount,
-    instant:checkoutRead.wowInstantDiscount,
-    coupon:checkoutRead.wowCouponDiscount,
-    wowTotal:checkoutRead.wowMemberTotal
-  })),
-  {
-    regular:{status:"captured",amount:130000},
-    instant:{status:"captured",amount:80000},
-    coupon:{status:"captured",amount:147800},
-    wowTotal:{status:"captured",amount:227800}
-  }
-);
+const expectedCheckoutRead={
+  regular:{status:"captured",amount:130000},
+  instant:{status:"captured",amount:80000},
+  coupon:{status:"captured",amount:147800},
+  wowTotal:{status:"captured",amount:227800}
+};
+for(const wowPrefix of ["와우 전용","와우전용"]){
+  assert.deepEqual(readCheckoutRows([
+    element("쿠폰할인 변경 -130,000원"),
+    element(`${wowPrefix} 즉시할인 -80,000원`),
+    element(`${wowPrefix} 쿠폰할인 변경 -147,800원`),
+    element("와우회원 총 추가 혜택 -227,800원")
+  ]),expectedCheckoutRead);
+}
+assert.deepEqual(readCheckoutRows([
+  element("와우전용 즉시할인 -80,000원"),
+  element("와우전용 쿠폰할인 변경 -147,800원"),
+  element("와우회원 총 추가 혜택 -227,800원")
+]),{
+  regular:{status:"missing",amount:null},
+  instant:{status:"captured",amount:80000},
+  coupon:{status:"captured",amount:147800},
+  wowTotal:{status:"captured",amount:227800}
+});
 const start=source.indexOf("function reconcileCheckoutDiscounts(");
 const end=source.indexOf("\n\nasync function collectCheckoutDiscountsForTarget",start);
 assert.ok(start>=0&&end>start,"checkout three-discount reconciler was not found");
