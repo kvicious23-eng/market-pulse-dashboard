@@ -5,23 +5,34 @@ import vm from "node:vm";
 const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
-assert.equal(manifest.version,"1.9.0");
+const dashboard=fs.readFileSync("dist/app.js","utf8");
+assert.equal(manifest.version,"1.9.1");
 assert.match(source,/version:5,/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.0'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.1'/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
+assert.match(importer,/checkoutUnparsedFields/);
+assert.match(importer,/checkoutDiscountFieldStatus/);
+assert.match(importer,/checkoutDiscountEvidence/);
+assert.match(dashboard,/checkoutDiscountFieldStatus/);
+assert.match(dashboard,/금액 판독 실패/);
+assert.match(dashboard,/주문서 할인 근거/);
 assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
 assert.match(importer,/'수집결과'=if\(\$historyCollectionSucceeded\)\{'success'\}else\{'failed'\}/);
 
 const checkoutStart=source.indexOf("function readCheckoutDiscounts(");
 const checkoutEnd=source.indexOf("\n\nfunction reconcileCheckoutDiscounts",checkoutStart);
 assert.ok(checkoutStart>=0&&checkoutEnd>checkoutStart,"checkout reader was not found");
-const element=text=>({
-  innerText:text,textContent:text,parentElement:null,
+const element=(text,parentElement=null)=>({
+  innerText:text,textContent:text,parentElement,
   getBoundingClientRect:()=>({width:100,height:20})
 });
+const siblingRow=(label,amount)=>{
+  const parent=element(`${label}\n${amount}`);
+  return [element(label,parent),element(amount,parent),parent];
+};
 const paymentButton=element("결제하기");
 const readCheckoutRows=rows=>{
   const checkoutContext={
@@ -68,6 +79,18 @@ assert.deepEqual(readCheckoutRows([
 });
 assert.deepEqual(readCheckoutRows([
   element("쿠폰할인 변경 -130,000원 와우전용 즉시할인 -80,000원 와우전용 쿠폰할인 변경 -147,800원 와우회원 총 추가 혜택 -227,800원")
+]),expectedCheckoutRead);
+assert.deepEqual(readCheckoutRows([
+  element("−130,000원 쿠폰 할인 변경"),
+  element("–80,000원 와우 전용 즉시 할인"),
+  element("—147,800원 와우전용 쿠폰 할인 변경"),
+  element("−227,800원 와우 회원 총 추가 혜택")
+]),expectedCheckoutRead);
+assert.deepEqual(readCheckoutRows([
+  ...siblingRow("쿠폰할인 변경","-130,000원"),
+  ...siblingRow("와우 전용 즉시할인","₩80,000"),
+  ...siblingRow("와우전용 쿠폰할인 변경","-147,800원"),
+  ...siblingRow("와우회원 총 추가 혜택","-227,800원")
 ]),expectedCheckoutRead);
 assert.deepEqual(readCheckoutRows([
   element("쿠폰할인 변경"),

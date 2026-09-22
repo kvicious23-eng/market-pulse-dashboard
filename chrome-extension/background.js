@@ -831,41 +831,103 @@ function enterCheckoutDiagnostic(expectedItemId) {
 
 function readCheckoutDiscounts() {
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
+  const compact=value=>clean(value).replace(/\s+/g,'');
   const visible=element=>{
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
   };
   const readAmount=(labels,excludedLabels=[])=>{
-    const accepted=(Array.isArray(labels)?labels:[labels]).filter(Boolean).sort((a,b)=>b.length-a.length);
-    const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean);
-    const scrubExcluded=text=>excluded.reduce(
-      (value,label)=>value.split(label).join(' '.repeat(label.length)),text
-    );
+    const accepted=(Array.isArray(labels)?labels:[labels]).filter(Boolean).map(compact).sort((a,b)=>b.length-a.length);
+    const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean).map(compact);
+    const allDiscountLabels=[
+      '일반쿠폰할인','상품쿠폰할인','쿠폰할인','와우전용즉시할인','와우회원즉시할인','와우즉시할인',
+      '와우전용쿠폰할인','와우회원쿠폰할인','와우쿠폰할인','와우회원총추가혜택','와우총추가혜택'
+    ];
+    const mapCompact=text=>{
+      const normalized=String(text||'').replace(/\r/g,'');
+      let value='';
+      const rawIndexes=[];
+      for(let index=0;index<normalized.length;index++){
+        if(/\s/.test(normalized[index])) continue;
+        value+=normalized[index];
+        rawIndexes.push(index);
+      }
+      return {raw:normalized,value,rawIndexes};
+    };
+    const occurrences=(value,aliases)=>{
+      const found=[];
+      for(const alias of aliases){
+        let index=value.indexOf(alias);
+        while(index>=0){
+          found.push({start:index,end:index+alias.length,label:alias});
+          index=value.indexOf(alias,index+1);
+        }
+      }
+      return found.sort((a,b)=>a.start-b.start||b.label.length-a.label.length);
+    };
+    const parseAmounts=text=>{
+      const found=[];
+      const patterns=[
+        /[-\u2212\u2013\u2014]?\s*([0-9][0-9,]*)\s*원/g,
+        /[-\u2212\u2013\u2014]?\s*\u20a9\s*([0-9][0-9,]*)/g
+      ];
+      for(const pattern of patterns){
+        for(const match of text.matchAll(pattern)){
+          const amount=Number(match[1].replace(/,/g,''));
+          if(Number.isInteger(amount)&&amount>=0&&amount<=7000000){
+            found.push({amount,index:match.index,end:match.index+match[0].length});
+          }
+        }
+      }
+      return found.sort((a,b)=>a.index-b.index);
+    };
+    const extractFromContext=text=>{
+      const mapped=mapCompact(text);
+      let searchable=mapped.value;
+      const excludedOccurrences=occurrences(searchable,excluded);
+      if(excludedOccurrences.length){
+        const chars=[...searchable];
+        for(const match of excludedOccurrences) for(let i=match.start;i<match.end;i++) chars[i]=' ';
+        searchable=chars.join('');
+      }
+      const target=occurrences(searchable,accepted)[0];
+      if(!target) return {labelSeen:false,amount:null};
+      const boundaries=occurrences(mapped.value,allDiscountLabels)
+        .filter(match=>match.start!==target.start||match.end!==target.end);
+      const previous=boundaries.filter(match=>match.end<=target.start).sort((a,b)=>b.end-a.end)[0];
+      const next=boundaries.filter(match=>match.start>=target.end).sort((a,b)=>a.start-b.start)[0];
+      const rawStart=target.start<mapped.rawIndexes.length?mapped.rawIndexes[target.start]:0;
+      const rawEndIndex=Math.min(target.end-1,mapped.rawIndexes.length-1);
+      const rawEnd=rawEndIndex>=0?mapped.rawIndexes[rawEndIndex]+1:rawStart;
+      const beforeBoundary=previous&&previous.end<mapped.rawIndexes.length?mapped.rawIndexes[previous.end]:Math.max(0,rawStart-160);
+      const afterBoundary=next&&next.start<mapped.rawIndexes.length?mapped.rawIndexes[next.start]:Math.min(mapped.raw.length,rawEnd+200);
+      const after=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+160));
+      const afterAmounts=parseAmounts(after);
+      if(afterAmounts.length) return {labelSeen:true,amount:afterAmounts[0].amount};
+      const before=mapped.raw.slice(Math.max(beforeBoundary,rawStart-120),rawStart);
+      const beforeAmounts=parseAmounts(before);
+      if(beforeAmounts.length) return {labelSeen:true,amount:beforeAmounts[beforeAmounts.length-1].amount};
+      return {labelSeen:true,amount:null};
+    };
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
       .map(element=>({element,text:clean(element.innerText||element.textContent)}))
-      .filter(entry=>entry.text.length<240&&accepted.some(label=>scrubExcluded(entry.text).includes(label)))
+      .filter(entry=>entry.text.length<300&&accepted.some(label=>{
+        let value=compact(entry.text);
+        for(const excludedLabel of excluded) value=value.split(excludedLabel).join(' '.repeat(excludedLabel.length));
+        return value.includes(label);
+      }))
       .sort((a,b)=>a.text.length-b.text.length);
     let labelSeen=candidates.length>0;
     for(const entry of candidates){
       let node=entry.element;
       for(let depth=0;node&&depth<5;depth++,node=node.parentElement){
-        const text=clean(node.innerText||node.textContent);
-        if(text.length>500) break;
-        const searchable=scrubExcluded(text);
-        const label=accepted.find(value=>searchable.includes(value));
-        if(!label) continue;
+        const text=String(node.innerText||node.textContent||'');
+        if(clean(text).length>800) break;
+        const extracted=extractFromContext(text);
+        if(!extracted.labelSeen) continue;
         labelSeen=true;
-        const index=searchable.indexOf(label);
-        const tail=text.slice(index+label.length);
-        const nextLabelIndexes=[...accepted,...excluded]
-          .map(value=>tail.indexOf(value)).filter(value=>value>=0);
-        const boundary=nextLabelIndexes.length?Math.min(...nextLabelIndexes):tail.length;
-        const after=tail.slice(0,Math.min(boundary,120));
-        const match=after.match(/-?\s*([0-9][0-9,]*)\s*원/);
-        if(!match) continue;
-        const amount=Number(match[1].replace(/,/g,''));
-        if(Number.isInteger(amount)&&amount>=0&&amount<=7000000) return {status:'captured',amount};
+        if(Number.isFinite(extracted.amount)) return {status:'captured',amount:extracted.amount};
       }
     }
     return {status:labelSeen?'unverified':'missing',amount:null};
@@ -977,12 +1039,18 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     if(!Number.isFinite(instant)&&instantStatus==='unverified') unparsedFields.push('wowInstantDiscount');
     if(!Number.isFinite(coupon)&&couponStatus==='unverified') unparsedFields.push('wowCouponDiscount');
     if(unparsedFields.length){
+      const partialRegular=Number.isFinite(regular)?regular:(regularStatus==='missing'?0:null);
+      const partialInstant=Number.isFinite(instant)?instant:(instantStatus==='missing'?0:null);
+      const partialCoupon=Number.isFinite(coupon)?coupon:(couponStatus==='missing'?0:null);
       return {
         checkoutDiscountStatus:'unverified',checkoutDiscountReason:'checkout-discount-label-present-amount-unparsed',
-        checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null,
+        checkoutCouponDiscount:partialRegular,checkoutCouponSource:Number.isFinite(partialRegular)?'checkout':null,
+        wowInstantDiscount:partialInstant,wowCouponDiscount:partialCoupon,
         checkoutProductDiscount:productPageCouponDiscount,
         checkoutWowMemberTotal:wowMemberTotal,checkoutDiscountCapturedAt:page.capturedAt,
-        checkoutUnparsedFields:unparsedFields,checkoutDiscountEvidence:page.discountEvidence||[]
+        checkoutUnparsedFields:unparsedFields,
+        checkoutDiscountFieldStatus:{regular:regularStatus,wowInstant:instantStatus,wowCoupon:couponStatus},
+        checkoutDiscountEvidence:page.discountEvidence||[]
       };
     }
     reconciled=reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal);

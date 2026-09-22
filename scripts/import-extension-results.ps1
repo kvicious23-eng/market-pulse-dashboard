@@ -38,16 +38,16 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v5 and scanner 1.9.0 are required for evidence-aware checkout capture of all three
+# Payload v5 and scanner 1.9.1 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
 if ([int]$payload.version -ne 5) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.0 and scan again.'
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.1 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.9.0') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.0 and scan again.'
+if ($extensionVersion -lt [version]'1.9.1') {
+  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.1 and scan again.'
 }
 
 $payloadResults=@($payload.results)
@@ -75,6 +75,19 @@ function Get-SafeCardBenefitText([string]$value) {
   if ($compact.Length -gt 240) { return $compact.Substring(0,240) }
   return $compact
 }
+function Get-SafeCheckoutEvidence($values) {
+  $safe=@()
+  foreach ($value in @($values)) {
+    $compact=[regex]::Replace([string]$value,'\s+',' ').Trim()
+    if (-not $compact) { continue }
+    if ($compact -notmatch '(일반\s*쿠폰할인|상품\s*쿠폰\s*할인|쿠폰\s*할인|와우.*(?:즉시|쿠폰)\s*할인|와우.*총\s*추가\s*혜택)') { continue }
+    if ($compact -match '(결제수단|카드번호|배송지|수령인|전화번호|개인정보|쿠페이|쿠팡캐시|https?://)') { continue }
+    if ($compact.Length -gt 180) { $compact=$compact.Substring(0,180) }
+    if ($safe -notcontains $compact) { $safe+=$compact }
+    if ($safe.Count -ge 12) { break }
+  }
+  return @($safe)
+}
 function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
   $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
   $reason=[string]$result.checkoutDiscountReason
@@ -90,7 +103,10 @@ function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
     return [pscustomobject]@{Status='soldout';Reason=$reason;Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
   }
   if ($status -ne 'captured') {
-    return [pscustomobject]@{Status=$status;Reason=$reason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+    $partialRegular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
+    $partialInstant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
+    $partialCoupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
+    return [pscustomobject]@{Status=$status;Reason=$reason;Regular=$partialRegular;Instant=$partialInstant;Coupon=$partialCoupon;Total=$null}
   }
   if ([string]$result.checkoutCouponSource -ne 'checkout') {
     return [pscustomobject]@{Status='unverified';Reason='checkout-coupon-source-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
@@ -350,6 +366,9 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
+      $mine | Add-Member -NotePropertyName checkoutUnparsedFields -NotePropertyValue @($result.checkoutUnparsedFields | Where-Object { $_ }) -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountFieldStatus -NotePropertyValue $result.checkoutDiscountFieldStatus -Force
+      $mine | Add-Member -NotePropertyName checkoutDiscountEvidence -NotePropertyValue @(Get-SafeCheckoutEvidence $result.checkoutDiscountEvidence) -Force
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $alertEligible -Force
       $priceChange=if($alertEligible -and $null -ne $previousFinalPrice){[long]$currentVerifiedFinal-[long]$previousFinalPrice}else{$null}
       $priceTrend=if($null -eq $priceChange){'unavailable'}elseif($priceChange -lt 0){'down'}elseif($priceChange -gt 0){'up'}else{'same'}
