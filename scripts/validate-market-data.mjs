@@ -44,10 +44,19 @@ for(const file of [...new Set(files)]){
       const layers=[mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.wowCouponDiscount];
       if(!layers.every(value=>finite(value)&&value>=0)) fail(file,`${label}: captured checkout layers are incomplete`);
       if(finite(mine.observedListPrice)&&finite(mine.preCardPrice)){
-        const expected=mine.observedListPrice-mine.preCardPrice;
+        const expected=mine.observedListPrice-(mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0));
         const total=layers.reduce((sum,value)=>sum+value,0);
         if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
       }
+    }
+    if(finite(mine.observedListPrice)&&finite(mine.productPagePrice)){
+      const expectedGeneral=mine.observedListPrice-mine.productPagePrice;
+      if(expectedGeneral<0) fail(file,`${label}: product-page price exceeds displayed basis price`);
+      if(mine.checkoutCouponDiscount!==expectedGeneral) fail(file,`${label}: general coupon ${mine.checkoutCouponDiscount} does not equal product-page discount ${expectedGeneral}`);
+    }
+    if(soldOut(mine)&&finite(mine.productPagePrice)){
+      if(finite(mine.wowInstantDiscount)||finite(mine.wowCouponDiscount)) fail(file,`${label}: sold-out offer cannot have current checkout WOW discounts`);
+      if(finite(mine.preCardPrice)) fail(file,`${label}: sold-out offer cannot have a current pre-card price`);
     }
     if(mine.cardBenefitStatus==="captured"){
       if(!finite(mine.cardRate)||mine.cardRate<=0||mine.cardRate>100) fail(file,`${label}: captured cardRate is invalid`);

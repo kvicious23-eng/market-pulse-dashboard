@@ -92,8 +92,11 @@
         : offer?.finalPrice;
     const matchingDifference = Number.isFinite(srp) && Number.isFinite(basisPrice)
       ? basisPrice - srp : null;
-    const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardPrice) && basisPrice >= preCardPrice
-      ? basisPrice - preCardPrice : null;
+    const shipping = Number.isFinite(offer?.shipping) ? offer.shipping : 0;
+    const preCardItemPrice = Number.isFinite(preCardPrice) ? preCardPrice - shipping : null;
+    const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardItemPrice) && basisPrice >= preCardItemPrice
+      ? basisPrice - preCardItemPrice
+      : Number.isFinite(offer?.couponDiscount) ? offer.couponDiscount : null;
     return { srp, basisPrice, preCardPrice, matchingDifference, couponDiscount };
   }
 
@@ -105,7 +108,7 @@
       && Number.isFinite(regular) && Number.isFinite(instant) && Number.isFinite(coupon)
       && Number.isFinite(couponTotal) && regular + instant + coupon === couponTotal;
     const detailStatus = captured ? "captured" : offer?.checkoutDiscountStatus === "summary" ? "summary" : "missing";
-    return { regular: captured ? regular : null, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured, detailStatus };
+    return { regular, instant: captured ? instant : null, coupon: captured ? coupon : null, total: couponTotal, captured, detailStatus };
   }
 
   function checkoutDiscountText(value, detailStatus = "missing") {

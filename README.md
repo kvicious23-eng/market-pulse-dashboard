@@ -4,20 +4,22 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 
 ## 자동 실행
 
-- 매일 오전 10:00 KST: 기본 가격 점검과 정밀 점검을 함께 실행
-- 조사 완료 후 GitHub Pages에 자동 배포
+- 국내 Windows PC에서 매일 오전 08:00 KST에 Chrome 확장프로그램 수집
+- 오전 08:30 KST에 당일 JSON 검증·히스토리 누적·GitHub 업로드
+- 업로드 실패 시 Windows 작업 스케줄러가 15분 간격으로 최대 3회 재시도
+- GitHub 업로드 후 Actions 검증을 통과하면 Pages에 자동 배포
 - Actions의 **Market Pulse Update → Run workflow**에서 즉시 수동 실행 가능
-- 실행할 때마다 `dist/market-data.js`의 조사 시각, 출처별 성공 여부와 검증 가격을 갱신
+- 실행할 때마다 `/brand/{slug}/market-data.js`의 조사 시각, 출처별 성공 여부와 검증 가격을 갱신
 - 가격 숫자는 페이지에서 재확인된 경우에만 변경
-- 쿠팡 와우/회원가는 로그인 검증 없이 추정하지 않음
-
-GitHub Actions 스케줄은 UTC 기준이며 혼잡 시 몇 분 지연될 수 있습니다.
+- 예약 업로드 로그는 `C:\MarketPulse\reports\scheduled-upload.log`에 남김
 
 
 ## 브랜드 대시보드
 
 - Lenovo: `/brand/lenovo/`
 - Acer: `/brand/acer/`
-- 신규 브랜드: 상품 관리 화면에서 저장 후 `/brand/{브랜드}/` 자동 생성
-- 매일 오전 10:00 KST 기본+정밀 조사 및 자동 배포
+- 신규 브랜드: 상품 관리 화면에서 저장 후 `/brand/{slug}/` 자동 생성
+- 브랜드명은 소문자 URL 슬러그로 정규화하며 공백·특수문자는 `-`로 변환
+- Lenovo와 Acer도 신규 브랜드와 동일한 `/brand/{slug}/index.html` + `market-data.js` 구조 사용
+- 기존 `/`와 `/acer/` 경로는 호환용 별칭으로 유지
 - 동일 MTM·Item ID가 확인된 가격만 현재가로 반영
