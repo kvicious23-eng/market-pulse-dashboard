@@ -907,7 +907,13 @@ function readCheckoutDiscounts() {
       const before=mapped.raw.slice(Math.max(beforeBoundary,rawStart-120),rawStart);
       const beforeAmounts=parseAmounts(before);
       if(beforeAmounts.length) return {labelSeen:true,amount:beforeAmounts[beforeAmounts.length-1].amount};
-      return {labelSeen:true,amount:null};
+      // Coupang always renders a plain "쿠폰할인" section heading. It is not
+      // evidence of an applied regular coupon. A real generic coupon row has
+      // either a readable amount or the adjacent "변경" control. More specific
+      // labels such as 일반/상품 쿠폰할인 remain evidence even without a value.
+      const targetTail=mapped.raw.slice(rawEnd,Math.min(afterBoundary,rawEnd+60));
+      const rowSpecific=target.label!=='쿠폰할인'||/변경/.test(targetTail);
+      return {labelSeen:rowSpecific,amount:null};
     };
     const candidates=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')]
       .filter(visible)
@@ -918,7 +924,7 @@ function readCheckoutDiscounts() {
         return value.includes(label);
       }))
       .sort((a,b)=>a.text.length-b.text.length);
-    let labelSeen=candidates.length>0;
+    let labelSeen=false;
     for(const entry of candidates){
       let node=entry.element;
       for(let depth=0;node&&depth<5;depth++,node=node.parentElement){

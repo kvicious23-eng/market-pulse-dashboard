@@ -6,12 +6,12 @@ const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
-assert.equal(manifest.version,"1.9.1");
+assert.equal(manifest.version,"1.9.2");
 assert.match(source,/version:5,/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.1'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.2'/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
 assert.match(importer,/checkoutUnparsedFields/);
 assert.match(importer,/checkoutDiscountFieldStatus/);
@@ -68,7 +68,9 @@ for(const wowPrefix of ["와우 전용","와우전용"]){
   ]),expectedCheckoutRead);
 }
 assert.deepEqual(readCheckoutRows([
+  element("쿠폰할인"),
   element("와우전용 즉시할인 -80,000원"),
+  element("와우 전용 쿠폰할인"),
   element("와우전용 쿠폰할인 변경 -147,800원"),
   element("와우회원 총 추가 혜택 -227,800원")
 ]),{
