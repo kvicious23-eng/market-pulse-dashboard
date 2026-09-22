@@ -38,16 +38,16 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v5 and scanner 1.8.7 are required for checkout capture of all three
+# Payload v5 and scanner 1.8.8 are required for checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
 if ([int]$payload.version -ne 5) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.7 and scan again.'
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.8.8 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.8.7') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.8.7 and scan again.'
+if ($extensionVersion -lt [version]'1.8.8') {
+  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.8.8 and scan again.'
 }
 
 $payloadResults=@($payload.results)
@@ -262,6 +262,8 @@ foreach ($spec in $specs) {
     if (-not $mine) { continue }
     $alertEligible=$false
     $currentVerifiedFinal=$null
+    $checkoutStatus='missing'
+    $soldOut=$false
     $previousFinalPrice=if($null -ne $mine.lastVerifiedFinalPrice){[long]$mine.lastVerifiedFinalPrice}elseif($mine.alertEligible -eq $true -and $null -ne $mine.finalPrice){[long]$mine.finalPrice}else{$null}
     $previousPriceCheckedAt=if($mine.lastVerifiedPriceCheckedAt){[string]$mine.lastVerifiedPriceCheckedAt}elseif($null -ne $previousFinalPrice){[string]$mine.priceCheckedAt}else{''}
     if ($null -ne $previousFinalPrice) {
@@ -390,6 +392,7 @@ foreach ($spec in $specs) {
       }
     }
     $historyHasCurrentPrice=($result.ok -eq $true)
+    $historyCollectionSucceeded=$alertEligible -or ($checkoutStatus -eq 'soldout' -and $null -ne $checkoutCoupon)
     $historySrp=if($historyHasCurrentPrice -and $null -ne $mine.srp){$mine.srp}elseif($historyHasCurrentPrice -and $null -ne $product.srp){$product.srp}else{$null}
     $historyBasis=if($historyHasCurrentPrice){$mine.observedListPrice}else{$null}
     $historyPreCard=if($historyHasCurrentPrice){$mine.preCardPrice}else{$null}
@@ -402,7 +405,7 @@ foreach ($spec in $specs) {
       '브랜드'=$spec.Brand
       'MTM'=[string]$product.mtm
       '상태'=[string]$mine.status
-      '수집결과'=if($result.ok){'success'}else{'failed'}
+      '수집결과'=if($historyCollectionSucceeded){'success'}else{'failed'}
       'SRP'=$historySrp
       '표시가'=$historyBasis
       '표시가 종류'=[string]$mine.priceBasisType

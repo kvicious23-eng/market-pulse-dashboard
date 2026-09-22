@@ -876,7 +876,7 @@ function readCheckoutDiscounts() {
     ok:true,host:location.hostname,path:location.pathname,capturedAt:new Date().toISOString(),
     regularCouponDiscount:readAmount(
       ['일반 쿠폰할인','상품 쿠폰할인','쿠폰할인'],
-      ['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인','쿠폰할인 변경']
+      ['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']
     ),
     wowInstantDiscount:readAmount(['와우 전용 즉시할인','와우회원 즉시할인','와우 즉시할인']),
     wowCouponDiscount:readAmount(['와우 전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']),

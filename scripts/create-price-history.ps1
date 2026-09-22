@@ -42,7 +42,7 @@ foreach ($spec in $specs) {
       '브랜드'=$brand
       'MTM'=[string]$product.mtm
       '상태'=[string]$mine.status
-      '수집결과'=if($mine.alertEligible -eq $true){'success'}else{'failed'}
+      '수집결과'=if($mine.alertEligible -eq $true -or ([string]$mine.checkoutDiscountStatus -eq 'soldout' -and $null -ne $mine.checkoutCouponDiscount)){'success'}else{'failed'}
       'SRP'=$srp
       '표시가'=$basis
       '표시가 종류'=[string]$mine.priceBasisType
