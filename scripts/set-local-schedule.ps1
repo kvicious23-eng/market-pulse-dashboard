@@ -19,9 +19,9 @@ $chromeCandidates = @(
 $chrome = $chromeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $chrome) { throw "Google Chrome is required for the scheduled scanner." }
 
-$importScript = Join-Path $InstallPath "scripts\import-extension-results.ps1"
-if (-not (Test-Path $importScript)) {
-  throw "The result import script was not found at $importScript. Run INSTALL_WINDOWS_SCANNER.cmd first."
+$uploadRunner = Join-Path $InstallPath "scripts\run-scheduled-upload.ps1"
+if (-not (Test-Path $uploadRunner)) {
+  throw "The scheduled upload runner was not found at $uploadRunner. Run INSTALL_WINDOWS_SCANNER.cmd first."
 }
 
 $reportsPath = Join-Path $InstallPath "reports"
@@ -29,7 +29,7 @@ New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
 
 # The scanner runs inside a normal signed-in Chrome session. Starting Chrome at
 # 08:00 also fires the extension's onStartup catch-up logic when Chrome was closed.
-$taskSettings = New-ScheduledTaskSettingsSet `
+$scanTaskSettings = New-ScheduledTaskSettingsSet `
   -StartWhenAvailable `
   -WakeToRun `
   -AllowStartIfOnBatteries `
@@ -41,18 +41,25 @@ Register-ScheduledTask `
   -TaskName $scanTaskName `
   -Action $scanAction `
   -Trigger $scanTrigger `
-  -Settings $taskSettings `
+  -Settings $scanTaskSettings `
   -Description "Start Chrome for the daily Market Pulse scan at 08:00 KST" `
   -Force | Out-Null
 
-$uploadArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $importScript + '" -RepoPath "' + $InstallPath + '" -WaitForToday'
+$uploadTaskSettings = New-ScheduledTaskSettingsSet `
+  -StartWhenAvailable `
+  -WakeToRun `
+  -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries `
+  -RestartCount 3 `
+  -RestartInterval (New-TimeSpan -Minutes 15)
+$uploadArguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $uploadRunner + '" -RepoPath "' + $InstallPath + '"'
 $uploadAction = New-ScheduledTaskAction -Execute $powershell -Argument $uploadArguments
 $uploadTrigger = New-ScheduledTaskTrigger -Daily -At "08:30"
 Register-ScheduledTask `
   -TaskName $uploadTaskName `
   -Action $uploadAction `
   -Trigger $uploadTrigger `
-  -Settings $taskSettings `
+  -Settings $uploadTaskSettings `
   -Description "Upload the daily Market Pulse scan at 08:30 KST" `
   -Force | Out-Null
 
@@ -64,6 +71,7 @@ $uploadTime = $uploadTask.Triggers[0].StartBoundary
 Write-Host "Market Pulse local schedule updated."
 Write-Host "  Automatic scan (Chrome start): $scanTime"
 Write-Host "  Result upload:                 $uploadTime"
+Write-Host "  Upload retry:                  3 retries, every 15 minutes"
 Write-Host "  Missed runs:                   Start when available"
 Write-Host "  Sleep mode:                    Wake the computer to run"
 Write-Host "  Windows time zone:             $localTimeZone"
