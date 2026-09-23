@@ -330,8 +330,12 @@
     const attemptTime = attempt && !Number.isNaN(attempt.getTime())
       ? new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(attempt)
       : null;
+    // The first import after updating a PC may still run the already-loaded
+    // importer script. Keep the displayed schedule correct for that cycle.
+    const quickWatch = monitoring?.quickWatch === "매일 08:00 KST"
+      ? "매일 08:00 · 14:00 KST" : monitoring?.quickWatch;
     $("#automationStrip").innerHTML = monitoring?.enabled ? `
-      <span><i></i>가격 감시 <b>${escapeHtml(monitoring.quickWatch)}</b></span>
+      <span><i></i>가격 감시 <b>${escapeHtml(quickWatch)}</b></span>
       <span><i></i>전체 조사 <b>${escapeHtml(monitoring.fullResearch)}</b></span>
       <span><i></i><b>${escapeHtml(monitoring.dashboardSync)}</b></span>
       ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · ${monitoring.lastAttemptStatus === "success" ? "완료" : "일부 제한"}</b></span>` : ""}` : "";
