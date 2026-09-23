@@ -86,18 +86,21 @@
   function priceBreakdown(offer) {
     const srp = Number.isFinite(offer?.srp) ? offer.srp : null;
     const basisPrice = Number.isFinite(offer?.observedListPrice) ? offer.observedListPrice : null;
-    const preCardPrice = Number.isFinite(offer?.preCardPrice)
+    const verified = offer?.alertEligible === true;
+    const preCardPrice = verified && Number.isFinite(offer?.preCardPrice)
       ? offer.preCardPrice
-      : Number.isFinite(offer?.finalPrice) && Number.isFinite(offer?.cardDiscount)
+      : verified && Number.isFinite(offer?.finalPrice) && Number.isFinite(offer?.cardDiscount)
         ? offer.finalPrice + offer.cardDiscount
-        : offer?.finalPrice;
+        : null;
     const matchingDifference = Number.isFinite(srp) && Number.isFinite(basisPrice)
       ? basisPrice - srp : null;
     const shipping = Number.isFinite(offer?.shipping) ? offer.shipping : 0;
     const preCardItemPrice = Number.isFinite(preCardPrice) ? preCardPrice - shipping : null;
-    const couponDiscount = Number.isFinite(basisPrice) && Number.isFinite(preCardItemPrice) && basisPrice >= preCardItemPrice
-      ? basisPrice - preCardItemPrice
-      : Number.isFinite(offer?.couponDiscount) ? offer.couponDiscount : null;
+    const couponDiscount = verified || isSoldOut(offer)
+      ? Number.isFinite(basisPrice) && Number.isFinite(preCardItemPrice) && basisPrice >= preCardItemPrice
+        ? basisPrice - preCardItemPrice
+        : Number.isFinite(offer?.couponDiscount) ? offer.couponDiscount : null
+      : null;
     return { srp, basisPrice, preCardPrice, matchingDifference, couponDiscount };
   }
 

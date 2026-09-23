@@ -118,6 +118,7 @@ SRP가 비어 있으면 판매가를 대신 표시하지 않고 반드시 `SRP �
 - 내 상품과 경쟁 상품의 현재 `finalPrice`는 `alertEligible: true`가 명시되고, 내 상품은 카드 상태가 `none` 또는 `captured`이며 당일 정상 수집으로 확인된 경우에만 표시·비교한다. 값이 없거나 `false`인 경우뿐 아니라 필드 자체가 없는 과거 데이터도 현재가로 인정하지 않는다.
 - 정상 수집 결과를 가져오면 `alertEligible: true`, 실패하여 이전 검증값을 보존하면 `alertEligible: false`로 기록한다. `false`인 과거값은 보존하되 현재 실구매가·가격 비교·변동 알림에 사용하지 않는다.
 - `lastVerifiedFinalPrice`와 `lastVerifiedPriceCheckedAt`는 마지막 정상 수집값을 별도로 보존한다. 중간 실패·부분 수집·품절 뒤 다시 정상 수집되더라도 직전 정상값과 가격 변동을 비교한다.
+- 현재 수집이 검증 보류라면 보존된 과거 최종가로 현재 쿠폰 합계나 카드할인 전 가격을 역산해 보여주지 않는다. 현재 할인 상세가 확인되지 않았으면 `미확인`으로 표시한다.
 - 경쟁사 가격은 내 상품과 같은 수집일이고 `alertEligible: true`인 값만 현재 비교·알림에 사용한다. 경쟁사 수집 실패 시 과거값은 보존하되 `alertEligible: false`로 전환한다. GitHub 수동 경쟁가 조사는 Chrome이 검증한 내 상품의 상태·가격·`alertEligible`을 변경하지 않는다.
 - 다나와 등 외부 출처의 조건부 카드가, 과거 참고가, `conditionalBest` 및 `conditionalLabel`은 현재 쿠팡 실구매가 옆에 표시하지 않는다.
 - 카드사명·할인율·한도·카드 적용가는 정확한 쿠팡 Item ID의 현재 카드 팝업에서 `captured`로 검증된 경우에만 현재 혜택으로 표시한다.
