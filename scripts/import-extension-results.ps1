@@ -10,10 +10,27 @@ $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $minimumStart=if ($ExpectedSlotStart) { [DateTimeOffset]::Parse($ExpectedSlotStart) } else { $null }
 
+# Windows PowerShell 5.1 can surface Git's normal stderr progress (for example,
+# "From https://github.com/...") as an ErrorRecord. Judge Git by its exit code.
+function Invoke-Git {
+  param([string[]]$Arguments, [int[]]$AcceptedExitCodes = @(0))
+  $previousPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    & git -C $RepoPath @Arguments
+    $gitExitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  if ($gitExitCode -notin $AcceptedExitCodes) {
+    throw "Git $($Arguments -join ' ') failed (exit $gitExitCode)."
+  }
+  return $gitExitCode
+}
+
 # Keep the C:\MarketPulse checkout and brand-generation template current before
 # importing a scan. This makes future shared-dashboard changes self-updating.
-git -C $RepoPath pull --rebase origin main
-if ($LASTEXITCODE -ne 0) { throw 'Dashboard update failed before result import.' }
+Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 
 function Get-LatestResultPath {
   return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
@@ -244,7 +261,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
   }
 }
 
-git -C $RepoPath pull --rebase origin main
+Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 $historyRows=@()
 $specs=@(
   @{Brand='Lenovo';Path='brand\lenovo\market-data.js'},
@@ -279,8 +296,7 @@ foreach ($spec in $specs) {
 }
 if ($alreadyImported) {
   Write-Host "This scan was already imported at $scanKst; retrying the pending push."
-  git -C $RepoPath push origin main
-  if ($LASTEXITCODE -ne 0) { throw 'Dashboard upload to GitHub failed.' }
+  Invoke-Git -Arguments @('push','origin','main') | Out-Null
   return
 }
 foreach ($spec in $specs) {
@@ -565,14 +581,11 @@ if ($historyRows.Count -gt 0) {
   [IO.File]::WriteAllText((Join-Path $RepoPath 'dist\price-history.js'),"window.MARKET_PULSE_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
   Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
-if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
-git -C $RepoPath add -- dist/price-history.js
-git -C $RepoPath diff --cached --quiet
-if ($LASTEXITCODE -ne 0) {
-  git -C $RepoPath commit -m 'data: import Coupang prices from Chrome extension'
-  if ($LASTEXITCODE -ne 0) { throw 'Dashboard data commit failed.' }
+if (Test-Path (Join-Path $RepoPath 'brand')) { Invoke-Git -Arguments @('add','--','brand') | Out-Null }
+Invoke-Git -Arguments @('add','--','dist/price-history.js') | Out-Null
+$diffExit=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
+if ($diffExit -eq 1) {
+  Invoke-Git -Arguments @('commit','-m','data: import Coupang prices from Chrome extension') | Out-Null
 }
-git -C $RepoPath pull --rebase origin main
-if ($LASTEXITCODE -ne 0) { throw 'Dashboard update failed before upload.' }
-git -C $RepoPath push origin main
-if ($LASTEXITCODE -ne 0) { throw 'Dashboard upload to GitHub failed.' }
+Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
+Invoke-Git -Arguments @('push','origin','main') | Out-Null

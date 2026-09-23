@@ -17,16 +17,18 @@ $expectedSlotStart=if ($null -ne $slotHour) {
 
 try {
   Add-Content -Path $logPath -Encoding UTF8 -Value "[$started] Scheduled upload started."
-  & $importScript -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $expectedSlotStart 2>&1 |
-    ForEach-Object {
-      $line=[string]$_
-      Add-Content -Path $logPath -Encoding UTF8 -Value $line
-      Write-Host $line
-    }
+  # A 2>&1 pipeline makes PowerShell 5.1 treat normal native Git stderr
+  # (including the "From ..." line of a successful pull) as a fatal error.
+  Start-Transcript -Path $logPath -Append | Out-Null
+  try {
+    & $importScript -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $expectedSlotStart
+  } finally {
+    Stop-Transcript | Out-Null
+  }
   Add-Content -Path $logPath -Encoding UTF8 -Value "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz'))] Scheduled upload completed."
   exit 0
 } catch {
-  $message="[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz'))] Scheduled upload failed: $($_.Exception.Message)"
+  $message="[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz'))] Scheduled upload failed: $($_.ToString())"
   Add-Content -Path $logPath -Encoding UTF8 -Value $message
   Write-Error $message
   exit 1
