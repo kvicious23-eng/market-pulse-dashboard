@@ -923,7 +923,8 @@ function readCheckoutDiscounts() {
     const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean).map(compact);
     const allDiscountLabels=[
       '일반쿠폰할인','상품쿠폰할인','쿠폰할인','와우전용즉시할인','와우회원즉시할인','와우즉시할인',
-      '와우전용쿠폰할인','와우회원쿠폰할인','와우쿠폰할인','와우회원총추가혜택','와우총추가혜택'
+      '와우전용쿠폰할인','와우회원쿠폰할인','와우쿠폰할인','와우회원총추가혜택','와우총추가혜택',
+      '와우전용카드즉시할인'
     ];
     const mapCompact=text=>{
       const normalized=String(text||'').replace(/\r/g,'');
@@ -1051,7 +1052,7 @@ function readCheckoutDiscounts() {
   };
 }
 
-function reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal=null) {
+function reconcileCheckoutDiscounts(regular,instant,coupon) {
   const inferredZeroFields=[];
   // Reaching and confirming the checkout page is the evidence boundary. If a
   // discount line is absent there, the corresponding benefit is zero, not unknown.
@@ -1068,9 +1069,6 @@ function reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal=null) 
     inferredZeroFields.push('wowCouponDiscount');
   }
   const wowTotal=instant+coupon;
-  if(Number.isFinite(wowMemberTotal)&&wowTotal!==wowMemberTotal) {
-    return {status:'unverified',reason:'wow-member-total-mismatch',regular,instant,coupon,wowTotal};
-  }
   return {
     status:'captured',
     reason:inferredZeroFields.length?'checkout-confirmed-absent-discount-fields-zero':'checkout-three-discount-fields-captured',
@@ -1149,7 +1147,9 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
         checkoutDiscountEvidence:page.discountEvidence||[]
       };
     }
-    reconciled=reconcileCheckoutDiscounts(regular,instant,coupon,wowMemberTotal);
+    // The displayed Wow member total can include a card benefit. Only the
+    // three independent checkout coupon rows affect the coupon calculation.
+    reconciled=reconcileCheckoutDiscounts(regular,instant,coupon);
     if(!reconciled||reconciled.status!=='captured') {
       return {
         checkoutDiscountStatus:reconciled?.status||'missing',checkoutDiscountReason:reconciled?.reason||'checkout-discount-label-missing',

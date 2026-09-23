@@ -373,7 +373,7 @@
         <button class="overview-row ${trend.className}" type="button" role="tab" data-mtm="${escapeHtml(product.mtm)}" aria-selected="${product.mtm === activeMtm}"${trend.label ? ` title="${escapeHtml(trend.label)}"` : ""}>
           <span class="overview-model" data-label="내 쿠팡상품">
             <strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small>
-            <i class="overview-status ${soldOut ? "overview-status--soldout" : ""}">${escapeHtml(offerStatus(mine))}</i>
+            <i class="overview-status ${offerStatus(mine) !== "현재가 직접 확인" || mine.alertEligible !== true ? "overview-status--soldout" : ""}">${escapeHtml(offerStatus(mine))}</i>
           </span>
           <span class="overview-stack" data-label="가격 기준">
             <span><small>SRP</small>${Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : '<span class="unknown">미입력</span>'}</span>
@@ -459,7 +459,9 @@
       const alert = current && !mine && difference < 0;
       const rowClass = mine ? "is-mine" : alert ? "is-alert" : best ? "is-best" : "";
       const soldOut = current && isSoldOut(offer);
-      const statusClass = soldOut ? "soldout" : current ? "active" : "stale";
+      const statusClass = current
+        ? ((mine ? offerStatus(offer) === "현재가 직접 확인" : offer.alertEligible === true) && !soldOut ? "active" : "soldout")
+        : "stale";
       const finalCell = current
         ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;

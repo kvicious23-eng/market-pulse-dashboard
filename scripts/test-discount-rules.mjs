@@ -9,7 +9,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.4");
+assert.equal(manifest.version,"1.9.5");
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);
@@ -37,6 +37,8 @@ assert.match(dashboard,/checkoutDiscountFieldStatus/);
 assert.match(dashboard,/금액 판독 실패/);
 assert.match(dashboard,/주문서 할인 근거/);
 assert.match(dashboard,/offer\.alertEligible !== true/);
+assert.match(dashboard,/offerStatus\(mine\) !== "현재가 직접 확인" \|\| mine\.alertEligible !== true \? "overview-status--soldout"/);
+assert.match(dashboard,/offerStatus\(offer\) === "현재가 직접 확인" : offer\.alertEligible === true/);
 assert.doesNotMatch(lenovoRefresh,/mine\.alertEligible\s*=\s*true/);
 assert.doesNotMatch(acerRefresh,/mine\.alertEligible\s*=\s*true/);
 assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
@@ -144,6 +146,19 @@ assert.deepEqual(readCheckoutRows([
   coupon:{status:"captured",amount:147800},
   wowTotal:{status:"captured",amount:227800}
 });
+assert.deepEqual(readCheckoutRows([
+  element("쿠폰할인"),
+  element("와우회원 총 추가 혜택 -166,790원 와우 전용 쿠폰할인 변경 -150,000원 와우 전용 카드 즉시할인 -16,790원 배송비 0원")
+]),{
+  regular:{status:"missing",amount:null},
+  instant:{status:"missing",amount:null},
+  coupon:{status:"captured",amount:150000},
+  wowTotal:{status:"captured",amount:166790}
+});
+// An unparsed coupon must not borrow the following card discount's amount.
+assert.equal(readCheckoutRows([
+  element("와우 전용 쿠폰할인 변경 와우 전용 카드 즉시할인 -16,790원")
+]).coupon.status,"unverified");
 const start=source.indexOf("function reconcileCheckoutDiscounts(");
 const end=source.indexOf("\n\nasync function collectCheckoutDiscountsForTarget",start);
 assert.ok(start>=0&&end>start,"checkout three-discount reconciler was not found");
@@ -158,7 +173,10 @@ assert.deepEqual(
 assert.equal(reconcile(30000,80000,null,80000).coupon,0);
 assert.equal(reconcile(30000,null,150000,150000).instant,0);
 assert.equal(reconcile(30000,80000,150000,230000).status,"captured");
-assert.equal(reconcile(30000,80000,150000,200000).status,"unverified");
+assert.equal(reconcile(30000,80000,150000,200000).status,"captured");
+assert.equal(reconcile(null,null,150000,166790).status,"captured");
+assert.equal(reconcile(null,null,150000,166790).wowTotal,150000);
+assert.doesNotMatch(importer,/\$memberTotal\s*-ne\s*\$wowTotal|checkout-wow-total-mismatch/);
 
 const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
   const preCard=display-general-wowInstant-wowCoupon;

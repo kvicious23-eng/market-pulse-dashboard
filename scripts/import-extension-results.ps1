@@ -175,14 +175,9 @@ function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
   $regular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
   $instant=if ($null -ne $result.wowInstantDiscount) {[long]$result.wowInstantDiscount}else{$null}
   $coupon=if ($null -ne $result.wowCouponDiscount) {[long]$result.wowCouponDiscount}else{$null}
-  $wowTotal=if ($null -ne $result.checkoutWowMemberTotal) {[long]$result.checkoutWowMemberTotal}else{$null}
   if ($null -ne $regular -and $null -ne $instant -and $null -ne $coupon -and
       $regular -ge 0 -and $instant -ge 0 -and $coupon -ge 0) {
-    $memberTotal=$instant+$coupon
     $total=$regular+$instant+$coupon
-    if ($null -ne $wowTotal -and $memberTotal -ne $wowTotal) {
-      return [pscustomobject]@{Status='unverified';Reason='checkout-wow-total-mismatch';Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
-    }
     if ($null -ne $result.checkoutDiscountTotal -and [long]$result.checkoutDiscountTotal -ne $total) {
       return [pscustomobject]@{Status='unverified';Reason='checkout-full-total-mismatch';Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
     }
