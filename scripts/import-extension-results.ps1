@@ -113,13 +113,15 @@ foreach ($result in $payloadResults) {
     }
   }
 }
-if ($null -ne $payload.targetCount -and [int]$payload.targetCount -ne $payloadResults.Count) {
+if ($null -eq $payload.targetCount -or $null -eq $payload.resultCount -or $payload.complete -ne $true) {
+  throw 'Incomplete scan: targetCount, resultCount, and complete=true are required.'
+}
+if ([int]$payload.targetCount -ne $payloadResults.Count) {
   throw "Incomplete scan: expected $($payload.targetCount) products but found $($payloadResults.Count)."
 }
-if ($null -ne $payload.resultCount -and [int]$payload.resultCount -ne $payloadResults.Count) {
+if ([int]$payload.resultCount -ne $payloadResults.Count) {
   throw "Inconsistent scan: resultCount is $($payload.resultCount) but the file contains $($payloadResults.Count) results."
 }
-if ($null -ne $payload.complete -and $payload.complete -ne $true) { throw 'The scanner marked this result as incomplete.' }
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
@@ -200,7 +202,7 @@ $text = @{
   SellerCondition = Decode-Utf8 '64uk64KY7JmAIOuwsOyGoeu5hCDtj6ztlagg6rO16rCcIO2MkOunpOqwgC4g7LaU6rCAIOy/oO2PsMK37Lm065Oc7ZWg7J247J2AIOuvuO2ZleyduC4='
   SellerSource = Decode-Utf8 '64uk64KY7JmAIOqwgOqyqeu5hOq1kCDtjJDrp6Tsspgg66qp66Gd'
   SellerDetail = Decode-Utf8 '7KCV7ZmV7ZWcIE1UTeydmCDsh7ztlZHrqrDrs4Qg7YyQ66ek6rCA66W8IOydvOuwmCBDaHJvbWXsl5DshJwg7ZmV7J24'
-  Schedule = '매일 08:00 KST'
+  Schedule = '매일 08:00 · 14:00 KST'
   Route = Decode-Utf8 'V2luZG93cyBQQyDCtyDsnbzrsJggQ2hyb21lIO2Zleyepe2UhOuhnOq3uOueqA=='
   MarketplacePattern = Decode-Utf8 'MTHrsojqsIB87Jil7IWYfEfrp4jsvJN866Gv642wT0587L+g7YyhfFNTR3zrhKTsnbTrsoQ='
   AcerPattern = Decode-Utf8 'QWNlcnzsl5DsnbTshJw='
