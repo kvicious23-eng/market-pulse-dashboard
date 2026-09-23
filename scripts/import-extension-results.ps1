@@ -563,6 +563,11 @@ if ($historyRows.Count -gt 0) {
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
     if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $keys.Add($key)) { $combined+=$row }
   }
+  # Reconcile the PC's ignored CSV with audited public corrections before
+  # regenerating the downloadable history on the next scheduled upload.
+  $correctionsPath=Join-Path $RepoPath 'scripts\history-corrections.json'
+  . (Join-Path $PSScriptRoot 'apply-history-corrections.ps1')
+  $combined=@(Apply-HistoryCorrections -Rows $combined -CorrectionsPath $correctionsPath)
   $combined=@($combined | Sort-Object '수집시각','브랜드','MTM')
   $combined | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
   $headers=@($combined[0].PSObject.Properties.Name)

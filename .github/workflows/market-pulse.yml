@@ -97,6 +97,9 @@ jobs:
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
           node scripts/test-canonical-routes.mjs
+      - name: Verify audited history correction
+        shell: pwsh
+        run: ./scripts/test-history-corrections.ps1
       - name: Commit refreshed data
         if: github.event_name == 'workflow_dispatch'
         shell: bash

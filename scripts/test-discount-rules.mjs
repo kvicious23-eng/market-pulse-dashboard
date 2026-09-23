@@ -188,6 +188,28 @@ assert.equal(reconcile(30000,80000,150000,200000).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).wowTotal,150000);
 assert.doesNotMatch(importer,/\$memberTotal\s*-ne\s*\$wowTotal|checkout-wow-total-mismatch/);
+const corrections=JSON.parse(fs.readFileSync('scripts/history-corrections.json','utf8'));
+assert.equal(corrections.length,1);
+const audited=corrections[0];
+assert.match(audited.sourceSha256,/^[a-f0-9]{64}$/);
+assert.equal(audited.expected['수집결과'],'failed');
+assert.equal(audited.corrected['수집결과'],'success');
+assert.equal(audited.corrected['표시가']-audited.corrected['쿠폰할인 총금액'],audited.corrected['카드할인 전 가격']);
+assert.equal(audited.corrected['카드할인 전 가격']-audited.corrected['카드할인'],audited.corrected['최종 실구매가']);
+const historical={window:{}};
+vm.runInNewContext(fs.readFileSync('dist/price-history.js','utf8'),historical);
+const history=historical.window.MARKET_PULSE_HISTORY;
+const auditedRows=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===audited.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===audited.corrected.MTM);
+assert.equal(auditedRows.length,1);
+for(const [field,value] of Object.entries(audited.corrected)){
+  assert.equal(auditedRows[0][history.headers.indexOf(field)],value,`Published history differs in ${field}`);
+}
+const acer={window:{}};
+vm.runInNewContext(fs.readFileSync('brand/acer/market-data.js','utf8'),acer);
+const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===audited.corrected.MTM)?.offers.find(offer=>offer.role==='mine');
+assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
+assert.equal(auditedOffer.finalPrice,audited.corrected['최종 실구매가']);
+assert.equal(auditedOffer.alertEligible,true);
 
 const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
   const preCard=display-general-wowInstant-wowCoupon;
