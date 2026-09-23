@@ -1,12 +1,14 @@
 ﻿param(
   [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
   [switch]$WaitForToday,
+  [string]$ExpectedSlotStart = '',
   [int]$MaxScanAgeHours = 24
 )
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
 $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+$minimumStart=if ($ExpectedSlotStart) { [DateTimeOffset]::Parse($ExpectedSlotStart) } else { $null }
 
 # Keep the C:\MarketPulse checkout and brand-generation template current before
 # importing a scan. This makes future shared-dashboard changes self-updating.
@@ -30,7 +32,11 @@ do {
       $resultDay = [TimeZoneInfo]::ConvertTime($scanAt,$kstZone).ToString('yyyy-MM-dd')
       $todayKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-dd')
       $fresh = $age.TotalHours -le $MaxScanAgeHours
-      if ($fresh -and (-not $WaitForToday -or $resultDay -eq $todayKst)) { break }
+      $slotMatches=$true
+      if ($minimumStart) {
+        try { $slotMatches=([DateTimeOffset]$payload.startedAt) -ge $minimumStart } catch { $slotMatches=$false }
+      }
+      if ($fresh -and $slotMatches -and (-not $WaitForToday -or $resultDay -eq $todayKst)) { break }
     }
   }
   if (-not $WaitForToday) { throw 'No fresh Market Pulse scan result was found.' }
@@ -261,6 +267,21 @@ if ($catalog) {
     New-BrandDashboard $brand $fullPath
     $specs+=@{Brand=$brand;Path=$relativePath}
   }
+}
+# A retry after a commit/push failure must push the existing import, not recalculate
+# the same scan against its own last verified price (which would erase its trend).
+$alreadyImported=$specs.Count -gt 0
+foreach ($spec in $specs) {
+  $existingPath=Join-Path $RepoPath $spec.Path
+  if (-not (Test-Path $existingPath)) { $alreadyImported=$false; break }
+  $existingData=Read-Data $existingPath
+  if ([string]$existingData.meta.snapshotAt -ne $scanKst) { $alreadyImported=$false; break }
+}
+if ($alreadyImported) {
+  Write-Host "This scan was already imported at $scanKst; retrying the pending push."
+  git -C $RepoPath push origin main
+  if ($LASTEXITCODE -ne 0) { throw 'Dashboard upload to GitHub failed.' }
+  return
 }
 foreach ($spec in $specs) {
   $path=Join-Path $RepoPath $spec.Path
