@@ -312,7 +312,8 @@
     refs.winCount.textContent = wins.length;
     if (refs.totalCount) refs.totalCount.textContent = total;
     if (refs.overviewEyebrow) refs.overviewEyebrow.textContent = `${total} MTM OVERVIEW`;
-    if (refs.brandSubtitle) refs.brandSubtitle.textContent = `${brand} Notebook · Korea`;
+    const categories=[...new Set(data.products.map(product=>product.category).filter(Boolean))];
+    if (refs.brandSubtitle) refs.brandSubtitle.textContent = `${brand} ${categories.length===1?categories[0]:"Products"} · Korea`;
     refs.minAdvantage.textContent = advantages.length ? formatWon(Math.min(...advantages)) : "—";
     refs.sellerCount.textContent = `${currentSellers}곳`;
 

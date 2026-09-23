@@ -75,7 +75,7 @@ async function waitForComplete(tabId) {
   return false;
 }
 
-async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId) {
+async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId,expectedSrp) {
   const currentUrl = new URL(location.href);
   const params = currentUrl.searchParams;
   const actualProductId = currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
@@ -88,11 +88,13 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   if (/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i.test(bodyText)) {
     return {ok:false, reason:'access-check'};
   }
+  // Preserve the notebook guard while allowing managed lower-priced products.
+  const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
   const candidates = [];
   const addCandidate = (value, source, text='') => {
     const digits = String(value ?? '').replace(/[^0-9]/g, '');
     const price = Number(digits);
-    if (price >= 250000 && price <= 7000000 && !candidates.some(x=>x.price===price && x.source===source)) {
+    if (price >= minimumPrice && price <= 7000000 && !candidates.some(x=>x.price===price && x.source===source)) {
       candidates.push({price, source, text:String(text).trim().slice(0,160)});
     }
   };
@@ -135,7 +137,7 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
       const raw=node.getAttribute('data-price')||node.textContent;
       addCandidate(raw,selector,node.parentElement?.innerText||node.textContent);
       const price=Number(String(raw??'').replace(/[^0-9]/g,''));
-      if (rect.width>0&&rect.height>0&&price>=250000&&price<=7000000) {
+      if (rect.width>0&&rect.height>0&&price>=minimumPrice&&price<=7000000) {
         positionedPrices.push({price,top:rect.top+scrollY,left:rect.left+scrollX,selector});
       }
     }
@@ -152,7 +154,7 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
       const style=getComputedStyle(node);
       const digits=(node.textContent||'').replace(/[^0-9]/g,'');
       const price=Number(digits);
-      if (style.display!=='none'&&style.visibility!=='hidden'&&price>=250000&&price<=7000000) strikeCandidates.push({price,selector});
+      if (style.display!=='none'&&style.visibility!=='hidden'&&price>=minimumPrice&&price<=7000000) strikeCandidates.push({price,selector});
     }
   }
   // UnitPriceSpecification belongs to the active offer. Generic <del>/<s>
@@ -657,7 +659,7 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
 
 async function scanCoupangTab(tabId,target) {
   const injected=await chrome.scripting.executeScript({
-    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId]
+    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp]
   });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
@@ -712,7 +714,8 @@ async function scanCoupangTab(tabId,target) {
   return scan;
 }
 
-function readDanawaSellers(expectedMtm) {
+function readDanawaSellers(expectedMtm,expectedSrp) {
+  const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
   const bodyText=document.body?.innerText||'';
   if (!bodyText.toUpperCase().includes(expectedMtm.toUpperCase())) return {ok:false,reason:'mtm-mismatch',sellers:[]};
   const heading=[...document.querySelectorAll('h2,h3,h4,div,strong')].find(n=>n.textContent?.trim()==='쇼핑몰별 최저가');
@@ -727,7 +730,7 @@ function readDanawaSellers(expectedMtm) {
       const match=text.match(/([0-9][0-9,]{4,})\s*원/);
       if (match && text.length<1800) {
         const price=Number(match[1].replace(/,/g,''));
-        if (price>=250000&&price<=7000000&&!sellers.some(x=>x.seller===seller)) sellers.push({seller,price});
+        if (price>=minimumPrice&&price<=7000000&&!sellers.some(x=>x.seller===seller)) sellers.push({seller,price});
         break;
       }
     }
@@ -777,7 +780,7 @@ async function scanAll() {
             danawaTab=await chrome.tabs.create({url:target.danawaUrl,active:true});
             await waitForComplete(danawaTab.id);
             await wait(6000);
-            const sellerScan=await chrome.scripting.executeScript({target:{tabId:danawaTab.id},func:readDanawaSellers,args:[target.mtm]});
+            const sellerScan=await chrome.scripting.executeScript({target:{tabId:danawaTab.id},func:readDanawaSellers,args:[target.mtm,target.srp]});
             result.competitors=sellerScan[0].result.sellers||[];
             result.competitorReason=sellerScan[0].result.reason;
           } catch(error) {
@@ -1195,7 +1198,7 @@ async function diagnoseCheckoutDiscounts() {
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
   try {
     const read=await chrome.scripting.executeScript({
-      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId]
+      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp]
     });
     const priceScan=read?.[0]?.result;
     const productPageCouponDiscount=priceScan?.ok&&priceScan.strikeReliable===true

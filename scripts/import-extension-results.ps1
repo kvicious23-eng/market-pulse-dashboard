@@ -226,15 +226,16 @@ function Get-BrandSlug([string]$brand) {
   return $slug
 }
 
-function New-BrandDashboard([string]$brand,[string]$dataPath) {
+function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) {
   $directory=Split-Path -Parent $dataPath
   New-Item -ItemType Directory -Path $directory -Force | Out-Null
   $indexPath=Join-Path $directory 'index.html'
   $safeBrand=[Net.WebUtility]::HtmlEncode($brand)
+  $safeCategory=[Net.WebUtility]::HtmlEncode($(if ($category) {$category} else {'Products'}))
   $html=[IO.File]::ReadAllText((Join-Path $RepoPath 'brand\acer\index.html'),[Text.Encoding]::UTF8)
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
-  $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand Notebook · Korea</small>")
+  $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand $safeCategory · Korea</small>")
   $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
   $html=$html -replace 'src="\.\.\/dist\/xlsx-export\.js([^\"]*)"','src="../../dist/xlsx-export.js$1"'
   $html=$html -replace 'src="(?:\.\.\/dist\/|\.\/)app\.js([^\"]*)"','src="../../dist/app.js$1"'
@@ -278,7 +279,8 @@ if ($catalog) {
     $slug=Get-BrandSlug $brand
     $relativePath="brand\$slug\market-data.js"
     $fullPath=Join-Path $RepoPath $relativePath
-    New-BrandDashboard $brand $fullPath
+    $category=@($catalog.products | Where-Object {$_.brand -eq $brand -and $_.enabled -ne $false} | ForEach-Object {[string]$_.category} | Sort-Object -Unique)
+    New-BrandDashboard $brand $fullPath $(if($category.Count -eq 1){$category[0]}else{'Products'})
     $specs+=@{Brand=$brand;Path=$relativePath}
   }
 }
@@ -374,7 +376,8 @@ foreach ($spec in $specs) {
     }
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $kst -Force
-    if ($result.ok -and [long]$result.price -ge 250000 -and [long]$result.price -le 7000000) {
+    $minimumPrice=if ($null -ne $product.srp -and [long]$product.srp -gt 0 -and [long]$product.srp -lt 250000) {10000} else {250000}
+    if ($result.ok -and [long]$result.price -ge $minimumPrice -and [long]$result.price -le 7000000) {
       $productPagePrice=[long]$result.price
       # The managed catalog/dashboard value is authoritative. A scan result can
       # be older than a catalog edit, so it must not overwrite the current SRP.

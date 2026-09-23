@@ -9,7 +9,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.5");
+assert.equal(manifest.version,"1.9.6");
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);
@@ -28,6 +28,10 @@ assert.match(importer,/pre-card-price-does-not-match-product-page/);
 assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
 assert.match(importer,/Duplicate vendorItemId values/);
 assert.match(importer,/produce the same dashboard slug/);
+assert.match(importer,/\$minimumPrice=if \(\$null -ne \$product\.srp.*-lt 250000\) \{10000\} else \{250000\}/);
+assert.match(importer,/\$result\.price -ge \$minimumPrice/);
+assert.match(importer,/\$safeBrand \$safeCategory · Korea/);
+assert.match(dashboard,/categories\.length===1\?categories\[0\]:"Products"/);
 assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$verifiedCardDiscount/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
 assert.match(importer,/checkoutUnparsedFields/);
@@ -64,6 +68,27 @@ const catalogContext={URL,Set,Map};
 vm.runInNewContext(`${source.slice(catalogStart,catalogEnd)};this.validateProductCatalog=validateProductCatalog;`,catalogContext);
 const defaultTargets=vm.runInNewContext(targetLiteral);
 assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog(defaultTargets))),[]);
+const godox={brand:"Godox",category:"Camera",mtm:"C100",srp:42000,enabled:true,
+  productId:"9738958594",itemId:"29147698397",vendorItemId:"96070924334",
+  url:"https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334"};
+assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog([...defaultTargets,godox]))),[]);
+const priceStart=source.indexOf("async function readDisplayedPrice(");
+const priceEnd=source.indexOf("\n\nfunction snapshotCardDetailText",priceStart);
+assert.ok(priceStart>=0&&priceEnd>priceStart,"product price reader was not found");
+const priceContext={
+  URL,location:{href:godox.url},
+  document:{body:{innerText:"Godox C100 42,000원"},title:"Godox C100",
+    querySelectorAll:selector=>selector==='meta[itemprop="price"]'?[{content:"42000",outerHTML:'<meta itemprop="price" content="42000">'}]:[]},
+  getComputedStyle:()=>({display:"block",visibility:"visible"}),scrollX:0,scrollY:0
+};
+vm.runInNewContext(`${source.slice(priceStart,priceEnd)};this.readDisplayedPrice=readDisplayedPrice;`,priceContext);
+const godoxPrice=await priceContext.readDisplayedPrice(godox.productId,godox.itemId,godox.vendorItemId,godox.srp);
+assert.equal(godoxPrice.ok,true);
+assert.equal(godoxPrice.price,42000);
+assert.equal(godoxPrice.cardBenefitStatus,"none");
+const notebookPrice=await priceContext.readDisplayedPrice(godox.productId,godox.itemId,godox.vendorItemId,1829000);
+assert.equal(notebookPrice.ok,false);
+assert.equal(notebookPrice.reason,"price-not-found");
 const duplicateVendor=structuredClone(defaultTargets);
 duplicateVendor[1].vendorItemId=duplicateVendor[0].vendorItemId;
 assert.ok(catalogContext.validateProductCatalog(duplicateVendor).some(value=>value.includes("duplicate-vendor-item-id")));
