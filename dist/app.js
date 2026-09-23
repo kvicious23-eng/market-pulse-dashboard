@@ -208,7 +208,8 @@
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Let the browser take ownership of the Blob URL before releasing it.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   function exportMyProducts() {
