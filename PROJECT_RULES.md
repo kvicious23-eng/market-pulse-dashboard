@@ -10,7 +10,7 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 - 공개 저장소: `kvicious23-eng/market-pulse-dashboard`
 - Windows 설치 경로: `C:\MarketPulse`
-- Chrome 확장프로그램 기준 버전: `1.9.3` (1.9.2 주문서 쿠폰 3종 판독 기준을 유지하고, 상품페이지와 바로구매 진입 전에 Product ID·Item ID·VendorItem ID를 모두 교차 검증함)
+- Chrome 확장프로그램 기준 버전: `1.9.4` (1.9.3 수집·검증 기준을 유지하고, 매일 08:00·14:00 KST 두 회차 자동 수집을 지원함)
 - 대시보드 경로: Lenovo `/brand/lenovo/`, Acer `/brand/acer/`
 - 모든 브랜드의 정식 경로와 데이터는 `/brand/{slug}/index.html`, `/brand/{slug}/market-data.js` 구조만 사용한다. `/`는 `/brand/lenovo/`, `/acer/`는 `/brand/acer/`로 즉시 이동하며 별도 화면·데이터·수집 경로를 갖지 않는다.
 - 현재 활성 상품: Lenovo 3개, Acer 10개
@@ -155,13 +155,14 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 ## 9. Windows 자동 실행
 
 - 설치 위치: `C:\MarketPulse`
-- Windows 예약 작업 `Market Pulse Chrome Start`: PC 현지시각 매일 08:00. 한국 운영 PC의 표준 시간대는 `(UTC+09:00) 서울`로 유지한다.
-- 확장프로그램 자동 수집: 매일 08:00 KST. Chrome이 닫혀 있으면 위 예약 작업이 Chrome을 시작해 확장프로그램의 당일 보충 실행을 유도한다.
-- 매일 08:00 자동 수집에는 상품페이지 표시가·카드할인, 구매 가능 여부 판정, 구매 가능 상품의 주문서 쿠폰 3종, 품절 상품의 상품페이지 일반쿠폰 수집이 포함된다.
-- Windows 예약 작업 `Market Pulse Result Upload`: PC 현지시각 매일 08:30에 당일 결과를 가져와 업로드한다.
+- Windows 예약 작업 `Market Pulse Chrome Start`: PC 현지시각 매일 08:00과 14:00. 한국 운영 PC의 표준 시간대는 `(UTC+09:00) 서울`로 유지한다.
+- 확장프로그램 자동 수집: 매일 08:00과 14:00 KST. Chrome이 닫혀 있으면 위 예약 작업이 Chrome을 시작하고, Chrome이 실행 중이면 확장프로그램 알람이 해당 회차 수집을 시작한다.
+- 각 자동 수집에는 상품페이지 표시가·카드할인, 구매 가능 여부 판정, 구매 가능 상품의 주문서 쿠폰 3종, 품절 상품의 상품페이지 일반쿠폰 수집이 포함된다.
+- 오전·오후 회차는 날짜와 회차 시각을 합친 실행 슬롯으로 구분한다. 같은 회차의 중복 실행은 막고, 오전 수집 완료 여부가 오후 수집을 막지 않는다.
+- Windows 예약 작업 `Market Pulse Result Upload`: PC 현지시각 매일 08:30과 14:30에 각 회차의 최신 정상 결과를 가져와 업로드한다.
 - 예약 업로드가 실패하면 15분 간격으로 최대 3회 다시 실행한다. 이전 실행에서 로컬 커밋까지 성공하고 푸시만 실패했어도 다음 실행은 원격 푸시를 다시 시도한다.
 - 예약 업로드 시작·완료·실패 로그는 `C:\MarketPulse\reports\scheduled-upload.log`에 기록한다.
-- GitHub Actions의 08:00 서버 조사는 실측 PC 수집과 중복되므로 사용하지 않는다. 정기 원천은 Windows PC 확장프로그램 수집과 08:30 업로드다.
+- GitHub Actions의 08:00 서버 조사는 실측 PC 수집과 중복되므로 사용하지 않는다. 정기 원천은 Windows PC 확장프로그램의 08:00·14:00 수집과 08:30·14:30 업로드다.
 - 두 예약 작업은 `WakeToRun`과 `StartWhenAvailable`을 사용한다. 절전 상태에서는 깨우기 타이머로 실행하고, 완전히 종료되어 있었다면 다음 부팅·로그인 뒤 누락 작업을 실행한다.
 - 정상 운영 확장은 `C:\MarketPulse\chrome-extension` 하나만 사용한다. 과거 `%LOCALAPPDATA%\MarketPulseDashboard` 확장은 중복 실행 방지를 위해 비활성화하거나 제거한다.
 - 자동 수집 중 사용자가 Chrome 창을 조작하면 탭 선택이나 팝업 수집이 방해될 수 있으므로 완료까지 조작하지 않는다.

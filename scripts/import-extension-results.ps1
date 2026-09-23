@@ -226,7 +226,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath) {
         comparisonBasis='Exact model and item price comparison'
         exclusions='Personal rewards and unverified benefits are excluded'
         monitoring=[pscustomobject]@{
-          enabled=$true; quickWatch='Daily 08:00 KST'; fullResearch='Basic and precision scan'
+          enabled=$true; quickWatch='Daily 08:00 and 14:00 KST'; fullResearch='Basic and precision scan'
           dashboardSync='GitHub Pages automatic deployment'; lastAttemptAt=$scanKst
           lastAttemptStatus='pending'; lastAttemptText='Waiting for first scan'
           collectionRoute='Windows PC and Chrome extension'

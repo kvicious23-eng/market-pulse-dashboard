@@ -8,7 +8,7 @@ if errorlevel 1 goto :error
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%SCHEDULE_SCRIPT%" -InstallPath "C:\MarketPulse"
 if errorlevel 1 goto :error
 echo.
-echo Market Pulse schedule updated: scan 08:00, upload 08:30.
+echo Market Pulse schedule updated: scans 08:00 and 14:00, uploads 08:30 and 14:30.
 pause
 exit /b 0
 

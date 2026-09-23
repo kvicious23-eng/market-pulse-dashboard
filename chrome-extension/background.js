@@ -836,22 +836,44 @@ async function scanAll() {
     };
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
-    await chrome.storage.local.set({lastRunDay:localDay(), lastResult:payload});
+    await chrome.storage.local.set({
+      lastRunDay:localDay(),
+      lastRunSlot:currentScheduledScanSlot(),
+      lastResult:payload
+    });
   } finally {
     await chrome.storage.local.set({running:false,runningStartedAt:null});
   }
 }
 
+const SCHEDULED_SCAN_TIMES = [
+  {alarm:'daily-scan-0800',hour:8,minute:0,slot:'08:00'},
+  {alarm:'daily-scan-1400',hour:14,minute:0,slot:'14:00'}
+];
+
+function kstDateTimeParts(date=new Date()) {
+  return Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+    timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'
+  }).formatToParts(date).map(part=>[part.type,part.value]));
+}
+
+function currentScheduledScanSlot(date=new Date()) {
+  const p=kstDateTimeParts(date);
+  const minuteOfDay=(+p.hour*60)+(+p.minute);
+  const due=[...SCHEDULED_SCAN_TIMES].reverse().find(entry=>minuteOfDay>=(entry.hour*60+entry.minute));
+  return due ? `${p.year}-${p.month}-${p.day}T${due.slot}+09:00` : null;
+}
+
 async function schedule() {
-  await chrome.alarms.clear('daily-scan');
-  const now = new Date();
-  const kstParts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).formatToParts(now);
-  const p = Object.fromEntries(kstParts.map(x=>[x.type,x.value]));
-  const kstNowAsUtc = Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
-  let nextKst = Date.UTC(+p.year,+p.month-1,+p.day,8,0);
-  if (nextKst <= kstNowAsUtc) nextKst += 86400000;
-  const delay = nextKst - kstNowAsUtc;
-  await chrome.alarms.create('daily-scan',{when:Date.now()+delay,periodInMinutes:1440});
+  const now=new Date();
+  const p=kstDateTimeParts(now);
+  const kstNowAsUtc=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
+  for(const entry of SCHEDULED_SCAN_TIMES){
+    await chrome.alarms.clear(entry.alarm);
+    let nextKst=Date.UTC(+p.year,+p.month-1,+p.day,entry.hour,entry.minute);
+    if(nextKst<=kstNowAsUtc) nextKst+=86400000;
+    await chrome.alarms.create(entry.alarm,{when:Date.now()+(nextKst-kstNowAsUtc),periodInMinutes:1440});
+  }
 }
 
 function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendorItemId) {
@@ -1203,11 +1225,13 @@ chrome.runtime.onInstalled.addListener(async()=>{
 });
 chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
-  const state=await chrome.storage.local.get(['lastRunDay']);
-  const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',hour12:false}).format(new Date()));
-  if (hour>=8 && state.lastRunDay!==localDay()) scanAll();
+  const state=await chrome.storage.local.get(['lastRunSlot']);
+  const dueSlot=currentScheduledScanSlot();
+  if(dueSlot&&state.lastRunSlot!==dueSlot) scanAll();
 });
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='daily-scan') scanAll();});
+chrome.alarms.onAlarm.addListener(alarm=>{
+  if(SCHEDULED_SCAN_TIMES.some(entry=>entry.alarm===alarm.name)) scanAll();
+});
 chrome.action.onClicked.addListener(scanAll);
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_PRODUCTS') {

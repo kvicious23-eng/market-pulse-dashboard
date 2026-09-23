@@ -4,8 +4,8 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 
 ## 자동 실행
 
-- 국내 Windows PC에서 매일 오전 08:00 KST에 Chrome 확장프로그램 수집
-- 오전 08:30 KST에 당일 JSON 검증·히스토리 누적·GitHub 업로드
+- 국내 Windows PC에서 매일 08:00 및 14:00 KST에 Chrome 확장프로그램 수집
+- 각 수집 후 30분 뒤인 08:30 및 14:30 KST에 JSON 검증·히스토리 누적·GitHub 업로드
 - 업로드 실패 시 Windows 작업 스케줄러가 15분 간격으로 최대 3회 재시도
 - GitHub 업로드 후 Actions 검증을 통과하면 Pages에 자동 배포
 - Actions의 **Market Pulse Update → Run workflow**에서 즉시 수동 실행 가능
