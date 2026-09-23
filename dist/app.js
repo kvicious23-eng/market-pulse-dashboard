@@ -25,7 +25,8 @@
     evidenceContent: $("#evidenceContent"),
     sourceLink: $("#sourceLink"),
     methodDialog: $("#methodDialog"),
-    exportExcel: $("#exportExcel")
+    exportExcel: $("#exportExcel"),
+    historyDownload: $("#historyDownload")
   };
 
   if (!data.products.length) {
@@ -255,6 +256,13 @@
     downloadWorkbook(headers, rows, "내 쿠팡상품", `MarketPulse_${brand}_내상품_${date}.xlsx`);
   }
 
+  function exportPriceHistory() {
+    const history = window.MARKET_PULSE_HISTORY;
+    if (!history?.headers?.length || !history?.rows?.length) return;
+    const stamp = String(history.rows.at(-1)?.[0] || '').slice(0, 10).replaceAll('-', '');
+    downloadWorkbook(history.headers, history.rows, '가격 히스토리', `MarketPulse_가격히스토리_${stamp}.xlsx`);
+  }
+
   function productStats(product) {
     const mine = product.offers.find((offer) => offer.role === "mine");
     const competitors = product.offers
@@ -304,17 +312,15 @@
     refs.minAdvantage.textContent = advantages.length ? formatWon(Math.min(...advantages)) : "—";
     refs.sellerCount.textContent = `${currentSellers}곳`;
 
-    const compared = stats.filter((item) => Number.isFinite(item.difference)).length;
-    if (alerts.length) {
-      refs.pageTitle.innerHTML = `${alerts.length}개 MTM<br /><em>가격 역전.</em>`;
-      refs.heroSummary.textContent = "검증된 현재 판매가에서 내 상품보다 저렴한 경쟁 판매처가 발견됐습니다.";
-    } else if (compared) {
-      refs.pageTitle.innerHTML = `${compared === total ? `${total}개 모델 모두` : `${compared}개 모델`}<br /><em>가격 우위.</em>`;
-      refs.heroSummary.textContent = "현재 가격이 확인된 모델의 공개 실구매가를 비교했습니다.";
-    } else {
-      refs.pageTitle.innerHTML = `${total}개 모델<br /><em>가격 확인 중.</em>`;
-      refs.heroSummary.textContent = "상품 등록을 마쳤습니다. 첫 가격 수집 후 비교 결과가 표시됩니다.";
-    }
+    const mine = stats.map(item => item.mine).filter(Boolean);
+    const down = mine.filter(offer => offer.alertEligible === true && offer.priceTrend === 'down').length;
+    const up = mine.filter(offer => offer.alertEligible === true && offer.priceTrend === 'up').length;
+    const unchanged = mine.filter(offer => offer.alertEligible === true && offer.priceTrend === 'same').length;
+    const soldOut = mine.filter(isSoldOut).length;
+    const unknown = total - down - up - unchanged - soldOut;
+    refs.pageTitle.innerHTML = `${down}개 하락 · ${up}개 상승<br /><em>${soldOut}개 품절.</em>`;
+    refs.heroSummary.textContent = `내 쿠팡 운영 모델의 직전 정상 수집 대비 가격 변화와 품절 현황입니다. 변동 없음 ${unchanged}개${unknown ? ` · 비교 불가 ${unknown}개` : ''}.`;
+    if (refs.historyDownload) refs.historyDownload.disabled = !window.MARKET_PULSE_HISTORY?.rows?.length;
 
     $("#basisText").textContent = data.meta.comparisonBasis;
     $("#exclusionText").textContent = data.meta.exclusions;
@@ -584,6 +590,7 @@
   });
 
   refs.exportExcel.addEventListener("click", exportMyProducts);
+  refs.historyDownload?.addEventListener("click", exportPriceHistory);
   $("#methodButton").addEventListener("click", () => refs.methodDialog.showModal());
   document.querySelectorAll("[data-close-modal]").forEach((button) => {
     button.addEventListener("click", () => button.closest("dialog").close());

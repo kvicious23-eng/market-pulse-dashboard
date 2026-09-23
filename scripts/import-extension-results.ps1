@@ -514,20 +514,38 @@ foreach ($spec in $specs) {
   Write-Data $path $data
 }
 $historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
+$historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
 if ($historyRows.Count -gt 0) {
   New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
   $combined=@()
-  if (Test-Path $historyPath) { $combined+=@(Import-Csv -Path $historyPath -Encoding UTF8) }
+  if (Test-Path $historyPath) {
+    $combined+=@(Import-Csv -Path $historyPath -Encoding UTF8 | Where-Object {
+      try { [DateTimeOffset]::Parse([string]$_.'수집시각') -ge $historyStart } catch { $false }
+    })
+  }
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach ($row in $combined) { [void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)") }
   foreach ($row in $historyRows) {
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
-    if ($keys.Add($key)) { $combined+=$row }
+    if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $keys.Add($key)) { $combined+=$row }
   }
-  $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
+  $combined=@($combined | Sort-Object '수집시각','브랜드','MTM')
+  $combined | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
+  $headers=@($combined[0].PSObject.Properties.Name)
+  $numberColumns=@('SRP','표시가','매칭차액','일반 쿠폰할인','와우 전용 즉시할인','와우 전용 쿠폰할인','쿠폰할인 총금액','카드할인 전 가격','카드할인','카드 할인율(%)','최대 할인한도','최종 실구매가')
+  $publicRows=@(foreach ($entry in $combined) {
+    ,@($headers | ForEach-Object {
+      $value=[string]$entry.$_
+      if ($_ -in $numberColumns -and $value -match '^-?\d+(\.\d+)?$') { [decimal]$value }
+      else { $value }
+    })
+  })
+  $published=@{headers=$headers;rows=$publicRows} | ConvertTo-Json -Depth 5 -Compress
+  [IO.File]::WriteAllText((Join-Path $RepoPath 'dist\price-history.js'),"window.MARKET_PULSE_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
   Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
 if (Test-Path (Join-Path $RepoPath 'brand')) { git -C $RepoPath add -- brand }
+git -C $RepoPath add -- dist/price-history.js
 git -C $RepoPath diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
   git -C $RepoPath commit -m 'data: import Coupang prices from Chrome extension'

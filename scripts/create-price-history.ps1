@@ -4,6 +4,7 @@
 
 $ErrorActionPreference = 'Stop'
 $historyPath = Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
+$historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
 
 function Read-Data([string]$path) {
   $raw = [IO.File]::ReadAllText($path,[Text.Encoding]::UTF8)
@@ -67,12 +68,16 @@ foreach ($spec in $specs) {
 if ($rows.Count -eq 0) { throw 'No current Market Pulse product data was found.' }
 New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
 $combined = @()
-if (Test-Path $historyPath) { $combined += @(Import-Csv -Path $historyPath -Encoding UTF8) }
+if (Test-Path $historyPath) {
+  $combined += @(Import-Csv -Path $historyPath -Encoding UTF8 | Where-Object {
+    try { [DateTimeOffset]::Parse([string]$_.'수집시각') -ge $historyStart } catch { $false }
+  })
+}
 $keys = New-Object 'System.Collections.Generic.HashSet[string]'
 foreach ($row in $combined) { [void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)") }
 foreach ($row in $rows) {
   $key = "$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
-  if ($keys.Add($key)) { $combined += $row }
+  if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $keys.Add($key)) { $combined += $row }
 }
 $combined | Sort-Object '수집시각','브랜드','MTM' | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
 Write-Host "Price history created: $historyPath"

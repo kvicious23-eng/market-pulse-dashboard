@@ -47,6 +47,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid rgba(3,199,90,.25); o
 .automation-strip i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 .automation-strip b { color: var(--ink); }
 .automation-strip .is-partial i { background: #e3a11f; }
+.automation-actions { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.history-download { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; padding: 10px 15px; border: 1px solid var(--green-dark); border-radius: 999px; color: var(--green-dark); background: white; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.history-download:hover { background: var(--green-soft); }
+.history-download:disabled { opacity: .45; cursor: default; }
+.history-download span { font-size: 10px; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(3,199,90,.3); } 50% { box-shadow: 0 0 0 5px rgba(3,199,90,0); } }
 .snapshot { display: grid; color: var(--muted); font-size: 10px; text-align: right; }
 .snapshot b { color: var(--ink); font-size: 10px; }

@@ -7,7 +7,7 @@
     <meta name="description" content="Acer 10개 MTM 온라인 가격조사 대시보드" />
     <title>Acer 10MTM 가격 현황</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%23009b3a%22/%3E%3Cpath d=%22M15 48 27 16h10l12 32H39l-2-7H26l-2 7Zm14-16h6l-3-10Z%22 fill=%22white%22/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="../../dist/styles.css?v=20260918-1" />
+    <link rel="stylesheet" href="../../dist/styles.css?v=20260923-1" />
   </head>
   <body>
     <header class="topbar">
@@ -34,7 +34,10 @@
           <h1 id="pageTitle">10개 모델<br /><em>가격 확인 중.</em></h1>
           <p id="heroSummary">검증된 현재 판매가를 비교하고 있습니다.</p>
           <button class="text-button" id="methodButton" type="button">비교 기준과 제외 항목 보기 <span>↗</span></button>
-          <div class="automation-strip" id="automationStrip" aria-label="자동 조사 연결 상태"></div>
+          <div class="automation-actions">
+            <div class="automation-strip" id="automationStrip" aria-label="자동 조사 연결 상태"></div>
+            <button class="history-download" id="historyDownload" type="button" disabled>가격 히스토리 다운로드 <span>↓ .xlsx</span></button>
+          </div>
         </div>
         <div class="scoreboard" aria-label="시장조사 요약">
           <div class="scoreboard__primary">
@@ -144,7 +147,8 @@
     </dialog>
 
     <script>document.write('<script src="./market-data.js?ts=' + Date.now() + '"><\\/script>');</script>
+    <script>document.write('<script src="../../dist/price-history.js?ts=' + Date.now() + '"><\\/script>');</script>
     <script src="../../dist/xlsx-export.js?v=20260922-1"></script>
-    <script src="../../dist/app.js?v=20260922-2"></script>
+    <script src="../../dist/app.js?v=20260923-1"></script>
   </body>
 </html>
