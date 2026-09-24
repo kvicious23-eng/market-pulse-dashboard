@@ -251,6 +251,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
           dashboardSync='GitHub Pages automatic deployment'; lastAttemptAt=$scanKst
           lastAttemptStatus='pending'; lastAttemptText='Waiting for first scan'
           collectionRoute='Windows PC and Chrome extension'
+          competitionLastAttemptAt=''
         }
       }
       products=@()
@@ -388,7 +389,22 @@ foreach ($spec in $specs) {
       } else {
         $null
       }
-      $strike=if ($result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice) {[long]$result.strikePrice}else{$null}
+      # An origin-price element can belong to a recommended product. On a
+      # low-SRP item, reject a basis far beyond both its SRP and active offer.
+      $lowPriceProduct=$null -ne $srp -and $srp -lt 250000
+      $implausibleStrike=$lowPriceProduct -and $null -ne $result.strikePrice -and
+        [long]$result.strikePrice -gt [math]::Max(3 * $srp,3 * $productPagePrice)
+      $matchingPrimary=@($result.candidates | Where-Object {$_.source -eq 'json-ld' -and [long]$_.price -eq $productPagePrice}).Count -gt 0
+      $matchingVisible=@($result.candidates | Where-Object {$_.source -eq 'visible-won-text' -and [long]$_.price -eq $productPagePrice}).Count -gt 0
+      $confirmedZeroDiscount=$result.checkoutDiscountStatus -eq 'captured' -and
+        $null -ne $result.checkoutCouponDiscount -and [long]$result.checkoutCouponDiscount -eq 0 -and
+        $null -ne $result.wowInstantDiscount -and [long]$result.wowInstantDiscount -eq 0 -and
+        $null -ne $result.wowCouponDiscount -and [long]$result.wowCouponDiscount -eq 0
+      $fallbackPrimary=$implausibleStrike -and $matchingPrimary -and $matchingVisible -and $confirmedZeroDiscount
+      $strike=if ($fallbackPrimary) {$productPagePrice} elseif ($implausibleStrike) {$null} elseif (
+        $result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice
+      ) {[long]$result.strikePrice} else {$null}
+      $basisType=if($fallbackPrimary){'top-visible'}elseif($implausibleStrike){'unverified'}else{[string]$result.priceBasisType}
       $productPageDiscount=if ($null -ne $strike){$strike-$productPagePrice}else{$null}
       $checkout=Resolve-CheckoutDiscounts $result $productPageDiscount
       $checkoutStatus=[string]$checkout.Status
@@ -448,7 +464,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
       $mine | Add-Member -NotePropertyName productPagePrice -NotePropertyValue $productPagePrice -Force
       $mine | Add-Member -NotePropertyName preCardPrice -NotePropertyValue $preCardPrice -Force
-      $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue ([string]$result.priceBasisType) -Force
+      $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue $basisType -Force
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
       $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
@@ -544,7 +560,7 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta.monitoring.lastAttemptAt=$scanKst
   if (@($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
-    $data.meta.monitoring.competitionLastAttemptAt=$scanKst
+    $data.meta.monitoring | Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue $scanKst -Force
   }
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route

@@ -148,6 +148,8 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   const preferred = candidates.find(x=>/price-value|prod-sale-price|total-price/.test(x.source))
     || candidates.find(x=>x.source==='json-ld')
     || candidates.find(x=>x.source.startsWith('meta'));
+  const plausibleBasis=price=>Number(expectedSrp)<=0||Number(expectedSrp)>=250000||!preferred
+    ||price<=Math.max(3*Number(expectedSrp),3*preferred.price);
   const strikeCandidates=[];
   for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]']) {
     for (const node of document.querySelectorAll(selector)) {
@@ -159,13 +161,13 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   }
   // UnitPriceSpecification belongs to the active offer. Generic <del>/<s>
   // nodes also contain other variants and recommendations, so never use them.
-  const jsonStrike=candidates.find(x=>x.source==='json-ld-unit-price'&&(!preferred||x.price>=preferred.price));
+  const jsonStrike=candidates.find(x=>x.source==='json-ld-unit-price'&&(!preferred||x.price>=preferred.price)&&plausibleBasis(x.price));
   const topVisiblePrice=positionedPrices
-    .filter(x=>!preferred||x.price>=preferred.price)
+    .filter(x=>(!preferred||x.price>=preferred.price)&&plausibleBasis(x.price))
     .sort((a,b)=>a.top-b.top||a.left-b.left)[0];
   const strike=jsonStrike
     ? {price:jsonStrike.price,selector:jsonStrike.source,basisType:'crossed-out'}
-    : preferred ? ((()=>{const candidate=strikeCandidates.find(x=>x.price>=preferred.price);return candidate?{...candidate,basisType:'crossed-out'}:null;})()
+    : preferred ? ((()=>{const candidate=strikeCandidates.find(x=>x.price>=preferred.price&&plausibleBasis(x.price));return candidate?{...candidate,basisType:'crossed-out'}:null;})()
       || (topVisiblePrice?{price:topVisiblePrice.price,selector:'top-visible-price',basisType:'top-visible'}:null)
       // Some Coupang layouts expose the primary price only through JSON-LD
       // and plain visible text. With no crossed-out price, that primary price
