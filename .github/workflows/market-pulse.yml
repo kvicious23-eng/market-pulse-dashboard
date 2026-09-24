@@ -24,6 +24,8 @@ on:
       - "scripts/validate-market-data.mjs"
       - "scripts/test-discount-rules.mjs"
       - "scripts/test-history-export.mjs"
+      - "scripts/probe-naver-godox.mjs"
+      - "scripts/probe-naver-godox.ps1"
       - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
@@ -77,6 +79,7 @@ jobs:
           node --check scripts/validate-market-data.mjs
           node --check scripts/test-discount-rules.mjs
           node --check scripts/test-history-export.mjs
+          node --check scripts/probe-naver-godox.mjs
           node --check scripts/test-canonical-routes.mjs
           node --check scripts/update-market-data.mjs
           node --check scripts/update-acer-data.mjs
@@ -99,6 +102,7 @@ jobs:
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
           node scripts/test-history-export.mjs
+          node scripts/probe-naver-godox.mjs --self-test
           node scripts/test-canonical-routes.mjs
       - name: Verify audited history correction
         shell: pwsh
