@@ -19,7 +19,10 @@ async function getTargets() {
   if (!Array.isArray(state.products)) return TARGETS;
   return state.products.map(product=>{
     const fallback=TARGETS.find(target=>String(target.itemId)===String(product.itemId));
-    return {...fallback,...product};
+    const target={...fallback,...product};
+    if(String(target.itemId)==='29147698397' && !target.enuriUrl)
+      target.enuriUrl='https://price.enuri.com/catalog/148559067';
+    return target;
   });
 }
 
@@ -744,6 +747,48 @@ function readDanawaSellers(expectedMtm,expectedSrp) {
   return {ok:sellers.length>0,reason:sellers.length?'ok':'seller-not-found',sellers:sellers.slice(0,12),title};
 }
 
+// Inspect visible listing rows only. A search result, points-adjusted headline
+// or entire-page price never qualifies as evidence for an individual seller.
+function readExternalSellers(source,expectedBrand,expectedMtm,expectedSrp) {
+  const title=document.querySelector('h1')?.textContent?.trim()||document.title||'';
+  const bodyText=document.body?.innerText||'';
+  const excluded=/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
+  if(/captcha|접근이 제한|비정상적인 접근|로봇이 아닙니다/i.test(bodyText.slice(0,2000)))
+    return {ok:false,reason:'access-check',title,sellers:[]};
+  const mtm=String(expectedMtm).toLowerCase();
+  if(source==='에누리' && (!title.toLowerCase().includes(mtm) || excluded.test(title)))
+    return {ok:false,reason:'product-mismatch-or-excluded',title,sellers:[]};
+  const minimum=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
+  const sellers=[];
+  const candidates=source==='에누리'
+    ? [...document.querySelectorAll('tr')]
+    : [...document.querySelectorAll('li,article')];
+  for(const node of candidates) {
+    const label=(node.innerText||'').replace(/\s+/g,' ').trim();
+    if(!label || label.length>850 || excluded.test(label)) continue;
+    const productImage=[...node.querySelectorAll('img[alt]')]
+      .find(img=>img.alt?.toLowerCase().includes(mtm) &&
+        (img.alt.toLowerCase().includes(String(expectedBrand).toLowerCase()) ||
+         label.toLowerCase().includes(String(expectedBrand).toLowerCase())));
+    const productTitle=productImage?.alt?.trim()||'';
+    if(!productTitle || !label.toLowerCase().includes(mtm)) continue;
+    const logo=[...node.querySelectorAll('img[alt]')].find(img=>/\s로고$/.test(img.alt||''));
+    const seller=(logo?.alt||'').replace(/\s로고$/,'').trim() ||
+      node.querySelector('[class*="mall"],[class*="seller"],[class*="store"]')?.textContent?.trim()||'';
+    if(!seller || seller.length>60 || excluded.test(seller)) continue;
+    // The amount must be a visible sale price in this individual listing.
+    // Membership rewards, card rates and coupon headlines are not deducted.
+    const priceMatches=[...label.matchAll(/([0-9][0-9,]{3,})\s*원/g)]
+      .map(match=>Number(match[1].replace(/,/g,'')))
+      .filter(price=>price>=minimum&&price<=7000000);
+    if(!priceMatches.length) continue;
+    const price=priceMatches[0];
+    if(!sellers.some(row=>row.seller===seller&&row.price===price))
+      sellers.push({seller,price,label:label.slice(0,500),productTitle});
+  }
+  return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
+}
+
 async function scanAll() {
   const lock = await chrome.storage.local.get(['running','runningStartedAt']);
   const lockAge = Date.now() - Number(lock.runningStartedAt || 0);
@@ -780,21 +825,27 @@ async function scanAll() {
             ? priceScan.strikePrice-priceScan.price : null;
           Object.assign(result,await collectCheckoutDiscountsForTarget(target,productPageCouponDiscount));
         }
-        if (target.danawaUrl) {
-          let danawaTab;
+        result.competitorPages=[];
+        const pages=[
+          {source:'다나와',url:target.danawaUrl,host:'prod.danawa.com'},
+          {source:'에누리',url:target.enuriUrl,host:'price.enuri.com'},
+          {source:'네이버',url:target.naverUrl||`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(`${target.brand} ${target.mtm}`)}`,host:'search.shopping.naver.com'}
+        ];
+        for(const page of pages) {
+          if(!page.url) continue;
+          let externalTab;
           try {
-            danawaTab=await chrome.tabs.create({url:target.danawaUrl,active:true});
-            await waitForComplete(danawaTab.id);
+            const parsed=new URL(page.url);
+            if(parsed.protocol!=='https:'||parsed.hostname!==page.host) throw new Error('unsupported-competitor-url');
+            externalTab=await chrome.tabs.create({url:page.url,active:true});
+            await waitForComplete(externalTab.id);
             await wait(6000);
-            const sellerScan=await chrome.scripting.executeScript({target:{tabId:danawaTab.id},func:readDanawaSellers,args:[target.mtm,target.srp]});
-            result.competitors=sellerScan[0].result.sellers||[];
-            result.competitorReason=sellerScan[0].result.reason;
-            result.competitorPageTitle=sellerScan[0].result.title||'';
+            const scan=await chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readExternalSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[page.source,target.brand,target.mtm,target.srp]});
+            result.competitorPages.push({source:page.source,url:page.url,title:scan[0].result.title||'',reason:scan[0].result.reason,sellers:scan[0].result.sellers||[]});
           } catch(error) {
-            result.competitors=[];
-            result.competitorReason=String(error);
+            result.competitorPages.push({source:page.source,url:page.url,reason:String(error),sellers:[]});
           } finally {
-            if (danawaTab?.id) await chrome.tabs.remove(danawaTab.id).catch(()=>{});
+            if(externalTab?.id) await chrome.tabs.remove(externalTab.id).catch(()=>{});
           }
         }
         results.push(result);

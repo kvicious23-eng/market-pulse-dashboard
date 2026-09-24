@@ -264,6 +264,15 @@
     downloadWorkbook(headers, rows, "내 쿠팡상품", `MarketPulse_${brand}_내상품_${date}.xlsx`);
   }
 
+  function exportCompetitorHistory() {
+    const history = window.MARKET_PULSE_COMPETITOR_HISTORY;
+    const rows = historyRowsForBrand(history, data.meta.brand);
+    if (!rows.length) return;
+    const brand = String(data.meta.brand).replace(/[\\/:*?"<>|\x00-\x1f]/g, '_');
+    const date = String(rows.at(-1)?.[0] || '').slice(0, 10).replaceAll('-', '');
+    downloadWorkbook(history.headers, rows, '경쟁사 가격 이력', `MarketPulse_${brand}_경쟁사가격히스토리_${date}.xlsx`);
+  }
+
   function exportPriceHistory() {
     const history = window.MARKET_PULSE_HISTORY;
     const rows = historyRowsForBrand(history, data.meta.brand);
@@ -285,7 +294,8 @@
     const mine = product.offers.find((offer) => offer.role === "mine");
     const competitors = product.offers
       .filter((offer) => offer.role === "competitor" && Number.isFinite(effectiveCompetitorPrice(offer, mine)))
-      .sort((a, b) => effectiveCompetitorPrice(a, mine) - effectiveCompetitorPrice(b, mine));
+      .sort((a, b) => effectiveCompetitorPrice(a, mine) - effectiveCompetitorPrice(b, mine))
+      .slice(0, 5);
     const competitorBest = competitors[0] || null;
     const mineFinalPrice = effectiveFinalPrice(mine);
     const competitorBestPrice = competitorBest ? effectiveCompetitorPrice(competitorBest, mine) : null;
@@ -341,6 +351,7 @@
     refs.pageTitle.innerHTML = `${down}개 하락 · ${up}개 상승<br /><em>${soldOut}개 품절${availabilityReports ? ` · ${availabilityReports}개 재확인 필요` : ""}.</em>`;
     refs.heroSummary.textContent = `내 쿠팡 운영 모델의 직전 정상 수집 대비 가격 변화와 품절 현황입니다. 변동 없음 ${unchanged}개${unknown ? ` · 비교 불가 ${unknown}개` : ''}.`;
     if (refs.historyDownload) refs.historyDownload.disabled = !historyRowsForBrand(window.MARKET_PULSE_HISTORY, data.meta.brand).length;
+    refs.exportExcel.disabled = !historyRowsForBrand(window.MARKET_PULSE_COMPETITOR_HISTORY, data.meta.brand).length;
 
     $("#basisText").textContent = data.meta.comparisonBasis;
     $("#exclusionText").textContent = `${data.meta.exclusions || ''} · 해외구매 상품·현금 결제 전용가는 경쟁 비교에서 제외`;
@@ -586,6 +597,8 @@
       <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
       ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}
       <div class="evidence__item evidence__item--wide"><span>가격 조건</span><p>${escapeHtml(offer.condition)}</p></div>
+      ${!mine && offer.productTitle ? `<div class="evidence__item evidence__item--wide"><span>판매 상품명</span><p>${escapeHtml(offer.productTitle)}</p></div>` : ""}
+      ${!mine && offer.priceLabel ? `<div class="evidence__item evidence__item--wide"><span>판매 행 가격·결제 근거</span><p>${escapeHtml(offer.priceLabel)}</p></div>` : ""}
       <div class="evidence__item evidence__item--wide"><span>확인 출처</span><p>${escapeHtml(offer.sourceType)}</p></div>`;
     refs.sourceLink.href = safeUrl(offer.url);
     refs.sourceLink.hidden = refs.sourceLink.href.endsWith("#");
@@ -616,7 +629,7 @@
     if (button) openEvidence(Number(button.dataset.evidenceIndex));
   });
 
-  refs.exportExcel.addEventListener("click", exportMyProducts);
+  refs.exportExcel.addEventListener("click", exportCompetitorHistory);
   refs.historyDownload?.addEventListener("click", exportPriceHistory);
   $("#methodButton").addEventListener("click", () => refs.methodDialog.showModal());
   document.querySelectorAll("[data-close-modal]").forEach((button) => {

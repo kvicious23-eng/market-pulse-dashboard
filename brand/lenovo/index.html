@@ -77,7 +77,7 @@
             <p class="product-meta" id="productMeta"></p>
           </div>
           <div class="detail__actions">
-            <button class="export-button" id="exportExcel" type="button" title="내 쿠팡 상품과 가격 확인 근거를 Excel 파일로 저장">Excel 추출</button>
+            <button class="export-button" id="exportExcel" type="button" title="이 브랜드의 누적 경쟁사 가격 이력을 Excel 파일로 저장">Excel 추출</button>
             <div class="view-switch" role="group" aria-label="가격 데이터 범위">
               <button class="is-active" type="button" data-view="current">현재 판매</button>
               <button type="button" data-view="reference">참고·품절 <b id="referenceCount">0</b></button>
@@ -148,7 +148,8 @@
 
     <script>document.write('<script src="./market-data.js?ts=' + Date.now() + '"></' + 'script>');</script>
     <script>document.write('<script src="../../dist/price-history.js?ts=' + Date.now() + '"></' + 'script>');</script>
+    <script>document.write('<script src="../../dist/competitor-price-history.js?ts=' + Date.now() + '"></' + 'script>');</script>
     <script src="../../dist/xlsx-export.js?v=20260922-1"></script>
-    <script src="../../dist/app.js?v=20260924-1"></script>
+    <script src="../../dist/app.js?v=20260924-2"></script>
   </body>
 </html>

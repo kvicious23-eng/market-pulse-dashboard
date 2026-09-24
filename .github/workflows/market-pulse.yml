@@ -79,6 +79,7 @@ jobs:
           node --check scripts/test-discount-rules.mjs
           node --check scripts/test-history-export.mjs
           node --check scripts/test-competitor-policy.mjs
+          node --check scripts/test-competitor-history.mjs
           node --check scripts/test-canonical-routes.mjs
           node --check scripts/update-market-data.mjs
           node --check scripts/update-acer-data.mjs
@@ -102,6 +103,7 @@ jobs:
           node scripts/test-discount-rules.mjs
           node scripts/test-history-export.mjs
           node scripts/test-competitor-policy.mjs
+          node scripts/test-competitor-history.mjs
           node scripts/test-canonical-routes.mjs
       - name: Verify audited history correction
         shell: pwsh

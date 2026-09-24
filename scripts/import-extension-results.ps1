@@ -290,6 +290,8 @@ if ($catalog) {
 # is interrupted. Merge those public rows into the ignored local CSV before
 # any early return or later collection, so a subsequent PC upload retains them.
 $historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
+$competitorHistoryPath=Join-Path $RepoPath 'reports\competitor-price-history.csv'
+$publishedCompetitorHistoryPath=Join-Path $RepoPath 'dist\competitor-price-history.js'
 $historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
 $publishedHistoryPath=Join-Path $RepoPath 'dist\price-history.js'
 if (Test-Path $publishedHistoryPath) {
@@ -320,9 +322,32 @@ if (Test-Path $publishedHistoryPath) {
     $localRows | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
   }
 }
+# Recover published competitor rows before an early retry return, too.
+if (Test-Path $publishedCompetitorHistoryPath) {
+  $source=[IO.File]::ReadAllText($publishedCompetitorHistoryPath,[Text.Encoding]::UTF8)
+  $json=$source -replace '^\s*window\.MARKET_PULSE_COMPETITOR_HISTORY\s*=\s*','' -replace ';\s*$',''
+  $public=$json | ConvertFrom-Json
+  $headers=@($public.headers)
+  $local=if(Test-Path $competitorHistoryPath){@(Import-Csv $competitorHistoryPath -Encoding UTF8)}else{@()}
+  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach($row in $local){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
+  foreach($values in @($public.rows)){
+    if(@($values).Count -ne $headers.Count){throw 'Published competitor history has an invalid row.'}
+    $fields=[ordered]@{}
+    for($i=0;$i -lt $headers.Count;$i++){$fields[[string]$headers[$i]]=[string]$values[$i]}
+    $row=[pscustomobject]$fields
+    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
+    if($keys.Add($key)){$local+=$row}
+  }
+  if($local.Count -gt 0){
+    New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
+    $local | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
+  }
+}
 # A retry after a commit/push failure must push the existing import, not recalculate
 # the same scan against its own last verified price (which would erase its trend).
 $alreadyImported=$specs.Count -gt 0
+$competitorHistoryRows=@()
 foreach ($spec in $specs) {
   $existingPath=Join-Path $RepoPath $spec.Path
   if (-not (Test-Path $existingPath)) { $alreadyImported=$false; break }
@@ -548,25 +573,55 @@ foreach ($spec in $specs) {
     # The scanner must identify the product page and the individual price row.
     # Older payloads without this evidence cannot promote a competitor price.
     $excludedCompetitor='해외\s*(구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체'
-    $pageTitle=[string]$result.competitorPageTitle
-    $pageAllowed=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm) -and $pageTitle -notmatch $excludedCompetitor
-    $eligibleCompetitors=@(if ($pageAllowed) {
-      $result.competitors | Where-Object {
-        $label=[string]$_.label
-        $label -and ([string]$_.seller + ' ' + $label) -notmatch $excludedCompetitor
+    $pages=@($result.competitorPages | Where-Object {$_})
+    if ($pages.Count -eq 0 -and $result.danawaUrl) {
+      $pages=@([pscustomobject]@{source='다나와';url=$result.danawaUrl;title=$result.competitorPageTitle;sellers=@($result.competitors)})
+    }
+    $eligibleCompetitors=@(foreach($page in $pages){
+      $pageTitle=[string]$page.title
+      $pageUrl=[string]$page.url
+      $pageAllowed=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm) -and
+        $pageTitle -notmatch $excludedCompetitor -and
+        (($page.source -eq '다나와' -and $pageUrl -match '^https://prod\.danawa\.com/info/') -or
+         ($page.source -eq '에누리' -and $pageUrl -match '^https://price\.enuri\.com/catalog/') -or
+         ($page.source -eq '네이버' -and $pageUrl -match '^https://(?:search\.)?shopping\.naver\.com/'))
+      if(-not $pageAllowed){continue}
+      foreach($entry in @($page.sellers)){
+        $label=[string]$entry.label
+        $title=[string]$entry.productTitle
+        $price=0L
+        if(-not [long]::TryParse([string]$entry.price,[ref]$price)){continue}
+        $minimum=if($product.srp -and [long]$product.srp -lt 250000){10000}else{250000}
+        if(-not $label -or -not $entry.seller -or $price -lt $minimum -or $price -gt 7000000){continue}
+        if(([string]$entry.seller + ' ' + $label + ' ' + $title) -match $excludedCompetitor){continue}
+        if($page.source -ne '다나와' -and ($title -notmatch [regex]::Escape([string]$product.mtm))){continue}
+        [pscustomobject]@{seller=[string]$entry.seller;price=$price;label=$label;productTitle=$title;source=[string]$page.source;url=$pageUrl}
       }
     })
     if ($eligibleCompetitors.Count -gt 0) {
       $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
-      foreach ($entry in $eligibleCompetitors) {
+      $displayed=New-Object 'System.Collections.Generic.HashSet[string]'
+      foreach ($entry in @($eligibleCompetitors | Sort-Object price,source)) {
+        $basis=if($null -ne $mine.observedListPrice){[long]$mine.observedListPrice}else{$null}
+        $competitorHistoryRows += [pscustomobject][ordered]@{
+          '수집일'=$scanKst.Substring(0,10);'수집시각'=$scanKst;'브랜드'=$spec.Brand
+          'MTM'=[string]$product.mtm;'비교 사이트'=[string]$entry.source
+          '판매처'=[string]$entry.seller;'가격'=[long]$entry.price
+          '쿠팡 기준가'=$basis;'기준가 대비 차액'=if($null -ne $basis){[long]$entry.price-$basis}else{$null}
+          '상품명'=[string]$entry.productTitle;'가격·결제 근거'=[string]$entry.label
+          '확인시각'=$kst;'상품 URL'=[string]$entry.url
+        }
+        # Retain both sources in history; show a seller and price only once now.
+        if(-not $displayed.Add("$($entry.seller.ToLowerInvariant())|$($entry.price)")){continue}
         $channel=if($entry.seller -match $text.MarketplacePattern){$text.Marketplace}elseif($entry.seller -match $text.AcerPattern){$text.Manufacturer}else{$text.Specialist}
         $product.offers += [pscustomobject]@{
           role='competitor'; channel=$channel; seller=[string]$entry.seller; status=$text.OnSale
           displayPrice=[long]$entry.price; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
           finalPrice=[long]$entry.price; shipping=0; alertEligible=$true; competitionPolicyVerified=$true
           condition=$text.SellerCondition
-          sourceType=$text.SellerSource; checkedAt=$kst; priceCheckedAt=$kst; confidence='B'
-          confidenceText=$text.SellerDetail; url=[string]$result.danawaUrl
+          sourceType=[string]$entry.source; productTitle=[string]$entry.productTitle; priceLabel=[string]$entry.label
+          checkedAt=$kst; priceCheckedAt=$kst; confidence='B'
+          confidenceText=$text.SellerDetail; url=[string]$entry.url
         }
       }
     } else {
@@ -654,8 +709,32 @@ if ($historyRows.Count -gt 0) {
   [IO.File]::WriteAllText((Join-Path $RepoPath 'dist\price-history.js'),"window.MARKET_PULSE_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
   Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
+if ($competitorHistoryRows.Count -gt 0) {
+  New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
+  $combined=if(Test-Path $competitorHistoryPath){@(Import-Csv $competitorHistoryPath -Encoding UTF8)}else{@()}
+  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach($row in $combined){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
+  foreach($row in $competitorHistoryRows){
+    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
+    if($keys.Add($key)){$combined+=$row}
+  }
+  $combined=@($combined | Sort-Object '수집시각','브랜드','MTM','가격','판매처')
+  $combined | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
+  $headers=@($combined[0].PSObject.Properties.Name)
+  $numberColumns=@('가격','쿠팡 기준가','기준가 대비 차액')
+  $rows=@(foreach($entry in $combined){
+    ,@($headers | ForEach-Object {
+      $value=[string]$entry.$_
+      if($_ -in $numberColumns -and $value -match '^-?\d+$'){[long]$value}else{$value}
+    })
+  })
+  $published=@{headers=$headers;rows=$rows} | ConvertTo-Json -Depth 5 -Compress
+  [IO.File]::WriteAllText($publishedCompetitorHistoryPath,"window.MARKET_PULSE_COMPETITOR_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
+  Write-Host "Competitor history saved: $competitorHistoryPath ($($combined.Count) rows)"
+}
 if (Test-Path (Join-Path $RepoPath 'brand')) { Invoke-Git -Arguments @('add','--','brand') | Out-Null }
 Invoke-Git -Arguments @('add','--','dist/price-history.js') | Out-Null
+Invoke-Git -Arguments @('add','--','dist/competitor-price-history.js') | Out-Null
 $diffExit=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
 if ($diffExit -eq 1) {
   Invoke-Git -Arguments @('commit','-m','data: import Coupang prices from Chrome extension') | Out-Null

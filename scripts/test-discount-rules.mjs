@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.10");
+assert.equal(manifest.version,"1.9.11");
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);
