@@ -236,6 +236,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand $safeCategory · Korea</small>")
+  $html=$html -replace '<h1 id="pageTitle">.*?</h1>','<h1 id="pageTitle">가격 현황<br /><em>확인 중.</em></h1>'
   $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
   $html=$html -replace 'src="\.\.\/dist\/xlsx-export\.js([^\"]*)"','src="../../dist/xlsx-export.js$1"'
   $html=$html -replace 'src="(?:\.\.\/dist\/|\.\/)app\.js([^\"]*)"','src="../../dist/app.js$1"'
@@ -283,6 +284,40 @@ if ($catalog) {
     $category=@($catalog.products | Where-Object {$_.brand -eq $brand -and $_.enabled -ne $false} | ForEach-Object {[string]$_.category} | Sort-Object -Unique)
     New-BrandDashboard $brand $fullPath $(if($category.Count -eq 1){$category[0]}else{'Products'})
     $specs+=@{Brand=$brand;Path=$relativePath}
+  }
+}
+# A verified scan can be published from its saved JSON while the PC importer
+# is interrupted. Merge those public rows into the ignored local CSV before
+# any early return or later collection, so a subsequent PC upload retains them.
+$historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
+$historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
+$publishedHistoryPath=Join-Path $RepoPath 'dist\price-history.js'
+if (Test-Path $publishedHistoryPath) {
+  $historySource=[IO.File]::ReadAllText($publishedHistoryPath,[Text.Encoding]::UTF8)
+  $historyJson=$historySource -replace '^\s*window\.MARKET_PULSE_HISTORY\s*=\s*','' -replace ';\s*$',''
+  $publicHistory=$historyJson | ConvertFrom-Json
+  $headers=@($publicHistory.headers)
+  $localRows=if (Test-Path $historyPath) {@(Import-Csv -Path $historyPath -Encoding UTF8)} else {@()}
+  $knownHistoryKeys=New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($row in $localRows) {
+    [void]$knownHistoryKeys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)")
+  }
+  foreach ($values in @($publicHistory.rows)) {
+    if (@($values).Count -ne $headers.Count) { throw 'Published history has a row with an unexpected number of columns.' }
+    $fields=[ordered]@{}
+    for ($i=0;$i -lt $headers.Count;$i++) { $fields[[string]$headers[$i]]=[string]$values[$i] }
+    $row=[pscustomobject]$fields
+    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
+    if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $knownHistoryKeys.Add($key)) {
+      $localRows+= $row
+    }
+  }
+  if ($localRows.Count -gt 0) {
+    . (Join-Path $PSScriptRoot 'apply-history-corrections.ps1')
+    $localRows=@(Apply-HistoryCorrections -Rows $localRows -CorrectionsPath (Join-Path $RepoPath 'scripts\history-corrections.json'))
+    $localRows=@($localRows | Sort-Object '수집시각','브랜드','MTM')
+    New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
+    $localRows | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
   }
 }
 # A retry after a commit/push failure must push the existing import, not recalculate
@@ -492,6 +527,7 @@ foreach ($spec in $specs) {
       }
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=if($soldOut){$text.SoldOut}elseif($alertEligible){$text.Current}else{$text.Partial}
+      $mine.condition=if($soldOut){'정확한 Item ID 확인. 품절 상품은 상품페이지 할인만 기록.'}elseif($alertEligible){'정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.'}else{'정확한 Item ID 확인. 할인 세부 근거는 일부 확인.'}
       $mine.confidence=if($alertEligible -or $soldOut){'A'}else{'B'}
       $mine.confidenceText=if($alertEligible -or $soldOut){$text.CurrentDetail}else{$text.Partial}
       if ($alertEligible) {$verified++} elseif ($soldOut) {$soldOutCount++} else {$partialCount++}
@@ -566,8 +602,6 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
 }
-$historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
-$historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
 if ($historyRows.Count -gt 0) {
   New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
   $combined=@()
