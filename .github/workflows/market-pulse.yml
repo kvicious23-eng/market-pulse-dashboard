@@ -23,6 +23,7 @@ on:
       - "scripts/update-acer-data.mjs"
       - "scripts/validate-market-data.mjs"
       - "scripts/test-discount-rules.mjs"
+      - "scripts/test-history-export.mjs"
       - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
