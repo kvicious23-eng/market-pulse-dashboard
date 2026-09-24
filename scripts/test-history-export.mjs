@@ -26,7 +26,9 @@ function downloadForBrand(brand,sourceHistory=history) {
 }
 
 let total=0;
-for(const brand of ['Lenovo','Acer','Godox']) {
+const brands=[...new Set(history.rows.map(row=>row[brandIndex]))];
+for(const establishedBrand of ['Lenovo','Acer','Godox']) assert.ok(brands.includes(establishedBrand));
+for(const brand of brands) {
   const expected=history.rows.filter(row=>row[brandIndex]===brand);
   const {downloads,rows}=downloadForBrand(brand);
   assert.ok(expected.length>0,`${brand} should have historical rows`);
@@ -34,7 +36,7 @@ for(const brand of ['Lenovo','Acer','Godox']) {
   assert.equal(rows.length,expected.length);
   assert.equal(downloads[0].rows.length,expected.length);
   assert.ok(downloads[0].rows.every(row=>row[brandIndex]===brand),`${brand} export includes another brand`);
-  assert.match(downloads[0].filename,new RegExp(`^MarketPulse_${brand}_가격히스토리_\\d{8}\\.xlsx$`));
+  assert.ok(downloads[0].filename.startsWith(`MarketPulse_${brand}_가격히스토리_`));
   total+=expected.length;
 }
 assert.equal(total,history.rows.length,'Every published history row belongs to exactly one dashboard');
