@@ -262,9 +262,19 @@
 
   function exportPriceHistory() {
     const history = window.MARKET_PULSE_HISTORY;
-    if (!history?.headers?.length || !history?.rows?.length) return;
-    const stamp = String(history.rows.at(-1)?.[0] || '').slice(0, 10).replaceAll('-', '');
-    downloadWorkbook(history.headers, history.rows, '가격 히스토리', `MarketPulse_가격히스토리_${stamp}.xlsx`);
+    const rows = historyRowsForBrand(history, data.meta.brand);
+    if (!rows.length) return;
+    const stamp = String(rows.at(-1)?.[0] || '').slice(0, 10).replaceAll('-', '');
+    const brand = String(data.meta.brand).replace(/[\\/:*?"<>|\x00-\x1f]/g, '_');
+    downloadWorkbook(history.headers, rows, '가격 히스토리', `MarketPulse_${brand}_가격히스토리_${stamp}.xlsx`);
+  }
+
+  function historyRowsForBrand(history, brand) {
+    const brandColumn = history?.headers?.indexOf('브랜드') ?? -1;
+    const selectedBrand = String(brand ?? '').trim().toLowerCase();
+    if (brandColumn < 0 || !selectedBrand || !Array.isArray(history?.rows)) return [];
+    return history.rows.filter(row => Array.isArray(row) &&
+      String(row[brandColumn] ?? '').trim().toLowerCase() === selectedBrand);
   }
 
   function productStats(product) {
@@ -326,7 +336,7 @@
     const unknown = total - down - up - unchanged - soldOut;
     refs.pageTitle.innerHTML = `${down}개 하락 · ${up}개 상승<br /><em>${soldOut}개 품절${availabilityReports ? ` · ${availabilityReports}개 재확인 필요` : ""}.</em>`;
     refs.heroSummary.textContent = `내 쿠팡 운영 모델의 직전 정상 수집 대비 가격 변화와 품절 현황입니다. 변동 없음 ${unchanged}개${unknown ? ` · 비교 불가 ${unknown}개` : ''}.`;
-    if (refs.historyDownload) refs.historyDownload.disabled = !window.MARKET_PULSE_HISTORY?.rows?.length;
+    if (refs.historyDownload) refs.historyDownload.disabled = !historyRowsForBrand(window.MARKET_PULSE_HISTORY, data.meta.brand).length;
 
     $("#basisText").textContent = data.meta.comparisonBasis;
     $("#exclusionText").textContent = data.meta.exclusions;
