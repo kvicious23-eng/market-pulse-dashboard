@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
+// Windows PowerShell 5.1 reads BOM-less .ps1 files as the system ANSI code page.
+for (const path of ["scripts/apply-history-corrections.ps1", "scripts/local-coupang-scan.ps1", "scripts/test-history-corrections.ps1"]) {
+  const bytes = fs.readFileSync(path);
+  assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], `${path} must have a UTF-8 BOM for Windows PowerShell 5.1`);
+}
+
 const source=fs.readFileSync("chrome-extension/background.js","utf8");
 const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
 const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");

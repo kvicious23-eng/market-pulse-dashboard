@@ -234,4 +234,5 @@ Excel 내보내기 형식은 `.xlsx`이며, 화면과 같은 항목 및 값을 �
 - `바로구매` 버튼이 없거나 비활성화된 상품은 품절로 기록한다.
 - 기술적 수집 실패 행은 히스토리에 실패 사실만 남기고 과거 가격을 새 수집 시각의 가격처럼 복제하지 않는다.
 - 배포 워크플로는 JavaScript·PowerShell 구문과 시장 데이터 구조·가격 계산 관계를 검증한 뒤에만 GitHub Pages를 배포한다.
+- Windows PowerShell 5.1에서 실행하는 한글 포함 `.ps1`은 UTF-8 BOM으로 저장한다. Linux PowerShell 구문 검사 외에 BOM 회귀검사도 통과해야 한다. 2026-09-24 오전 PC 재업로드 시 히스토리 정정 스크립트의 BOM 누락으로 발생한 파서 오류를 방지한다.
 - 브랜드별 데이터 파일은 `/brand/{slug}/market-data.js`만 정본으로 사용한다. 기존 `dist/market-data.js`와 `acer/market-data.js`는 생성·동기화·검증·배포하지 않는다.

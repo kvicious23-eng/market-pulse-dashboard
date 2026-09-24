@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'apply-history-corrections.ps1')
 $path=Join-Path $PSScriptRoot 'history-corrections.json'
 $correction=@(Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json)[0]

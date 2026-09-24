@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
   [switch]$NoPush
 )

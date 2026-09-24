@@ -1,4 +1,4 @@
-function Apply-HistoryCorrections {
+﻿function Apply-HistoryCorrections {
   param([object[]]$Rows,[string]$CorrectionsPath)
   $combined=@($Rows)
   if (-not (Test-Path $CorrectionsPath)) { return $combined }
