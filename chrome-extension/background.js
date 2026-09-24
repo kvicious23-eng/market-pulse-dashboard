@@ -720,25 +720,28 @@ async function scanCoupangTab(tabId,target) {
 function readDanawaSellers(expectedMtm,expectedSrp) {
   const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
   const bodyText=document.body?.innerText||'';
-  if (!bodyText.toUpperCase().includes(expectedMtm.toUpperCase())) return {ok:false,reason:'mtm-mismatch',sellers:[]};
+  const title=document.querySelector('h1,h2,h3')?.textContent?.trim()||document.title||'';
+  const excluded=/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
+  if (excluded.test(title)) return {ok:false,reason:'excluded-product-or-payment',sellers:[],title};
+  if (!bodyText.toUpperCase().includes(expectedMtm.toUpperCase())) return {ok:false,reason:'mtm-mismatch',sellers:[],title};
   const heading=[...document.querySelectorAll('h2,h3,h4,div,strong')].find(n=>n.textContent?.trim()==='쇼핑몰별 최저가');
   const root=heading?.parentElement?.parentElement || document.body;
   const sellers=[];
   for (const img of root.querySelectorAll('img[alt]')) {
     const seller=(img.getAttribute('alt')||'').replace(/^Image:\s*/,'').trim();
-    if (!seller || /로딩중|상품.*이미지|다나와/i.test(seller)) continue;
+    if (!seller || /로딩중|상품.*이미지|다나와/i.test(seller) || excluded.test(seller)) continue;
     let node=img.parentElement;
     for (let depth=0;node&&depth<7;depth++,node=node.parentElement) {
       const text=(node.innerText||'').replace(/\s+/g,' ').trim();
       const match=text.match(/([0-9][0-9,]{4,})\s*원/);
       if (match && text.length<1800) {
         const price=Number(match[1].replace(/,/g,''));
-        if (price>=minimumPrice&&price<=7000000&&!sellers.some(x=>x.seller===seller)) sellers.push({seller,price});
+        if (!excluded.test(text) && price>=minimumPrice&&price<=7000000&&!sellers.some(x=>x.seller===seller)) sellers.push({seller,price,label:text.slice(0,500)});
         break;
       }
     }
   }
-  return {ok:sellers.length>0,reason:sellers.length?'ok':'seller-not-found',sellers:sellers.slice(0,12),title:document.title};
+  return {ok:sellers.length>0,reason:sellers.length?'ok':'seller-not-found',sellers:sellers.slice(0,12),title};
 }
 
 async function scanAll() {
@@ -786,6 +789,7 @@ async function scanAll() {
             const sellerScan=await chrome.scripting.executeScript({target:{tabId:danawaTab.id},func:readDanawaSellers,args:[target.mtm,target.srp]});
             result.competitors=sellerScan[0].result.sellers||[];
             result.competitorReason=sellerScan[0].result.reason;
+            result.competitorPageTitle=sellerScan[0].result.title||'';
           } catch(error) {
             result.competitors=[];
             result.competitorReason=String(error);

@@ -545,14 +545,25 @@ foreach ($spec in $specs) {
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
       $partialCount++
     }
-    if ($result.competitors -and @($result.competitors).Count -gt 0) {
+    # The scanner must identify the product page and the individual price row.
+    # Older payloads without this evidence cannot promote a competitor price.
+    $excludedCompetitor='해외\s*(구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체'
+    $pageTitle=[string]$result.competitorPageTitle
+    $pageAllowed=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm) -and $pageTitle -notmatch $excludedCompetitor
+    $eligibleCompetitors=@(if ($pageAllowed) {
+      $result.competitors | Where-Object {
+        $label=[string]$_.label
+        $label -and ([string]$_.seller + ' ' + $label) -notmatch $excludedCompetitor
+      }
+    })
+    if ($eligibleCompetitors.Count -gt 0) {
       $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
-      foreach ($entry in @($result.competitors)) {
+      foreach ($entry in $eligibleCompetitors) {
         $channel=if($entry.seller -match $text.MarketplacePattern){$text.Marketplace}elseif($entry.seller -match $text.AcerPattern){$text.Manufacturer}else{$text.Specialist}
         $product.offers += [pscustomobject]@{
           role='competitor'; channel=$channel; seller=[string]$entry.seller; status=$text.OnSale
           displayPrice=[long]$entry.price; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
-          finalPrice=[long]$entry.price; shipping=0; alertEligible=$true
+          finalPrice=[long]$entry.price; shipping=0; alertEligible=$true; competitionPolicyVerified=$true
           condition=$text.SellerCondition
           sourceType=$text.SellerSource; checkedAt=$kst; priceCheckedAt=$kst; confidence='B'
           confidenceText=$text.SellerDetail; url=[string]$result.danawaUrl

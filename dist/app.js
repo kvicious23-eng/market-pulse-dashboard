@@ -177,6 +177,10 @@
   }
 
   function effectiveCompetitorPrice(offer, mine) {
+    if (offer?.competitionPolicyVerified !== true) return null;
+    // Keep excluded legacy listings out of comparisons until a clean scan replaces them.
+    const evidence = [offer?.seller,offer?.condition,offer?.sourceType,offer?.productTitle,offer?.priceLabel].join(' ');
+    if (/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i.test(evidence)) return null;
     const price = effectiveFinalPrice(offer);
     const competitorDay = collectionDay(offer);
     const mineDay = collectionDay(mine);
@@ -339,7 +343,7 @@
     if (refs.historyDownload) refs.historyDownload.disabled = !historyRowsForBrand(window.MARKET_PULSE_HISTORY, data.meta.brand).length;
 
     $("#basisText").textContent = data.meta.comparisonBasis;
-    $("#exclusionText").textContent = data.meta.exclusions;
+    $("#exclusionText").textContent = `${data.meta.exclusions || ''} · 해외구매 상품·현금 결제 전용가는 경쟁 비교에서 제외`;
     const monitoring = data.meta.monitoring;
     const attempt = monitoring?.lastAttemptAt ? new Date(monitoring.lastAttemptAt) : null;
     const attemptTime = attempt && !Number.isNaN(attempt.getTime())

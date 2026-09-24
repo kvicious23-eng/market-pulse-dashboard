@@ -45,6 +45,9 @@ function danawaSellerOffers(html, mtm) {
   const pageText = visibleText(html);
   if (!pageText.toUpperCase().includes(mtm.toUpperCase())) return [];
   if (/일시\s*품절\s*상품/.test(pageText.slice(0, 12000))) return [];
+  const title = visibleText(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
+  const excluded = /해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
+  if (excluded.test(title)) return [];
 
   const sectionStart = html.indexOf("쇼핑몰별 최저가");
   const sectionEnd = html.indexOf("최저가 추이", sectionStart + 1);
@@ -58,6 +61,7 @@ function danawaSellerOffers(html, mtm) {
     const seller = match[1].replace(/<[^>]+>/g, "").trim();
     const price = Number(match[2].replace(/,/g, ""));
     if (!seller || /로딩중|상품.*이미지|다나와/i.test(seller)) continue;
+    if (excluded.test(seller) || excluded.test(visibleText(scope.slice(match.index,match.index+match[0].length+120)))) continue;
     if (price < 250000 || price > 7000000) continue;
     if (!bySeller.has(seller) || price < bySeller.get(seller)) bySeller.set(seller, price);
   }
@@ -138,6 +142,7 @@ for (const product of data.products) {
           finalPrice: entry.price,
           shipping: 0,
           alertEligible: true,
+          competitionPolicyVerified: true,
           condition: "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
           sourceType: "다나와 가격비교 판매처 목록",
           checkedAt: display,
