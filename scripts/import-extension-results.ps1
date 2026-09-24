@@ -580,8 +580,12 @@ foreach ($spec in $specs) {
     $eligibleCompetitors=@(foreach($page in $pages){
       $pageTitle=[string]$page.title
       $pageUrl=[string]$page.url
-      $pageAllowed=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm) -and
-        $pageTitle -notmatch $excludedCompetitor -and
+      # Naver search page headings may omit the query; its individual listing
+      # still needs its own brand and MTM evidence below.
+      $pageIdentityMatches=($pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm)) -or
+        ($page.source -eq '네이버' -and $pageUrl -match '[?&]query=' -and
+         [uri]::UnescapeDataString($pageUrl) -match [regex]::Escape([string]$product.mtm))
+      $pageAllowed=$pageIdentityMatches -and $pageTitle -notmatch $excludedCompetitor -and
         (($page.source -eq '다나와' -and $pageUrl -match '^https://prod\.danawa\.com/info/') -or
          ($page.source -eq '에누리' -and $pageUrl -match '^https://price\.enuri\.com/catalog/') -or
          ($page.source -eq '네이버' -and $pageUrl -match '^https://(?:search\.)?shopping\.naver\.com/'))
@@ -594,7 +598,9 @@ foreach ($spec in $specs) {
         $minimum=if($product.srp -and [long]$product.srp -lt 250000){10000}else{250000}
         if(-not $label -or -not $entry.seller -or $price -lt $minimum -or $price -gt 7000000){continue}
         if(([string]$entry.seller + ' ' + $label + ' ' + $title) -match $excludedCompetitor){continue}
-        if($page.source -ne '다나와' -and ($title -notmatch [regex]::Escape([string]$product.mtm))){continue}
+        if($page.source -ne '다나와' -and
+          ($title -notmatch [regex]::Escape([string]$product.mtm) -or
+           ($title + ' ' + $label) -notmatch [regex]::Escape([string]$spec.Brand))){continue}
         [pscustomobject]@{seller=[string]$entry.seller;price=$price;label=$label;productTitle=$title;source=[string]$page.source;url=$pageUrl}
       }
     })
@@ -668,7 +674,7 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName publishedAt -NotePropertyValue $scanKst -Force
   $data.meta.monitoring.lastAttemptAt=$scanKst
-  if (@($brandResults | Where-Object {@($_.competitors).Count -gt 0}).Count -gt 0) {
+  if (@($brandResults | Where-Object { $_.competitorPages -or $_.competitorReason }).Count -gt 0) {
     $data.meta.monitoring | Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue $scanKst -Force
   }
   $data.meta.monitoring.quickWatch=$text.Schedule

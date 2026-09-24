@@ -56,6 +56,10 @@ assert.equal(nodeCtx.offers(html('Acer MTM123 해외구매','340,000원'),'MTM12
 assert.equal(nodeCtx.offers(html('Acer MTM123 정품','현금가 350,000원'),'MTM123').length,0);
 const importer = fs.readFileSync('scripts/import-extension-results.ps1','utf8');
 assert.match(importer,/\$pageTitle=\[string\]\$page\.title/);
-assert.match(importer,/\$pageAllowed=.*\$product\.mtm/);
+assert.match(importer,/\$pageIdentityMatches=.*\$product\.mtm/);
 assert.match(importer,/\$entry\.seller \+ ' ' \+ \$label \+ ' ' \+ \$title\) -match \$excludedCompetitor/);
+assert.match(importer,/\$page\.source -eq '네이버' -and \$pageUrl -match '\[\?&\]query='/);
+assert.match(importer,/\$title \+ ' ' \+ \$label\) -notmatch \[regex\]::Escape\(\[string\]\$spec\.Brand\)/);
+assert.match(importer,/competitionLastAttemptAt -NotePropertyValue \$scanKst/);
+assert.match(importer,/Where-Object \{ \$_\.competitorPages -or \$_\.competitorReason \}/);
 console.log('Competition exclusions verified for scanner and dashboard.');
