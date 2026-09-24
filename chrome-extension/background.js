@@ -148,8 +148,9 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   const preferred = candidates.find(x=>/price-value|prod-sale-price|total-price/.test(x.source))
     || candidates.find(x=>x.source==='json-ld')
     || candidates.find(x=>x.source.startsWith('meta'));
-  const plausibleBasis=price=>Number(expectedSrp)<=0||Number(expectedSrp)>=250000||!preferred
-    ||price<=Math.max(3*Number(expectedSrp),3*preferred.price);
+  const managedSrp=Number(expectedSrp);
+  const plausibleBasis=price=>!Number.isFinite(managedSrp)||managedSrp<=0||managedSrp>=250000||!preferred
+    ||price<=Math.max(3*managedSrp,3*preferred.price);
   const strikeCandidates=[];
   for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]']) {
     for (const node of document.querySelectorAll(selector)) {
