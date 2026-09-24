@@ -776,7 +776,6 @@ async function scanAll() {
             &&priceScan.strikePrice>=priceScan.price
             ? priceScan.strikePrice-priceScan.price : null;
           Object.assign(result,await collectCheckoutDiscountsForTarget(target,productPageCouponDiscount));
-          await recheckAvailabilityAfterCheckout(tab.id,target,result,productPageCouponDiscount);
         }
         if (target.danawaUrl) {
           let danawaTab;
@@ -820,7 +819,6 @@ async function scanAll() {
             &&retryScan.strikePrice>=retryScan.price
             ? retryScan.strikePrice-retryScan.price : null;
           Object.assign(result,await collectCheckoutDiscountsForTarget(result,productPageCouponDiscount));
-          await recheckAvailabilityAfterCheckout(retryTab.id,result,result,productPageCouponDiscount);
         }
       } catch (_) {
       } finally {
@@ -917,40 +915,6 @@ function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendor
   if(disabled) return {ok:false,reason:'buy-now-button-sold-out',buttonEvidence:buttonEvidence.slice(0,240)};
   if(clickBuyNow) button.click();
   return {ok:true,buttonEvidence:buttonEvidence.slice(0,240),checkedAt:new Date().toISOString()};
-}
-
-async function recheckAvailabilityAfterCheckout(productTabId,target,result,productPageCouponDiscount) {
-  if(result.checkoutDiscountStatus!=='captured') return;
-  // The checkout can succeed early in a long scan. Reload the exact item page
-  // before publishing so a later sold-out state cannot retain that checkout.
-  try {
-    await chrome.tabs.reload(productTabId);
-    await waitForComplete(productTabId);
-    await wait(3000);
-    const injected=await chrome.scripting.executeScript({
-      target:{tabId:productTabId},func:enterCheckoutDiagnostic,
-      args:[target.productId,target.itemId,target.vendorItemId,false]
-    });
-    const check=injected?.[0]?.result;
-    result.availabilityRecheck=check||{ok:false,reason:'availability-recheck-no-result'};
-    if(check?.ok) return;
-    const reason=check?.reason||'availability-recheck-no-result';
-    const soldOut=['buy-now-button-not-found','buy-now-button-sold-out'].includes(reason);
-    Object.assign(result,{
-      checkoutDiscountStatus:'missing',checkoutDiscountReason:soldOut?reason:'availability-recheck-failed',
-      checkoutCouponDiscount:soldOut&&Number.isFinite(productPageCouponDiscount)?productPageCouponDiscount:null,
-      checkoutCouponSource:soldOut?'product-page-soldout':null,
-      wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountTotal:null,
-      checkoutDiscountCapturedAt:null,checkoutInferredZeroFields:[],checkoutDiscountEvidence:[]
-    });
-  } catch(error) {
-    result.availabilityRecheck={ok:false,reason:String(error)};
-    Object.assign(result,{
-      checkoutDiscountStatus:'missing',checkoutDiscountReason:'availability-recheck-failed',
-      checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null,
-      checkoutDiscountTotal:null,checkoutDiscountCapturedAt:null,checkoutInferredZeroFields:[],checkoutDiscountEvidence:[]
-    });
-  }
 }
 
 function readCheckoutDiscounts() {

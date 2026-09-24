@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.8");
+assert.equal(manifest.version,"1.9.9");
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);
@@ -36,10 +36,11 @@ assert.match(importer,/Duplicate vendorItemId values/);
 assert.match(importer,/produce the same dashboard slug/);
 assert.match(importer,/\$minimumPrice=if \(\$null -ne \$product\.srp.*-lt 250000\) \{10000\} else \{250000\}/);
 assert.match(importer,/\$result\.price -ge \$minimumPrice/);
-assert.match(importer,/availabilityRecheck\.ok -ne \$true/);
+assert.doesNotMatch(source,/recheckAvailabilityAfterCheckout|availabilityRecheck/);
+assert.doesNotMatch(importer,/availabilityRecheck/);
+assert.match(importer,/\$result\.checkoutDiscountStatus -eq 'captured' -and \$result\.checkoutDiscountCapturedAt/);
 assert.match(importer,/availabilityReportAt'\)/);
 assert.match(importer,/NotePropertyName publishedAt/);
-assert.match(source,/await recheckAvailabilityAfterCheckout\(tab\.id,target,result,productPageCouponDiscount\)/);
 assert.match(importer,/\$safeBrand \$safeCategory · Korea/);
 assert.match(importer,/Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue \$scanKst -Force/);
 assert.match(importer,/\$fallbackPrimary=\$implausibleStrike -and \$matchingPrimary -and \$matchingVisible -and \$confirmedZeroDiscount/);
@@ -279,31 +280,6 @@ assert.deepEqual(
   {general:30000,preCard:1298000,card:103840,final:1194160}
 );
 
-const recheckStart=source.indexOf('async function recheckAvailabilityAfterCheckout(');
-const recheckEnd=source.indexOf('\nfunction readCheckoutDiscounts(',recheckStart);
-assert.ok(recheckStart>=0&&recheckEnd>recheckStart);
-const verifyCheckout=async diagnosis=>{
-  const context={
-    chrome:{tabs:{reload:async()=>{}},scripting:{executeScript:async()=>[{result:diagnosis}]}},
-    waitForComplete:async()=>{},wait:async()=>{},enterCheckoutDiagnostic:()=>{}
-  };
-  vm.runInNewContext(`${source.slice(recheckStart,recheckEnd)};this.verify=recheckAvailabilityAfterCheckout;`,context);
-  const result={checkoutDiscountStatus:'captured',checkoutDiscountReason:'checkout-confirmed',checkoutCouponDiscount:0,
-    checkoutCouponSource:'checkout',wowInstantDiscount:0,wowCouponDiscount:0,checkoutDiscountCapturedAt:'2026-09-24T00:00:00Z'};
-  await context.verify(12,{productId:'9738958594',itemId:'29147698397',vendorItemId:'96070924334'},result,840);
-  return result;
-};
-const wentSoldOut=await verifyCheckout({ok:false,reason:'buy-now-button-sold-out'});
-assert.equal(wentSoldOut.checkoutDiscountStatus,'missing');
-assert.equal(wentSoldOut.checkoutDiscountReason,'buy-now-button-sold-out');
-assert.equal(wentSoldOut.checkoutCouponSource,'product-page-soldout');
-assert.equal(wentSoldOut.checkoutCouponDiscount,840);
-assert.equal(wentSoldOut.checkoutDiscountCapturedAt,null);
-const recheckBlocked=await verifyCheckout({ok:false,reason:'access-check'});
-assert.equal(recheckBlocked.checkoutDiscountReason,'availability-recheck-failed');
-assert.equal(recheckBlocked.checkoutCouponSource,null);
-const stillAvailable=await verifyCheckout({ok:true,checkedAt:'2026-09-24T00:01:00Z'});
-assert.equal(stillAvailable.checkoutDiscountStatus,'captured');
 const godoxData={window:{}};
 vm.runInNewContext(fs.readFileSync('brand/godox/market-data.js','utf8'),godoxData);
 const godoxMine=godoxData.window.MARKET_DATA.products.find(product=>product.mtm==='C100')?.offers.find(offer=>offer.role==='mine');

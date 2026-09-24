@@ -104,18 +104,6 @@ foreach ($result in $payloadResults) {
   if ($resultCheckedAt -lt $startedAt.AddMinutes(-5) -or $resultCheckedAt -gt $completedAt.AddMinutes(10)) {
     throw "The scan result for $($result.mtm) falls outside the scan time window."
   }
-  if ($extensionVersion -ge [version]'1.9.8' -and $result.checkoutDiscountStatus -eq 'captured' -and
-      $result.availabilityRecheck.ok -ne $true) {
-    throw "The scan result for $($result.mtm) has checkout discounts without a final availability recheck."
-  }
-  if ($result.availabilityRecheck.checkedAt) {
-    try { $availabilityRecheckedAt=[DateTimeOffset]$result.availabilityRecheck.checkedAt } catch {
-      throw "The scan result for $($result.mtm) has an invalid availability recheck timestamp."
-    }
-    if ($availabilityRecheckedAt -lt $startedAt.AddMinutes(-5) -or $availabilityRecheckedAt -gt $completedAt.AddMinutes(10)) {
-      throw "The availability recheck for $($result.mtm) falls outside the scan time window."
-    }
-  }
   if ($result.checkoutDiscountCapturedAt) {
     try { $checkoutCapturedAt=[DateTimeOffset]$result.checkoutDiscountCapturedAt } catch {
       throw "The scan result for $($result.mtm) has an invalid checkout capture timestamp."
@@ -426,8 +414,8 @@ foreach ($spec in $specs) {
       continue
     }
     $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
-    $availabilityAt=if ($result.availabilityRecheck.checkedAt) {
-      [TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.availabilityRecheck.checkedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
+    $availabilityAt=if ($result.checkoutDiscountStatus -eq 'captured' -and $result.checkoutDiscountCapturedAt) {
+      [TimeZoneInfo]::ConvertTime([DateTimeOffset]$result.checkoutDiscountCapturedAt,$kstZone).ToString('yyyy-MM-dd HH:mm')
     } else {$kst}
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $availabilityAt -Force
     $minimumPrice=if ($null -ne $product.srp -and [long]$product.srp -gt 0 -and [long]$product.srp -lt 250000) {10000} else {250000}
