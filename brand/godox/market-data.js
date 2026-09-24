@@ -59,7 +59,7 @@ window.MARKET_DATA = {
           "cardMaxDiscount": null,
           "cardProviders": [],
           "cardBenefitText": "",
-          "checkoutDiscountStatus": "unverified",
+        "checkoutDiscountStatus": "missing",
           "checkoutDiscountReason": "availability-reported-after-scan",
           "checkoutCouponDiscount": null,
           "checkoutCouponSource": null,
