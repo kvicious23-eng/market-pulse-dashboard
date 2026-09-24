@@ -307,10 +307,23 @@ assert.equal(stillAvailable.checkoutDiscountStatus,'captured');
 const godoxData={window:{}};
 vm.runInNewContext(fs.readFileSync('brand/godox/market-data.js','utf8'),godoxData);
 const godoxMine=godoxData.window.MARKET_DATA.products.find(product=>product.mtm==='C100')?.offers.find(offer=>offer.role==='mine');
-assert.equal(godoxMine.status,'품절 제보 · 재확인 필요');
-assert.equal(godoxMine.alertEligible,false);
-assert.equal(godoxMine.finalPrice,null);
-assert.equal(godoxMine.lastVerifiedFinalPrice,41160);
-assert.equal(history.rows.filter(row=>row[history.headers.indexOf('브랜드')]==='Godox'&&row[history.headers.indexOf('MTM')]==='C100').length,1);
+const godoxRows=history.rows.filter(row=>row[history.headers.indexOf('브랜드')]==='Godox'&&row[history.headers.indexOf('MTM')]==='C100');
+assert.ok(godoxRows.length>=1);
+const newestGodoxRow=godoxRows.at(-1);
+const morningGodoxRow=godoxRows.find(row=>row[history.headers.indexOf('수집시각')]==='2026-09-24T08:19:16+09:00');
+assert.equal(morningGodoxRow?.[history.headers.indexOf('최종 실구매가')],41160);
+if(godoxMine.availabilityReportSource==='operator') {
+  assert.equal(godoxMine.status,'품절 제보 · 재확인 필요');
+  assert.equal(godoxMine.alertEligible,false);
+  assert.ok(Date.parse(godoxMine.availabilityReportAt)>Date.parse(godoxData.window.MARKET_DATA.meta.snapshotAt));
+} else {
+  assert.equal(godoxMine.status,newestGodoxRow[history.headers.indexOf('상태')]);
+  assert.equal(godoxData.window.MARKET_DATA.meta.publishedAt,godoxData.window.MARKET_DATA.meta.snapshotAt);
+}
+if(godoxMine.status==='품절') {
+  assert.equal(godoxMine.alertEligible,false);
+  assert.ok(['buy-now-button-not-found','buy-now-button-sold-out'].includes(godoxMine.checkoutDiscountReason));
+  assert.equal(newestGodoxRow[history.headers.indexOf('최종 실구매가')],'');
+}
 
 console.log("Discount source and calculation rules passed.");

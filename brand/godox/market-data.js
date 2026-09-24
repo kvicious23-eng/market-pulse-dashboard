@@ -15,7 +15,7 @@ window.MARKET_DATA = {
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
                                     "competitionLastAttemptAt":  "2026-09-24T14:15:28+09:00"
                                 },
-                 "publishedAt":  "2026-09-24T11:13:18+09:00",
+                 "publishedAt":  "2026-09-24T14:15:28+09:00",
                  "brand":  "Godox"
              },
     "products":  [
@@ -44,8 +44,6 @@ window.MARKET_DATA = {
                                             "checkoutInferredZeroFields":  [
 
                                                                            ],
-                                            "availabilityReportAt":  "2026-09-24T11:13:18+09:00",
-                                            "availabilityReportSource":  "operator",
                                             "lastVerifiedFinalPrice":  41160,
                                             "lastVerifiedPriceCheckedAt":  "2026-09-24 08:00",
                                             "availabilityCheckedAt":  "2026-09-24 14:00",
