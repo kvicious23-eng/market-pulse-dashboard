@@ -322,8 +322,9 @@
     const up = mine.filter(offer => offer.alertEligible === true && offer.priceTrend === 'up').length;
     const unchanged = mine.filter(offer => offer.alertEligible === true && offer.priceTrend === 'same').length;
     const soldOut = mine.filter(isSoldOut).length;
+    const availabilityReports = mine.filter(offer => offer.availabilityReportSource === "operator").length;
     const unknown = total - down - up - unchanged - soldOut;
-    refs.pageTitle.innerHTML = `${down}개 하락 · ${up}개 상승<br /><em>${soldOut}개 품절.</em>`;
+    refs.pageTitle.innerHTML = `${down}개 하락 · ${up}개 상승<br /><em>${soldOut}개 품절${availabilityReports ? ` · ${availabilityReports}개 재확인 필요` : ""}.</em>`;
     refs.heroSummary.textContent = `내 쿠팡 운영 모델의 직전 정상 수집 대비 가격 변화와 품절 현황입니다. 변동 없음 ${unchanged}개${unknown ? ` · 비교 불가 ${unknown}개` : ''}.`;
     if (refs.historyDownload) refs.historyDownload.disabled = !window.MARKET_PULSE_HISTORY?.rows?.length;
 
@@ -353,8 +354,9 @@
         const separator = dataUrl.includes("?") ? "&" : "?";
         const response = await fetch(`${dataUrl}${separator}check=${Date.now()}`, { cache: "no-store" });
         const source = await response.text();
-        const latest = source.match(/["']?snapshotAt["']?\s*:\s*"([^"]+)"/)?.[1];
-        if (latest && latest !== data.meta.snapshotAt) location.reload();
+        const latest = source.match(/["']?publishedAt["']?\s*:\s*"([^"]+)"/)?.[1]
+          || source.match(/["']?snapshotAt["']?\s*:\s*"([^"]+)"/)?.[1];
+        if (latest && latest !== (data.meta.publishedAt || data.meta.snapshotAt)) location.reload();
       } catch {
         // 다음 확인 주기에 다시 시도합니다.
       }
