@@ -1,7 +1,24 @@
 document.querySelector('#manage').addEventListener('click',()=>chrome.runtime.openOptionsPage());
+const status=document.querySelector('#status');
+chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
+  if(state?.running){
+    const progress=state.scanProgress;
+    status.textContent=progress
+      ? `수집 중: ${progress.completed}/${progress.total}개 완료, 현재 ${progress.mtm} (마지막 진행 ${new Date(progress.updatedAt).toLocaleTimeString('ko-KR')})`
+      : '수집을 시작하는 중이야.';
+  } else if(state?.lastScanError) {
+    status.textContent=`마지막 수집 오류: ${state.lastScanError}`;
+  } else if(state?.lastResult?.completedAt) {
+    status.textContent=`마지막 수집 완료: ${new Date(state.lastResult.completedAt).toLocaleString('ko-KR')}`;
+  }
+}).catch(()=>{});
 document.querySelector('#scan').addEventListener('click',async()=>{
-  await chrome.runtime.sendMessage({type:'RUN_SCAN'});
-  document.querySelector('#status').textContent='수집을 시작했어. 열린 탭을 그대로 두면 돼.';
+  const response=await chrome.runtime.sendMessage({type:'RUN_SCAN'});
+  status.textContent=response?.ok
+    ? '수집을 시작했어. 열린 탭을 그대로 두면 돼.'
+    : response?.reason==='already-running'
+      ? '이미 수집 중이야. 진행이 멈췄다면 확장 프로그램을 새로고침한 뒤 다시 시작해.'
+      : `수집을 시작하지 못했어: ${response?.reason||'원인 미확인'}`;
 });
 document.querySelector('#checkout').addEventListener('click',async()=>{
   const status=document.querySelector('#status');

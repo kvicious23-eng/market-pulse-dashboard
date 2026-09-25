@@ -64,6 +64,18 @@ function validateProductCatalog(products) {
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+async function withScanTimeout(promise,ms,stage) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`scan-timeout:${stage}`)),ms);})
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function localDay() {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
 }
@@ -522,7 +534,7 @@ async function captureDebuggerText(target) {
     errors:{}
   };
   try {
-    const tree=await chrome.debugger.sendCommand(target,'Accessibility.getFullAXTree',{});
+    const tree=await withScanTimeout(chrome.debugger.sendCommand(target,'Accessibility.getFullAXTree',{}),15000,'card-accessibility');
     result.accessibility=accessibilityStrings(tree);
     result.status.accessibility=result.accessibility.length?'captured':'empty';
   } catch (error) {
@@ -530,9 +542,9 @@ async function captureDebuggerText(target) {
     result.errors.accessibility=String(error).slice(0,500);
   }
   try {
-    const snapshot=await chrome.debugger.sendCommand(target,'DOMSnapshot.captureSnapshot',{
+    const snapshot=await withScanTimeout(chrome.debugger.sendCommand(target,'DOMSnapshot.captureSnapshot',{
       computedStyles:[],includeDOMRects:false,includePaintOrder:false
-    });
+    }),15000,'card-dom-snapshot');
     result.domSnapshot=debuggerSnapshotStrings(snapshot);
     result.status.domSnapshot=result.domSnapshot.length?'captured':'empty';
   } catch (error) {
@@ -546,21 +558,21 @@ async function dispatchTrustedClickAndCapture(tabId,point) {
   const target={tabId};
   let attached=false;
   try {
-    await chrome.debugger.attach(target,'1.3');
+    await withScanTimeout(chrome.debugger.attach(target,'1.3'),15000,'card-debugger-attach');
     attached=true;
-    await chrome.debugger.sendCommand(target,'Page.bringToFront');
-    await chrome.debugger.sendCommand(target,'Accessibility.enable').catch(()=>{});
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Page.bringToFront'),15000,'card-bring-to-front');
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Accessibility.enable'),15000,'card-accessibility-enable').catch(()=>{});
     const before=await captureDebuggerText(target);
-    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y});
-    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',buttons:1,clickCount:1});
-    await chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',buttons:0,clickCount:1});
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y}),15000,'card-mouse-move');
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',buttons:1,clickCount:1}),15000,'card-mouse-press');
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',buttons:0,clickCount:1}),15000,'card-mouse-release');
     await wait(1200);
     const after=await captureDebuggerText(target);
     return {ok:true,before,after};
   } catch (error) {
     return {ok:false,reason:String(error)};
   } finally {
-    if (attached) await chrome.debugger.detach(target).catch(()=>{});
+    if (attached) await withScanTimeout(chrome.debugger.detach(target),15000,'card-debugger-detach').catch(()=>{});
   }
 }
 
@@ -790,11 +802,10 @@ function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
 
 async function scanAll() {
   const lock = await chrome.storage.local.get(['running','runningStartedAt']);
-  const lockAge = Date.now() - Number(lock.runningStartedAt || 0);
-  // A full multi-brand pass can take well over five minutes. Keep a one-hour
-  // lock so a second manual click cannot start an overlapping scan.
-  if (lock.running && lock.runningStartedAt && lockAge < 60 * 60 * 1000) return;
-  await chrome.storage.local.set({running:true,runningStartedAt:Date.now()});
+  // A stalled scan must be stopped by reloading the extension before retrying.
+  // Never start another scan over an active one merely because an hour elapsed.
+  if (lock.running) return;
+  await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const scanStartedAt = new Date().toISOString();
   const results = [];
   const closeChildTabs = async (openerTabId) => {
@@ -811,18 +822,23 @@ async function scanAll() {
     const targets=configuredTargets.filter(x=>x.enabled!==false);
     for (const target of targets) {
       let tab;
+      await chrome.storage.local.set({scanProgress:{mtm:target.mtm,completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}});
       try {
         tab = await chrome.tabs.create({url:target.url, active:true});
-        await waitForComplete(tab.id);
+        await withScanTimeout(waitForComplete(tab.id),60000,`coupang-load:${target.mtm}`);
         await wait(7000);
-        const priceScan=await scanCoupangTab(tab.id,target);
+        const priceScan=await withScanTimeout(scanCoupangTab(tab.id,target),90000,`coupang-price:${target.mtm}`);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if(priceScan?.ok) {
           const productPageCouponDiscount=priceScan.strikeReliable===true
             &&Number.isFinite(priceScan.strikePrice)&&Number.isFinite(priceScan.price)
             &&priceScan.strikePrice>=priceScan.price
             ? priceScan.strikePrice-priceScan.price : null;
-          Object.assign(result,await collectCheckoutDiscountsForTarget(target,productPageCouponDiscount));
+          try {
+            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,productPageCouponDiscount),90000,`checkout:${target.mtm}`));
+          } catch(error) {
+            Object.assign(result,{checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null});
+          }
         }
         result.competitorPages=[];
         const pages=[
@@ -836,23 +852,24 @@ async function scanAll() {
             const parsed=new URL(page.url);
             if(parsed.protocol!=='https:'||parsed.hostname!==page.host) throw new Error('unsupported-competitor-url');
             externalTab=await chrome.tabs.create({url:page.url,active:true});
-            await waitForComplete(externalTab.id);
+            await withScanTimeout(waitForComplete(externalTab.id),60000,`competitor-load:${target.mtm}`);
             await wait(6000);
-            const scan=await chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]});
+            const scan=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]}),30000,`competitor-read:${target.mtm}`);
             result.competitorPages.push({source:page.source,url:page.url,title:scan[0].result.title||'',reason:scan[0].result.reason,sellers:scan[0].result.sellers||[]});
           } catch(error) {
             result.competitorPages.push({source:page.source,url:page.url,reason:String(error),sellers:[]});
           } finally {
-            if(externalTab?.id) await chrome.tabs.remove(externalTab.id).catch(()=>{});
+            if(externalTab?.id) await withScanTimeout(chrome.tabs.remove(externalTab.id),15000,`competitor-close:${target.mtm}`).catch(()=>{});
           }
         }
         results.push(result);
       } catch (error) {
         results.push({...target, ok:false, reason:String(error), checkedAt:new Date().toISOString()});
       } finally {
-        if (tab?.id) await closeChildTabs(tab.id).catch(()=>{});
-        if (tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+        if (tab?.id) await withScanTimeout(closeChildTabs(tab.id),15000,`child-close:${target.mtm}`).catch(()=>{});
+        if (tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`coupang-close:${target.mtm}`).catch(()=>{});
       }
+      await chrome.storage.local.set({scanProgress:{mtm:target.mtm,completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}});
       // A slower cadence reduces Coupang's temporary access-check response.
       await wait(20000);
     }
@@ -862,21 +879,21 @@ async function scanAll() {
       let retryTab;
       try {
         retryTab=await chrome.tabs.create({url:result.url,active:true});
-        await waitForComplete(retryTab.id);
+        await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
-        const retryScan=await scanCoupangTab(retryTab.id,result);
+        const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
         if (retryScan?.ok) {
           Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
           const productPageCouponDiscount=retryScan.strikeReliable===true
             &&Number.isFinite(retryScan.strikePrice)&&Number.isFinite(retryScan.price)
             &&retryScan.strikePrice>=retryScan.price
             ? retryScan.strikePrice-retryScan.price : null;
-          Object.assign(result,await collectCheckoutDiscountsForTarget(result,productPageCouponDiscount));
+          Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,productPageCouponDiscount),90000,`retry-checkout:${result.mtm}`));
         }
       } catch (_) {
       } finally {
-        if (retryTab?.id) await closeChildTabs(retryTab.id).catch(()=>{});
-        if (retryTab?.id) await chrome.tabs.remove(retryTab.id).catch(()=>{});
+        if (retryTab?.id) await withScanTimeout(closeChildTabs(retryTab.id),15000,`retry-child-close:${result.mtm}`).catch(()=>{});
+        if (retryTab?.id) await withScanTimeout(chrome.tabs.remove(retryTab.id),15000,`retry-close:${result.mtm}`).catch(()=>{});
       }
       await wait(20000);
     }
@@ -894,12 +911,16 @@ async function scanAll() {
       results
     };
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    await chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false});
+    await withScanTimeout(chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download');
     await chrome.storage.local.set({
       lastRunDay:localDay(),
       lastRunSlot:currentScheduledScanSlot(),
-      lastResult:payload
+      lastResult:payload,
+      scanProgress:{mtm:null,completed:targets.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}
     });
+  } catch(error) {
+    await chrome.storage.local.set({lastScanError:String(error),lastScanErrorAt:new Date().toISOString()});
+    throw error;
   } finally {
     await chrome.storage.local.set({running:false,runningStartedAt:null});
   }
@@ -1138,12 +1159,12 @@ function reconcileCheckoutDiscounts(regular,instant,coupon) {
 async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscount=null) {
   let tab;
   try {
-    tab=await chrome.tabs.create({url:target.url,active:false});
-    await waitForComplete(tab.id);
+    tab=await withScanTimeout(chrome.tabs.create({url:target.url,active:false}),15000,`checkout-open:${target.mtm}`);
+    await withScanTimeout(waitForComplete(tab.id),60000,`checkout-load:${target.mtm}`);
     await wait(7000);
-    const entered=await chrome.scripting.executeScript({
+    const entered=await withScanTimeout(chrome.scripting.executeScript({
       target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId]
-    });
+    }),30000,`checkout-entry:${target.mtm}`);
     if(!entered?.[0]?.result?.ok) {
       const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
       const soldOut=['buy-now-button-not-found','buy-now-button-sold-out'].includes(reason);
@@ -1156,7 +1177,7 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     }
     for(let i=0;i<30;i++){
       await wait(500);
-      const current=await chrome.tabs.get(tab.id);
+      const current=await withScanTimeout(chrome.tabs.get(tab.id),15000,`checkout-tab:${target.mtm}`);
       if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
     }
     await wait(4000);
@@ -1164,7 +1185,7 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
     let regular=null,instant=null,coupon=null,wowMemberTotal=null;
     let regularStatus='missing',instantStatus='missing',couponStatus='missing';
     for(let attempt=0;attempt<4;attempt++){
-      const read=await chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts});
+      const read=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts}),15000,`checkout-read:${target.mtm}`);
       page=read?.[0]?.result;
       if(page?.ok) confirmedPage=page;
       if(page?.regularCouponDiscount?.status==='captured') { regular=page.regularCouponDiscount.amount; regularStatus='captured'; }
@@ -1236,7 +1257,7 @@ async function collectCheckoutDiscountsForTarget(target,productPageCouponDiscoun
       wowInstantDiscount:null,wowCouponDiscount:null
     };
   } finally {
-    if(tab?.id) await chrome.tabs.remove(tab.id).catch(()=>{});
+    if(tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`checkout-close:${target.mtm}`).catch(()=>{});
   }
 }
 
@@ -1283,6 +1304,9 @@ chrome.runtime.onInstalled.addListener(async()=>{
   await schedule();
 });
 chrome.runtime.onStartup.addListener(async()=>{
+  // A browser restart stops the previous service worker and its scan.
+  const previous=await chrome.storage.local.get('running');
+  if(previous.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-browser-restart',lastScanErrorAt:new Date().toISOString()});
   await schedule();
   const state=await chrome.storage.local.get(['lastRunSlot']);
   const dueSlot=currentScheduledScanSlot();
@@ -1304,8 +1328,15 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='RUN_SCAN') {
-    scanAll();
-    sendResponse({ok:true});
+    chrome.storage.local.get('running').then(state=>{
+      if(state.running) sendResponse({ok:false,reason:'already-running'});
+      else { scanAll().catch(()=>{}); sendResponse({ok:true}); }
+    }).catch(error=>sendResponse({ok:false,reason:String(error)}));
+    return true;
+  }
+  if (message?.type==='GET_SCAN_STATUS') {
+    chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(state=>sendResponse(state)).catch(error=>sendResponse({lastScanError:String(error)}));
+    return true;
   }
   if (message?.type==='DIAGNOSE_CHECKOUT_DISCOUNTS') {
     diagnoseCheckoutDiscounts().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
