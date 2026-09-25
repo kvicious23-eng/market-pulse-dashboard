@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-09-25T15:39:01+09:00",
+                 "snapshotAt":  "2026-09-26T08:16:05+09:00",
                  "sourceFile":  "product-catalog.json",
                  "comparisonBasis":  "Exact model and item price comparison",
                  "exclusions":  "Personal rewards and unverified benefits are excluded",
@@ -9,14 +9,14 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 14:00 KST",
                                     "fullResearch":  "Basic and precision scan",
                                     "dashboardSync":  "GitHub Pages automatic deployment",
-                                    "lastAttemptAt":  "2026-09-25T15:39:01+09:00",
-                                    "lastAttemptStatus":  "success",
-                                    "lastAttemptText":  "Godox 수집 결과: 검증 0, 품절 1, 일부 0 / 전체 1",
+                                    "lastAttemptAt":  "2026-09-26T08:16:05+09:00",
+                                    "lastAttemptStatus":  "partial",
+                                    "lastAttemptText":  "Godox 수집 결과: 검증 0, 품절 0, 일부 1 / 전체 1",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
                                     "competitionLastAttemptAt":  "2026-09-25T15:39:01+09:00"
                                 },
                  "brand":  "Godox",
-                 "publishedAt":  "2026-09-25T15:39:01+09:00"
+                 "publishedAt":  "2026-09-26T08:16:05+09:00"
              },
     "products":  [
                      {
@@ -30,7 +30,7 @@ window.MARKET_DATA = {
                                             "finalPrice":  41160,
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
-                                            "status":  "품절",
+                                            "status":  "최근 검증가 · Chrome 확인 실패",
                                             "displayPrice":  42000,
                                             "instantDiscount":  null,
                                             "couponDiscount":  14360,
@@ -44,9 +44,6 @@ window.MARKET_DATA = {
                                             "checkoutInferredZeroFields":  [
 
                                                                            ],
-                                            "lastVerifiedFinalPrice":  41160,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-24 08:00",
-                                            "availabilityCheckedAt":  "2026-09-25 15:24",
                                             "srp":  42000,
                                             "observedListPrice":  55520,
                                             "productPagePrice":  41160,
@@ -73,11 +70,14 @@ window.MARKET_DATA = {
                                             "checkoutDiscountEvidence":  [
 
                                                                          ],
+                                            "priceCheckedAt":  "2026-09-25 15:24",
+                                            "lastVerifiedFinalPrice":  41160,
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-24 08:00",
+                                            "availabilityCheckedAt":  "2026-09-26 08:00",
                                             "alertEligible":  false,
                                             "priceChange":  null,
                                             "priceTrend":  "unavailable",
-                                            "priceComparisonAt":  "2026-09-24 08:00",
-                                            "priceCheckedAt":  "2026-09-25 15:24"
+                                            "priceComparisonAt":  ""
                                         },
                                         {
                                             "role":  "competitor",
@@ -90,7 +90,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41940,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -100,7 +99,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -113,7 +113,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41950,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -123,7 +122,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -136,7 +136,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41950,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -146,7 +145,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -159,7 +159,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41960,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -169,7 +168,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -182,7 +182,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41970,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -192,7 +191,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -205,7 +205,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  41970,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -215,7 +214,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -228,7 +228,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  42000,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -238,7 +237,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -251,7 +251,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  42000,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -261,7 +260,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -274,7 +274,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  42000,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -284,7 +283,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -297,7 +297,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  43010,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -307,7 +306,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -320,7 +320,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  43010,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -330,7 +329,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -343,7 +343,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  43010,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -353,7 +352,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -366,7 +366,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  44010,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -376,7 +375,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -389,7 +389,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  44900,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "에누리",
@@ -399,7 +398,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                            "url":  "https://price.enuri.com/catalog/148559067",
+                                            "alertEligible":  false
                                         },
                                         {
                                             "role":  "competitor",
@@ -412,7 +412,6 @@ window.MARKET_DATA = {
                                             "cardDiscount":  null,
                                             "finalPrice":  45000,
                                             "shipping":  0,
-                                            "alertEligible":  true,
                                             "competitionPolicyVerified":  true,
                                             "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
                                             "sourceType":  "다나와",
@@ -422,7 +421,8 @@ window.MARKET_DATA = {
                                             "priceCheckedAt":  "2026-09-25 15:24",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507"
+                                            "url":  "https://prod.danawa.com/info/?pcode=124247591\u0026keyword=%EA%B3%A0%EB%8F%85%EC%8A%A4+c100\u0026cate=12237507",
+                                            "alertEligible":  false
                                         }
                                     ],
                          "references":  [
