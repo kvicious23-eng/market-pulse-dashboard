@@ -41,7 +41,7 @@ assert.equal(result.competitors.length,5);
 assert.equal(JSON.stringify(result.competitors.map(row=>row.finalPrice)),JSON.stringify([42000,43000,44000,45000,46000]));
 
 const scanner=fs.readFileSync('chrome-extension/background.js','utf8');
-const scannerStart=scanner.indexOf('function readExternalSellers(');
+const scannerStart=scanner.indexOf('function readEnuriSellers(');
 const scannerEnd=scanner.indexOf('\n\nasync function scanAll()',scannerStart);
 assert.ok(scannerStart>0&&scannerEnd>scannerStart);
 const scanContext={document:{
@@ -55,8 +55,8 @@ const scanContext={document:{
       {alt:'GODOX C100 해외구매'},{alt:'옥션 로고'}]}
   ]
 }};
-vm.runInNewContext(`${scanner.slice(scannerStart,scannerEnd)}\nthis.scan=readExternalSellers`,scanContext);
-const scanned=scanContext.scan('에누리','Godox','C100',42000);
+vm.runInNewContext(`${scanner.slice(scannerStart,scannerEnd)}\nthis.scan=readEnuriSellers`,scanContext);
+const scanned=scanContext.scan('Godox','C100',42000);
 assert.equal(scanned.sellers.length,1);
 assert.equal(scanned.sellers[0].price,41970);
 console.log('Competitor history, top five and listing exclusions passed.');

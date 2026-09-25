@@ -573,22 +573,19 @@ foreach ($spec in $specs) {
     # The scanner must identify the product page and the individual price row.
     # Older payloads without this evidence cannot promote a competitor price.
     $excludedCompetitor='해외\s*(구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체'
-    $pages=@($result.competitorPages | Where-Object {$_})
+    $pages=@($result.competitorPages | Where-Object {$_.source -in @('다나와','에누리')})
     if ($pages.Count -eq 0 -and $result.danawaUrl) {
       $pages=@([pscustomobject]@{source='다나와';url=$result.danawaUrl;title=$result.competitorPageTitle;sellers=@($result.competitors)})
     }
+    # Remove retired Naver offers even if an older snapshot contains them.
+    $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor' -or $_.sourceType -ne '네이버'})
     $eligibleCompetitors=@(foreach($page in $pages){
       $pageTitle=[string]$page.title
       $pageUrl=[string]$page.url
-      # Naver search page headings may omit the query; its individual listing
-      # still needs its own brand and MTM evidence below.
-      $pageIdentityMatches=($pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm)) -or
-        ($page.source -eq '네이버' -and $pageUrl -match '[?&]query=' -and
-         [uri]::UnescapeDataString($pageUrl) -match [regex]::Escape([string]$product.mtm))
+      $pageIdentityMatches=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm)
       $pageAllowed=$pageIdentityMatches -and $pageTitle -notmatch $excludedCompetitor -and
         (($page.source -eq '다나와' -and $pageUrl -match '^https://prod\.danawa\.com/info/') -or
-         ($page.source -eq '에누리' -and $pageUrl -match '^https://price\.enuri\.com/catalog/') -or
-         ($page.source -eq '네이버' -and $pageUrl -match '^https://(?:search\.)?shopping\.naver\.com/'))
+         ($page.source -eq '에누리' -and $pageUrl -match '^https://price\.enuri\.com/catalog/'))
       if(-not $pageAllowed){continue}
       foreach($entry in @($page.sellers)){
         $label=[string]$entry.label
@@ -674,7 +671,7 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName publishedAt -NotePropertyValue $scanKst -Force
   $data.meta.monitoring.lastAttemptAt=$scanKst
-  if (@($brandResults | Where-Object { $_.competitorPages -or $_.competitorReason }).Count -gt 0) {
+  if (@($brandResults | Where-Object { $_.competitorReason -or @($_.competitorPages | Where-Object {$_.source -in @('다나와','에누리')}).Count -gt 0 }).Count -gt 0) {
     $data.meta.monitoring | Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue $scanKst -Force
   }
   $data.meta.monitoring.quickWatch=$text.Schedule

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Market Pulse Coupang Scanner",
-  "version": "1.9.11",
+  "version": "1.9.12",
   "description": "Reads exact Coupang item prices in a normal Chrome session.",
   "permissions": [
     "alarms",
@@ -16,8 +16,7 @@
     "https://order.coupang.com/*",
     "https://checkout.coupang.com/*",
     "https://prod.danawa.com/*",
-    "https://price.enuri.com/*",
-    "https://search.shopping.naver.com/*"
+    "https://price.enuri.com/*"
   ],
   "background": {
     "service_worker": "background.js"

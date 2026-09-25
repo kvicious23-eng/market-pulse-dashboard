@@ -20,6 +20,7 @@ async function getTargets() {
   return state.products.map(product=>{
     const fallback=TARGETS.find(target=>String(target.itemId)===String(product.itemId));
     const target={...fallback,...product};
+    delete target.naverUrl;
     if(String(target.itemId)==='29147698397' && !target.enuriUrl)
       target.enuriUrl='https://price.enuri.com/catalog/148559067';
     return target;
@@ -749,20 +750,18 @@ function readDanawaSellers(expectedMtm,expectedSrp) {
 
 // Inspect visible listing rows only. A search result, points-adjusted headline
 // or entire-page price never qualifies as evidence for an individual seller.
-function readExternalSellers(source,expectedBrand,expectedMtm,expectedSrp) {
+function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
   const title=document.querySelector('h1')?.textContent?.trim()||document.title||'';
   const bodyText=document.body?.innerText||'';
   const excluded=/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
   if(/captcha|접근이 제한|비정상적인 접근|로봇이 아닙니다/i.test(bodyText.slice(0,2000)))
     return {ok:false,reason:'access-check',title,sellers:[]};
   const mtm=String(expectedMtm).toLowerCase();
-  if(source==='에누리' && (!title.toLowerCase().includes(mtm) || excluded.test(title)))
+  if(!title.toLowerCase().includes(mtm) || excluded.test(title))
     return {ok:false,reason:'product-mismatch-or-excluded',title,sellers:[]};
   const minimum=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
   const sellers=[];
-  const candidates=source==='에누리'
-    ? [...document.querySelectorAll('tr')]
-    : [...document.querySelectorAll('li,article')];
+  const candidates=[...document.querySelectorAll('tr')];
   for(const node of candidates) {
     const label=(node.innerText||'').replace(/\s+/g,' ').trim();
     if(!label || label.length>850 || excluded.test(label)) continue;
@@ -828,8 +827,7 @@ async function scanAll() {
         result.competitorPages=[];
         const pages=[
           {source:'다나와',url:target.danawaUrl,host:'prod.danawa.com'},
-          {source:'에누리',url:target.enuriUrl,host:'price.enuri.com'},
-          {source:'네이버',url:target.naverUrl||`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(`${target.brand} ${target.mtm}`)}`,host:'search.shopping.naver.com'}
+          {source:'에누리',url:target.enuriUrl,host:'price.enuri.com'}
         ];
         for(const page of pages) {
           if(!page.url) continue;
@@ -840,7 +838,7 @@ async function scanAll() {
             externalTab=await chrome.tabs.create({url:page.url,active:true});
             await waitForComplete(externalTab.id);
             await wait(6000);
-            const scan=await chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readExternalSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[page.source,target.brand,target.mtm,target.srp]});
+            const scan=await chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]});
             result.competitorPages.push({source:page.source,url:page.url,title:scan[0].result.title||'',reason:scan[0].result.reason,sellers:scan[0].result.sellers||[]});
           } catch(error) {
             result.competitorPages.push({source:page.source,url:page.url,reason:String(error),sellers:[]});
