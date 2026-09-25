@@ -25,6 +25,7 @@ on:
       - "scripts/test-discount-rules.mjs"
       - "scripts/test-history-export.mjs"
       - "scripts/test-competitor-policy.mjs"
+      - "scripts/test-competitor-history.mjs"
       - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
@@ -43,6 +44,8 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-24.04
+    outputs:
+      deploy_sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -119,6 +122,9 @@ jobs:
           git commit -m "data: refresh market scan"
           git pull --rebase origin main
           git push
+      - name: Select validated revision
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: update
@@ -130,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ needs.update.outputs.deploy_sha }}
       - uses: actions/configure-pages@v6
         with:
           enablement: true

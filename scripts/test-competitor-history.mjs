@@ -42,7 +42,7 @@ assert.equal(JSON.stringify(result.competitors.map(row=>row.finalPrice)),JSON.st
 
 const scanner=fs.readFileSync('chrome-extension/background.js','utf8');
 const scannerStart=scanner.indexOf('function readEnuriSellers(');
-const scannerEnd=scanner.indexOf('\n\nasync function scanAll()',scannerStart);
+const scannerEnd=scanner.indexOf('\n\nasync function scanAll(',scannerStart);
 assert.ok(scannerStart>0&&scannerEnd>scannerStart);
 const scanContext={document:{
   title:'GODOX C100 노출계 토이카메라 [정품]',

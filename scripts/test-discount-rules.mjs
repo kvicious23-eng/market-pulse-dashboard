@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.13");
+assert.equal(manifest.version,"1.9.14");
 const timeoutStart=source.indexOf("async function withScanTimeout(");
 const timeoutEnd=source.indexOf("\n\nfunction localDay",timeoutStart);
 assert.ok(timeoutStart>=0&&timeoutEnd>timeoutStart,"scan timeout helper was not found");
@@ -23,6 +23,51 @@ const timeoutContext={Promise,setTimeout,clearTimeout,Error};
 vm.runInNewContext(`${source.slice(timeoutStart,timeoutEnd)};this.withScanTimeout=withScanTimeout;`,timeoutContext);
 assert.equal(await timeoutContext.withScanTimeout(Promise.resolve('completed'),50,'fast-step'),'completed');
 await assert.rejects(timeoutContext.withScanTimeout(new Promise(()=>{}),10,'stalled-step'),/scan-timeout:stalled-step/);
+const downloadStart=source.indexOf("async function waitForScanDownload(");
+const downloadEnd=source.indexOf("\n\nfunction localDay",downloadStart);
+assert.ok(downloadStart>=0&&downloadEnd>downloadStart,"download completion check was not found");
+const downloadStates=[{state:'in_progress'},{state:'complete'}];
+const downloadContext={Number,Error,wait:async()=>{},withScanTimeout:promise=>promise,
+  chrome:{downloads:{search:async()=>[downloadStates.shift()]}}};
+vm.runInNewContext(`${source.slice(downloadStart,downloadEnd)};this.waitForScanDownload=waitForScanDownload;`,downloadContext);
+assert.equal((await downloadContext.waitForScanDownload(42)).state,'complete');
+downloadContext.chrome.downloads.search=async()=>[{state:'interrupted',error:'NETWORK_FAILED'}];
+await assert.rejects(downloadContext.waitForScanDownload(43),/scan-download-interrupted:NETWORK_FAILED/);
+const scanRequestStart=source.indexOf("let activeScanPromise=null;");
+const scanRequestEnd=source.indexOf("\n\nchrome.runtime.onInstalled",scanRequestStart);
+assert.ok(scanRequestStart>=0&&scanRequestEnd>scanRequestStart,"scan request guard was not found");
+const scanResolvers=[];
+const scanRequests=[];
+const slot08='2026-09-25T08:00+09:00',slot14='2026-09-25T14:00+09:00';
+const scanContext={scanAll:slot=>{scanRequests.push(slot);return new Promise(resolve=>scanResolvers.push(resolve));},
+  currentScheduledScanSlot:()=>slot14,recentScanSlot:()=>true};
+vm.runInNewContext(`${source.slice(scanRequestStart,scanRequestEnd)};this.requestScan=requestScan;`,scanContext);
+assert.equal(scanContext.requestScan(slot08),true);
+assert.equal(scanContext.requestScan(slot08),false);
+assert.equal(scanContext.requestScan(slot14),false);
+assert.deepEqual(scanRequests,[slot08]);
+scanResolvers.shift()();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.deepEqual(scanRequests,[slot08,slot14],"the missed afternoon slot starts after the morning scan");
+scanResolvers.shift()();
+await new Promise(resolve=>setTimeout(resolve,0));
+const scheduleStart=source.indexOf("function kstDateTimeParts(");
+const scheduleEnd=source.indexOf("\n\nfunction enterCheckoutDiagnostic",scheduleStart);
+assert.ok(scheduleStart>=0&&scheduleEnd>scheduleStart,"scheduled alarm guard was not found");
+const scheduledAt=[];
+const fixedTime=Date.parse('2026-09-25T04:59:59.500Z');
+class FixedDate extends Date {
+  constructor(...args){super(...(args.length?args:[fixedTime]));}
+  static now(){return fixedTime;}
+}
+const scheduleContext={Date:FixedDate,Intl,Object,String,Number,
+  SCHEDULED_SCAN_TIMES:[{alarm:'daily-scan-1400',hour:14,minute:0,slot:'14:00'}],
+  chrome:{alarms:{clear:async()=>{},create:async(_name,config)=>scheduledAt.push(config.when)}}};
+vm.runInNewContext(`${source.slice(scheduleStart,scheduleEnd)};this.scheduleEntry=scheduleEntry;this.recentScanSlot=recentScanSlot;`,scheduleContext);
+await scheduleContext.scheduleEntry(scheduleContext.SCHEDULED_SCAN_TIMES[0]);
+assert.equal(scheduledAt[0],Date.parse(slot14),"the next alarm must fire at exactly 14:00 KST");
+assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000),true);
+assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000+1),false);
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);

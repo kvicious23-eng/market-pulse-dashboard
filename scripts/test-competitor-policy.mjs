@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const scanner = fs.readFileSync('chrome-extension/background.js', 'utf8');
 const start = scanner.indexOf('function readDanawaSellers(');
-const end = scanner.indexOf('\n\nasync function scanAll()', start);
+const end = scanner.indexOf('\n\nasync function scanAll(', start);
 assert.ok(start >= 0 && end > start);
 
 function scan(title, row) {

@@ -4,12 +4,13 @@ chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
   if(state?.running){
     const progress=state.scanProgress;
     status.textContent=progress
-      ? `수집 중: ${progress.completed}/${progress.total}개 완료, 현재 ${progress.mtm} (마지막 진행 ${new Date(progress.updatedAt).toLocaleTimeString('ko-KR')})`
+      ? `수집 중: ${progress.completed}/${progress.total}개 완료, ${progress.mtm||'JSON 저장'} · ${progress.stage||'준비'} (마지막 진행 ${new Date(progress.updatedAt).toLocaleTimeString('ko-KR')})`
       : '수집을 시작하는 중이야.';
   } else if(state?.lastScanError) {
     status.textContent=`마지막 수집 오류: ${state.lastScanError}`;
   } else if(state?.lastResult?.completedAt) {
-    status.textContent=`마지막 수집 완료: ${new Date(state.lastResult.completedAt).toLocaleString('ko-KR')}`;
+    const failed=(state.lastResult.results||[]).filter(result=>!result.ok).length;
+    status.textContent=`마지막 JSON 저장: ${new Date(state.lastResult.completedAt).toLocaleString('ko-KR')} · ${state.lastResult.resultCount}/${state.lastResult.targetCount}개 기록${failed?` (가격 수집 실패 ${failed}개)`:''}`;
   }
 }).catch(()=>{});
 document.querySelector('#scan').addEventListener('click',async()=>{

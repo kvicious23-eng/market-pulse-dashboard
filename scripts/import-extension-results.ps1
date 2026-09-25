@@ -38,9 +38,19 @@ function Get-LatestResultPath {
 }
 
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
+$candidateError=''
 do {
   $resultPath = Get-LatestResultPath
-  $payload = if ($resultPath) { Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json } else { $null }
+  $payload=$null
+  if ($resultPath) {
+    try {
+      $payload=Get-Content -Raw -Encoding UTF8 $resultPath -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+      $candidateError=''
+    } catch {
+      $candidateError="The latest scan JSON cannot be read yet: $resultPath ($($_.Exception.Message))"
+      if (-not $WaitForToday) { throw $candidateError }
+    }
+  }
   if ($payload) {
     try { $scanAt = [DateTimeOffset]$payload.scannedAt } catch { $scanAt = $null }
     if ($scanAt) {
@@ -57,7 +67,7 @@ do {
     }
   }
   if (-not $WaitForToday) { throw 'No fresh Market Pulse scan result was found.' }
-  if ([DateTime]::UtcNow -ge $deadline) { throw 'Timed out waiting for a fresh Market Pulse scan result.' }
+  if ([DateTime]::UtcNow -ge $deadline) { throw "Timed out waiting for a fresh Market Pulse scan result. $candidateError" }
   Start-Sleep -Seconds 30
 } while ($true)
 

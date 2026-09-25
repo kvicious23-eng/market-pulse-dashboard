@@ -76,6 +76,18 @@ async function withScanTimeout(promise,ms,stage) {
   }
 }
 
+async function waitForScanDownload(downloadId) {
+  if(!Number.isInteger(downloadId)) throw new Error('scan-download-id-missing');
+  for(let attempt=0;attempt<60;attempt++) {
+    const [item]=await withScanTimeout(chrome.downloads.search({id:downloadId}),10000,'scan-download-status');
+    if(item?.state==='complete') return item;
+    if(item?.state==='interrupted') throw new Error(`scan-download-interrupted:${item.error||'unknown'}`);
+    if(!item) throw new Error('scan-download-disappeared');
+    await wait(1000);
+  }
+  throw new Error('scan-download-completion-timeout');
+}
+
 function localDay() {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
 }
@@ -800,14 +812,17 @@ function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
   return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
 }
 
-async function scanAll() {
-  const lock = await chrome.storage.local.get(['running','runningStartedAt']);
-  // A stalled scan must be stopped by reloading the extension before retrying.
-  // Never start another scan over an active one merely because an hour elapsed.
-  if (lock.running) return;
+async function scanAll(scanSlot) {
+  const lock = await chrome.storage.local.get('running');
+  // An active scan in this worker is guarded synchronously by requestScan.
+  // A persisted lock without an active promise belongs to a terminated worker.
+  if(lock.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-worker-restart',lastScanErrorAt:new Date().toISOString()});
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const scanStartedAt = new Date().toISOString();
   const results = [];
+  const progress=async (mtm,stage,total)=>{
+    await withScanTimeout(chrome.storage.local.set({scanProgress:{mtm,stage,completed:results.length,total,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}}),10000,'scan-progress').catch(()=>{});
+  };
   const closeChildTabs = async (openerTabId) => {
     const childIds=(await chrome.tabs.query({}))
       .filter(candidate=>candidate.openerTabId===openerTabId)
@@ -816,17 +831,18 @@ async function scanAll() {
     if (childIds.length) await chrome.tabs.remove(childIds).catch(()=>{});
   };
   try {
-    const configuredTargets=await getTargets();
+    const configuredTargets=await withScanTimeout(getTargets(),15000,'scan-targets');
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
     const targets=configuredTargets.filter(x=>x.enabled!==false);
     for (const target of targets) {
       let tab;
-      await chrome.storage.local.set({scanProgress:{mtm:target.mtm,completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}});
+      await progress(target.mtm,'coupang-load',targets.length);
       try {
-        tab = await chrome.tabs.create({url:target.url, active:true});
+        tab = await withScanTimeout(chrome.tabs.create({url:target.url, active:true}),15000,`coupang-open:${target.mtm}`);
         await withScanTimeout(waitForComplete(tab.id),60000,`coupang-load:${target.mtm}`);
         await wait(7000);
+        await progress(target.mtm,'coupang-price',targets.length);
         const priceScan=await withScanTimeout(scanCoupangTab(tab.id,target),90000,`coupang-price:${target.mtm}`);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if(priceScan?.ok) {
@@ -835,6 +851,7 @@ async function scanAll() {
             &&priceScan.strikePrice>=priceScan.price
             ? priceScan.strikePrice-priceScan.price : null;
           try {
+            await progress(target.mtm,'checkout',targets.length);
             Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,productPageCouponDiscount),90000,`checkout:${target.mtm}`));
           } catch(error) {
             Object.assign(result,{checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null});
@@ -849,9 +866,10 @@ async function scanAll() {
           if(!page.url) continue;
           let externalTab;
           try {
+            await progress(target.mtm,`competitor-${page.source}`,targets.length);
             const parsed=new URL(page.url);
             if(parsed.protocol!=='https:'||parsed.hostname!==page.host) throw new Error('unsupported-competitor-url');
-            externalTab=await chrome.tabs.create({url:page.url,active:true});
+            externalTab=await withScanTimeout(chrome.tabs.create({url:page.url,active:true}),15000,`competitor-open:${target.mtm}`);
             await withScanTimeout(waitForComplete(externalTab.id),60000,`competitor-load:${target.mtm}`);
             await wait(6000);
             const scan=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]}),30000,`competitor-read:${target.mtm}`);
@@ -869,7 +887,7 @@ async function scanAll() {
         if (tab?.id) await withScanTimeout(closeChildTabs(tab.id),15000,`child-close:${target.mtm}`).catch(()=>{});
         if (tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`coupang-close:${target.mtm}`).catch(()=>{});
       }
-      await chrome.storage.local.set({scanProgress:{mtm:target.mtm,completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}});
+      await progress(target.mtm,'completed',targets.length);
       // A slower cadence reduces Coupang's temporary access-check response.
       await wait(20000);
     }
@@ -878,7 +896,8 @@ async function scanAll() {
     for (const result of results.filter(x=>!x.ok && x.reason==='access-check')) {
       let retryTab;
       try {
-        retryTab=await chrome.tabs.create({url:result.url,active:true});
+        await progress(result.mtm,'coupang-retry',targets.length);
+        retryTab=await withScanTimeout(chrome.tabs.create({url:result.url,active:true}),15000,`retry-open:${result.mtm}`);
         await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
         const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
@@ -910,13 +929,15 @@ async function scanAll() {
       complete:results.length===targets.length&&new Set(itemIds).size===targets.length,
       results
     };
+    await progress(null,'download',targets.length);
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    await withScanTimeout(chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download');
+    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
+    await waitForScanDownload(downloadId);
     await chrome.storage.local.set({
       lastRunDay:localDay(),
-      lastRunSlot:currentScheduledScanSlot(),
+      lastRunSlot:scanSlot,
       lastResult:payload,
-      scanProgress:{mtm:null,completed:targets.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}
+      scanProgress:{mtm:null,stage:'complete',completed:targets.length,total:targets.length,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}
     });
   } catch(error) {
     await chrome.storage.local.set({lastScanError:String(error),lastScanErrorAt:new Date().toISOString()});
@@ -944,16 +965,23 @@ function currentScheduledScanSlot(date=new Date()) {
   return due ? `${p.year}-${p.month}-${p.day}T${due.slot}+09:00` : null;
 }
 
-async function schedule() {
+async function scheduleEntry(entry) {
   const now=new Date();
   const p=kstDateTimeParts(now);
-  const kstNowAsUtc=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute);
-  for(const entry of SCHEDULED_SCAN_TIMES){
-    await chrome.alarms.clear(entry.alarm);
-    let nextKst=Date.UTC(+p.year,+p.month-1,+p.day,entry.hour,entry.minute);
-    if(nextKst<=kstNowAsUtc) nextKst+=86400000;
-    await chrome.alarms.create(entry.alarm,{when:Date.now()+(nextKst-kstNowAsUtc),periodInMinutes:1440});
-  }
+  await chrome.alarms.clear(entry.alarm);
+  let next=Date.parse(`${p.year}-${p.month}-${p.day}T${String(entry.hour).padStart(2,'0')}:${String(entry.minute).padStart(2,'0')}:00+09:00`);
+  if(next<=now.getTime()) next+=86400000;
+  await chrome.alarms.create(entry.alarm,{when:next});
+}
+
+async function schedule() {
+  for(const entry of SCHEDULED_SCAN_TIMES) await scheduleEntry(entry);
+}
+
+function recentScanSlot(slot,now=Date.now()) {
+  if(!slot) return false;
+  const due=Date.parse(slot);
+  return Number.isFinite(due)&&now>=due&&now-due<=75*60*1000;
 }
 
 function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendorItemId,clickBuyNow=true) {
@@ -1299,6 +1327,29 @@ async function diagnoseCheckoutDiscounts() {
   }
 }
 
+let activeScanPromise=null;
+let activeScanSlot=null;
+let pendingScanSlot=null;
+
+function requestScan(slot=currentScheduledScanSlot()) {
+  if(activeScanPromise) {
+    if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
+    return false;
+  }
+  activeScanSlot=slot;
+  activeScanPromise=scanAll(slot);
+  activeScanPromise.then(finishScan,finishScan);
+  return true;
+}
+
+function finishScan() {
+  activeScanPromise=null;
+  activeScanSlot=null;
+  const pending=pendingScanSlot;
+  pendingScanSlot=null;
+  if(recentScanSlot(pending)&&pending===currentScheduledScanSlot()) requestScan(pending);
+}
+
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   await schedule();
@@ -1310,12 +1361,20 @@ chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
   const state=await chrome.storage.local.get(['lastRunSlot']);
   const dueSlot=currentScheduledScanSlot();
-  if(dueSlot&&state.lastRunSlot!==dueSlot) scanAll();
+  if(recentScanSlot(dueSlot)&&state.lastRunSlot!==dueSlot) requestScan(dueSlot);
 });
 chrome.alarms.onAlarm.addListener(alarm=>{
-  if(SCHEDULED_SCAN_TIMES.some(entry=>entry.alarm===alarm.name)) scanAll();
+  const entry=SCHEDULED_SCAN_TIMES.find(candidate=>candidate.alarm===alarm.name);
+  if(!entry) return;
+  scheduleEntry(entry).catch(()=>{});
+  const p=kstDateTimeParts(new Date(alarm.scheduledTime));
+  const slot=`${p.year}-${p.month}-${p.day}T${entry.slot}+09:00`;
+  if(!recentScanSlot(slot)||slot!==currentScheduledScanSlot()) return;
+  chrome.storage.local.get('lastRunSlot').then(state=>{
+    if(state.lastRunSlot!==slot) requestScan(slot);
+  }).catch(()=>{});
 });
-chrome.action.onClicked.addListener(scanAll);
+chrome.action.onClicked.addListener(()=>requestScan());
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_PRODUCTS') {
     getTargets().then(products=>sendResponse({ok:true,products}));
@@ -1328,14 +1387,19 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='RUN_SCAN') {
-    chrome.storage.local.get('running').then(state=>{
-      if(state.running) sendResponse({ok:false,reason:'already-running'});
-      else { scanAll().catch(()=>{}); sendResponse({ok:true}); }
-    }).catch(error=>sendResponse({ok:false,reason:String(error)}));
-    return true;
+    sendResponse(requestScan()?{ok:true}:{ok:false,reason:'already-running'});
+    return;
   }
   if (message?.type==='GET_SCAN_STATUS') {
-    chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(state=>sendResponse(state)).catch(error=>sendResponse({lastScanError:String(error)}));
+    chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(async state=>{
+      if(state.running&&!activeScanPromise) {
+        state.running=false;
+        state.lastScanError='scan-interrupted-by-worker-restart';
+        state.lastScanErrorAt=new Date().toISOString();
+        await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:state.lastScanError,lastScanErrorAt:state.lastScanErrorAt});
+      }
+      sendResponse({...state,running:Boolean(activeScanPromise)});
+    }).catch(error=>sendResponse({lastScanError:String(error)}));
     return true;
   }
   if (message?.type==='DIAGNOSE_CHECKOUT_DISCOUNTS') {
