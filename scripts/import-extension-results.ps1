@@ -299,7 +299,7 @@ if (Test-Path $publishedHistoryPath) {
   $historyJson=$historySource -replace '^\s*window\.MARKET_PULSE_HISTORY\s*=\s*','' -replace ';\s*$',''
   $publicHistory=$historyJson | ConvertFrom-Json
   $headers=@($publicHistory.headers)
-  $localRows=if (Test-Path $historyPath) {@(Import-Csv -Path $historyPath -Encoding UTF8)} else {@()}
+  $localRows=@(if (Test-Path $historyPath) { Import-Csv -Path $historyPath -Encoding UTF8 })
   $knownHistoryKeys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach ($row in $localRows) {
     [void]$knownHistoryKeys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)")
@@ -328,7 +328,7 @@ if (Test-Path $publishedCompetitorHistoryPath) {
   $json=$source -replace '^\s*window\.MARKET_PULSE_COMPETITOR_HISTORY\s*=\s*','' -replace ';\s*$',''
   $public=$json | ConvertFrom-Json
   $headers=@($public.headers)
-  $local=if(Test-Path $competitorHistoryPath){@(Import-Csv $competitorHistoryPath -Encoding UTF8)}else{@()}
+  $local=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8})
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach($row in $local){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
   foreach($values in @($public.rows)){
@@ -717,7 +717,7 @@ if ($historyRows.Count -gt 0) {
 }
 if ($competitorHistoryRows.Count -gt 0) {
   New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
-  $combined=if(Test-Path $competitorHistoryPath){@(Import-Csv $competitorHistoryPath -Encoding UTF8)}else{@()}
+  $combined=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8})
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach($row in $combined){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
   foreach($row in $competitorHistoryRows){
