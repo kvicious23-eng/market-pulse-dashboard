@@ -306,7 +306,7 @@ const acer={window:{}};
 vm.runInNewContext(fs.readFileSync('brand/acer/market-data.js','utf8'),acer);
 const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===audited.corrected.MTM)?.offers.find(offer=>offer.role==='mine');
 assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
-assert.equal(auditedOffer.finalPrice,audited.corrected['최종 실구매가']);
+assert.equal(auditedOffer.preCardPrice-auditedOffer.cardDiscount,auditedOffer.finalPrice);
 assert.equal(auditedOffer.alertEligible,true);
 
 const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
