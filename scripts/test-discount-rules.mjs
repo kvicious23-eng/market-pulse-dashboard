@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.14");
+assert.equal(manifest.version,"1.9.15");
 const timeoutStart=source.indexOf("async function withScanTimeout(");
 const timeoutEnd=source.indexOf("\n\nfunction localDay",timeoutStart);
 assert.ok(timeoutStart>=0&&timeoutEnd>timeoutStart,"scan timeout helper was not found");
@@ -23,6 +23,24 @@ const timeoutContext={Promise,setTimeout,clearTimeout,Error};
 vm.runInNewContext(`${source.slice(timeoutStart,timeoutEnd)};this.withScanTimeout=withScanTimeout;`,timeoutContext);
 assert.equal(await timeoutContext.withScanTimeout(Promise.resolve('completed'),50,'fast-step'),'completed');
 await assert.rejects(timeoutContext.withScanTimeout(new Promise(()=>{}),10,'stalled-step'),/scan-timeout:stalled-step/);
+const openTabStart=source.indexOf("async function openScanTab(");
+const openTabEnd=source.indexOf("\n\nasync function waitForScanDownload",openTabStart);
+assert.ok(openTabStart>=0&&openTabEnd>openTabStart,"window recovery helper was not found");
+const createdTabs=[];
+const windowState={windowId:null,anchorTabIds:[]};
+let openedWindows=0;
+const tabContext={Number,Error,withScanTimeout:promise=>promise,
+  chrome:{tabs:{
+    create:async spec=>{createdTabs.push(spec);if(createdTabs.length===1) throw new Error('No current window');return {id:20+createdTabs.length};},
+    query:async()=>[{id:15}]
+  },windows:{create:async()=>{openedWindows++;return {id:42,tabs:[{id:15}]};}}}};
+vm.runInNewContext(`${source.slice(openTabStart,openTabEnd)};this.openScanTab=openScanTab;`,tabContext);
+assert.equal((await tabContext.openScanTab('https://www.coupang.com/one','first',windowState)).id,22);
+assert.equal((await tabContext.openScanTab('https://www.coupang.com/two','second',windowState)).id,23);
+assert.equal(openedWindows,1);
+assert.equal(createdTabs[1].windowId,42);
+assert.equal(createdTabs[2].windowId,42);
+assert.deepEqual(windowState.anchorTabIds,[15]);
 const downloadStart=source.indexOf("async function waitForScanDownload(");
 const downloadEnd=source.indexOf("\n\nfunction localDay",downloadStart);
 assert.ok(downloadStart>=0&&downloadEnd>downloadStart,"download completion check was not found");

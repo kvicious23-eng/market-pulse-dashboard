@@ -76,6 +76,25 @@ async function withScanTimeout(promise,ms,stage) {
   }
 }
 
+async function openScanTab(url,stage,windowState) {
+  const create=()=>withScanTimeout(chrome.tabs.create({
+    url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})
+  }),15000,stage);
+  try {
+    return await create();
+  } catch(error) {
+    if(!/No current window|No window with id/i.test(String(error))) throw error;
+    // Alarm-triggered service workers can run before Chrome has a current window.
+    const scanWindow=await withScanTimeout(chrome.windows.create({url:'about:blank',focused:true}),15000,'scan-window-create');
+    if(!Number.isInteger(scanWindow?.id)) throw new Error('scan-window-id-missing');
+    windowState.windowId=scanWindow.id;
+    const anchorId=scanWindow.tabs?.[0]?.id
+      ?? (await withScanTimeout(chrome.tabs.query({windowId:scanWindow.id}),15000,'scan-window-tabs'))[0]?.id;
+    if(Number.isInteger(anchorId)) windowState.anchorTabIds.push(anchorId);
+    return await create();
+  }
+}
+
 async function waitForScanDownload(downloadId) {
   if(!Number.isInteger(downloadId)) throw new Error('scan-download-id-missing');
   for(let attempt=0;attempt<60;attempt++) {
@@ -820,6 +839,7 @@ async function scanAll(scanSlot) {
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const scanStartedAt = new Date().toISOString();
   const results = [];
+  const scanWindowState={windowId:null,anchorTabIds:[]};
   const progress=async (mtm,stage,total)=>{
     await withScanTimeout(chrome.storage.local.set({scanProgress:{mtm,stage,completed:results.length,total,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}}),10000,'scan-progress').catch(()=>{});
   };
@@ -839,7 +859,7 @@ async function scanAll(scanSlot) {
       let tab;
       await progress(target.mtm,'coupang-load',targets.length);
       try {
-        tab = await withScanTimeout(chrome.tabs.create({url:target.url, active:true}),15000,`coupang-open:${target.mtm}`);
+        tab = await openScanTab(target.url,`coupang-open:${target.mtm}`,scanWindowState);
         await withScanTimeout(waitForComplete(tab.id),60000,`coupang-load:${target.mtm}`);
         await wait(7000);
         await progress(target.mtm,'coupang-price',targets.length);
@@ -897,7 +917,7 @@ async function scanAll(scanSlot) {
       let retryTab;
       try {
         await progress(result.mtm,'coupang-retry',targets.length);
-        retryTab=await withScanTimeout(chrome.tabs.create({url:result.url,active:true}),15000,`retry-open:${result.mtm}`);
+        retryTab=await openScanTab(result.url,`retry-open:${result.mtm}`,scanWindowState);
         await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
         const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
@@ -943,6 +963,9 @@ async function scanAll(scanSlot) {
     await chrome.storage.local.set({lastScanError:String(error),lastScanErrorAt:new Date().toISOString()});
     throw error;
   } finally {
+    for(const anchorId of scanWindowState.anchorTabIds) {
+      await chrome.tabs.remove(anchorId).catch(()=>{});
+    }
     await chrome.storage.local.set({running:false,runningStartedAt:null});
   }
 }
