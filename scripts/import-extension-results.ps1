@@ -135,6 +135,20 @@ if ([int]$payload.targetCount -ne $payloadResults.Count) {
 if ([int]$payload.resultCount -ne $payloadResults.Count) {
   throw "Inconsistent scan: resultCount is $($payload.resultCount) but the file contains $($payloadResults.Count) results."
 }
+# complete=true describes a finished scan, not a successful price capture.
+# Keep the last published dashboard/history if any product is blocked, or if
+# a buyable product never reached a confirmed checkout discount read.
+$failedPrices=@($payloadResults | Where-Object { $_.ok -ne $true })
+if ($failedPrices.Count -gt 0) {
+  throw "Incomplete price capture: $($failedPrices.Count) product(s) failed ($(@($failedPrices | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
+}
+$unverifiedCheckouts=@($payloadResults | Where-Object {
+  $_.checkoutDiscountStatus -ne 'captured' -and
+  [string]$_.checkoutDiscountReason -notin @('buy-now-button-not-found','buy-now-button-sold-out')
+})
+if ($unverifiedCheckouts.Count -gt 0) {
+  throw "Incomplete checkout capture: $($unverifiedCheckouts.Count) product(s) have no confirmed order page ($(@($unverifiedCheckouts | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
+}
 
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
