@@ -930,6 +930,7 @@ async function scanAll(scanSlot) {
         const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
         if (retryScan?.ok) {
           Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+          delete result.reason;
           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result),90000,`retry-checkout:${result.mtm}`));
         }
       } catch (_) {

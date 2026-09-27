@@ -71,10 +71,14 @@ for(const file of [...new Set(files)]){
       if(!/^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$/.test(mine.cardEvidenceSource||"")) fail(file,`${label}: card evidence must come from the product page`);
       if(!finite(mine.cardRate)||mine.cardRate<=0||mine.cardRate>100) fail(file,`${label}: captured cardRate is invalid`);
       if(!Array.isArray(mine.cardProviders)||mine.cardProviders.filter(Boolean).length===0) fail(file,`${label}: captured card providers are missing`);
-      if(finite(mine.productPagePrice)&&finite(mine.cardDiscount)){
-        const calculated=Math.floor(mine.productPagePrice*mine.cardRate/100);
+      if(finite(mine.cardDiscount)){
+        const basis=soldOut(mine)?mine.productPagePrice:finite(mine.preCardPrice)?mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0):null;
+        if(!finite(basis)) fail(file,`${label}: captured cardDiscount needs a verified price basis`);
+        else {
+        const calculated=Math.floor(basis*mine.cardRate/100);
         const expected=finite(mine.cardMaxDiscount)&&mine.cardMaxDiscount>0?Math.min(calculated,mine.cardMaxDiscount):calculated;
         if(mine.cardDiscount!==expected) fail(file,`${label}: cardDiscount ${mine.cardDiscount} does not equal ${expected}`);
+        }
       }
     }
     if(mine.cardBenefitStatus==="none"&&finite(mine.cardDiscount)&&mine.cardDiscount!==0) {

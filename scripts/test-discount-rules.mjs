@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.23");
+assert.equal(manifest.version,"1.9.24");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -154,7 +154,7 @@ assert.match(importer,/payload\.version -ne 5/);
 assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.18'/);
 assert.match(importer,/extensionVersion -eq \[version\]'1\.9\.19'/);
 assert.doesNotMatch(importer,/pre-card-price-does-not-match-product-page|\$wowCouponEvidence/);
-assert.match(importer,/\$calculated=\[long\]\[math\]::Floor\(\$productPagePrice\*\[decimal\]\$result\.cardRate\/100\)/);
+assert.match(importer,/\$calculated=\[long\]\[math\]::Floor\(\$preCardItemPrice\*\[decimal\]\$result\.cardRate\/100\)/);
 assert.match(importer,/\$cardSource -match/);
 assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
 assert.match(importer,/Duplicate vendorItemId values/);
@@ -170,7 +170,7 @@ assert.match(importer,/\$safeBrand \$safeCategory · Korea/);
 assert.match(importer,/Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue \$scanKst -Force/);
 assert.match(importer,/\$visualBasisValid=/);
 assert.match(dashboard,/categories\.length===1\?categories\[0\]:"Products"/);
-assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$verifiedCardDiscount/);
+assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$pageDiscount/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
 assert.match(importer,/checkoutUnparsedFields/);
 assert.match(importer,/checkoutDiscountFieldStatus/);
@@ -420,10 +420,10 @@ const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardC
   return {general,preCard,card,final:preCard-card};
 };
 
-const calculateSoldOut=()=>({
+const calculateSoldOut=({productPage,cardRate=0,cardCap=null})=>({
   general:null,
   preCard:null,
-  card:null,
+  card:cardRate?Math.min(Math.floor(productPage*cardRate/100),cardCap??Infinity):null,
   final:null
 });
 
@@ -431,6 +431,11 @@ assert.deepEqual(
   calculateSoldOut({display:2369000,productPage:2159000}),
   {general:null,preCard:null,card:null,final:null}
 );
+assert.deepEqual(
+  calculateSoldOut({productPage:950000,cardRate:2,cardCap:10000}),
+  {general:null,preCard:null,card:10000,final:null}
+);
+assert.equal(calculateAvailable({display:1000000,general:100000,wowInstant:50000,wowCoupon:30000,cardRate:8,cardCap:10000}).card,10000);
 assert.deepEqual(
   calculateAvailable({display:1558000,general:30000,wowInstant:80000,wowCoupon:150000,cardRate:8,cardCap:109060}),
   {general:30000,preCard:1298000,card:103840,final:1194160}

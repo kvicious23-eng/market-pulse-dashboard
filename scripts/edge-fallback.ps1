@@ -18,7 +18,7 @@ function Get-LatestScan {
 
 $scan = Get-LatestScan
 if (-not $scan) { return }
-$blocked = @($scan.Data.results | Where-Object { $_.reason -eq 'access-check' })
+$blocked = @($scan.Data.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
 if (-not $blocked.Count -or $scan.Data.browser -eq 'edge') { return }
 try { $scanEnd = [DateTimeOffset]::Parse([string]$scan.Data.completedAt) } catch { return }
 if (([DateTimeOffset]::UtcNow - $scanEnd.ToUniversalTime()).TotalHours -gt 3) { return }

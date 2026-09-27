@@ -14,7 +14,7 @@ const base={
   checkoutDiscountStatus:"captured",checkoutCouponSource:"checkout",
   checkoutCouponDiscount:100_000,wowInstantDiscount:50_000,wowCouponDiscount:30_000,
   preCardPrice:820_000,cardBenefitStatus:"captured",cardEvidenceSource:"dom",
-  cardRate:2,cardMaxDiscount:null,cardProviders:["KB"],cardDiscount:19_000,finalPrice:801_000
+  cardRate:2,cardMaxDiscount:null,cardProviders:["KB"],cardDiscount:16_400,finalPrice:803_600
 };
 function verify(mine,expectedSuccess){
   const data={products:[{itemId:"12345",mtm:"TEST-123",offers:[mine]}]};
@@ -25,9 +25,10 @@ function verify(mine,expectedSuccess){
 }
 try {
   // Checkout coupons are valid even if their derived price differs from the
-  // product-page current price. The card amount still uses the product page.
+  // product-page current price. The applicable card amount uses the coupon-adjusted price.
   verify(base,true);
-  assert.match(verify({...base,cardDiscount:16_400,finalPrice:803_600},false),/cardDiscount/);
+  assert.match(verify({...base,cardDiscount:19_000,finalPrice:801_000},false),/cardDiscount/);
+  verify({...base,cardRate:8,cardMaxDiscount:10_000,cardDiscount:10_000,finalPrice:810_000},true);
   assert.match(verify({...base,cardEvidenceSource:"checkout"},false),/card evidence/);
   assert.match(verify({...base,checkoutCouponSource:"product-page"},false),/coupons must come from checkout/);
   const soldOut={...base,status:"품절",alertEligible:false,checkoutDiscountStatus:"soldout",
@@ -35,6 +36,7 @@ try {
     wowCouponDiscount:null,preCardPrice:null,cardBenefitStatus:"none",
     cardEvidenceSource:"",cardDiscount:null,finalPrice:null};
   verify(soldOut,true);
+  verify({...soldOut,cardBenefitStatus:"captured",cardEvidenceSource:"dom",cardDiscount:19_000},true);
   assert.match(verify({...soldOut,checkoutCouponDiscount:50_000},false),/cannot infer coupon/);
 } finally {
   fs.rmSync(root,{recursive:true,force:true});

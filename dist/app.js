@@ -419,7 +419,7 @@
           </span>
           <span class="overview-stack" data-label="카드 상세">
             <span><small>할인 전</small>${formatWon(breakdown.preCardPrice)}</span>
-            <span><small>카드할인</small>${cardDiscountText(mine)}</span>
+            <span><small>${soldOut ? "상품페이지 카드할인 · 참고" : "카드할인"}</small>${cardDiscountText(mine)}</span>
             <span><small>조건</small>${escapeHtml(cardCondition)}</span>
             ${providers ? `<span><small>카드사</small>${escapeHtml(providers)}</span>` : ""}
           </span>
@@ -522,7 +522,7 @@
             <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon, checkout.couponStatus) : '<span class="unknown">—</span>'}</span>
             <span class="cell-stack__total"><small>합계</small>${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</span>
           </td>
-          <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
+          <td data-label="카드할인">${current ? `${cardDiscountText(offer)}${soldOut && mine ? ' <small>상품페이지 참고</small>' : ''}` : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
           <td data-label="신뢰도"><span class="confidence confidence--${confidenceClass(offer.confidence)}">${escapeHtml(offer.confidence)}</span></td>
@@ -587,7 +587,7 @@
       <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
-      <div class="evidence__item"><span>카드할인 금액</span><strong>${cardDiscountText(offer)}</strong></div>
+      <div class="evidence__item"><span>${isSoldOut(offer) ? "상품페이지 카드할인 · 참고" : "카드할인 금액"}</span><strong>${cardDiscountText(offer)}</strong></div>
       ${unparsed.length ? `<div class="evidence__item evidence__item--wide"><span>판독 실패 항목</span><p>${escapeHtml(unparsed.join(', '))}</p></div>` : ""}
       ${checkoutEvidence.length ? `<div class="evidence__item evidence__item--wide"><span>주문서 할인 근거</span><p>${checkoutEvidence.map(escapeHtml).join('<br>')}</p></div>` : ""}` : ""}
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>

@@ -32,13 +32,6 @@ function Invoke-Git {
 # importing a scan. This makes future shared-dashboard changes self-updating.
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 
-# The Chrome extension writes the completed JSON before the scheduled upload.
-# If Coupang blocked its price read, try the signed-in Edge extension first.
-$edgeFallback = Join-Path $RepoPath 'scripts\edge-fallback.ps1'
-if (Test-Path $edgeFallback) {
-  & $edgeFallback -RepoPath $RepoPath
-}
-
 function Get-LatestResultPath {
   return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -77,6 +70,22 @@ do {
   if ([DateTime]::UtcNow -ge $deadline) { throw "Timed out waiting for a fresh Market Pulse scan result. $candidateError" }
   Start-Sleep -Seconds 30
 } while ($true)
+
+# Wait for this slot's completed Chrome JSON before deciding whether Edge is
+# needed. At 08:30/14:30 the Chrome scan may still be running.
+$blockedChrome=@($payload.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
+if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
+  $chromeCompletedAt=[DateTimeOffset]::Parse([string]$payload.completedAt)
+  $edgeFallback=Join-Path $RepoPath 'scripts\edge-fallback.ps1'
+  if (-not (Test-Path $edgeFallback)) { throw 'Edge fallback script is missing; the blocked Chrome scan cannot be published.' }
+  & $edgeFallback -RepoPath $RepoPath
+  $resultPath=Get-LatestResultPath
+  if (-not $resultPath) { throw 'Edge fallback did not save a scan JSON.' }
+  $payload=Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json -ErrorAction Stop
+  if ([string]$payload.browser -ne 'edge' -or [DateTimeOffset]::Parse([string]$payload.startedAt) -le $chromeCompletedAt) {
+    throw 'Edge fallback did not produce a newer Edge scan; the blocked Chrome scan cannot be published.'
+  }
+}
 
 # Payload v5 and scanner 1.9.18 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
@@ -529,26 +538,30 @@ foreach ($spec in $specs) {
       $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0 -and
         $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
       if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
-      $cardDiscount=if ($null -eq $preCardItemPrice) {
-        $null
-      } elseif ($cardBenefitStatus -eq 'none') {
+      $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
+      $cardDiscount=if ($cardBenefitStatus -eq 'none') {
         if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
           $cardBenefitStatus='unverified'
           $null
-        } else { 0 }
+        } elseif ($null -ne $preCardItemPrice) { 0 } else { $null }
       } elseif ($cardCapturedValid) {
-        # The card benefit is captured on the product page. The checkout only
-        # supplies three coupon amounts and cannot change the card calculation.
-        $calculated=[long][math]::Floor($productPagePrice*[decimal]$result.cardRate/100)
-        $verifiedCardDiscount=if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
-        if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $verifiedCardDiscount) {
+        # Validate the product-page observation, then calculate the applicable
+        # discount from the checkout coupon-adjusted item price when available.
+        $pageCalculated=[long][math]::Floor($productPagePrice*[decimal]$result.cardRate/100)
+        $pageDiscount=if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($pageCalculated,[long]$result.cardMaxDiscount)}else{$pageCalculated}
+        if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $pageDiscount) {
           $cardBenefitStatus='unverified'
           $null
-        } else { $verifiedCardDiscount }
+        } elseif ($soldOut) {
+          # Display-only product-page benefit; never qualifies a sold-out offer.
+          $pageDiscount
+        } elseif ($null -ne $preCardItemPrice) {
+          $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
+          if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+        } else { $null }
       } else {
         $null
       }
-      $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
       # A missing checkout layer or card detail is not a verified current final price.
       $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount -and
         $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
