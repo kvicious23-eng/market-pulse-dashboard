@@ -23,6 +23,34 @@ Assert-Equal $repaired[0].'최종 실구매가' 1662210 'Final price'
 $repeated=@(Apply-HistoryCorrections -Rows $repaired -CorrectionsPath $path)
 Assert-Equal $repeated.Count $correctionCount 'Repeating the correction must not add a row'
 
+# The downloaded workbook once contained five rows for each audited key:
+# four corrected copies plus a stale original. Prefer the correction, even
+# when the stale row appears later in the ignored PC CSV.
+$original=$correction.corrected | ConvertTo-Json -Depth 5 | ConvertFrom-Json
+foreach ($field in $correction.expected.PSObject.Properties.Name) {
+  $original.$field=$correction.expected.$field
+}
+$duplicates=@($repeated) + @(
+  ($correction.corrected | ConvertTo-Json -Depth 5 | ConvertFrom-Json),
+  ($correction.corrected | ConvertTo-Json -Depth 5 | ConvertFrom-Json),
+  $original
+)
+$deduplicated=@(Apply-HistoryCorrections -Rows $duplicates -CorrectionsPath $path)
+Assert-Equal $deduplicated.Count $correctionCount 'Audited duplicate keys must produce one row'
+$deduplicatedCorrection=@($deduplicated | Where-Object {
+  $_.'수집시각' -eq $correction.corrected.'수집시각' -and $_.MTM -eq $correction.corrected.MTM
+})[0]
+Assert-Equal $deduplicatedCorrection.'수집결과' 'success' 'Audited successful row takes precedence'
+$otherTime='2026-09-24T08:00:00+09:00'
+$exact=[pscustomobject]@{'수집시각'=$otherTime;'브랜드'='Acer';MTM='ANV16-I31-514Z'}
+$exactCopy=[pscustomobject]@{'수집시각'=$otherTime;'브랜드'='Acer';MTM='ANV16-I31-514Z'}
+$exactRows=@(Apply-HistoryCorrections -Rows @($exact,$exactCopy) -CorrectionsPath $path)
+Assert-Equal $exactRows.Count ($correctionCount+1) 'Exact duplicate historical rows must collapse'
+$different=[pscustomobject]@{'수집시각'=$otherTime;'브랜드'='Acer';MTM='ANV16-I31-514Z';'표시가'=999}
+$blocked=$false
+try { $null=Apply-HistoryCorrections -Rows @($exact,$different) -CorrectionsPath $path } catch { $blocked=$true }
+if (-not $blocked) { throw 'Unaudited conflicting duplicates must stop the import.' }
+
 $unrelated=@([pscustomobject]@{'수집시각'='2026-09-24T08:00:00+09:00';'브랜드'='Acer';MTM='ANV16-I31-514Z'})
 $inserted=@(Apply-HistoryCorrections -Rows $unrelated -CorrectionsPath $path)
 Assert-Equal $inserted.Count ($correctionCount+1) 'Missing audited rows must be restored without losing another row'
