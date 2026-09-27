@@ -75,9 +75,19 @@ for(const file of [...new Set(files)]){
         const basis=soldOut(mine)?mine.productPagePrice:finite(mine.preCardPrice)?mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0):null;
         if(!finite(basis)) fail(file,`${label}: captured cardDiscount needs a verified price basis`);
         else {
-        const calculated=Math.floor(basis*mine.cardRate/100);
-        const expected=finite(mine.cardMaxDiscount)&&mine.cardMaxDiscount>0?Math.min(calculated,mine.cardMaxDiscount):calculated;
+        const terms=Array.isArray(mine.cardTerms)&&mine.cardTerms.length?mine.cardTerms:[{rate:mine.cardRate,maxDiscount:mine.cardMaxDiscount,providers:mine.cardProviders}];
+        for(const term of terms){
+          if(!finite(term.rate)||term.rate<=0||term.rate>100||!Array.isArray(term.providers)||!term.providers.some(Boolean)) fail(file,`${label}: invalid card term`);
+        }
+        const expected=Math.max(...terms.map(term=>{
+          const calculated=Math.floor(basis*term.rate/100);
+          return finite(term.maxDiscount)&&term.maxDiscount>0?Math.min(calculated,term.maxDiscount):calculated;
+        }));
         if(mine.cardDiscount!==expected) fail(file,`${label}: cardDiscount ${mine.cardDiscount} does not equal ${expected}`);
+        if(!terms.some(term=>term.rate===mine.cardRate&&term.maxDiscount===mine.cardMaxDiscount&&
+          JSON.stringify(term.providers)===JSON.stringify(mine.cardProviders)&&
+          Math.min(Math.floor(basis*term.rate/100),finite(term.maxDiscount)?term.maxDiscount:Infinity)===expected))
+          fail(file,`${label}: selected card is not a maximum-discount term`);
         }
       }
     }
