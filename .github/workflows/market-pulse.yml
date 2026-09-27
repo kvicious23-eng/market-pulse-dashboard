@@ -23,6 +23,7 @@ on:
       - "scripts/update-acer-data.mjs"
       - "scripts/validate-market-data.mjs"
       - "scripts/test-discount-rules.mjs"
+      - "scripts/test-access-diagnostics.mjs"
       - "scripts/test-price-sources.mjs"
       - "scripts/test-history-export.mjs"
       - "scripts/test-history-corrections.ps1"
@@ -109,6 +110,7 @@ jobs:
         run: |
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
+          node scripts/test-access-diagnostics.mjs
           node scripts/test-price-sources.mjs
           node scripts/test-history-export.mjs
           node scripts/test-competitor-policy.mjs

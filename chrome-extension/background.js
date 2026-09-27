@@ -133,8 +133,12 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   if (actualProductId!==String(expectedProductId)||actualItemId!==String(expectedItemId)||actualVendorItemId!==String(expectedVendorItemId)) {
     return {ok:false,reason:'product-identifiers-mismatch',actualProductId,actualItemId,actualVendorItemId};
   }
-  if (/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i.test(bodyText)) {
-    return {ok:false, reason:'access-check'};
+  const accessMarker=bodyText.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i);
+  if (accessMarker) {
+    const marker=accessMarker[0].toLowerCase();
+    const accessCheckDetail=/잠시 후 다시 시도/.test(marker)?'temporary-message':
+      /로봇이 아닙니다|captcha/.test(marker)?'verification-message':'access-denied-message';
+    return {ok:false,reason:'access-check',accessCheckDetail};
   }
   // Preserve the notebook guard while allowing managed lower-priced products.
   const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
@@ -928,12 +932,22 @@ async function scanAll(scanSlot) {
         await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
         const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
-        if (retryScan?.ok) {
-          Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
-          delete result.reason;
-          Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result),90000,`retry-checkout:${result.mtm}`));
-        }
-      } catch (_) {
+         result.retryStatus=retryScan?.ok?'recovered':retryScan?.reason==='access-check'?'access-check':'other-failure';
+         result.retryCheckedAt=new Date().toISOString();
+         if (retryScan?.ok) {
+           Object.assign(result,retryScan,{checkedAt:new Date().toISOString(),retried:true});
+           delete result.reason;
+           delete result.accessCheckDetail;
+         } else if (retryScan?.reason==='access-check') {
+           result.accessCheckDetail=retryScan.accessCheckDetail||result.accessCheckDetail;
+         }
+         if (retryScan?.ok) {
+           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result),90000,`retry-checkout:${result.mtm}`));
+         }
+       } catch (error) {
+         result.retryStatus='browser-error';
+         result.retryCheckedAt=new Date().toISOString();
+         result.retryError=error?.name||'unknown';
       } finally {
         if (retryTab?.id) await withScanTimeout(closeChildTabs(retryTab.id),15000,`retry-child-close:${result.mtm}`).catch(()=>{});
         if (retryTab?.id) await withScanTimeout(chrome.tabs.remove(retryTab.id),15000,`retry-close:${result.mtm}`).catch(()=>{});
