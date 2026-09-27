@@ -16,7 +16,7 @@ window.MARKET_DATA = {
       "competitionLastAttemptAt": "2026-09-27T08:18:23+09:00"
     },
     "brand": "Godox",
-    "publishedAt": "2026-09-27T11:16:01+09:00"
+    "publishedAt": "2026-09-27T11:32:55+09:00"
   },
   "products": [
     {
@@ -32,10 +32,10 @@ window.MARKET_DATA = {
           "seller": "내 쿠팡 상품",
           "status": "품절",
           "displayPrice": 42000,
-          "instantDiscount": null,
+          "instantDiscount": 840,
           "couponDiscount": null,
           "cardDiscount": null,
-          "condition": "상품페이지의 41,160원과 품절을 확인. 기존 origin-price 취소선은 상품 영역 연결 근거가 없어 표시가 미확인.",
+          "condition": "08시 등록 상품 스캔에서 41,160원과 품절 확인. 11:08 사용자 제공 C100 상품 화면에도 41,160원만 보여 이를 현재 최상단 표시가로 기록. 취소선·주문서 쿠폰 미확인.",
           "sourceType": "관리화면 등록 URL",
           "checkedAt": "2026-09-27 08:00",
           "confidence": "A",
@@ -46,10 +46,10 @@ window.MARKET_DATA = {
           "lastVerifiedPriceCheckedAt": "2026-09-24 08:00",
           "availabilityCheckedAt": "2026-09-27 08:00",
           "srp": 42000,
-          "observedListPrice": null,
+          "observedListPrice": 41160,
           "productPagePrice": 41160,
           "preCardPrice": null,
-          "priceBasisType": "unverified",
+          "priceBasisType": "top-visible",
           "cardBenefitStatus": "none",
           "cardRate": null,
           "cardMaxDiscount": null,
@@ -70,7 +70,7 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-09-24 08:00",
-          "priceCheckedAt": "2026-09-27 08:00"
+          "priceCheckedAt": "2026-09-27 11:08"
         },
         {
           "role": "competitor",
