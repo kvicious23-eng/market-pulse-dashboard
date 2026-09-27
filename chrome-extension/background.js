@@ -1210,25 +1210,51 @@ function reconcileCheckoutDiscounts(regular,instant,coupon) {
 }
 
 async function collectCheckoutDiscountsForTarget(target) {
-  let tab;
+  let tab,checkoutTab,entryButtonEvidence=null,childTabCount=0;
+  const route=source=>{
+    try { const url=new URL(source||''); return {host:url.hostname,path:url.pathname.slice(0,120)}; }
+    catch (_) { return {host:null,path:null}; }
+  };
+  const checkoutTabEvidence=(page)=>({
+    checkoutPageHost:page?.host||route(checkoutTab?.url).host,
+    checkoutPagePath:page?.path||route(checkoutTab?.url).path,
+    checkoutTabKind:checkoutTab?.id!==tab?.id?'opened-child':'original',
+    checkoutChildTabCount:childTabCount,
+    checkoutEntryButtonEvidence:entryButtonEvidence
+  });
   try {
-    tab=await withScanTimeout(chrome.tabs.create({url:target.url,active:false}),15000,`checkout-open:${target.mtm}`);
+    // Coupang's buy-now flow can depend on a foreground tab and can open a
+    // child tab. The product and checkout pages are both read in Chrome.
+    tab=await withScanTimeout(chrome.tabs.create({url:target.url,active:true}),15000,`checkout-open:${target.mtm}`);
+    checkoutTab=tab;
     await withScanTimeout(waitForComplete(tab.id),60000,`checkout-load:${target.mtm}`);
     await wait(7000);
     const entered=await withScanTimeout(chrome.scripting.executeScript({
       target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId]
     }),30000,`checkout-entry:${target.mtm}`);
+    entryButtonEvidence=entered?.[0]?.result?.buttonEvidence||null;
     if(!entered?.[0]?.result?.ok) {
       const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
       return {
         checkoutDiscountStatus:'missing',checkoutDiscountReason:reason,
         checkoutCouponDiscount:null,checkoutCouponSource:null,
-        wowInstantDiscount:null,wowCouponDiscount:null
+        wowInstantDiscount:null,wowCouponDiscount:null,
+        ...checkoutTabEvidence()
       };
     }
     for(let i=0;i<30;i++){
       await wait(500);
       const current=await withScanTimeout(chrome.tabs.get(tab.id),15000,`checkout-tab:${target.mtm}`);
+      checkoutTab=current;
+      const children=await withScanTimeout(chrome.tabs.query({openerTabId:tab.id}),15000,`checkout-children:${target.mtm}`).catch(()=>[]);
+      childTabCount=Math.max(childTabCount,children.length);
+      const child=children.find(candidate=>{
+        const {host,path}=route(candidate.url);
+        return candidate.status==='complete'
+          && ['www.coupang.com','order.coupang.com','checkout.coupang.com'].includes(host)
+          && path&&!path.startsWith('/vp/products/');
+      });
+      if(child){ checkoutTab=child; break; }
       if(current.status==='complete'&&!String(current.url||'').includes('/vp/products/')) break;
     }
     await wait(4000);
@@ -1236,7 +1262,7 @@ async function collectCheckoutDiscountsForTarget(target) {
     let regular=null,instant=null,coupon=null,wowMemberTotal=null;
     let regularStatus='missing',instantStatus='missing',couponStatus='missing';
     for(let attempt=0;attempt<4;attempt++){
-      const read=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:tab.id},func:readCheckoutDiscounts}),15000,`checkout-read:${target.mtm}`);
+      const read=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:checkoutTab.id},func:readCheckoutDiscounts}),15000,`checkout-read:${target.mtm}`);
       page=read?.[0]?.result;
       if(page?.ok) confirmedPage=page;
       if(page?.regularCouponDiscount?.status==='captured') { regular=page.regularCouponDiscount.amount; regularStatus='captured'; }
@@ -1256,7 +1282,8 @@ async function collectCheckoutDiscountsForTarget(target) {
       return {
         checkoutDiscountStatus:'missing',checkoutDiscountReason:page?.reason||'checkout-read-failed',
         checkoutCouponDiscount:null,checkoutCouponSource:null,
-        wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page?.discountEvidence||[]
+        wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountEvidence:page?.discountEvidence||[],
+        ...checkoutTabEvidence(page)
       };
     }
     const unparsedFields=[];
@@ -1302,9 +1329,11 @@ async function collectCheckoutDiscountsForTarget(target) {
     return {
       checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),
       checkoutCouponDiscount:null,checkoutCouponSource:null,
-      wowInstantDiscount:null,wowCouponDiscount:null
+      wowInstantDiscount:null,wowCouponDiscount:null,
+      ...checkoutTabEvidence()
     };
   } finally {
+    if(checkoutTab?.id&&checkoutTab.id!==tab?.id) await withScanTimeout(chrome.tabs.remove(checkoutTab.id),15000,`checkout-child-close:${target.mtm}`).catch(()=>{});
     if(tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`checkout-close:${target.mtm}`).catch(()=>{});
   }
 }
