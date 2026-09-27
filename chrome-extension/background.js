@@ -198,29 +198,32 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   const managedSrp=Number(expectedSrp);
   const plausibleBasis=price=>!Number.isFinite(managedSrp)||managedSrp<=0||managedSrp>=250000||!preferred
     ||price<=Math.max(3*managedSrp,3*preferred.price);
+  // A global origin-price selector can match a recommended product below
+  // the active offer. Require a visible primary price anchor nearby.
+  const primaryPosition=preferred?positionedPrices
+    .filter(entry=>entry.price===preferred.price)
+    .sort((a,b)=>a.top-b.top||a.left-b.left)[0]:null;
   const strikeCandidates=[];
   for (const selector of ['.prod-origin-price','.origin-price','[class*="origin-price"]','[class*="base-price"]']) {
     for (const node of document.querySelectorAll(selector)) {
-      const style=getComputedStyle(node);
+      const style=getComputedStyle(node),rect=node.getBoundingClientRect();
       const digits=(node.textContent||'').replace(/[^0-9]/g,'');
-      const price=Number(digits);
-      if (style.display!=='none'&&style.visibility!=='hidden'&&price>=minimumPrice&&price<=7000000) strikeCandidates.push({price,selector});
+      const price=Number(digits),top=rect.top+scrollY,left=rect.left+scrollX;
+      if (style.display==='none'||style.visibility==='hidden'||rect.width<=0||rect.height<=0||
+          !primaryPosition||Math.abs(top-primaryPosition.top)>100||Math.abs(left-primaryPosition.left)>180) continue;
+      if (price>=minimumPrice&&price<=7000000) strikeCandidates.push({price,selector});
     }
   }
   // UnitPriceSpecification belongs to the active offer. Generic <del>/<s>
   // nodes also contain other variants and recommendations, so never use them.
   const jsonStrike=candidates.find(x=>x.source==='json-ld-unit-price'&&(!preferred||x.price>=preferred.price)&&plausibleBasis(x.price));
-  const topVisiblePrice=positionedPrices
-    .filter(x=>(!preferred||x.price>=preferred.price)&&plausibleBasis(x.price))
-    .sort((a,b)=>a.top-b.top||a.left-b.left)[0];
+  const visiblePrimary=candidates.some(x=>x.source==='visible-won-text'&&x.price===preferred?.price);
   const strike=jsonStrike
     ? {price:jsonStrike.price,selector:jsonStrike.source,basisType:'crossed-out'}
     : preferred ? ((()=>{const candidate=strikeCandidates.find(x=>x.price>=preferred.price&&plausibleBasis(x.price));return candidate?{...candidate,basisType:'crossed-out'}:null;})()
-      || (topVisiblePrice?{price:topVisiblePrice.price,selector:'top-visible-price',basisType:'top-visible'}:null)
-      // Some Coupang layouts expose the primary price only through JSON-LD
-      // and plain visible text. With no crossed-out price, that primary price
-      // is the displayed-price basis, so a zero coupon total remains verifiable.
-      || {price:preferred.price,selector:`primary-${preferred.source}`,basisType:'top-visible'}) : null;
+      // Without an attached crossed-out price, use only the visible active
+      // offer. Other prices elsewhere on the page are not a basis.
+      || (visiblePrimary?{price:preferred.price,selector:`primary-${preferred.source}`,basisType:'top-visible'}:null)) : null;
   let cardDiscount=null;
   let cardRate=null;
   let cardMaxDiscount=null;
@@ -380,7 +383,7 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
     }
     if (cardBenefitStatus==='none') cardDiscount=0;
   }
-  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, cardClickPoint, cardClickDebug, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
+  if (preferred) return {ok:true, price:preferred.price, strikePrice:strike?.price||null, strikeSelector:strike?.selector||null, priceBasisType:strike?.basisType||null, strikeReliable:Boolean(strike), strikeAnchorVerified:Boolean(strike&&strikeCandidates.some(candidate=>candidate.price===strike.price&&candidate.selector===strike.selector)), cardDiscount, cardRate, cardMaxDiscount, cardProviders, cardBenefitText, cardBenefitStatus, cardClickPoint, cardClickDebug, title:document.title, selector:preferred.source, candidates:candidates.slice(0,20)};
   return {ok:false, reason:'price-not-found', title:document.title, actualItemId, bodyLength:bodyText.length, candidates:candidates.slice(0,20), pageSample:bodyText.slice(0,500)};
 }
 

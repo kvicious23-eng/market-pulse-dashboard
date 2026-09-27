@@ -473,10 +473,14 @@ foreach ($spec in $specs) {
         $null -ne $result.wowInstantDiscount -and [long]$result.wowInstantDiscount -eq 0 -and
         $null -ne $result.wowCouponDiscount -and [long]$result.wowCouponDiscount -eq 0
       $fallbackPrimary=$implausibleStrike -and $matchingPrimary -and $matchingVisible -and $confirmedZeroDiscount
-      $strike=if ($fallbackPrimary) {$productPagePrice} elseif ($implausibleStrike) {$null} elseif (
+      # Old extensions collected origin-price nodes across the whole page.
+      # A low-priced but unrelated recommendation also passes the 3x guard.
+      $untrustedOrigin=([string]$result.strikeSelector -match 'origin-price|base-price') -and
+        $result.strikeAnchorVerified -ne $true
+      $strike=if ($untrustedOrigin) {$null} elseif ($fallbackPrimary) {$productPagePrice} elseif ($implausibleStrike) {$null} elseif (
         $result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice
       ) {[long]$result.strikePrice} else {$null}
-      $basisType=if($fallbackPrimary){'top-visible'}elseif($implausibleStrike){'unverified'}else{[string]$result.priceBasisType}
+      $basisType=if($untrustedOrigin){'unverified'}elseif($fallbackPrimary){'top-visible'}elseif($implausibleStrike){'unverified'}else{[string]$result.priceBasisType}
       $checkout=Resolve-CheckoutDiscounts $result
       $checkoutStatus=[string]$checkout.Status
       $checkoutCoupon=$checkout.Regular

@@ -226,7 +226,7 @@
   {
     "sourceSha256": "d87fc87b21bee0727287592181414b1ab587ba2d38a601f972678b24ef10f862",
     "originalExtensionVersion": "1.9.15",
-    "reprocessRule": "2026-09-27: sold-out product-page price differences are not checkout coupons",
+    "reprocessRule": "2026-09-27: sold-out product-page price differences are not checkout coupons; detached origin-price has no product-price anchor, so display basis remains unverified",
     "expected": {
       "수집일": "2026-09-27",
       "수집시각": "2026-09-27T08:18:23+09:00",
@@ -260,9 +260,9 @@
       "상태": "품절",
       "수집결과": "success",
       "SRP": 42000,
-      "표시가": 75400,
-      "표시가 종류": "crossed-out",
-      "매칭차액": 33400,
+      "표시가": "",
+      "표시가 종류": "unverified",
+      "매칭차액": "",
       "일반 쿠폰할인": "",
       "와우 전용 즉시할인": "",
       "와우 전용 쿠폰할인": "",
