@@ -58,7 +58,14 @@ for(const file of [...new Set(files)]){
       }
       if(finite(mine.productPagePrice)&&finite(mine.preCardPrice)){
         const itemPrice=mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0);
-        if(itemPrice!==mine.productPagePrice) fail(file,`${label}: pre-card item price does not equal the product-page price`);
+        const couponText=Number.isFinite(mine.wowCouponDiscount)&&mine.wowCouponDiscount>0
+          ? mine.wowCouponDiscount.toLocaleString("en-US") : null;
+        const hasExplicitCoupon=couponText&&Array.isArray(mine.checkoutDiscountEvidence)&&
+          mine.checkoutDiscountEvidence.some(line=>new RegExp(`와우\\s*전용\\s*쿠폰할인(?:\\s*변경)?\\s*-\\s*${couponText}\\s*원`).test(line));
+        const couponAtCheckout=mine.checkoutPriceBasis==="wow-coupon-only-at-checkout"&&hasExplicitCoupon&&
+          mine.productPagePrice-itemPrice===mine.wowCouponDiscount;
+        if(itemPrice!==mine.productPagePrice&&!couponAtCheckout) fail(file,`${label}: pre-card item price differs from the product-page price without explicit WOW coupon evidence`);
+        if(itemPrice===mine.productPagePrice&&mine.checkoutPriceBasis==="wow-coupon-only-at-checkout") fail(file,`${label}: checkout-only WOW coupon marker contradicts the product-page price`);
       }
     }
     if(soldOut(mine)&&finite(mine.observedListPrice)&&finite(mine.productPagePrice)){

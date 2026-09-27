@@ -305,7 +305,10 @@ assert.equal(reconcile(null,null,150000,166790).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).wowTotal,150000);
 assert.doesNotMatch(importer,/\$memberTotal\s*-ne\s*\$wowTotal|checkout-wow-total-mismatch/);
 const corrections=JSON.parse(fs.readFileSync('scripts/history-corrections.json','utf8'));
-assert.equal(corrections.length,1);
+assert.equal(corrections.length,5);
+assert.match(importer,/wow-coupon-only-at-checkout/);
+assert.match(importer,/\$productPagePrice - \$preCardItemPrice -eq \$wowCoupon/);
+assert.match(importer,/\$wowCouponEvidence/);
 const audited=corrections[0];
 assert.match(audited.sourceSha256,/^[a-f0-9]{64}$/);
 assert.equal(audited.expected['수집결과'],'failed');
@@ -326,6 +329,23 @@ const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===
 assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
 assert.equal(auditedOffer.preCardPrice-auditedOffer.cardDiscount,auditedOffer.finalPrice);
 assert.equal(auditedOffer.alertEligible,true);
+for(const correction of corrections.slice(1)){
+  assert.equal(correction.originalExtensionVersion,"1.9.15");
+  assert.equal(correction.expected['수집결과'],'failed');
+  assert.equal(correction.corrected['수집결과'],'success');
+  const matches=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===correction.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===correction.corrected.MTM);
+  assert.equal(matches.length,1);
+  for(const [field,value] of Object.entries(correction.corrected)){
+    assert.equal(matches[0][history.headers.indexOf(field)],value,`Published history differs in ${correction.corrected.MTM} ${field}`);
+  }
+  const offer=acer.window.MARKET_DATA.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
+  assert.equal(offer.checkoutReprocessedFrom,`sha256:${correction.sourceSha256}`);
+  assert.equal(offer.checkoutPriceBasis,'wow-coupon-only-at-checkout');
+  assert.equal(offer.productPagePrice-offer.preCardPrice,offer.wowCouponDiscount);
+  assert.equal(offer.finalPrice,correction.corrected['최종 실구매가']);
+  assert.equal(offer.alertEligible,true);
+}
+
 
 const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardCap=null})=>{
   const preCard=display-general-wowInstant-wowCoupon;

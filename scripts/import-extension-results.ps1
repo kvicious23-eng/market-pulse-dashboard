@@ -430,6 +430,7 @@ foreach ($spec in $specs) {
     # A fresh scan replaces any operator report attached to an older snapshot.
     $mine.PSObject.Properties.Remove('availabilityReportAt')
     $mine.PSObject.Properties.Remove('availabilityReportSource')
+    $mine.PSObject.Properties.Remove('checkoutReprocessedFrom')
     $alertEligible=$false
     $currentVerifiedFinal=$null
     $checkoutStatus='missing'
@@ -496,7 +497,22 @@ foreach ($spec in $specs) {
         $checkout.Reason='pre-card-price-out-of-range'
         $preCardItemPrice=$null
       }
-      if ($null -ne $preCardItemPrice -and $preCardItemPrice -ne $productPagePrice) {
+      # Coupang sometimes shows a WOW coupon only at checkout. Accept exactly
+      # that difference when the checkout evidence names the coupon and amount.
+      $wowCouponEvidence=$false
+      if ($checkoutStatus -eq 'captured' -and $null -ne $wowCoupon -and $wowCoupon -gt 0) {
+        $couponAmount=[regex]::Escape($wowCoupon.ToString('N0',[Globalization.CultureInfo]::InvariantCulture))
+        $wowCouponEvidence=@($result.checkoutDiscountEvidence | Where-Object {
+          [string]$_ -match "와우\s*전용\s*쿠폰할인(?:\s*변경)?\s*-\s*$couponAmount\s*원"
+        }).Count -gt 0
+      }
+      $checkoutPriceBasis=if ($null -ne $preCardItemPrice -and $preCardItemPrice -eq $productPagePrice) {
+        'product-page-matched'
+      } elseif ($null -ne $preCardItemPrice -and $wowCouponEvidence -and
+          $productPagePrice - $preCardItemPrice -eq $wowCoupon) {
+        'wow-coupon-only-at-checkout'
+      } else { 'unverified' }
+      if ($null -ne $preCardItemPrice -and $checkoutPriceBasis -eq 'unverified') {
         $checkoutStatus='unverified'
         $checkout.Reason='pre-card-price-does-not-match-product-page'
         $preCardItemPrice=$null
@@ -539,6 +555,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
       $mine | Add-Member -NotePropertyName productPagePrice -NotePropertyValue $productPagePrice -Force
+      $mine | Add-Member -NotePropertyName checkoutPriceBasis -NotePropertyValue $checkoutPriceBasis -Force
       $mine | Add-Member -NotePropertyName preCardPrice -NotePropertyValue $preCardPrice -Force
       $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue $basisType -Force
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
