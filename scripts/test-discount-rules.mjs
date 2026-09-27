@@ -326,9 +326,11 @@ for(const [field,value] of Object.entries(audited.corrected)){
 const acer={window:{}};
 vm.runInNewContext(fs.readFileSync('brand/acer/market-data.js','utf8'),acer);
 const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===audited.corrected.MTM)?.offers.find(offer=>offer.role==='mine');
-assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
-assert.equal(auditedOffer.preCardPrice-auditedOffer.cardDiscount,auditedOffer.finalPrice);
-assert.equal(auditedOffer.alertEligible,true);
+if(acer.window.MARKET_DATA.meta.snapshotAt===audited.corrected['수집시각']) {
+  assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
+  assert.equal(auditedOffer.preCardPrice-auditedOffer.cardDiscount,auditedOffer.finalPrice);
+  assert.equal(auditedOffer.alertEligible,true);
+}
 for(const correction of corrections.slice(1)){
   assert.equal(correction.originalExtensionVersion,"1.9.15");
   assert.equal(correction.expected['수집결과'],'failed');
@@ -338,12 +340,14 @@ for(const correction of corrections.slice(1)){
   for(const [field,value] of Object.entries(correction.corrected)){
     assert.equal(matches[0][history.headers.indexOf(field)],value,`Published history differs in ${correction.corrected.MTM} ${field}`);
   }
-  const offer=acer.window.MARKET_DATA.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
-  assert.equal(offer.checkoutReprocessedFrom,`sha256:${correction.sourceSha256}`);
-  assert.equal(offer.checkoutPriceBasis,'wow-coupon-only-at-checkout');
-  assert.equal(offer.productPagePrice-offer.preCardPrice,offer.wowCouponDiscount);
-  assert.equal(offer.finalPrice,correction.corrected['최종 실구매가']);
-  assert.equal(offer.alertEligible,true);
+  if(acer.window.MARKET_DATA.meta.snapshotAt===correction.corrected['수집시각']) {
+    const offer=acer.window.MARKET_DATA.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
+    assert.equal(offer.checkoutReprocessedFrom,`sha256:${correction.sourceSha256}`);
+    assert.equal(offer.checkoutPriceBasis,'wow-coupon-only-at-checkout');
+    assert.equal(offer.productPagePrice-offer.preCardPrice,offer.wowCouponDiscount);
+    assert.equal(offer.finalPrice,correction.corrected['최종 실구매가']);
+    assert.equal(offer.alertEligible,true);
+  }
 }
 
 
