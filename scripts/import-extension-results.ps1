@@ -180,8 +180,10 @@ foreach ($result in $payloadResults) {
   $observedRates=@([regex]::Matches([string]$result.cardBenefitText,'(?<!\d)(\d+(?:\.\d+)?)\s*%') |
     ForEach-Object { [decimal]::Parse($_.Groups[1].Value,[Globalization.CultureInfo]::InvariantCulture) } |
     Sort-Object -Unique)
-  if ($observedRates.Count -gt 1) {
-    throw "Multiple card rates for $($result.mtm); this scan cannot determine the best discount after coupons. Keep the previous published snapshot."
+  $termRates=@($result.cardTerms | ForEach-Object { [decimal]$_.rate } | Sort-Object -Unique)
+  if ($observedRates.Count -gt 1 -and ($termRates.Count -ne $observedRates.Count -or
+      @($observedRates | Where-Object { $_ -notin $termRates }).Count -gt 0)) {
+    throw "Incomplete card terms for $($result.mtm). Keep the previous published snapshot."
   }
 }
 $retiredScanTimes=@('2026-09-27T14:17:34+09:00')
@@ -557,7 +559,34 @@ foreach ($spec in $specs) {
         $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
       if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
       $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
-      $cardDiscount=if ($cardBenefitStatus -eq 'none') {
+       $cardTerms=@($result.cardTerms | Where-Object { $null -ne $_ })
+       if ($cardCapturedValid -and $cardTerms.Count -eq 0) {
+         $cardTerms=@([pscustomobject]@{rate=$result.cardRate;maxDiscount=$result.cardMaxDiscount;providers=$cardProviders})
+       }
+       $validTerms=@($cardTerms | Where-Object {
+         $null -ne $_.rate -and [decimal]$_.rate -gt 0 -and [decimal]$_.rate -le 100 -and
+         ($null -eq $_.maxDiscount -or [long]$_.maxDiscount -gt 0) -and
+         @($_.providers | Where-Object { $_ }).Count -gt 0
+       })
+       if ($cardCapturedValid -and ($validTerms.Count -eq 0 -or $validTerms.Count -ne $cardTerms.Count)) {
+         $cardBenefitStatus='unverified'; $cardCapturedValid=$false
+       }
+       $pageBest=$null; $checkoutBest=$null
+       if ($cardCapturedValid) {
+         $pageBest=@($validTerms | ForEach-Object {
+           $amount=[long][math]::Floor($productPagePrice*[decimal]$_.rate/100)
+           if ($null -ne $_.maxDiscount) {$amount=[long][math]::Min($amount,[long]$_.maxDiscount)}
+           [pscustomobject]@{term=$_;amount=$amount}
+         } | Sort-Object -Property amount -Descending)[0]
+         if ($null -ne $preCardItemPrice) {
+           $checkoutBest=@($validTerms | ForEach-Object {
+             $amount=[long][math]::Floor($preCardItemPrice*[decimal]$_.rate/100)
+             if ($null -ne $_.maxDiscount) {$amount=[long][math]::Min($amount,[long]$_.maxDiscount)}
+             [pscustomobject]@{term=$_;amount=$amount}
+           } | Sort-Object -Property amount -Descending)[0]
+         }
+       }
+       $cardDiscount=if ($cardBenefitStatus -eq 'none') {
         if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
           $cardBenefitStatus='unverified'
           $null
@@ -565,22 +594,20 @@ foreach ($spec in $specs) {
       } elseif ($cardCapturedValid) {
         # Validate the product-page observation, then calculate the applicable
         # discount from the checkout coupon-adjusted item price when available.
-        $pageCalculated=[long][math]::Floor($productPagePrice*[decimal]$result.cardRate/100)
-        $pageDiscount=if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($pageCalculated,[long]$result.cardMaxDiscount)}else{$pageCalculated}
-        if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $pageDiscount) {
+         if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $pageBest.amount) {
           $cardBenefitStatus='unverified'
           $null
         } elseif ($soldOut) {
           # Display-only product-page benefit; never qualifies a sold-out offer.
-          $pageDiscount
-        } elseif ($null -ne $preCardItemPrice) {
-          $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
-          if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
+           $pageBest.amount
+         } elseif ($null -ne $checkoutBest) {
+           $checkoutBest.amount
         } else { $null }
       } else {
         $null
       }
-      # A missing checkout layer or card detail is not a verified current final price.
+       $selectedTerm=if ($soldOut) {$pageBest.term} elseif ($null -ne $checkoutBest) {$checkoutBest.term} else {$null}
+       # A missing checkout layer or card detail is not a verified current final price.
       $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount -and
         $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
       $currentVerifiedFinal=if ($alertEligible){$preCardPrice-$cardDiscount}else{$null}
@@ -599,9 +626,10 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue $basisType -Force
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
       $mine | Add-Member -NotePropertyName cardEvidenceSource -NotePropertyValue $cardSource -Force
-      $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
-      $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
-      $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue $cardProviders -Force
+       $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $(if($selectedTerm){$selectedTerm.rate}else{$null}) -Force
+       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $(if($selectedTerm){$selectedTerm.maxDiscount}else{$null}) -Force
+       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue $(if($selectedTerm){@($selectedTerm.providers)}else{$cardProviders}) -Force
+       $mine | Add-Member -NotePropertyName cardTerms -NotePropertyValue @($validTerms) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
