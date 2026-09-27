@@ -150,7 +150,11 @@ if ($unverifiedCheckouts.Count -gt 0) {
   throw "Incomplete checkout capture: $($unverifiedCheckouts.Count) product(s) have no confirmed order page ($(@($unverifiedCheckouts | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
 }
 
+$retiredScanTimes=@('2026-09-27T14:17:34+09:00')
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
+if ($scanKst -in $retiredScanTimes) {
+  throw "The partial scan at $scanKst was retired and cannot be republished."
+}
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
@@ -315,13 +319,17 @@ $historyPath=Join-Path $RepoPath 'reports\my-coupang-price-history.csv'
 $competitorHistoryPath=Join-Path $RepoPath 'reports\competitor-price-history.csv'
 $publishedCompetitorHistoryPath=Join-Path $RepoPath 'dist\competitor-price-history.js'
 $historyStart=[DateTimeOffset]::Parse('2026-09-23T09:20:52+09:00')
+# The 14:17 scan was published before full-scan admission was enforced. The
+# operator retired that entire partial snapshot, including competitor rows.
+# Filter ignored PC CSVs as well as public history so the next import cannot
+# resurrect it when the local and public histories are merged.
 $publishedHistoryPath=Join-Path $RepoPath 'dist\price-history.js'
 if (Test-Path $publishedHistoryPath) {
   $historySource=[IO.File]::ReadAllText($publishedHistoryPath,[Text.Encoding]::UTF8)
   $historyJson=$historySource -replace '^\s*window\.MARKET_PULSE_HISTORY\s*=\s*','' -replace ';\s*$',''
   $publicHistory=$historyJson | ConvertFrom-Json
   $headers=@($publicHistory.headers)
-  $localRows=@(if (Test-Path $historyPath) { Import-Csv -Path $historyPath -Encoding UTF8 })
+  $localRows=@(if (Test-Path $historyPath) { Import-Csv -Path $historyPath -Encoding UTF8 | Where-Object { [string]$_.'수집시각' -notin $retiredScanTimes } })
   $knownHistoryKeys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach ($row in $localRows) {
     [void]$knownHistoryKeys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)")
@@ -331,6 +339,7 @@ if (Test-Path $publishedHistoryPath) {
     $fields=[ordered]@{}
     for ($i=0;$i -lt $headers.Count;$i++) { $fields[[string]$headers[$i]]=[string]$values[$i] }
     $row=[pscustomobject]$fields
+    if ([string]$row.'수집시각' -in $retiredScanTimes) { continue }
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
     if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $knownHistoryKeys.Add($key)) {
       $localRows+= $row
@@ -350,7 +359,7 @@ if (Test-Path $publishedCompetitorHistoryPath) {
   $json=$source -replace '^\s*window\.MARKET_PULSE_COMPETITOR_HISTORY\s*=\s*','' -replace ';\s*$',''
   $public=$json | ConvertFrom-Json
   $headers=@($public.headers)
-  $local=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8})
+  $local=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8 | Where-Object { [string]$_.'수집시각' -notin $retiredScanTimes }})
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach($row in $local){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
   foreach($values in @($public.rows)){
@@ -358,6 +367,7 @@ if (Test-Path $publishedCompetitorHistoryPath) {
     $fields=[ordered]@{}
     for($i=0;$i -lt $headers.Count;$i++){$fields[[string]$headers[$i]]=[string]$values[$i]}
     $row=[pscustomobject]$fields
+    if ([string]$row.'수집시각' -in $retiredScanTimes) { continue }
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
     if($keys.Add($key)){$local+=$row}
   }
@@ -703,14 +713,14 @@ if ($historyRows.Count -gt 0) {
   $combined=@()
   if (Test-Path $historyPath) {
     $combined+=@(Import-Csv -Path $historyPath -Encoding UTF8 | Where-Object {
-      try { [DateTimeOffset]::Parse([string]$_.'수집시각') -ge $historyStart } catch { $false }
+      try { ([DateTimeOffset]::Parse([string]$_.'수집시각') -ge $historyStart) -and ([string]$_.'수집시각' -notin $retiredScanTimes) } catch { $false }
     })
   }
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach ($row in $combined) { [void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)") }
   foreach ($row in $historyRows) {
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)"
-    if ([DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $keys.Add($key)) { $combined+=$row }
+    if ([string]$row.'수집시각' -notin $retiredScanTimes -and [DateTimeOffset]::Parse([string]$row.'수집시각') -ge $historyStart -and $keys.Add($key)) { $combined+=$row }
   }
   # Reconcile the PC's ignored CSV with audited public corrections before
   # regenerating the downloadable history on the next scheduled upload.
@@ -734,12 +744,12 @@ if ($historyRows.Count -gt 0) {
 }
 if ($competitorHistoryRows.Count -gt 0) {
   New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
-  $combined=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8})
+  $combined=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8 | Where-Object { [string]$_.'수집시각' -notin $retiredScanTimes }})
   $keys=New-Object 'System.Collections.Generic.HashSet[string]'
   foreach($row in $combined){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
   foreach($row in $competitorHistoryRows){
     $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
-    if($keys.Add($key)){$combined+=$row}
+    if([string]$row.'수집시각' -notin $retiredScanTimes -and $keys.Add($key)){$combined+=$row}
   }
   $combined=@($combined | Sort-Object '수집시각','브랜드','MTM','가격','판매처')
   $combined | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
