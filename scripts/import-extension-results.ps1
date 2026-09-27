@@ -71,16 +71,16 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Payload v5 and scanner 1.9.3 are required for evidence-aware checkout capture of all three
+# Payload v5 and scanner 1.9.18 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
 if ([int]$payload.version -ne 5) {
-  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.3 and scan again.'
+  throw 'This scan was created by an incompatible extension. Reload Market Pulse scanner 1.9.18 and scan again.'
 }
 try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
   throw 'The scan does not contain a valid extensionVersion.'
 }
-if ($extensionVersion -lt [version]'1.9.3') {
-  throw 'This scan was created by an older extension. Reload Market Pulse scanner 1.9.3 and scan again.'
+if ($extensionVersion -lt [version]'1.9.18') {
+  throw 'This scan was created by an old reference-price rule. Reload Market Pulse scanner 1.9.18 and scan again.'
 }
 
 try {
@@ -461,26 +461,17 @@ foreach ($spec in $specs) {
       } else {
         $null
       }
-      # An origin-price element can belong to a recommended product. On a
-      # low-SRP item, reject a basis far beyond both its SRP and active offer.
-      $lowPriceProduct=$null -ne $srp -and $srp -lt 250000
-      $implausibleStrike=$lowPriceProduct -and $null -ne $result.strikePrice -and
-        [long]$result.strikePrice -gt [math]::Max(3 * $srp,3 * $productPagePrice)
-      $matchingPrimary=@($result.candidates | Where-Object {$_.source -eq 'json-ld' -and [long]$_.price -eq $productPagePrice}).Count -gt 0
-      $matchingVisible=@($result.candidates | Where-Object {$_.source -eq 'visible-won-text' -and [long]$_.price -eq $productPagePrice}).Count -gt 0
-      $confirmedZeroDiscount=$result.checkoutDiscountStatus -eq 'captured' -and
-        $null -ne $result.checkoutCouponDiscount -and [long]$result.checkoutCouponDiscount -eq 0 -and
-        $null -ne $result.wowInstantDiscount -and [long]$result.wowInstantDiscount -eq 0 -and
-        $null -ne $result.wowCouponDiscount -and [long]$result.wowCouponDiscount -eq 0
-      $fallbackPrimary=$implausibleStrike -and $matchingPrimary -and $matchingVisible -and $confirmedZeroDiscount
-      # Old extensions collected origin-price nodes across the whole page.
-      # A low-priced but unrelated recommendation also passes the 3x guard.
-      $untrustedOrigin=([string]$result.strikeSelector -match 'origin-price|base-price') -and
-        $result.strikeAnchorVerified -ne $true
-      $strike=if ($untrustedOrigin) {$null} elseif ($fallbackPrimary) {$productPagePrice} elseif ($implausibleStrike) {$null} elseif (
-        $result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice
-      ) {[long]$result.strikePrice} else {$null}
-      $basisType=if($untrustedOrigin){'unverified'}elseif($fallbackPrimary){'top-visible'}elseif($implausibleStrike){'unverified'}else{[string]$result.priceBasisType}
+      # A visible price anchored to the selected product is required.
+      $visualBasisValid=$result.priceBasisSource -eq 'visible-product-price' -and
+        $result.strikeReliable -eq $true -and $result.strikeAnchorVerified -eq $true -and
+        $null -ne $result.basisEvidence -and
+        $null -ne $result.basisPrice -and $null -ne $result.strikePrice -and
+        [long]$result.basisPrice -eq [long]$result.strikePrice -and
+        [long]$result.basisPrice -ge $minimumPrice -and [long]$result.basisPrice -le 7000000
+      $strike=if ($visualBasisValid) {[long]$result.basisPrice} else {$null}
+      $basisType=if ($visualBasisValid -and $result.priceBasisType -in @('crossed-out','top-visible')) {
+        [string]$result.priceBasisType
+      } else {'unverified'}
       $checkout=Resolve-CheckoutDiscounts $result
       $checkoutStatus=[string]$checkout.Status
       $checkoutCoupon=$checkout.Regular

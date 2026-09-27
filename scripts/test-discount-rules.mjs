@@ -15,40 +15,44 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.17");
-// A sold-out product can have unrelated .origin-price values in recommendations.
-// Keep the visible main price as the basis unless a crossed-out value is near it.
+assert.equal(manifest.version,"1.9.18");
+// The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
 assert.ok(readPriceStart>=0&&readPriceEnd>readPriceStart);
-const makePriceNode=(value,top)=>({
-  textContent:value,parentElement:{innerText:value},getAttribute:()=>null,
-  getBoundingClientRect:()=>({top,left:40,width:75,height:20})
+const makePriceNode=(value,top,tagName="SPAN",className="prod-price")=>({
+  textContent:value,tagName,className,parentElement:{innerText:value,className:"prod-price"},
+  getAttribute:()=>null,closest:()=>null,getBoundingClientRect:()=>({top,left:40,width:85,height:20})
 });
-async function readC100Basis(originTop,withAnchor=true) {
-  const primary=makePriceNode("41,160원",120),origin=makePriceNode("75,400원",originTop);
-  const doc={title:"Godox C100",body:{innerText:"C100 41,160원 일시품절 75,400원"},querySelectorAll(selector){
-    if(selector==="strong.price-value") return withAnchor?[primary]:[];
-    if(selector===".origin-price") return [origin];
-    if(selector==='script[type="application/ld+json"]') return [{textContent:JSON.stringify({"@type":"Product",offers:{"@type":"Offer",price:41160}})}];
+async function readC100Basis(upperTop,withTitle=true,withCurrent=true) {
+  const title=makePriceNode("Godox C100",50);
+  const primary=makePriceNode("41,160원",120,"STRONG","price-value");
+  const upper=makePriceNode("75,400원",upperTop,"DEL","origin-price");
+  const remote=makePriceNode("1,249,570원",720,"DEL","origin-price");
+  const doc={title:"Godox C100",body:{innerText:"C100 41,160원 일시품절"},querySelectorAll(selector){
+    if(selector==="strong.price-value") return withCurrent?[primary]:[];
+    if(selector==='h1,.prod-buy-header__title,[class*="prod-buy-header__title"]') return withTitle?[title]:[];
+    if(selector==="strong,span,em,b,del,s,p,div,[data-price]") return withCurrent?[primary,upper,remote]:[upper,remote];
+    if(selector==='script[type="application/ld+json"]') return [{textContent:JSON.stringify({"@type":"Product",offers:{"@type":"Offer",price:41160,priceSpecification:{"@type":"UnitPriceSpecification",price:999999}}})}];
     return [];
   }};
   const ctx={document:doc,location:{href:"https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334"},
-    URL,getComputedStyle:()=>({display:"block",visibility:"visible"}),scrollY:0,scrollX:0};
+    URL,getComputedStyle:()=>({display:"block",visibility:"visible",textDecorationLine:"none"}),scrollY:0,scrollX:0};
   vm.runInNewContext(`${source.slice(readPriceStart,readPriceEnd)};this.readDisplayedPrice=readDisplayedPrice;`,ctx);
   return ctx.readDisplayedPrice("9738958594","29147698397","96070924334",42000);
 }
-const remoteStrike=await readC100Basis(720);
-assert.equal(remoteStrike.strikePrice,41160);
-assert.equal(remoteStrike.priceBasisType,"top-visible");
-const nearbyStrike=await readC100Basis(80);
-assert.equal(nearbyStrike.strikePrice,75400);
-assert.equal(nearbyStrike.priceBasisType,"crossed-out");
-const missingAnchor=await readC100Basis(80,false);
-assert.equal(missingAnchor.strikePrice,41160);
-assert.equal(missingAnchor.priceBasisType,"top-visible");
-assert.match(importer,/\$untrustedOrigin=/);
-assert.match(importer,/\$result\.strikeAnchorVerified -ne \$true/);
+const lowerStrike=await readC100Basis(145);
+assert.equal(lowerStrike.strikePrice,41160);
+assert.equal(lowerStrike.priceBasisType,"top-visible");
+assert.equal(lowerStrike.priceBasisSource,"visible-product-price");
+assert.equal(lowerStrike.basisEvidence.top,120);
+const upperStrike=await readC100Basis(80);
+assert.equal(upperStrike.strikePrice,75400);
+assert.equal(upperStrike.priceBasisType,"crossed-out");
+assert.equal(upperStrike.basisEvidence.top,80);
+assert.equal((await readC100Basis(80,false)).strikePrice,null);
+assert.equal((await readC100Basis(80,true,false)).strikePrice,null);
+assert.match(importer,/\$visualBasisValid=/);
 const timeoutStart=source.indexOf("async function withScanTimeout(");
 const timeoutEnd=source.indexOf("\n\nfunction localDay",timeoutStart);
 assert.ok(timeoutStart>=0&&timeoutEnd>timeoutStart,"scan timeout helper was not found");
@@ -133,7 +137,7 @@ assert.match(source,/checkoutCouponSource:'checkout'/);
 assert.doesNotMatch(source,/product-page-soldout|checkoutProductDiscount/);
 assert.match(source,/checkoutCouponDiscount:null,checkoutCouponSource:null/);
 assert.match(importer,/payload\.version -ne 5/);
-assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.3'/);
+assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.18'/);
 assert.doesNotMatch(importer,/pre-card-price-does-not-match-product-page|\$wowCouponEvidence/);
 assert.match(importer,/\$calculated=\[long\]\[math\]::Floor\(\$productPagePrice\*\[decimal\]\$result\.cardRate\/100\)/);
 assert.match(importer,/\$cardSource -match/);
@@ -149,7 +153,7 @@ assert.match(importer,/availabilityReportAt'\)/);
 assert.match(importer,/NotePropertyName publishedAt/);
 assert.match(importer,/\$safeBrand \$safeCategory · Korea/);
 assert.match(importer,/Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue \$scanKst -Force/);
-assert.match(importer,/\$fallbackPrimary=\$implausibleStrike -and \$matchingPrimary -and \$matchingVisible -and \$confirmedZeroDiscount/);
+assert.match(importer,/\$visualBasisValid=/);
 assert.match(dashboard,/categories\.length===1\?categories\[0\]:"Products"/);
 assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$verifiedCardDiscount/);
 assert.match(source,/checkout-discount-label-present-amount-unparsed/);
@@ -210,8 +214,8 @@ priceContext.document.querySelectorAll=selector=>selector==='.origin-price'
   ? [{textContent:"1,249,570원",getBoundingClientRect:()=>({top:900,left:40,width:75,height:20})}]:originalQuery(selector);
 const unrelatedStrike=await priceContext.readDisplayedPrice(godox.productId,godox.itemId,godox.vendorItemId,godox.srp);
 assert.equal(unrelatedStrike.price,42000);
-assert.equal(unrelatedStrike.strikePrice,42000);
-assert.equal(unrelatedStrike.priceBasisType,"top-visible");
+assert.equal(unrelatedStrike.strikePrice,null);
+assert.equal(unrelatedStrike.priceBasisType,null);
 priceContext.document.querySelectorAll=originalQuery;
 const notebookPrice=await priceContext.readDisplayedPrice(godox.productId,godox.itemId,godox.vendorItemId,1829000);
 assert.equal(notebookPrice.ok,false);
