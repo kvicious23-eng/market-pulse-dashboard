@@ -1,12 +1,14 @@
 ﻿$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'apply-history-corrections.ps1')
 $path=Join-Path $PSScriptRoot 'history-corrections.json'
-$correction=@(Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json)[0]
-$correctionCount=@(Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json).Count
+$corrections=[object[]](Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json)
+$correction=$corrections[0]
+$correctionCount=$corrections.Count
 
 function Assert-Equal($actual,$expected,[string]$message) {
   if ([string]$actual -ne [string]$expected) { throw "$message`: expected '$expected', got '$actual'." }
 }
+Assert-Equal $correctionCount 7 'Windows PowerShell must load seven separate audited corrections'
 
 $failed=$correction.corrected | ConvertTo-Json -Depth 5 | ConvertFrom-Json
 foreach ($field in $correction.expected.PSObject.Properties.Name) {
@@ -41,6 +43,21 @@ $deduplicatedCorrection=@($deduplicated | Where-Object {
   $_.'수집시각' -eq $correction.corrected.'수집시각' -and $_.MTM -eq $correction.corrected.MTM
 })[0]
 Assert-Equal $deduplicatedCorrection.'수집결과' 'success' 'Audited successful row takes precedence'
+$morning=@($corrections | Where-Object {
+  $_.corrected.MTM -eq 'ANV16-I31-514Z' -and $_.corrected.'수집시각' -eq '2026-09-27T08:18:23+09:00'
+})[0]
+if (-not $morning) { throw 'Audited Acer morning correction is missing.' }
+$morningOriginal=$morning.corrected | ConvertTo-Json -Depth 5 | ConvertFrom-Json
+foreach ($field in $morning.expected.PSObject.Properties.Name) {
+  $morningOriginal.$field=$morning.expected.$field
+}
+$morningRows=@($morningOriginal,$morning.corrected,$morning.corrected,$morningOriginal,$morning.corrected)
+$morningRepaired=@(Apply-HistoryCorrections -Rows $morningRows -CorrectionsPath $path)
+$acerMorning=@($morningRepaired | Where-Object {
+  $_.'수집시각' -eq $morning.corrected.'수집시각' -and $_.MTM -eq $morning.corrected.MTM
+})
+Assert-Equal $acerMorning.Count 1 'Five copies of the Acer morning key must become one'
+Assert-Equal $acerMorning[0].'수집결과' 'success' 'The audited Acer row must replace failed copies'
 $otherTime='2026-09-24T08:00:00+09:00'
 $exact=[pscustomobject]@{'수집시각'=$otherTime;'브랜드'='Acer';MTM='ANV16-I31-514Z'}
 $exactCopy=[pscustomobject]@{'수집시각'=$otherTime;'브랜드'='Acer';MTM='ANV16-I31-514Z'}
@@ -63,9 +80,9 @@ if (-not $blocked) { throw 'A mismatched original must not be rewritten.' }
 
 # An old successful row can still contain a product-page coupon that was never
 # verified at checkout. Require an exact audited original before clearing it.
-$soldoutCorrection=@(Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json) | Where-Object {
+$soldoutCorrection=@($corrections | Where-Object {
   $_.expected.'수집결과' -eq 'success' -and $_.corrected.'일반 쿠폰할인' -eq ''
-} | Select-Object -First 1
+} | Select-Object -First 1)[0]
 if (-not $soldoutCorrection) { throw 'Sold-out source correction is missing.' }
 $oldSoldout=$soldoutCorrection.expected | ConvertTo-Json -Depth 5 | ConvertFrom-Json
 $reconciled=@(Apply-HistoryCorrections -Rows @($oldSoldout) -CorrectionsPath $path)

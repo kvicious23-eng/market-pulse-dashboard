@@ -131,9 +131,19 @@ jobs:
         id: source
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+  windows_history:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify audited CSV repair in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          if ($PSVersionTable.PSVersion.Major -ne 5) { throw 'Windows PowerShell 5.1 is required.' }
+          ./scripts/test-history-corrections.ps1
+
   deploy:
-    needs: update
-    if: always() && github.event_name != 'pull_request' && needs.update.result == 'success'
+    needs: [update, windows_history]
+    if: always() && github.event_name != 'pull_request' && needs.update.result == 'success' && needs.windows_history.result == 'success'
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
