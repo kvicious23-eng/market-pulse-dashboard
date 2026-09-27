@@ -493,19 +493,26 @@ function readCardPopup(expectedProductId,expectedItemId,expectedVendorItemId,pre
     const text=compact(node);
     if (text.length<5||text.length>900||!/%/.test(text)) continue;
     const rates=parseRates(text),cap=parseCap(text);
-    if (!summaryRate||!rates.includes(summaryRate)) continue;
+     if (rates.length!==1) continue;
     const providers=knownCards.filter(card=>text.includes(card));
-    if (Number.isFinite(cap)||/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text)) rows.push({rate:summaryRate,cap,providers});
+     if (Number.isFinite(cap)||/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text)) rows.push({rate:rates[0],cap,providers});
   }
   if (!rows.length) {
     const cap=parseCap(detailText);
     const explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(detailText);
     if (summaryRate&&(Number.isFinite(cap)||explicitlyUncapped)) rows.push({rate:summaryRate,cap,providers:knownCards.filter(card=>detailText.includes(card))});
   }
-  const calculated=rows.map(row=>({
+   const observedRates=[...new Set(parseRates(detailText))];
+   const cardTerms=rows.filter(row=>row.providers.length||observedRates.length===1)
+     .map(row=>({rate:row.rate,maxDiscount:Number.isFinite(row.cap)&&row.cap>0?row.cap:null,providers:row.providers.length?row.providers:summaryProviders}))
+     .filter((term,index,all)=>term.providers.length&&all.findIndex(other=>other.rate===term.rate&&other.maxDiscount===term.maxDiscount&&JSON.stringify(other.providers)===JSON.stringify(term.providers))===index);
+   if (!observedRates.length||observedRates.some(rate=>!cardTerms.some(term=>term.rate===rate))) {
+     return {captured:false,reason:'card-popup-unparseable',cardBenefitText:[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000)};
+   }
+   const calculated=cardTerms.map(row=>({
     ...row,
-    amount:Number.isFinite(row.cap)&&row.cap>0
-      ? Math.min(Math.floor(preCardPrice*row.rate/100),row.cap)
+     amount:Number.isFinite(row.maxDiscount)&&row.maxDiscount>0
+       ? Math.min(Math.floor(preCardPrice*row.rate/100),row.maxDiscount)
       : Math.floor(preCardPrice*row.rate/100)
   })).filter(row=>row.amount>0&&row.amount<=preCardPrice).sort((a,b)=>b.amount-a.amount);
   const best=calculated[0];
@@ -515,9 +522,10 @@ function readCardPopup(expectedProductId,expectedItemId,expectedVendorItemId,pre
     cardBenefitStatus:'captured',
     cardBenefitText:[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000),
     cardRate:best.rate,
-    cardMaxDiscount:Number.isFinite(best.cap)&&best.cap>0?best.cap:null,
+     cardMaxDiscount:best.maxDiscount,
+     cardTerms,
     cardDiscount:best.amount,
-    cardProviders:best.providers.length?best.providers:summaryProviders
+     cardProviders:best.providers
   };
 }
 
@@ -764,9 +772,11 @@ async function scanCoupangTab(tabId,target) {
   scan.cardDebug=debuggerCard?.cardDebug||null;
   if (card?.captured&&debuggerCard?.captured) {
     const same=card.cardRate===debuggerCard.cardRate&&card.cardMaxDiscount===debuggerCard.cardMaxDiscount&&card.cardDiscount===debuggerCard.cardDiscount;
-    if (same) Object.assign(scan,debuggerCard,{cardEvidenceSource:`dom+${debuggerCard.cardEvidenceSource}`});
-    else scan.cardInteractionStatus='card-evidence-conflict';
-  } else if (debuggerCard?.captured) Object.assign(scan,debuggerCard);
+     if (same) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:`dom+${debuggerCard.cardEvidenceSource}`});
+     else if (card.cardTerms.length>1) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
+     else scan.cardInteractionStatus='card-evidence-conflict';
+   } else if (card?.reason==='card-popup-unparseable') scan.cardInteractionStatus=card.reason;
+   else if (debuggerCard?.captured) Object.assign(scan,debuggerCard);
   else if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
   else scan.cardInteractionStatus=debuggerCard?.reason||card?.reason||'card-popup-no-result';
   if (scan.cardBenefitStatus==='captured'&&(!Array.isArray(scan.cardProviders)||!scan.cardProviders.some(Boolean))) {
