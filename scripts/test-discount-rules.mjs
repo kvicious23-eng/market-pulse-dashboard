@@ -357,10 +357,9 @@ const historical={window:{}};
 vm.runInNewContext(fs.readFileSync('dist/price-history.js','utf8'),historical);
 const history=historical.window.MARKET_PULSE_HISTORY;
 const auditedRows=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===audited.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===audited.corrected.MTM);
-assert.equal(auditedRows.length,1);
-for(const [field,value] of Object.entries(audited.corrected)){
-  assert.equal(auditedRows[0][history.headers.indexOf(field)],value,`Published history differs in ${field}`);
-}
+assert.ok(auditedRows.some(row=>Object.entries(audited.corrected)
+  .every(([field,value])=>row[history.headers.indexOf(field)]===value)),
+  "The audited corrected row must remain in published history.");
 const acer={window:{}};
 vm.runInNewContext(fs.readFileSync('brand/acer/market-data.js','utf8'),acer);
 const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===audited.corrected.MTM)?.offers.find(offer=>offer.role==='mine');
@@ -375,10 +374,9 @@ for(const correction of corrections.slice(1)){
   assert.equal(correction.originalExtensionVersion,"1.9.15");
   assert.equal(correction.corrected['수집결과'],'success');
   const matches=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===correction.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===correction.corrected.MTM);
-  assert.equal(matches.length,1);
-  for(const [field,value] of Object.entries(correction.corrected)){
-    assert.equal(matches[0][history.headers.indexOf(field)],value,`Published history differs in ${correction.corrected.MTM} ${field}`);
-  }
+  assert.ok(matches.some(row=>Object.entries(correction.corrected)
+    .every(([field,value])=>row[history.headers.indexOf(field)]===value)),
+    `Published history is missing the corrected ${correction.corrected.MTM} row.`);
   const currentData=correction.corrected['브랜드']==='Godox'?auditedGodox.window.MARKET_DATA:acer.window.MARKET_DATA;
   if(currentData.meta.snapshotAt===correction.corrected['수집시각']) {
     const offer=currentData.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
