@@ -172,6 +172,18 @@ if ($unverifiedCheckouts.Count -gt 0) {
   throw "Incomplete checkout capture: $($unverifiedCheckouts.Count) product(s) have no confirmed order page ($(@($unverifiedCheckouts | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
 }
 
+# Reject a multi-rate popup before changing any brand file or local history.
+# The scanner reports only one selected rate and cap; after checkout coupons a
+# different card might provide the largest discount.
+foreach ($result in $payloadResults) {
+  if ([string]$result.cardBenefitStatus -ne 'captured') { continue }
+  $observedRates=@([regex]::Matches([string]$result.cardBenefitText,'(?<!\d)(\d+(?:\.\d+)?)\s*%') |
+    ForEach-Object { [decimal]::Parse($_.Groups[1].Value,[Globalization.CultureInfo]::InvariantCulture) } |
+    Sort-Object -Unique)
+  if ($observedRates.Count -gt 1) {
+    throw "Multiple card rates for $($result.mtm); this scan cannot determine the best discount after coupons. Keep the previous published snapshot."
+  }
+}
 $retiredScanTimes=@('2026-09-27T14:17:34+09:00')
 $scanKst = [TimeZoneInfo]::ConvertTime([DateTimeOffset]$payload.scannedAt,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 if ($scanKst -in $retiredScanTimes) {
@@ -544,16 +556,6 @@ foreach ($spec in $specs) {
       $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0 -and
         $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
       if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
-      # The scanner reports one chosen rate. If the captured popup contains
-      # multiple distinct rates, the best card may change after checkout coupons.
-      # Keep the benefit as unverified until all card terms can be compared.
-      $observedRates=@([regex]::Matches([string]$result.cardBenefitText,'(?<!\d)(\d+(?:\.\d+)?)\s*%') |
-        ForEach-Object { [decimal]::Parse($_.Groups[1].Value,[Globalization.CultureInfo]::InvariantCulture) } |
-        Sort-Object -Unique)
-      if ($cardBenefitStatus -eq 'captured' -and $observedRates.Count -gt 1) {
-        $cardCapturedValid=$false
-        $cardBenefitStatus='unverified'
-      }
       $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
       $cardDiscount=if ($cardBenefitStatus -eq 'none') {
         if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
