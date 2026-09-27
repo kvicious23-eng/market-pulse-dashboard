@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.20");
+assert.equal(manifest.version,"1.9.21");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -192,10 +192,13 @@ const catalogContext={URL,Set,Map};
 vm.runInNewContext(`${source.slice(catalogStart,catalogEnd)};this.validateProductCatalog=validateProductCatalog;`,catalogContext);
 const defaultTargets=vm.runInNewContext(targetLiteral);
 assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog(defaultTargets))),[]);
+assert.equal(defaultTargets.length,14,"A fresh browser profile must include all 14 active products");
 const godox={brand:"Godox",category:"Camera",mtm:"C100",srp:42000,enabled:true,
   productId:"9738958594",itemId:"29147698397",vendorItemId:"96070924334",
   url:"https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334"};
-assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog([...defaultTargets,godox]))),[]);
+assert.equal(defaultTargets.filter(target=>target.brand==="Godox"&&target.mtm==="C100").length,1);
+assert.equal(defaultTargets.find(target=>target.itemId===godox.itemId)?.url,godox.url);
+assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog([...defaultTargets,godox]))),["C100:duplicate-item-id","C100:duplicate-vendor-item-id","C100:duplicate-brand-mtm"]);
 const priceStart=source.indexOf("async function readDisplayedPrice(");
 const priceEnd=source.indexOf("\n\nfunction snapshotCardDetailText",priceStart);
 assert.ok(priceStart>=0&&priceEnd>priceStart,"product price reader was not found");

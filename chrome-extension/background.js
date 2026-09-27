@@ -11,7 +11,8 @@ const TARGETS = [
   {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
   {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
   {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
-  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'}
+  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'},
+  {brand:'Godox',category:'Camera',mtm:'C100',productId:'9738958594',itemId:'29147698397',vendorItemId:'96070924334',srp:42000,enabled:true,url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',enuriUrl:'https://price.enuri.com/catalog/148559067'}
 ];
 
 async function getTargets() {
