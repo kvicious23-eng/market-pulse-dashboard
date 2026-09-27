@@ -16,7 +16,7 @@ window.MARKET_DATA = {
       "competitionLastAttemptAt": "2026-09-27T08:18:23+09:00"
     },
     "brand": "Godox",
-    "publishedAt": "2026-09-27T11:32:55+09:00"
+    "publishedAt": "2026-09-27T11:35:58+09:00"
   },
   "products": [
     {
@@ -35,7 +35,7 @@ window.MARKET_DATA = {
           "instantDiscount": 840,
           "couponDiscount": null,
           "cardDiscount": null,
-          "condition": "08시 등록 상품 스캔에서 41,160원과 품절 확인. 11:08 사용자 제공 C100 상품 화면에도 41,160원만 보여 이를 현재 최상단 표시가로 기록. 취소선·주문서 쿠폰 미확인.",
+          "condition": "08:00 등록 상품 스캔 JSON에서 Offer 가격 41,160원과 동일한 화면 가격 문자열 확인. 연결 근거 없는 origin-price 75,400원은 제외. 품절로 주문서 쿠폰 미확인.",
           "sourceType": "관리화면 등록 URL",
           "checkedAt": "2026-09-27 08:00",
           "confidence": "A",
@@ -70,7 +70,7 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-09-24 08:00",
-          "priceCheckedAt": "2026-09-27 11:08"
+          "priceCheckedAt": "2026-09-27 08:00"
         },
         {
           "role": "competitor",
