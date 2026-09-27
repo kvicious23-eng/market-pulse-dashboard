@@ -82,6 +82,9 @@ try { $extensionVersion=[version]([string]$payload.extensionVersion) } catch {
 if ($extensionVersion -lt [version]'1.9.18') {
   throw 'This scan was created by an old reference-price rule. Reload Market Pulse scanner 1.9.18 and scan again.'
 }
+if ($extensionVersion -eq [version]'1.9.19') {
+  throw 'Scanner 1.9.19 cannot verify checkout discounts because its tabs.query filter is unsupported. Reload scanner 1.9.20 and scan again.'
+}
 
 try {
   $startedAt=[DateTimeOffset]$payload.startedAt

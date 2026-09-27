@@ -1246,7 +1246,11 @@ async function collectCheckoutDiscountsForTarget(target) {
       await wait(500);
       const current=await withScanTimeout(chrome.tabs.get(tab.id),15000,`checkout-tab:${target.mtm}`);
       checkoutTab=current;
-      const children=await withScanTimeout(chrome.tabs.query({openerTabId:tab.id}),15000,`checkout-children:${target.mtm}`).catch(()=>[]);
+      // openerTabId belongs to the returned Tab, not the tabs.query filter.
+      // Query all tabs and filter locally; tolerate a transient tab query error
+      // so the original tab can still be read if it reached checkout.
+      const allTabs=await withScanTimeout(Promise.resolve().then(()=>chrome.tabs.query({})),15000,`checkout-children:${target.mtm}`).catch(()=>[]);
+      const children=allTabs.filter(candidate=>candidate.openerTabId===tab.id);
       childTabCount=Math.max(childTabCount,children.length);
       const child=children.find(candidate=>{
         const {host,path}=route(candidate.url);

@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.19");
+assert.equal(manifest.version,"1.9.20");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -138,6 +138,7 @@ assert.doesNotMatch(source,/product-page-soldout|checkoutProductDiscount/);
 assert.match(source,/checkoutCouponDiscount:null,checkoutCouponSource:null/);
 assert.match(importer,/payload\.version -ne 5/);
 assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.18'/);
+assert.match(importer,/extensionVersion -eq \[version\]'1\.9\.19'/);
 assert.doesNotMatch(importer,/pre-card-price-does-not-match-product-page|\$wowCouponEvidence/);
 assert.match(importer,/\$calculated=\[long\]\[math\]::Floor\(\$productPagePrice\*\[decimal\]\$result\.cardRate\/100\)/);
 assert.match(importer,/\$cardSource -match/);

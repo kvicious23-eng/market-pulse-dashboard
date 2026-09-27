@@ -25,7 +25,7 @@ async function scan({child,confirmed}) {
       tabs:{
         async create(options){assert.equal(options.active,true);return original;},
         async get(){return original;},
-        async query(options){assert.equal(options.openerTabId,10);return child?[checkout]:[];},
+        async query(options){assert.deepEqual(Object.keys(options),[]);return child?[original,checkout,{id:12,openerTabId:999,status:'complete',url:checkout.url}]:[original];},
         async remove(id){removed.push(id);}
       },
       scripting:{async executeScript({target,func}){
