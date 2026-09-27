@@ -538,6 +538,16 @@ foreach ($spec in $specs) {
       $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0 -and
         $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
       if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
+      # The scanner reports one chosen rate. If the captured popup contains
+      # multiple distinct rates, the best card may change after checkout coupons.
+      # Keep the benefit as unverified until all card terms can be compared.
+      $observedRates=@([regex]::Matches([string]$result.cardBenefitText,'(?<!\d)(\d+(?:\.\d+)?)\s*%') |
+        ForEach-Object { [decimal]::Parse($_.Groups[1].Value,[Globalization.CultureInfo]::InvariantCulture) } |
+        Sort-Object -Unique)
+      if ($cardBenefitStatus -eq 'captured' -and $observedRates.Count -gt 1) {
+        $cardCapturedValid=$false
+        $cardBenefitStatus='unverified'
+      }
       $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
       $cardDiscount=if ($cardBenefitStatus -eq 'none') {
         if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
