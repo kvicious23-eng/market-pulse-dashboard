@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.22");
+assert.equal(manifest.version,"1.9.23");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -123,6 +123,20 @@ await scheduleContext.scheduleEntry(scheduleContext.SCHEDULED_SCAN_TIMES[0]);
 assert.equal(scheduledAt[0],Date.parse(slot14),"the next alarm must fire at exactly 14:00 KST");
 assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000),true);
 assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000+1),false);
+const listenerStart=source.indexOf('chrome.runtime.onInstalled.addListener(');
+const listenerEnd=source.indexOf('chrome.action.onClicked.addListener(',listenerStart);
+assert.ok(listenerStart>=0&&listenerEnd>listenerStart);
+const edgeHandlers={},edgeAlarms=[];
+const edgeContext={isEdgeBrowser:true,SCHEDULED_SCAN_TIMES:[{alarm:'daily-scan-0800'},{alarm:'daily-scan-1400'}],
+  chrome:{runtime:{onInstalled:{addListener:fn=>edgeHandlers.install=fn},onStartup:{addListener:fn=>edgeHandlers.startup=fn}},
+    alarms:{clear:async name=>edgeAlarms.push(name),onAlarm:{addListener:fn=>edgeHandlers.alarm=fn}},
+    storage:{local:{get:async()=>({lastRunSlot:null}),set:async()=>{}}}},
+  schedule:async()=>{throw Error('Edge must not schedule scans');},requestScan:()=>{throw Error('Edge must not run scheduled scans');}};
+vm.runInNewContext(source.slice(listenerStart,listenerEnd),edgeContext);
+await edgeHandlers.install();
+await edgeHandlers.startup();
+edgeHandlers.alarm({name:'daily-scan-0800'});
+assert.equal(edgeAlarms.length,4,'Edge clears old alarms on install and startup');
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);

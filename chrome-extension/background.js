@@ -978,6 +978,7 @@ const SCHEDULED_SCAN_TIMES = [
   {alarm:'daily-scan-0800',hour:8,minute:0,slot:'08:00'},
   {alarm:'daily-scan-1400',hour:14,minute:0,slot:'14:00'}
 ];
+const isEdgeBrowser=/Edg\//.test(navigator.userAgent);
 
 function kstDateTimeParts(date=new Date()) {
   return Object.fromEntries(new Intl.DateTimeFormat('en-US',{
@@ -1404,18 +1405,25 @@ function finishScan() {
 
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
-  await schedule();
+  if(isEdgeBrowser) {
+    for(const entry of SCHEDULED_SCAN_TIMES) await chrome.alarms.clear(entry.alarm);
+  } else await schedule();
 });
 chrome.runtime.onStartup.addListener(async()=>{
   // A browser restart stops the previous service worker and its scan.
   const previous=await chrome.storage.local.get('running');
   if(previous.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-browser-restart',lastScanErrorAt:new Date().toISOString()});
+  if(isEdgeBrowser) {
+    for(const entry of SCHEDULED_SCAN_TIMES) await chrome.alarms.clear(entry.alarm);
+    return;
+  }
   await schedule();
   const state=await chrome.storage.local.get(['lastRunSlot']);
   const dueSlot=currentScheduledScanSlot();
   if(recentScanSlot(dueSlot)&&state.lastRunSlot!==dueSlot) requestScan(dueSlot);
 });
 chrome.alarms.onAlarm.addListener(alarm=>{
+  if(isEdgeBrowser) return;
   const entry=SCHEDULED_SCAN_TIMES.find(candidate=>candidate.alarm===alarm.name);
   if(!entry) return;
   scheduleEntry(entry).catch(()=>{});
