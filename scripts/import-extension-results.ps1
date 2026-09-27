@@ -607,6 +607,7 @@ foreach ($spec in $specs) {
         $null
       }
        $selectedTerm=if ($soldOut) {$pageBest.term} elseif ($null -ne $checkoutBest) {$checkoutBest.term} else {$null}
+       $selectedProviders=if ($selectedTerm) {@($selectedTerm.providers | Where-Object { $_ })} else {$cardProviders}
        # A missing checkout layer or card detail is not a verified current final price.
       $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount -and
         $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
@@ -628,7 +629,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName cardEvidenceSource -NotePropertyValue $cardSource -Force
        $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $(if($selectedTerm){$selectedTerm.rate}else{$null}) -Force
        $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $(if($selectedTerm){$selectedTerm.maxDiscount}else{$null}) -Force
-       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue $(if($selectedTerm){@($selectedTerm.providers)}else{$cardProviders}) -Force
+       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue @($selectedProviders) -Force
        $mine | Add-Member -NotePropertyName cardTerms -NotePropertyValue @($validTerms) -Force
       $mine | Add-Member -NotePropertyName cardBenefitText -NotePropertyValue (Get-SafeCardBenefitText ([string]$result.cardBenefitText)) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
