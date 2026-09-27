@@ -75,6 +75,12 @@ do {
 # needed. At 08:30/14:30 the Chrome scan may still be running.
 $blockedChrome=@($payload.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
 if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
+  foreach ($blocked in $blockedChrome) {
+    $safeMtm=[regex]::Replace([string]$blocked.mtm,'[\r\n]',' ')
+    $safeDetail=[regex]::Replace([string]$blocked.accessCheckDetail,'[\r\n]',' ')
+    $safeRetry=[regex]::Replace([string]$blocked.retryStatus,'[\r\n]',' ')
+    Write-Host "Chrome access-check: MTM=$safeMtm; detail=$safeDetail; retry=$safeRetry; retryAt=$($blocked.retryCheckedAt)"
+  }
   $chromeCompletedAt=[DateTimeOffset]::Parse([string]$payload.completedAt)
   $edgeFallback=Join-Path $RepoPath 'scripts\edge-fallback.ps1'
   if (-not (Test-Path $edgeFallback)) { throw 'Edge fallback script is missing; the blocked Chrome scan cannot be published.' }
