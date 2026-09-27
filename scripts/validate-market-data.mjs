@@ -49,6 +49,7 @@ for(const file of [...new Set(files)]){
       }
     }
     if(mine.checkoutDiscountStatus==="captured"){
+      if(mine.checkoutCouponSource!=="checkout") fail(file,`${label}: available-product coupons must come from checkout`);
       const layers=[mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.wowCouponDiscount];
       if(!layers.every(value=>finite(value)&&value>=0)) fail(file,`${label}: captured checkout layers are incomplete`);
       if(finite(mine.observedListPrice)&&finite(mine.preCardPrice)){
@@ -56,33 +57,22 @@ for(const file of [...new Set(files)]){
         const total=layers.reduce((sum,value)=>sum+value,0);
         if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
       }
-      if(finite(mine.productPagePrice)&&finite(mine.preCardPrice)){
-        const itemPrice=mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0);
-        const couponText=Number.isFinite(mine.wowCouponDiscount)&&mine.wowCouponDiscount>0
-          ? mine.wowCouponDiscount.toLocaleString("en-US") : null;
-        const hasExplicitCoupon=couponText&&Array.isArray(mine.checkoutDiscountEvidence)&&
-          mine.checkoutDiscountEvidence.some(line=>new RegExp(`와우\\s*전용\\s*쿠폰할인(?:\\s*변경)?\\s*-\\s*${couponText}\\s*원`).test(line));
-        const couponAtCheckout=mine.checkoutPriceBasis==="wow-coupon-only-at-checkout"&&hasExplicitCoupon&&
-          mine.productPagePrice-itemPrice===mine.wowCouponDiscount;
-        if(itemPrice!==mine.productPagePrice&&!couponAtCheckout) fail(file,`${label}: pre-card item price differs from the product-page price without explicit WOW coupon evidence`);
-        if(itemPrice===mine.productPagePrice&&mine.checkoutPriceBasis==="wow-coupon-only-at-checkout") fail(file,`${label}: checkout-only WOW coupon marker contradicts the product-page price`);
-      }
     }
     if(soldOut(mine)&&finite(mine.observedListPrice)&&finite(mine.productPagePrice)){
-      const expectedGeneral=mine.observedListPrice-mine.productPagePrice;
-      if(expectedGeneral<0) fail(file,`${label}: product-page price exceeds displayed basis price`);
-      if(mine.checkoutCouponDiscount!==expectedGeneral) fail(file,`${label}: sold-out general coupon ${mine.checkoutCouponDiscount} does not equal product-page discount ${expectedGeneral}`);
+      if(mine.observedListPrice<mine.productPagePrice) fail(file,`${label}: product-page price exceeds displayed basis price`);
     }
     if(soldOut(mine)&&finite(mine.productPagePrice)){
+      if(finite(mine.checkoutCouponDiscount)||finite(mine.couponDiscount)) fail(file,`${label}: sold-out offer cannot infer coupon discounts without checkout`);
+      if(mine.checkoutCouponSource) fail(file,`${label}: sold-out offer cannot claim a checkout coupon source`);
       if(finite(mine.wowInstantDiscount)||finite(mine.wowCouponDiscount)) fail(file,`${label}: sold-out offer cannot have current checkout WOW discounts`);
       if(finite(mine.preCardPrice)) fail(file,`${label}: sold-out offer cannot have a current pre-card price`);
     }
     if(mine.cardBenefitStatus==="captured"){
+      if(!/^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$/.test(mine.cardEvidenceSource||"")) fail(file,`${label}: card evidence must come from the product page`);
       if(!finite(mine.cardRate)||mine.cardRate<=0||mine.cardRate>100) fail(file,`${label}: captured cardRate is invalid`);
       if(!Array.isArray(mine.cardProviders)||mine.cardProviders.filter(Boolean).length===0) fail(file,`${label}: captured card providers are missing`);
-      if(finite(mine.preCardPrice)&&finite(mine.cardDiscount)){
-        const itemPrice=mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0);
-        const calculated=Math.floor(itemPrice*mine.cardRate/100);
+      if(finite(mine.productPagePrice)&&finite(mine.cardDiscount)){
+        const calculated=Math.floor(mine.productPagePrice*mine.cardRate/100);
         const expected=finite(mine.cardMaxDiscount)&&mine.cardMaxDiscount>0?Math.min(calculated,mine.cardMaxDiscount):calculated;
         if(mine.cardDiscount!==expected) fail(file,`${label}: cardDiscount ${mine.cardDiscount} does not equal ${expected}`);
       }

@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.15");
+assert.equal(manifest.version,"1.9.16");
 const timeoutStart=source.indexOf("async function withScanTimeout(");
 const timeoutEnd=source.indexOf("\n\nfunction localDay",timeoutStart);
 assert.ok(timeoutStart>=0&&timeoutEnd>timeoutStart,"scan timeout helper was not found");
@@ -97,10 +97,13 @@ assert.match(source,/version:5,/);
 assert.match(source,/actualProductId!==String\(expectedProductId\).*actualItemId!==String\(expectedItemId\).*actualVendorItemId!==String\(expectedVendorItemId\)/s);
 assert.match(source,/args:\[target\.productId,target\.itemId,target\.vendorItemId\]/);
 assert.match(source,/checkoutCouponSource:'checkout'/);
-assert.match(source,/checkoutCouponSource:soldOut\?'product-page-soldout':null/);
+assert.doesNotMatch(source,/product-page-soldout|checkoutProductDiscount/);
+assert.match(source,/checkoutCouponDiscount:null,checkoutCouponSource:null/);
 assert.match(importer,/payload\.version -ne 5/);
 assert.match(importer,/extensionVersion -lt \[version\]'1\.9\.3'/);
-assert.match(importer,/pre-card-price-does-not-match-product-page/);
+assert.doesNotMatch(importer,/pre-card-price-does-not-match-product-page|\$wowCouponEvidence/);
+assert.match(importer,/\$calculated=\[long\]\[math\]::Floor\(\$productPagePrice\*\[decimal\]\$result\.cardRate\/100\)/);
+assert.match(importer,/\$cardSource -match/);
 assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
 assert.match(importer,/Duplicate vendorItemId values/);
 assert.match(importer,/produce the same dashboard slug/);
@@ -139,7 +142,7 @@ assert.equal(breakdownContext.priceBreakdown({...oldPrice,preCardPrice:1679000,c
 assert.equal(breakdownContext.priceBreakdown({...oldPrice,alertEligible:true}).preCardPrice,1679000);
 assert.doesNotMatch(lenovoRefresh,/mine\.alertEligible\s*=\s*true/);
 assert.doesNotMatch(acerRefresh,/mine\.alertEligible\s*=\s*true/);
-assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \(\$checkoutStatus -eq 'soldout' -and \$null -ne \$checkoutCoupon\)/);
+assert.match(importer,/\$historyCollectionSucceeded=\$alertEligible -or \$checkoutStatus -eq 'soldout'/);
 assert.match(importer,/'수집결과'=if\(\$historyCollectionSucceeded\)\{'success'\}else\{'failed'\}/);
 
 const catalogStart=source.indexOf("function validateProductCatalog(");
@@ -305,10 +308,8 @@ assert.equal(reconcile(null,null,150000,166790).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).wowTotal,150000);
 assert.doesNotMatch(importer,/\$memberTotal\s*-ne\s*\$wowTotal|checkout-wow-total-mismatch/);
 const corrections=JSON.parse(fs.readFileSync('scripts/history-corrections.json','utf8'));
-assert.equal(corrections.length,5);
-assert.match(importer,/wow-coupon-only-at-checkout/);
-assert.match(importer,/\$productPagePrice - \$preCardItemPrice -eq \$wowCoupon/);
-assert.match(importer,/\$wowCouponEvidence/);
+assert.equal(corrections.length,7);
+assert.doesNotMatch(importer,/\$productPagePrice - \$preCardItemPrice -eq \$wowCoupon/);
 const audited=corrections[0];
 assert.match(audited.sourceSha256,/^[a-f0-9]{64}$/);
 assert.equal(audited.expected['수집결과'],'failed');
@@ -333,7 +334,6 @@ if(acer.window.MARKET_DATA.meta.snapshotAt===audited.corrected['수집시각']) 
 }
 for(const correction of corrections.slice(1)){
   assert.equal(correction.originalExtensionVersion,"1.9.15");
-  assert.equal(correction.expected['수집결과'],'failed');
   assert.equal(correction.corrected['수집결과'],'success');
   const matches=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===correction.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===correction.corrected.MTM);
   assert.equal(matches.length,1);
@@ -343,10 +343,16 @@ for(const correction of corrections.slice(1)){
   if(acer.window.MARKET_DATA.meta.snapshotAt===correction.corrected['수집시각']) {
     const offer=acer.window.MARKET_DATA.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
     assert.equal(offer.checkoutReprocessedFrom,`sha256:${correction.sourceSha256}`);
-    assert.equal(offer.checkoutPriceBasis,'wow-coupon-only-at-checkout');
-    assert.equal(offer.productPagePrice-offer.preCardPrice,offer.wowCouponDiscount);
-    assert.equal(offer.finalPrice,correction.corrected['최종 실구매가']);
-    assert.equal(offer.alertEligible,true);
+    if(correction.corrected['상태']==='품절'){
+      assert.equal(offer.checkoutCouponDiscount,null);
+      assert.equal(offer.checkoutCouponSource,null);
+      assert.equal(offer.couponDiscount,null);
+      assert.equal(offer.alertEligible,false);
+    }else{
+      assert.equal(offer.checkoutCouponSource,'checkout');
+      assert.equal(offer.finalPrice,correction.corrected['최종 실구매가']);
+      assert.equal(offer.alertEligible,true);
+    }
   }
 }
 
@@ -391,6 +397,8 @@ if(godoxMine.availabilityReportSource==='operator') {
   assert.equal(godoxData.window.MARKET_DATA.meta.publishedAt,godoxData.window.MARKET_DATA.meta.snapshotAt);
 }
 if(godoxMine.status==='품절') {
+  assert.equal(godoxMine.checkoutCouponDiscount,null);
+  assert.equal(godoxMine.checkoutCouponSource,null);
   assert.equal(godoxMine.alertEligible,false);
   assert.ok(['buy-now-button-not-found','buy-now-button-sold-out'].includes(godoxMine.checkoutDiscountReason));
   assert.equal(newestGodoxRow[history.headers.indexOf('최종 실구매가')],'');

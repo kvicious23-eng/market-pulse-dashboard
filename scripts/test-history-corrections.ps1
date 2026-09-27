@@ -32,4 +32,21 @@ $conflict.'상품 URL'='https://www.coupang.com/vp/products/unrelated'
 $blocked=$false
 try { $null=Apply-HistoryCorrections -Rows @($conflict) -CorrectionsPath $path } catch { $blocked=$true }
 if (-not $blocked) { throw 'A mismatched original must not be rewritten.' }
+
+# An old successful row can still contain a product-page coupon that was never
+# verified at checkout. Require an exact audited original before clearing it.
+$soldoutCorrection=@(Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json) | Where-Object {
+  $_.expected.'수집결과' -eq 'success' -and $_.corrected.'일반 쿠폰할인' -eq ''
+} | Select-Object -First 1
+if (-not $soldoutCorrection) { throw 'Sold-out source correction is missing.' }
+$oldSoldout=$soldoutCorrection.expected | ConvertTo-Json -Depth 5 | ConvertFrom-Json
+$reconciled=@(Apply-HistoryCorrections -Rows @($oldSoldout) -CorrectionsPath $path)
+$correctedSoldout=$reconciled | Where-Object {
+  $_.'수집시각' -eq $soldoutCorrection.corrected.'수집시각' -and $_.MTM -eq $soldoutCorrection.corrected.MTM
+} | Select-Object -First 1
+Assert-Equal $correctedSoldout.'일반 쿠폰할인' '' 'Unverified sold-out coupon must be cleared'
+$oldSoldout.'일반 쿠폰할인'='99999'
+$blocked=$false
+try { $null=Apply-HistoryCorrections -Rows @($oldSoldout) -CorrectionsPath $path } catch { $blocked=$true }
+if (-not $blocked) { throw 'Mismatched successful history must not be rewritten.' }
 Write-Host 'Audited history correction passed.'

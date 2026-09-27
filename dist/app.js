@@ -132,7 +132,7 @@
 
   function checkoutDiscountText(value, detailStatus = "missing") {
     if (Number.isFinite(value)) return discountText(value);
-    if (detailStatus === "soldout") return '<span class="unknown">품절로 미적용</span>';
+    if (detailStatus === "soldout") return '<span class="unknown">주문서 미확인(품절)</span>';
     if (detailStatus === "unverified") return '<span class="unknown">금액 판독 실패</span>';
     return detailStatus === "summary"
       ? '<span class="unknown">상세 구분 미확인</span>'
@@ -141,7 +141,7 @@
 
   function checkoutDiscountExportValue(value, detailStatus = "missing") {
     if (Number.isFinite(value)) return value;
-    if (detailStatus === "soldout") return "품절로 미적용";
+    if (detailStatus === "soldout") return "주문서 미확인(품절)";
     if (detailStatus === "unverified") return "금액 판독 실패";
     if (detailStatus === "summary") return "상세 구분 미확인";
     return "미수집";

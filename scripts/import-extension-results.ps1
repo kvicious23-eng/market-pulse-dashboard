@@ -159,19 +159,14 @@ function Get-SafeCheckoutEvidence($values) {
   }
   return @($safe)
 }
-function Resolve-CheckoutDiscounts($result,$productPageDiscount) {
+function Resolve-CheckoutDiscounts($result) {
   $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
   $reason=[string]$result.checkoutDiscountReason
   $soldOut=$reason -in @('buy-now-button-not-found','buy-now-button-sold-out')
   if ($soldOut) {
-    if ([string]$result.checkoutCouponSource -ne 'product-page-soldout') {
-      return [pscustomobject]@{Status='unverified';Reason='soldout-coupon-source-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
-    }
-    $regular=if ($null -ne $productPageDiscount) {[long]$productPageDiscount}else{$null}
-    if ($null -ne $result.checkoutCouponDiscount -and $null -ne $regular -and [long]$result.checkoutCouponDiscount -ne $regular) {
-      return [pscustomobject]@{Status='unverified';Reason='soldout-product-page-coupon-mismatch';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
-    }
-    return [pscustomobject]@{Status='soldout';Reason=$reason;Regular=$regular;Instant=$null;Coupon=$null;Total=$regular}
+    # No checkout means no verified coupon, even when the product page displays
+    # a lower price. Keep the availability result and all coupon layers unknown.
+    return [pscustomobject]@{Status='soldout';Reason=$reason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
   }
   if ($status -ne 'captured') {
     $partialRegular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
@@ -482,8 +477,7 @@ foreach ($spec in $specs) {
         $result.strikeReliable -eq $true -and $null -ne $result.strikePrice -and [long]$result.strikePrice -ge $productPagePrice
       ) {[long]$result.strikePrice} else {$null}
       $basisType=if($fallbackPrimary){'top-visible'}elseif($implausibleStrike){'unverified'}else{[string]$result.priceBasisType}
-      $productPageDiscount=if ($null -ne $strike){$strike-$productPagePrice}else{$null}
-      $checkout=Resolve-CheckoutDiscounts $result $productPageDiscount
+      $checkout=Resolve-CheckoutDiscounts $result
       $checkoutStatus=[string]$checkout.Status
       $checkoutCoupon=$checkout.Regular
       $wowInstant=$checkout.Instant
@@ -497,32 +491,14 @@ foreach ($spec in $specs) {
         $checkout.Reason='pre-card-price-out-of-range'
         $preCardItemPrice=$null
       }
-      # Coupang sometimes shows a WOW coupon only at checkout. Accept exactly
-      # that difference when the checkout evidence names the coupon and amount.
-      $wowCouponEvidence=$false
-      if ($checkoutStatus -eq 'captured' -and $null -ne $wowCoupon -and $wowCoupon -gt 0) {
-        $couponAmount=[regex]::Escape($wowCoupon.ToString('N0',[Globalization.CultureInfo]::InvariantCulture))
-        $wowCouponEvidence=@($result.checkoutDiscountEvidence | Where-Object {
-          [string]$_ -match "와우\s*전용\s*쿠폰할인(?:\s*변경)?\s*-\s*$couponAmount\s*원"
-        }).Count -gt 0
-      }
-      $checkoutPriceBasis=if ($null -ne $preCardItemPrice -and $preCardItemPrice -eq $productPagePrice) {
-        'product-page-matched'
-      } elseif ($null -ne $preCardItemPrice -and $wowCouponEvidence -and
-          $productPagePrice - $preCardItemPrice -eq $wowCoupon) {
-        'wow-coupon-only-at-checkout'
-      } else { 'unverified' }
-      if ($null -ne $preCardItemPrice -and $checkoutPriceBasis -eq 'unverified') {
-        $checkoutStatus='unverified'
-        $checkout.Reason='pre-card-price-does-not-match-product-page'
-        $preCardItemPrice=$null
-      }
       $preCardPrice=if($null -ne $preCardItemPrice){$preCardItemPrice+[long]($mine.shipping)}else{$null}
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
       if ($cardBenefitStatus -notin @('none','captured','partial','unverified')) { $cardBenefitStatus='unverified' }
       $cardProviders=@($result.cardProviders | Where-Object { $_ })
       $cardRateValid=$null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0 -and [decimal]$result.cardRate -le 100
-      $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0
+      $cardSource=[string]$result.cardEvidenceSource
+      $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0 -and
+        $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
       if ($cardBenefitStatus -eq 'captured' -and -not $cardCapturedValid) { $cardBenefitStatus='unverified' }
       $cardDiscount=if ($null -eq $preCardItemPrice) {
         $null
@@ -532,7 +508,9 @@ foreach ($spec in $specs) {
           $null
         } else { 0 }
       } elseif ($cardCapturedValid) {
-        $calculated=[long][math]::Floor($preCardItemPrice*[decimal]$result.cardRate/100)
+        # The card benefit is captured on the product page. The checkout only
+        # supplies three coupon amounts and cannot change the card calculation.
+        $calculated=[long][math]::Floor($productPagePrice*[decimal]$result.cardRate/100)
         $verifiedCardDiscount=if ($null -ne $result.cardMaxDiscount -and [long]$result.cardMaxDiscount -gt 0) {[long][math]::Min($calculated,[long]$result.cardMaxDiscount)}else{$calculated}
         if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $verifiedCardDiscount) {
           $cardBenefitStatus='unverified'
@@ -543,10 +521,11 @@ foreach ($spec in $specs) {
       }
       $soldOut=([string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out'))
       # A missing checkout layer or card detail is not a verified current final price.
-      $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount
+      $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount -and
+        $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
       $currentVerifiedFinal=if ($alertEligible){$preCardPrice-$cardDiscount}else{$null}
       $final=if ($alertEligible){$currentVerifiedFinal}else{$previousFinalPrice}
-      $couponTotal=if ($checkoutStatus -eq 'captured') {$checkout.Total} elseif($soldOut) {$checkoutCoupon} else {$null}
+      $couponTotal=if ($checkoutStatus -eq 'captured') {$checkout.Total} else {$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
@@ -555,10 +534,11 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName srp -NotePropertyValue $srp -Force
       $mine | Add-Member -NotePropertyName observedListPrice -NotePropertyValue $strike -Force
       $mine | Add-Member -NotePropertyName productPagePrice -NotePropertyValue $productPagePrice -Force
-      $mine | Add-Member -NotePropertyName checkoutPriceBasis -NotePropertyValue $checkoutPriceBasis -Force
+      $mine.PSObject.Properties.Remove('checkoutPriceBasis')
       $mine | Add-Member -NotePropertyName preCardPrice -NotePropertyValue $preCardPrice -Force
       $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue $basisType -Force
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
+      $mine | Add-Member -NotePropertyName cardEvidenceSource -NotePropertyValue $cardSource -Force
       $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $result.cardRate -Force
       $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $result.cardMaxDiscount -Force
       $mine | Add-Member -NotePropertyName cardProviders -NotePropertyValue $cardProviders -Force
@@ -566,7 +546,8 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName checkoutDiscountStatus -NotePropertyValue $checkoutStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountReason -NotePropertyValue ([string]$checkout.Reason) -Force
       $mine | Add-Member -NotePropertyName checkoutCouponDiscount -NotePropertyValue $checkoutCoupon -Force
-      $mine | Add-Member -NotePropertyName checkoutCouponSource -NotePropertyValue ([string]$result.checkoutCouponSource) -Force
+      $checkoutSource=if($soldOut){$null}else{[string]$result.checkoutCouponSource}
+      $mine | Add-Member -NotePropertyName checkoutCouponSource -NotePropertyValue $checkoutSource -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
@@ -585,7 +566,7 @@ foreach ($spec in $specs) {
       }
       $mine.checkedAt=$kst; $mine | Add-Member -NotePropertyName priceCheckedAt -NotePropertyValue $kst -Force
       $mine.status=if($soldOut){$text.SoldOut}elseif($alertEligible){$text.Current}else{$text.Partial}
-      $mine.condition=if($soldOut){'정확한 Item ID 확인. 품절 상품은 상품페이지 할인만 기록.'}elseif($alertEligible){'정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.'}else{'정확한 Item ID 확인. 할인 세부 근거는 일부 확인.'}
+      $mine.condition=if($soldOut){'정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.'}elseif($alertEligible){'정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.'}else{'정확한 Item ID 확인. 할인 세부 근거는 일부 확인.'}
       $mine.confidence=if($alertEligible -or $soldOut){'A'}else{'B'}
       $mine.confidenceText=if($alertEligible -or $soldOut){$text.CurrentDetail}else{$text.Partial}
       if ($alertEligible) {$verified++} elseif ($soldOut) {$soldOutCount++} else {$partialCount++}
@@ -660,7 +641,7 @@ foreach ($spec in $specs) {
       }
     }
     $historyHasCurrentPrice=($result.ok -eq $true)
-    $historyCollectionSucceeded=$alertEligible -or ($checkoutStatus -eq 'soldout' -and $null -ne $checkoutCoupon)
+    $historyCollectionSucceeded=$alertEligible -or $checkoutStatus -eq 'soldout'
     $historySrp=if($historyHasCurrentPrice -and $null -ne $mine.srp){$mine.srp}elseif($historyHasCurrentPrice -and $null -ne $product.srp){$product.srp}else{$null}
     $historyBasis=if($historyHasCurrentPrice){$mine.observedListPrice}else{$null}
     $historyPreCard=if($historyHasCurrentPrice){$mine.preCardPrice}else{$null}

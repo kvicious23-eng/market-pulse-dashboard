@@ -16,14 +16,11 @@
       continue
     }
     $entry=$matching[0]
-    if ([string]$entry.'수집결과' -eq 'success') {
-      foreach ($field in @('상태','쿠폰할인 총금액','카드할인','최종 실구매가','상품 URL')) {
-        if ([string]$entry.$field -ne [string]$fixed.$field) {
-          throw "Verified history differs from audited correction: $($fixed.MTM) $field"
-        }
-      }
-      continue
+    $alreadyCorrected=$true
+    foreach ($field in $fixed.PSObject.Properties.Name) {
+      if ([string]$entry.$field -ne [string]$fixed.$field) { $alreadyCorrected=$false; break }
     }
+    if ($alreadyCorrected) { continue }
     foreach ($field in $correction.expected.PSObject.Properties.Name) {
       if ([string]$entry.$field -ne [string]$correction.expected.$field) {
         throw "Original history differs from audited correction: $($fixed.MTM) $field"
