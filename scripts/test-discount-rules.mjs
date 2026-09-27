@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.24");
+assert.equal(manifest.version,"1.9.25");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
