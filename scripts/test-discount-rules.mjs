@@ -332,6 +332,8 @@ if(acer.window.MARKET_DATA.meta.snapshotAt===audited.corrected['수집시각']) 
   assert.equal(auditedOffer.preCardPrice-auditedOffer.cardDiscount,auditedOffer.finalPrice);
   assert.equal(auditedOffer.alertEligible,true);
 }
+const auditedGodox={window:{}};
+vm.runInNewContext(fs.readFileSync('brand/godox/market-data.js','utf8'),auditedGodox);
 for(const correction of corrections.slice(1)){
   assert.equal(correction.originalExtensionVersion,"1.9.15");
   assert.equal(correction.corrected['수집결과'],'success');
@@ -340,8 +342,9 @@ for(const correction of corrections.slice(1)){
   for(const [field,value] of Object.entries(correction.corrected)){
     assert.equal(matches[0][history.headers.indexOf(field)],value,`Published history differs in ${correction.corrected.MTM} ${field}`);
   }
-  if(acer.window.MARKET_DATA.meta.snapshotAt===correction.corrected['수집시각']) {
-    const offer=acer.window.MARKET_DATA.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
+  const currentData=correction.corrected['브랜드']==='Godox'?auditedGodox.window.MARKET_DATA:acer.window.MARKET_DATA;
+  if(currentData.meta.snapshotAt===correction.corrected['수집시각']) {
+    const offer=currentData.products.find(product=>product.mtm===correction.corrected.MTM)?.offers.find(item=>item.role==='mine');
     assert.equal(offer.checkoutReprocessedFrom,`sha256:${correction.sourceSha256}`);
     if(correction.corrected['상태']==='품절'){
       assert.equal(offer.checkoutCouponDiscount,null);
