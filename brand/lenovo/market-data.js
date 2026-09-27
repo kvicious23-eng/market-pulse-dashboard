@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-09-27T08:18:23+09:00",
+                 "snapshotAt":  "2026-09-27T12:28:11+09:00",
                  "sourceFile":  "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
                  "comparisonBasis":  "동일 MTM·용량의 당일 공개가와 배송비 기준. 내 쿠팡은 exact Item ID 직접 수집가의 카드 적용 전 공개 실구매가를 사용",
                  "exclusions":  "개인화 쿠폰·적립금·조건부 카드/멤버십 가격은 기본 비교에서 제외. 다나와 쿠팡 항목은 당일 Item ID 미검증 시 참고로 분리",
@@ -9,7 +9,7 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 14:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-09-27T08:18:23+09:00",
+                                    "lastAttemptAt":  "2026-09-27T12:28:11+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Lenovo 수집 결과: 검증 3, 품절 0, 일부 0 / 전체 3",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
@@ -18,7 +18,7 @@ window.MARKET_DATA = {
                                 },
                  "updatedAt":  "2026-09-14T19:42:57+09:00",
                  "brand":  "Lenovo",
-                 "publishedAt":  "2026-09-27T08:18:23+09:00"
+                 "publishedAt":  "2026-09-27T12:28:11+09:00"
              },
     "products":  [
                      {
@@ -38,21 +38,21 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "sourceType":  "관리화면 등록 URL",
-                                            "checkedAt":  "2026-09-27 08:01",
+                                            "checkedAt":  "2026-09-27 12:13",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303279355\u0026vendorItemId=95415897534",
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-27 08:02",
+                                            "availabilityCheckedAt":  "2026-09-27 12:13",
                                             "srp":  1109000,
                                             "observedListPrice":  1109000,
                                             "productPagePrice":  849000,
                                             "preCardPrice":  849000,
                                             "priceBasisType":  "crossed-out",
                                             "cardBenefitStatus":  "none",
+                                            "cardEvidenceSource":  "",
                                             "cardRate":  null,
                                             "cardMaxDiscount":  null,
                                             "cardProviders":  [
@@ -65,7 +65,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-26T23:02:17.281Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-27T03:13:47.054Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -81,10 +81,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-09-26 14:01",
+                                            "priceComparisonAt":  "2026-09-27 08:01",
                                             "lastVerifiedFinalPrice":  849000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 08:01",
-                                            "priceCheckedAt":  "2026-09-27 08:01"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 12:13",
+                                            "priceCheckedAt":  "2026-09-27 12:13"
                                         },
                                         {
                                             "role":  "competitor",
@@ -249,21 +249,21 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "sourceType":  "관리화면 등록 URL",
-                                            "checkedAt":  "2026-09-27 08:02",
+                                            "checkedAt":  "2026-09-27 12:14",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9235110727?itemId=27303268765\u0026vendorItemId=95415897535",
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-27 08:03",
+                                            "availabilityCheckedAt":  "2026-09-27 12:14",
                                             "srp":  1159000,
                                             "observedListPrice":  1129920,
                                             "productPagePrice":  899000,
                                             "preCardPrice":  899000,
                                             "priceBasisType":  "crossed-out",
                                             "cardBenefitStatus":  "none",
+                                            "cardEvidenceSource":  "",
                                             "cardRate":  null,
                                             "cardMaxDiscount":  null,
                                             "cardProviders":  [
@@ -276,7 +276,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-26T23:03:12.937Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-27T03:14:42.772Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -292,10 +292,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-09-26 14:02",
+                                            "priceComparisonAt":  "2026-09-27 08:02",
                                             "lastVerifiedFinalPrice":  899000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 08:02",
-                                            "priceCheckedAt":  "2026-09-27 08:02"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 12:14",
+                                            "priceCheckedAt":  "2026-09-27 12:14"
                                         },
                                         {
                                             "role":  "competitor",
@@ -430,21 +430,21 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "sourceType":  "관리화면 등록 URL",
-                                            "checkedAt":  "2026-09-27 08:03",
+                                            "checkedAt":  "2026-09-27 12:15",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/8708708250?itemId=25515648568\u0026vendorItemId=95415897536",
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "cardEvidenceSource":  null,
-                                            "availabilityCheckedAt":  "2026-09-27 08:04",
+                                            "availabilityCheckedAt":  "2026-09-27 12:15",
                                             "srp":  1199000,
                                             "observedListPrice":  1199000,
                                             "productPagePrice":  939000,
                                             "preCardPrice":  939000,
                                             "priceBasisType":  "crossed-out",
                                             "cardBenefitStatus":  "none",
+                                            "cardEvidenceSource":  "",
                                             "cardRate":  null,
                                             "cardMaxDiscount":  null,
                                             "cardProviders":  [
@@ -457,7 +457,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  130000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-09-26T23:04:09.213Z",
+                                            "checkoutDiscountCheckedAt":  "2026-09-27T03:15:43.592Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -473,10 +473,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-09-26 14:03",
+                                            "priceComparisonAt":  "2026-09-27 08:03",
                                             "lastVerifiedFinalPrice":  939000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 08:03",
-                                            "priceCheckedAt":  "2026-09-27 08:03"
+                                            "lastVerifiedPriceCheckedAt":  "2026-09-27 12:15",
+                                            "priceCheckedAt":  "2026-09-27 12:15"
                                         },
                                         {
                                             "role":  "competitor",
