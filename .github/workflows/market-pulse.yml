@@ -80,6 +80,7 @@ jobs:
           node --check dist/app.js
           node --check dist/xlsx-export.js
           node --check chrome-extension/background.js
+          node --check chrome-extension/fallback.js
           node --check chrome-extension/options.js
           node --check chrome-extension/popup.js
           node --check scripts/validate-market-data.mjs
@@ -139,6 +140,12 @@ jobs:
         shell: powershell
         run: |
           if ($PSVersionTable.PSVersion.Major -ne 5) { throw 'Windows PowerShell 5.1 is required.' }
+          $path=Join-Path $PWD 'scripts\edge-fallback.ps1'
+          $bytes=[IO.File]::ReadAllBytes($path)
+          if ($bytes.Length -lt 3 -or $bytes[0] -ne 239 -or $bytes[1] -ne 187 -or $bytes[2] -ne 191) { throw 'Edge fallback script needs UTF-8 BOM.' }
+          $tokens=$null; $errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+          if ($errors.Count) { throw ($errors | Out-String) }
           ./scripts/test-history-corrections.ps1
 
   deploy:

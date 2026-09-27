@@ -32,6 +32,13 @@ function Invoke-Git {
 # importing a scan. This makes future shared-dashboard changes self-updating.
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 
+# The Chrome extension writes the completed JSON before the scheduled upload.
+# If Coupang blocked its price read, try the signed-in Edge extension first.
+$edgeFallback = Join-Path $RepoPath 'scripts\edge-fallback.ps1'
+if (Test-Path $edgeFallback) {
+  & $edgeFallback -RepoPath $RepoPath
+}
+
 function Get-LatestResultPath {
   return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName

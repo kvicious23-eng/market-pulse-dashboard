@@ -944,6 +944,7 @@ async function scanAll(scanSlot) {
     const payload = {
       version:5,
       extensionVersion:chrome.runtime.getManifest().version,
+      browser:/Edg\//.test(navigator.userAgent)?'edge':'chrome',
       startedAt:scanStartedAt,
       scannedAt:completedAt,
       completedAt,
