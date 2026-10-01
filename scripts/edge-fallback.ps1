@@ -56,7 +56,13 @@ if ($installedExtensions.Count -ne 1) {
   throw "Edge fallback requires exactly one enabled C:\MarketPulse\chrome-extension installation in Edge (found $($installedExtensions.Count))."
 }
 $selected = $installedExtensions[0]
-$triggerUrl = "chrome-extension://$($selected.Id)/fallback.html"
+$targets=@(foreach($row in @($scan.Data.results)) {
+  [pscustomobject]@{brand=$row.brand;mtm=$row.mtm;category=$row.category;srp=$row.srp;enabled=$true;
+    productId=$row.productId;itemId=$row.itemId;vendorItemId=$row.vendorItemId;url=$row.url;
+    danawaUrl=$row.danawaUrl;enuriUrl=$row.enuriUrl}
+})
+$catalogJson=ConvertTo-Json -InputObject $targets -Depth 5 -Compress
+$triggerUrl = "chrome-extension://$($selected.Id)/fallback.html?catalog=$([Uri]::EscapeDataString($catalogJson))"
 Start-Process -FilePath $edge -ArgumentList @("--profile-directory=`"$($selected.Profile)`"",'--new-window',$triggerUrl)
 
 $deadline = [DateTime]::UtcNow.AddMinutes($TimeoutMinutes)
@@ -69,7 +75,11 @@ while ([DateTime]::UtcNow -lt $deadline) {
   if ($candidate.Data.complete -ne $true -or @($candidate.Data.results | Where-Object { $_.ok -ne $true }).Count -gt 0) {
     throw 'Edge fallback finished with incomplete prices; the existing dashboard is preserved.'
   }
+  $expectedIds=@($targets | ForEach-Object {"$($_.productId)|$($_.itemId)|$($_.vendorItemId)"} | Sort-Object)
+  $actualIds=@($candidate.Data.results | ForEach-Object {"$($_.productId)|$($_.itemId)|$($_.vendorItemId)"} | Sort-Object)
+  if(($expectedIds -join ',') -ne ($actualIds -join ',')) { throw 'Edge fallback catalog mismatch; the existing dashboard is preserved.' }
   Write-Host "Edge fallback completed: $($candidate.Data.resultCount) product(s)."
   return
 }
 throw 'Edge fallback did not finish before the timeout; the existing dashboard is preserved.'
+

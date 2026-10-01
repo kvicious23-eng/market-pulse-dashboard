@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.26");
+assert.equal(manifest.version,"1.9.27");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -208,7 +208,7 @@ const catalogContext={URL,Set,Map};
 vm.runInNewContext(`${source.slice(catalogStart,catalogEnd)};this.validateProductCatalog=validateProductCatalog;`,catalogContext);
 const defaultTargets=vm.runInNewContext(targetLiteral);
 assert.deepEqual(JSON.parse(JSON.stringify(catalogContext.validateProductCatalog(defaultTargets))),[]);
-assert.equal(defaultTargets.length,14,"A fresh browser profile must include all 14 active products");
+assert.equal(defaultTargets.length,15,"A fresh browser profile must include all 15 active products");
 const godox={brand:"Godox",category:"Camera",mtm:"C100",srp:42000,enabled:true,
   productId:"9738958594",itemId:"29147698397",vendorItemId:"96070924334",
   url:"https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334"};
@@ -469,3 +469,4 @@ if(godoxMine.status==='품절') {
 
 console.log("Discount source and calculation rules passed.");
 await import('./test-checkout-navigation.mjs');
+

@@ -47,13 +47,13 @@ function danawaSellerOffers(html, mtm) {
   if (/일시\s*품절\s*상품/.test(pageText.slice(0, 12000))) return [];
   const title = visibleText(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
   const excluded = /해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
-  if (excluded.test(title)) return [];
+  if (excluded.test(title) || !title.toUpperCase().includes(mtm.toUpperCase())) return [];
 
   const sectionStart = html.indexOf("쇼핑몰별 최저가");
   const sectionEnd = html.indexOf("최저가 추이", sectionStart + 1);
   const scope = sectionStart >= 0
     ? html.slice(sectionStart, sectionEnd > sectionStart ? sectionEnd : sectionStart + 120000)
-    : html;
+    : "";
 
   const bySeller = new Map();
   const pattern = /<img\b[^>]*\balt=["']([^"']+)["'][^>]*>[\s\S]{0,2200}?([0-9][0-9,]{4,})\s*원/gi;
@@ -141,8 +141,8 @@ for (const product of data.products) {
           cardDiscount: null,
           finalPrice: entry.price,
           shipping: 0,
-          alertEligible: true,
-          competitionPolicyVerified: true,
+          alertEligible: false,
+          competitionPolicyVerified: false,
           condition: "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
           sourceType: "다나와 가격비교 판매처 목록",
           checkedAt: display,
@@ -193,3 +193,4 @@ data.meta.monitoring.competitionLastAttemptAt = stamp;
 
 await fs.writeFile(FILE, "window.MARKET_DATA = " + JSON.stringify(data, null, 2) + ";\n");
 console.log(`Acer exact scan: identifiers ${identifiers}/${data.products.length}, prices ${currentPrices}/${data.products.length}, attempts ${attempts}, ${stamp}`);
+

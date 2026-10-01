@@ -11,7 +11,8 @@ function scan(title, row) {
   const rowElement = {innerText:row, parentElement:null};
   const imgParent = {innerText:row, parentElement:rowElement};
   const img = {parentElement:imgParent, getAttribute:()=>'판매처A'};
-  const root = {querySelectorAll:()=>[img]};
+  const saleRow = {innerText:row,closest:()=>null,querySelector:()=>null,querySelectorAll:()=>[img]};
+  const root = {querySelectorAll:()=>[saleRow]};
   const heading = {textContent:'쇼핑몰별 최저가',parentElement:{parentElement:root}};
   const document = {
     title, body:{innerText:`GODOX C100 ${title} ${row}`},
@@ -29,8 +30,8 @@ assert.equal(scan('GODOX C100 현금가 전용','34,000원 무료배송').reason
 assert.equal(scan('GODOX C100 정품','현금가격 35,000원').sellers.length,0);
 assert.equal(scan('GODOX C100 정품','현금 최저가 35,000원').sellers.length,0);
 assert.equal(scan('GODOX C100 정품','무통장 입금 전용 35,000원').sellers.length,0);
-assert.equal(scan('GODOX C100 정품','41,910원 현금영수증 발급 가능').sellers.length,1);
-assert.equal(scan('GODOX C100 정품','41,910원 현금 영수증 발급 가능').sellers.length,1);
+assert.equal(scan('GODOX C100 정품','41,910원 무료배송 현금영수증 발급 가능').sellers.length,1);
+assert.equal(scan('GODOX C100 정품','41,910원 무료배송 현금 영수증 발급 가능').sellers.length,1);
 
 const dashboard = fs.readFileSync('dist/app.js','utf8');
 const a = dashboard.indexOf('function effectiveCompetitorPrice(');
@@ -41,7 +42,7 @@ const ctx = {
 };
 vm.runInNewContext(dashboard.slice(a,b)+'\nthis.price = effectiveCompetitorPrice;',ctx);
 const mine = {priceCheckedAt:'2026-09-24 14:00'};
-const base = {priceCheckedAt:'2026-09-24 14:00',finalPrice:41910,competitionPolicyVerified:true};
+const base = {priceCheckedAt:'2026-09-24 14:00',displayPrice:41910,finalPrice:41910,shipping:0,shippingStatus:'verified',sellerRowVerified:true,competitionPolicyVerified:true};
 assert.equal(ctx.price(base,mine),41910);
 assert.equal(ctx.price({...base,competitionPolicyVerified:undefined},mine),null);
 assert.equal(ctx.price({...base,condition:'현금가 전용'},mine),null);

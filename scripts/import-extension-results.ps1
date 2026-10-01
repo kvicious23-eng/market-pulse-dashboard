@@ -476,6 +476,7 @@ foreach ($spec in $specs) {
   $verified=0
   $soldOutCount=0
   $partialCount=0
+  $validatedCompetitorCount=0
   foreach ($product in $data.products) {
     $result=$brandResults | Where-Object {
       $_.productId -and $_.itemId -and $_.vendorItemId -and
@@ -689,16 +690,20 @@ foreach ($spec in $specs) {
         $title=[string]$entry.productTitle
         $price=0L
         if(-not [long]::TryParse([string]$entry.price,[ref]$price)){continue}
+        $shipping=0L
+        if($entry.sellerRowVerified -ne $true -or $entry.matchedMtm -ne [string]$product.mtm -or $entry.shippingStatus -ne 'verified' -or
+          -not [long]::TryParse([string]$entry.shipping,[ref]$shipping) -or $shipping -lt 0 -or $shipping -gt 100000){continue}
         $minimum=if($product.srp -and [long]$product.srp -lt 250000){10000}else{250000}
         if(-not $label -or -not $entry.seller -or $price -lt $minimum -or $price -gt 7000000){continue}
         if(([string]$entry.seller + ' ' + $label + ' ' + $title) -match $excludedCompetitor){continue}
         if($page.source -ne '다나와' -and
           ($title -notmatch [regex]::Escape([string]$product.mtm) -or
            ($title + ' ' + $label) -notmatch [regex]::Escape([string]$spec.Brand))){continue}
-        [pscustomobject]@{seller=[string]$entry.seller;price=$price;label=$label;productTitle=$title;source=[string]$page.source;url=$pageUrl}
+        [pscustomobject]@{seller=[string]$entry.seller;price=($price+$shipping);itemPrice=$price;shipping=$shipping;label=$label;productTitle=$title;source=[string]$page.source;url=$pageUrl}
       }
     })
     if ($eligibleCompetitors.Count -gt 0) {
+      $validatedCompetitorCount += $eligibleCompetitors.Count
       $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
       $displayed=New-Object 'System.Collections.Generic.HashSet[string]'
       foreach ($entry in @($eligibleCompetitors | Sort-Object price,source)) {
@@ -716,8 +721,8 @@ foreach ($spec in $specs) {
         $channel=if($entry.seller -match $text.MarketplacePattern){$text.Marketplace}elseif($entry.seller -match $text.AcerPattern){$text.Manufacturer}else{$text.Specialist}
         $product.offers += [pscustomobject]@{
           role='competitor'; channel=$channel; seller=[string]$entry.seller; status=$text.OnSale
-          displayPrice=[long]$entry.price; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
-          finalPrice=[long]$entry.price; shipping=0; alertEligible=$true; competitionPolicyVerified=$true
+          displayPrice=[long]$entry.itemPrice; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
+          finalPrice=[long]$entry.price; shipping=[long]$entry.shipping; shippingStatus='verified'; sellerRowVerified=$true; matchedMtm=[string]$product.mtm; alertEligible=$true; competitionPolicyVerified=$true
           condition=$text.SellerCondition
           sourceType=[string]$entry.source; productTitle=[string]$entry.productTitle; priceLabel=[string]$entry.label
           checkedAt=$kst; priceCheckedAt=$kst; confidence='B'
@@ -771,6 +776,9 @@ foreach ($spec in $specs) {
   if (@($brandResults | Where-Object { $_.competitorReason -or @($_.competitorPages | Where-Object {$_.source -in @('다나와','에누리')}).Count -gt 0 }).Count -gt 0) {
     $data.meta.monitoring | Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue $scanKst -Force
   }
+  $data.meta.monitoring | Add-Member -NotePropertyName competitionConfigurationStatus -NotePropertyValue $(if(@($brandResults | Where-Object {$_.danawaUrl -or $_.enuriUrl}).Count -eq 0){'not-configured'}else{'configured'}) -Force
+  $data.meta.monitoring | Add-Member -NotePropertyName competitionValidationStatus -NotePropertyValue $(if($validatedCompetitorCount -gt 0){'verified'}else{'no-verified-listings'}) -Force
+  $data.meta.monitoring | Add-Member -NotePropertyName alertEvaluation -NotePropertyValue '' -Force
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Write-Data $path $data
@@ -822,7 +830,11 @@ if ($competitorHistoryRows.Count -gt 0) {
   $combined | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
   $headers=@($combined[0].PSObject.Properties.Name)
   $numberColumns=@('가격','쿠팡 기준가','기준가 대비 차액')
+  $exclusionPath=Join-Path $RepoPath 'scripts\competitor-history-exclusions.json'
+  $excludedKeys=@(if(Test-Path $exclusionPath){(Get-Content -Raw -Encoding UTF8 $exclusionPath | ConvertFrom-Json).keys})
   $rows=@(foreach($entry in $combined){
+    $rowKey="$($entry.'수집시각')|$($entry.'브랜드')|$($entry.MTM)|$($entry.'비교 사이트')|$($entry.'판매처')|$($entry.'가격')|$($entry.'상품 URL')"
+    if($rowKey -in $excludedKeys){continue}
     ,@($headers | ForEach-Object {
       $value=[string]$entry.$_
       if($_ -in $numberColumns -and $value -match '^-?\d+$'){[long]$value}else{$value}

@@ -177,7 +177,8 @@
   }
 
   function effectiveCompetitorPrice(offer, mine) {
-    if (offer?.competitionPolicyVerified !== true) return null;
+    if (offer?.competitionPolicyVerified !== true || offer?.sellerRowVerified !== true || offer?.shippingStatus !== 'verified') return null;
+    if (!Number.isFinite(offer.shipping) || offer.shipping < 0 || offer.finalPrice !== offer.displayPrice + offer.shipping) return null;
     // Keep excluded legacy listings out of comparisons until a clean scan replaces them.
     const evidence = [offer?.seller,offer?.condition,offer?.sourceType,offer?.productTitle,offer?.priceLabel].join(' ');
     if (/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i.test(evidence)) return null;
@@ -368,6 +369,7 @@
       <span><i></i>가격 감시 <b>${escapeHtml(quickWatch)}</b></span>
       <span><i></i>전체 조사 <b>${escapeHtml(monitoring.fullResearch)}</b></span>
       <span><i></i><b>${escapeHtml(monitoring.dashboardSync)}</b></span>
+      ${monitoring.competitionValidationStatus === 'awaiting-1.9.27-scan' ? '<span class="is-partial"><i></i>경쟁가 <b>새 수집으로 재검증 대기</b></span>' : monitoring.competitionValidationStatus === 'no-verified-listings' ? '<span class="is-partial"><i></i>경쟁가 <b>확인된 판매처 없음</b></span>' : ''}
       ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · ${monitoring.lastAttemptStatus === "success" ? "완료" : "일부 제한"}</b></span>` : ""}` : "";
   }
 

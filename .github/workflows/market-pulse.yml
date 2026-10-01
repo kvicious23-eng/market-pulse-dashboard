@@ -30,6 +30,10 @@ on:
       - "scripts/apply-history-corrections.ps1"
       - "scripts/history-corrections.json"
       - "scripts/test-competitor-policy.mjs"
+      - "scripts/test-competitor-rows.mjs"
+      - "scripts/test-competitor-import.ps1"
+      - "scripts/edge-fallback.ps1"
+      - "scripts/competitor-history-exclusions.json"
       - "scripts/test-competitor-history.mjs"
       - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
@@ -114,6 +118,7 @@ jobs:
           node scripts/test-price-sources.mjs
           node scripts/test-history-export.mjs
           node scripts/test-competitor-policy.mjs
+          node scripts/test-competitor-rows.mjs
           node scripts/test-competitor-history.mjs
           node scripts/test-canonical-routes.mjs
       - name: Verify audited history correction
@@ -149,6 +154,7 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
           if ($errors.Count) { throw ($errors | Out-String) }
           ./scripts/test-history-corrections.ps1
+          ./scripts/test-competitor-import.ps1
 
   deploy:
     needs: [update, windows_history]

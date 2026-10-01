@@ -35,6 +35,10 @@ for(const file of [...new Set(files)]){
     const mine=product.offers?.find(offer=>offer.role==="mine");
     if(!mine){fail(file,`${label}: mine offer is missing`);continue;}
     for(const offer of product.offers||[]){
+      if(offer.role==="competitor"&&offer.alertEligible===true) {
+        if(offer.competitionPolicyVerified!==true||offer.sellerRowVerified!==true||offer.shippingStatus!=='verified'||offer.matchedMtm!==product.mtm) fail(file,`${label}: competitor needs exact seller-row and shipping evidence`);
+        if(!finite(offer.shipping)||offer.shipping<0||!finite(offer.displayPrice)||offer.finalPrice!==offer.displayPrice+offer.shipping) fail(file,`${label}: competitor total must include verified shipping`);
+      }
       if(offer.role==="competitor"&&offer.alertEligible!==true&&offer.alertEligible!==false) {
         fail(file,`${label}: competitor eligibility must be explicitly true or false`);
       }
@@ -102,3 +106,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log(`Validated ${files.length} market-data file(s).`);
+
