@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-10-03T14:16:20+09:00",
+                 "snapshotAt":  "2026-10-04T08:18:22+09:00",
                  "sourceFile":  "product-catalog.json",
                  "comparisonBasis":  "Exact model and item price comparison",
                  "exclusions":  "Personal rewards and unverified benefits are excluded",
@@ -9,17 +9,17 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 14:00 KST",
                                     "fullResearch":  "Basic and precision scan",
                                     "dashboardSync":  "GitHub Pages automatic deployment",
-                                    "lastAttemptAt":  "2026-10-03T14:16:20+09:00",
+                                    "lastAttemptAt":  "2026-10-04T08:18:22+09:00",
                                     "lastAttemptStatus":  "success",
-                                    "lastAttemptText":  "Godox 수집 결과: 검증 0, 품절 1, 일부 0 / 전체 1",
+                                    "lastAttemptText":  "Godox 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
                                     "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-10-03T14:16:20+09:00",
+                                    "competitionLastAttemptAt":  "2026-10-04T08:18:22+09:00",
                                     "competitionConfigurationStatus":  "configured",
                                     "competitionValidationStatus":  "verified",
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Godox",
-                 "publishedAt":  "2026-10-03T14:16:20+09:00"
+                 "publishedAt":  "2026-10-04T08:18:22+09:00"
              },
     "products":  [
                      {
@@ -30,30 +30,28 @@ window.MARKET_DATA = {
                                         {
                                             "role":  "mine",
                                             "shipping":  0,
-                                            "finalPrice":  41160,
+                                            "finalPrice":  42000,
                                             "channel":  "쿠팡",
                                             "seller":  "내 쿠팡 상품",
-                                            "status":  "품절",
+                                            "status":  "현재가 직접 확인",
                                             "displayPrice":  42000,
                                             "instantDiscount":  0,
-                                            "couponDiscount":  null,
-                                            "cardDiscount":  null,
-                                            "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
+                                            "couponDiscount":  0,
+                                            "cardDiscount":  0,
+                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "sourceType":  "관리화면 등록 URL",
-                                            "checkedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
                                             "confidence":  "A",
                                             "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9738958594?itemId=29147698397\u0026vendorItemId=96070924334",
                                             "checkoutInferredZeroFields":  [
 
                                                                            ],
-                                            "lastVerifiedFinalPrice":  41160,
-                                            "lastVerifiedPriceCheckedAt":  "2026-09-24 08:00",
-                                            "availabilityCheckedAt":  "2026-10-03 14:01",
+                                            "availabilityCheckedAt":  "2026-10-04 08:01",
                                             "srp":  42000,
                                             "observedListPrice":  42000,
                                             "productPagePrice":  42000,
-                                            "preCardPrice":  null,
+                                            "preCardPrice":  42000,
                                             "priceBasisType":  "top-visible",
                                             "cardBenefitStatus":  "none",
                                             "cardEvidenceSource":  "",
@@ -66,13 +64,13 @@ window.MARKET_DATA = {
 
                                                           ],
                                             "cardBenefitText":  "",
-                                            "checkoutDiscountStatus":  "soldout",
-                                            "checkoutDiscountReason":  "buy-now-button-not-found",
-                                            "checkoutCouponDiscount":  null,
-                                            "checkoutCouponSource":  null,
-                                            "wowInstantDiscount":  null,
-                                            "wowCouponDiscount":  null,
-                                            "checkoutDiscountCheckedAt":  "",
+                                            "checkoutDiscountStatus":  "captured",
+                                            "checkoutDiscountReason":  "checkout-confirmed-absent-discount-fields-zero",
+                                            "checkoutCouponDiscount":  0,
+                                            "checkoutCouponSource":  "checkout",
+                                            "wowInstantDiscount":  0,
+                                            "wowCouponDiscount":  0,
+                                            "checkoutDiscountCheckedAt":  "2026-10-03T23:01:41.451Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -80,11 +78,13 @@ window.MARKET_DATA = {
                                             "checkoutDiscountEvidence":  [
 
                                                                          ],
-                                            "alertEligible":  false,
-                                            "priceChange":  null,
-                                            "priceTrend":  "unavailable",
+                                            "alertEligible":  true,
+                                            "priceChange":  840,
+                                            "priceTrend":  "up",
                                             "priceComparisonAt":  "2026-09-24 08:00",
-                                            "priceCheckedAt":  "2026-10-03 14:01"
+                                            "lastVerifiedFinalPrice":  42000,
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01"
                                         },
                                         {
                                             "role":  "competitor",
@@ -106,8 +106,8 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "GODOX 고독스 C100 투명 뷰파인더 카메라 브이로그, OTG전송, 케이블 포함, 빈티지, 레트로",
                                             "priceLabel":  "배송비 포함 최저가 GODOX 고독스 C100 투명 뷰파인더 카메라 브이로그, OTG전송, 케이블 포함, 빈티지, 레트로 120점 적립 에누리 앱에서 구매 시 신고 42,000원 무료배송 최대 6개월 최저가 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-03 14:01",
-                                            "priceCheckedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
@@ -132,8 +132,8 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "GODOX 고독스 C100 투명 뷰파인더 카메라 브이로그 OTG전송 케이블 포함 빈티지 감성과 기능의 결합",
                                             "priceLabel":  "GODOX 고독스 C100 투명 뷰파인더 카메라 브이로그 OTG전송 케이블 포함 빈티지 감성과 기능의 결합 130점 적립 에누리 앱에서 구매 시 신고 44,100원 무료배송 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-03 14:01",
-                                            "priceCheckedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
@@ -158,8 +158,8 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송",
                                             "priceLabel":  "[오늘출발] Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송 평일 14:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,110원 3,000원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-03 14:01",
-                                            "priceCheckedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
@@ -184,8 +184,8 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 Godox C100",
                                             "priceLabel":  "[오늘출발] 고독스 Godox C100 평일 15:00까지 주문 시 130점 적립 에누리 앱에서 구매 시 신고 44,030원 3,000원 최대 6개월 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-03 14:01",
-                                            "priceCheckedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
@@ -210,8 +210,8 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송",
                                             "priceLabel":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송 평일 14:00까지 주문 시 130점 적립 에누리 앱에서 구매 시 신고 44,900원 3,000원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-03 14:01",
-                                            "priceCheckedAt":  "2026-10-03 14:01",
+                                            "checkedAt":  "2026-10-04 08:01",
+                                            "priceCheckedAt":  "2026-10-04 08:01",
                                             "confidence":  "B",
                                             "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
