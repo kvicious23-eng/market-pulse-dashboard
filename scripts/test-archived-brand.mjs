@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const nodes=new Map(),downloads=[];
+const node=key=>{if(!nodes.has(key))nodes.set(key,{textContent:'',innerHTML:'',disabled:true,handlers:{},addEventListener(name,fn){this.handlers[name]=fn;}});return nodes.get(key);};
+const history={headers:['수집일','브랜드'],rows:[['2026-10-05','Old Brand'],['2026-10-06','Other Brand']]};
+const data={meta:{brand:'Old Brand',historyBrands:['Old Brand'],snapshotAt:'2026-10-06T16:15:00+09:00',lifecycleStatus:'archived',renamedTo:{brand:'New Brand',slug:'new-brand'}},products:[]};
+const window={MARKET_DATA:data,MARKET_PULSE_HISTORY:history,MARKET_PULSE_COMPETITOR_HISTORY:history,MarketPulseXlsx:{createWorkbook:(_headers,rows)=>{downloads.push(rows);return {}; }},setInterval:()=>{}};
+const document={querySelector:node,scripts:[],body:{appendChild:()=>{}},createElement:()=>({click:()=>{},remove:()=>{}})};
+class TestURL extends URL {static createObjectURL(){return 'blob:test';}static revokeObjectURL(){}}
+vm.runInNewContext(fs.readFileSync('dist/app.js','utf8'),{window,document,location:{href:'https://example.test/brand/old-brand/'},URL:TestURL,setTimeout:()=>{},Date,Intl});
+assert.equal(node('#totalCount').textContent,'0');
+assert.equal(node('#historyDownload').disabled,false);
+assert.equal(node('#exportExcel').disabled,false);
+assert.match(node('#productGrid').innerHTML,/\.\.\/new-brand\//);
+node('#historyDownload').handlers.click();node('#exportExcel').handlers.click();
+assert.equal(downloads.length,2);
+assert.equal(downloads[0].length,1);
+assert.equal(downloads[0][0][1],'Old Brand');
+console.log('Archived brand has no current products, links to the new brand and exports preserved history.');

@@ -162,7 +162,7 @@ assert.match(source,/cardTerms:terms|cardTerms,/);
 assert.match(importer,/\$cardSource -match/);
 assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
 assert.match(importer,/Duplicate vendorItemId values/);
-assert.match(importer,/produce the same dashboard slug/);
+assert.match(fs.readFileSync("scripts/brand-lifecycle.ps1","utf8"),/Brand URL names collide/);
 assert.match(importer,/\$minimumPrice=if \(\$null -ne \$product\.srp.*-lt 250000\) \{10000\} else \{250000\}/);
 assert.match(importer,/\$result\.price -ge \$minimumPrice/);
 assert.doesNotMatch(source,/recheckAvailabilityAfterCheckout|availabilityRecheck/);

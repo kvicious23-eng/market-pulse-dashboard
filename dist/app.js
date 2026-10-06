@@ -30,6 +30,7 @@
   };
 
   if (!data.products.length) {
+    document.title = `${data.meta.brand} · 과거 기록 | Market Pulse`;
     refs.totalCount.textContent = "0";
     refs.winCount.textContent = "0";
     refs.overviewEyebrow.textContent = "0 MTM OVERVIEW";
@@ -37,7 +38,20 @@
     refs.heroSummary.textContent = "관리 화면에서 활성 상품을 등록하면 이 브랜드 대시보드가 자동으로 채워집니다.";
     refs.productGrid.innerHTML = '<div class="empty-state">현재 활성화된 상품이 없습니다.</div>';
     refs.priceSignal.innerHTML = '<div class="signal signal--reference"><span class="signal__copy"><span class="signal__icon">i</span><span><strong>비교할 상품이 없습니다.</strong><span>상품을 등록하고 다음 수집을 완료하면 가격 비교가 시작됩니다.</span></span></span></div>';
-    refs.exportExcel.disabled = true;
+    refs.minAdvantage.textContent = "—";
+    refs.sellerCount.textContent = "0곳";
+    refs.brandSubtitle.textContent = `${data.meta.brand} · 과거 기록`;
+    refs.headerSnapshot.textContent = new Date(data.meta.snapshotAt).toLocaleString("ko-KR", {timeZone:"Asia/Seoul"}) + " KST";
+    const renamed=data.meta.renamedTo;
+    refs.heroSummary.textContent = renamed
+      ? `현재 상품은 ${renamed.brand} 브랜드로 이동했습니다. 이 페이지에는 기존 브랜드의 과거 기록만 보존합니다.`
+      : "활성 상품이 없어 현재 가격 비교를 종료했습니다. 기존 히스토리는 계속 다운로드할 수 있습니다.";
+    if (renamed?.slug) refs.productGrid.innerHTML += `<a class="text-button" href="../${encodeURIComponent(renamed.slug)}/">${escapeHtml(renamed.brand)} 대시보드 보기</a>`;
+    refs.historyDownload.disabled = !historyRowsForBrand(window.MARKET_PULSE_HISTORY, data.meta.brand).length;
+    refs.exportExcel.disabled = !historyRowsForBrand(window.MARKET_PULSE_COMPETITOR_HISTORY, data.meta.brand).length;
+    refs.historyDownload.addEventListener("click", exportPriceHistory);
+    refs.exportExcel.addEventListener("click", exportCompetitorHistory);
+    watchForPublishedData();
     return;
   }
 
@@ -645,3 +659,4 @@
   watchForPublishedData();
   window.MarketPulse = { productStats, formatWon, exportMyProducts, getActiveMtm: () => activeMtm };
 })();
+

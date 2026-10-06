@@ -41,6 +41,9 @@ on:
       - "scripts/set-local-schedule.ps1"
       - "scripts/test-scheduled-scans.mjs"
       - "scripts/test-local-schedule.ps1"
+      - "scripts/brand-lifecycle.ps1"
+      - "scripts/test-brand-lifecycle.ps1"
+      - "scripts/test-archived-brand.mjs"
       - "chrome-extension/**"
       - "PROJECT_RULES.md"
 permissions:
@@ -117,6 +120,7 @@ jobs:
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
           node scripts/test-scheduled-scans.mjs
+          node scripts/test-archived-brand.mjs
           node scripts/test-access-diagnostics.mjs
           node scripts/test-price-sources.mjs
           node scripts/test-history-export.mjs
@@ -162,6 +166,7 @@ jobs:
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           ./scripts/test-local-schedule.ps1
+          ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
 

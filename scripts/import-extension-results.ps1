@@ -122,7 +122,7 @@ if ([math]::Abs(($scannedAt-$completedAt).TotalMinutes) -gt 10) {
 }
 
 $payloadResults=@($payload.results)
-if ($payloadResults.Count -eq 0) { throw 'The scan contains no product results.' }
+# A complete zero-target scan is admitted only with a matching saved catalogue below.
 $duplicateItemIds=@($payloadResults | Group-Object {[string]$_.itemId} | Where-Object {$_.Name -and $_.Count -gt 1})
 if ($duplicateItemIds.Count -gt 0) { throw "Duplicate itemId values were found in the scan: $(@($duplicateItemIds.Name) -join ', ')" }
 $duplicateVendorItemIds=@($payloadResults | Group-Object {[string]$_.vendorItemId} | Where-Object {$_.Name -and $_.Count -gt 1})
@@ -192,6 +192,8 @@ if ($scanKst -in $retiredScanTimes) {
   throw "The partial scan at $scanKst was retired and cannot be republished."
 }
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
+. (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
+Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
 }
@@ -325,29 +327,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
 
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 $historyRows=@()
-$specs=@(
-  @{Brand='Lenovo';Path='brand\lenovo\market-data.js'},
-  @{Brand='Acer';Path='brand\acer\market-data.js'}
-)
-if ($catalog) {
-  $slugOwners=@{}
-  foreach ($brand in @($catalog.products | Where-Object {$_.brand} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)) {
-    $slug=Get-BrandSlug $brand
-    if ($slugOwners.ContainsKey($slug) -and $slugOwners[$slug] -ne $brand) {
-      throw "Brand names '$($slugOwners[$slug])' and '$brand' produce the same dashboard slug '$slug'."
-    }
-    $slugOwners[$slug]=$brand
-  }
-  $extraBrands=@($catalog.products | Where-Object {$_.brand -and $_.brand -notin @('Lenovo','Acer')} | ForEach-Object {[string]$_.brand.Trim()} | Sort-Object -Unique)
-  foreach ($brand in $extraBrands) {
-    $slug=Get-BrandSlug $brand
-    $relativePath="brand\$slug\market-data.js"
-    $fullPath=Join-Path $RepoPath $relativePath
-    $category=@($catalog.products | Where-Object {$_.brand -eq $brand -and $_.enabled -ne $false} | ForEach-Object {[string]$_.category} | Sort-Object -Unique)
-    New-BrandDashboard $brand $fullPath $(if($category.Count -eq 1){$category[0]}else{'Products'})
-    $specs+=@{Brand=$brand;Path=$relativePath}
-  }
-}
+$specs=@(Get-BrandSpecs -Catalog $catalog -RepositoryPath $RepoPath)
 # A verified scan can be published from its saved JSON while the PC importer
 # is interrupted. Merge those public rows into the ignored local CSV before
 # any early return or later collection, so a subsequent PC upload retains them.
@@ -421,6 +401,11 @@ foreach ($spec in $specs) {
   if (-not (Test-Path $existingPath)) { $alreadyImported=$false; break }
   $existingData=Read-Data $existingPath
   if ([string]$existingData.meta.snapshotAt -ne $scanKst) { $alreadyImported=$false; break }
+  if ($catalog) {
+    $expected=@($catalog.products | Where-Object {$_.brand -ceq $spec.Brand -and $_.enabled -ne $false} | ForEach-Object {[string]$_.itemId} | Sort-Object)
+    $actual=@($existingData.products | ForEach-Object {[string]$_.itemId} | Sort-Object)
+    if ([string]$existingData.meta.brand -cne $spec.Brand -or ($expected -join ',') -ne ($actual -join ',')) { $alreadyImported=$false; break }
+  }
 }
 if ($alreadyImported) {
   Write-Host "This scan was already imported at $scanKst; retrying the pending push."
@@ -431,6 +416,7 @@ foreach ($spec in $specs) {
   $path=Join-Path $RepoPath $spec.Path
   $data=Read-Data $path
   $data.meta | Add-Member -NotePropertyName brand -NotePropertyValue $spec.Brand -Force
+  $data.meta | Add-Member -NotePropertyName historyBrands -NotePropertyValue @($spec.HistoryBrands | Where-Object {$_} | Sort-Object -Unique) -Force
   $brandResults=@($payload.results | Where-Object {$_.brand -eq $spec.Brand})
   $catalogProducts=@($catalog.products | Where-Object {$_.brand -eq $spec.Brand -and $_.enabled -ne $false})
   if ($catalog -and $catalogProducts.Count -ge 0) {
@@ -781,6 +767,7 @@ foreach ($spec in $specs) {
   $data.meta.monitoring | Add-Member -NotePropertyName alertEvaluation -NotePropertyValue '' -Force
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
+  Set-BrandLifecycle -Data $data -Spec $spec -Catalog $catalog
   Write-Data $path $data
 }
 if ($historyRows.Count -gt 0) {
