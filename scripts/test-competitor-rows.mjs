@@ -64,7 +64,7 @@ const history=JSON.parse(historySource.slice(historySource.indexOf('=')+1).trim(
 const indices=['수집시각','브랜드','MTM','비교 사이트','판매처','가격','상품 URL'].map(k=>history.headers.indexOf(k));
 const keys=new Set(exclusion.keys);
 assert.ok(history.rows.every(r=>!keys.has(indices.map(i=>r[i]).join('|'))));
-const data=JSON.parse(fs.readFileSync('brand/godox/market-data.js','utf8').replace(/^window\.MARKET_DATA\s*=\s*/,'').replace(/;\s*$/,''));
+const data={products:[{itemId:'fixture-c100',mtm:'C100',offers:[{role:'mine',status:'미확인',alertEligible:false,checkoutDiscountStatus:'unverified',cardBenefitStatus:'unverified'}]}]};
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'market-pulse-competitor-'));
 try {
   fs.mkdirSync(path.join(temp,'brand','godox'),{recursive:true});
@@ -94,3 +94,4 @@ assert.equal(result.ok,true);
 assert.equal(saved.length,15);
 assert.equal(started,1);
 console.log('Exact competitor row, delivery, legacy quarantine and history exclusions passed.');
+

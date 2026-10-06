@@ -453,7 +453,9 @@ assert.ok(godoxRows.length>=1);
 const newestGodoxRow=godoxRows.at(-1);
 const morningGodoxRow=godoxRows.find(row=>row[history.headers.indexOf('수집시각')]==='2026-09-24T08:19:16+09:00');
 assert.equal(morningGodoxRow?.[history.headers.indexOf('최종 실구매가')],41160);
-if(godoxMine.availabilityReportSource==='operator') {
+if(!godoxMine) {
+  assert.ok(!godoxData.window.MARKET_DATA.products.some(product=>product.mtm==='C100'), 'Removed C100 must not remain current');
+} else if(godoxMine.availabilityReportSource==='operator') {
   assert.equal(godoxMine.status,'품절 제보 · 재확인 필요');
   assert.equal(godoxMine.alertEligible,false);
   assert.ok(Date.parse(godoxMine.availabilityReportAt)>Date.parse(godoxData.window.MARKET_DATA.meta.snapshotAt));
