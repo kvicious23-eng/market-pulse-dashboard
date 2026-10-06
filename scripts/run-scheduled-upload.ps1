@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$RepoPath = "C:\MarketPulse"
 )
 
@@ -10,7 +10,8 @@ $importScript=Join-Path $RepoPath 'scripts\import-extension-results.ps1'
 $started=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz')
 $kstZone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $kstNow=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone)
-$slotHour=if ($kstNow.Hour -ge 14) { 14 } elseif ($kstNow.Hour -ge 8) { 8 } else { $null }
+$slotHour=@(8,12,16,20 | Where-Object { $_ -le $kstNow.Hour } | Select-Object -Last 1)
+$slotHour=if ($slotHour.Count) { $slotHour[0] } else { $null }
 $expectedSlotStart=if ($null -ne $slotHour) {
   "{0}T{1:00}:00:00+09:00" -f $kstNow.ToString('yyyy-MM-dd'),$slotHour
 } else { '' }
@@ -33,3 +34,4 @@ try {
   Write-Error $message
   exit 1
 }
+

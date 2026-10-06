@@ -39,6 +39,8 @@ on:
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
       - "scripts/set-local-schedule.ps1"
+      - "scripts/test-scheduled-scans.mjs"
+      - "scripts/test-local-schedule.ps1"
       - "chrome-extension/**"
       - "PROJECT_RULES.md"
 permissions:
@@ -114,6 +116,7 @@ jobs:
         run: |
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
+          node scripts/test-scheduled-scans.mjs
           node scripts/test-access-diagnostics.mjs
           node scripts/test-price-sources.mjs
           node scripts/test-history-export.mjs
@@ -153,6 +156,12 @@ jobs:
           $tokens=$null; $errors=$null
           [void][System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
           if ($errors.Count) { throw ($errors | Out-String) }
+          Get-ChildItem scripts -Filter "*.ps1" | ForEach-Object {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          ./scripts/test-local-schedule.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
 
@@ -176,3 +185,4 @@ jobs:
       - name: Deploy dashboard
         id: deployment
         uses: actions/deploy-pages@v5
+

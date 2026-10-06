@@ -4,8 +4,8 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 
 ## 자동 실행
 
-- 국내 Windows PC에서 매일 08:00 및 14:00 KST에 Chrome 확장프로그램 수집
-- 각 수집 후 30분 뒤인 08:30 및 14:30 KST에 JSON 검증·히스토리 누적·GitHub 업로드
+- 국내 Windows PC에서 매일 08:00·12:00·16:00·20:00 KST에 Chrome 확장프로그램 수집
+- 각 수집 후 30분 뒤인 08:30·12:30·16:30·20:30 KST에 JSON 검증·히스토리 누적·GitHub 업로드
 - 업로드 실패 시 Windows 작업 스케줄러가 15분 간격으로 최대 3회 재시도
 - GitHub 업로드 후 Actions 검증을 통과하면 Pages에 자동 배포
 - Actions의 **Market Pulse Update → Run workflow**에서 즉시 수동 실행 가능
@@ -23,3 +23,4 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 - Lenovo와 Acer도 신규 브랜드와 동일한 `/brand/{slug}/index.html` + `market-data.js` 구조 사용
 - 기존 `/`는 `/brand/lenovo/`, `/acer/`는 `/brand/acer/`로 즉시 이동하며 별도 대시보드나 데이터는 운영하지 않음
 - 동일 MTM·Item ID가 확인된 가격만 현재가로 반영
+

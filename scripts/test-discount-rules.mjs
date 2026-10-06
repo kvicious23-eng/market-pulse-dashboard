@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.27");
+assert.equal(manifest.version,"1.9.28");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -93,7 +93,7 @@ const scanRequestEnd=source.indexOf("\n\nchrome.runtime.onInstalled",scanRequest
 assert.ok(scanRequestStart>=0&&scanRequestEnd>scanRequestStart,"scan request guard was not found");
 const scanResolvers=[];
 const scanRequests=[];
-const slot08='2026-09-25T08:00+09:00',slot14='2026-09-25T14:00+09:00';
+const slot08='2026-09-25T08:00+09:00',slot14='2026-09-25T16:00+09:00';
 const scanContext={scanAll:slot=>{scanRequests.push(slot);return new Promise(resolve=>scanResolvers.push(resolve));},
   currentScheduledScanSlot:()=>slot14,recentScanSlot:()=>true};
 vm.runInNewContext(`${source.slice(scanRequestStart,scanRequestEnd)};this.requestScan=requestScan;`,scanContext);
@@ -116,11 +116,11 @@ class FixedDate extends Date {
   static now(){return fixedTime;}
 }
 const scheduleContext={Date:FixedDate,Intl,Object,String,Number,
-  SCHEDULED_SCAN_TIMES:[{alarm:'daily-scan-1400',hour:14,minute:0,slot:'14:00'}],
+  SCHEDULED_SCAN_TIMES:[{alarm:'daily-scan-1600',hour:16,minute:0,slot:'16:00'}],
   chrome:{alarms:{clear:async()=>{},create:async(_name,config)=>scheduledAt.push(config.when)}}};
 vm.runInNewContext(`${source.slice(scheduleStart,scheduleEnd)};this.scheduleEntry=scheduleEntry;this.recentScanSlot=recentScanSlot;`,scheduleContext);
 await scheduleContext.scheduleEntry(scheduleContext.SCHEDULED_SCAN_TIMES[0]);
-assert.equal(scheduledAt[0],Date.parse(slot14),"the next alarm must fire at exactly 14:00 KST");
+assert.equal(scheduledAt[0],Date.parse(slot14),"the next alarm must fire at exactly 16:00 KST");
 assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000),true);
 assert.equal(scheduleContext.recentScanSlot(slot14,Date.parse(slot14)+75*60*1000+1),false);
 const listenerStart=source.indexOf('chrome.runtime.onInstalled.addListener(');
@@ -136,14 +136,16 @@ vm.runInNewContext(source.slice(listenerStart,listenerEnd),edgeContext);
 await edgeHandlers.install();
 await edgeHandlers.startup();
 edgeHandlers.alarm({name:'daily-scan-0800'});
-assert.equal(edgeAlarms.length,4,'Edge clears old alarms on install and startup');
+assert.equal(edgeAlarms.length,6,'Edge clears current and retired alarms on install and startup');
 assert.match(source,/daily-scan-0800/);
 assert.match(source,/daily-scan-1400/);
 assert.match(source,/lastRunSlot/);
 assert.match(scheduleScript,/New-ScheduledTaskTrigger -Daily -At "08:00"/);
-assert.match(scheduleScript,/New-ScheduledTaskTrigger -Daily -At "14:00"/);
+for(const hour of [12,16,20]) assert.ok(scheduleScript.includes(`New-ScheduledTaskTrigger -Daily -At "${hour}:00"`));
 assert.match(scheduleScript,/New-ScheduledTaskTrigger -Daily -At "08:30"/);
-assert.match(scheduleScript,/New-ScheduledTaskTrigger -Daily -At "14:30"/);
+for(const hour of [12,16,20]) assert.ok(scheduleScript.includes(`New-ScheduledTaskTrigger -Daily -At "${hour}:30"`));
+assert.doesNotMatch(scheduleScript,/New-ScheduledTaskTrigger -Daily -At "14:/);
+assert.match(scheduleScript,/-WindowStyle Hidden/);
 assert.match(source,/version:5,/);
 assert.match(source,/actualProductId!==String\(expectedProductId\).*actualItemId!==String\(expectedItemId\).*actualVendorItemId!==String\(expectedVendorItemId\)/s);
 assert.match(source,/args:\[target\.productId,target\.itemId,target\.vendorItemId\]/);
@@ -469,4 +471,5 @@ if(godoxMine.status==='품절') {
 
 console.log("Discount source and calculation rules passed.");
 await import('./test-checkout-navigation.mjs');
+
 

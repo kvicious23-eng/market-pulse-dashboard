@@ -6,7 +6,7 @@ window.MARKET_DATA = {
                  "exclusions":  "Personal rewards and unverified benefits are excluded",
                  "monitoring":  {
                                     "enabled":  true,
-                                    "quickWatch":  "매일 08:00 · 14:00 KST",
+                                    "quickWatch":  "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
                                     "fullResearch":  "Basic and precision scan",
                                     "dashboardSync":  "GitHub Pages automatic deployment",
                                     "lastAttemptAt":  "2026-10-06T14:15:37+09:00",
@@ -243,3 +243,4 @@ window.MARKET_DATA = {
                      }
                  ]
 };
+

@@ -1032,7 +1032,9 @@ async function scanAll(scanSlot) {
 
 const SCHEDULED_SCAN_TIMES = [
   {alarm:'daily-scan-0800',hour:8,minute:0,slot:'08:00'},
-  {alarm:'daily-scan-1400',hour:14,minute:0,slot:'14:00'}
+  {alarm:'daily-scan-1200',hour:12,minute:0,slot:'12:00'},
+  {alarm:'daily-scan-1600',hour:16,minute:0,slot:'16:00'},
+  {alarm:'daily-scan-2000',hour:20,minute:0,slot:'20:00'}
 ];
 const isEdgeBrowser=/Edg\//.test(navigator.userAgent);
 
@@ -1059,6 +1061,7 @@ async function scheduleEntry(entry) {
 }
 
 async function schedule() {
+  await chrome.alarms.clear('daily-scan-1400');
   for(const entry of SCHEDULED_SCAN_TIMES) await scheduleEntry(entry);
 }
 
@@ -1462,7 +1465,7 @@ function finishScan() {
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   if(isEdgeBrowser) {
-    for(const entry of SCHEDULED_SCAN_TIMES) await chrome.alarms.clear(entry.alarm);
+    for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
   } else await schedule();
 });
 chrome.runtime.onStartup.addListener(async()=>{
@@ -1470,7 +1473,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   const previous=await chrome.storage.local.get('running');
   if(previous.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-browser-restart',lastScanErrorAt:new Date().toISOString()});
   if(isEdgeBrowser) {
-    for(const entry of SCHEDULED_SCAN_TIMES) await chrome.alarms.clear(entry.alarm);
+    for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
     return;
   }
   await schedule();
@@ -1533,4 +1536,5 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
 });
+
 
