@@ -51,6 +51,7 @@ on:
       - "INSTALL_SUPPLIER_HUB_CONNECTOR.cmd"
       - "scripts/test-supplier-auth.mjs"
       - "scripts/test-supplier-premium.mjs"
+      - "scripts/test-supplier-csv.mjs"
       - "scripts/test-supplier-native.ps1"
       - "PROJECT_RULES.md"
 permissions:
@@ -102,6 +103,7 @@ jobs:
           node --check chrome-extension/popup.js
           node --input-type=module --check < supplier-hub-extension/background.js
           node --input-type=module --check < supplier-hub-extension/options.js
+          node --input-type=module --check < supplier-hub-extension/csv-ui.js
           node --check scripts/validate-market-data.mjs
           node --check scripts/test-discount-rules.mjs
           node --check scripts/test-history-export.mjs
@@ -139,6 +141,7 @@ jobs:
           node scripts/test-canonical-routes.mjs
           node scripts/test-supplier-auth.mjs
           node scripts/test-supplier-premium.mjs
+          node scripts/test-supplier-csv.mjs
       - name: Verify audited history correction
         shell: pwsh
         run: ./scripts/test-history-corrections.ps1

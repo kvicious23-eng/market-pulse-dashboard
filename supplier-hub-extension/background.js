@@ -1,6 +1,8 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
+import {clickSupplierCsvDownload} from './csv-core.mjs';
 const HOST='com.marketpulse.supplierhub';
+let csvClickRunning=false;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function native(operation) {
   let timer;
@@ -50,6 +52,16 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     if(message.type==='CHECK') return connector.check();
     if(message.type==='OPEN_PREMIUM') return premium.check(true);
     if(message.type==='CHECK_PREMIUM') return premium.check();
+    if(message.type==='DOWNLOAD_CSV') {
+      if(csvClickRunning)return {ok:false,reason:'csv_busy'};
+      csvClickRunning=true;
+      try {
+        if((await premium.check())?.status!=='page_opened')return {ok:false,reason:'csv_page_not_ready'};
+        const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+        if(id==null)return {ok:false,reason:'csv_wrong_page'};
+        return (await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload}))[0]?.result||{ok:false,reason:'csv_click_error'};
+      }catch{return {ok:false,reason:'csv_click_error'};}finally{csvClickRunning=false;}
+    }
     if(message.type==='ENABLE') {await chrome.storage.local.set({connection:{...await connector.read(),enabled:message.enabled===true}});await schedule();return connector.read();}
     if(message.type==='CONFIGURE') return native('configure');
     if(message.type==='FORGET') {const r=await native('delete');if(!r.ok) return r;await chrome.storage.local.set({connection:{...await connector.read(),enabled:false,blockedVersion:'',lastAutoAt:0,pendingAttempt:false}});await schedule();return connector.state('credentials_required','credentials_removed');}

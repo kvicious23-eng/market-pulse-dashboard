@@ -1,0 +1,8 @@
+.file-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:18px 0}
+.file-controls label,section>label{display:block;font-size:14px;line-height:1.6}
+.file-controls input,.file-controls select,section>label input{display:block;box-sizing:border-box;max-width:100%;margin-top:7px;font:inherit;padding:8px;border:1px solid #b9c9d6;border-radius:6px;background:#fff}
+.table-scroll{max-width:100%;overflow:auto;margin:18px 0;border:1px solid #dce4eb;border-radius:8px}
+.table-scroll table{border-collapse:collapse;font-size:12px;background:white}
+.table-scroll th,.table-scroll td{padding:9px 12px;border:1px solid #dce4eb;max-width:300px;min-width:100px;overflow-wrap:anywhere;text-align:left;vertical-align:top}
+.table-scroll th{background:#e3edf5}
+#premium-diagnostic{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
