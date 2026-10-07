@@ -50,6 +50,7 @@ on:
       - "scripts/install-supplier-hub-connector.ps1"
       - "INSTALL_SUPPLIER_HUB_CONNECTOR.cmd"
       - "scripts/test-supplier-auth.mjs"
+      - "scripts/test-supplier-premium.mjs"
       - "scripts/test-supplier-native.ps1"
       - "PROJECT_RULES.md"
 permissions:
@@ -137,6 +138,7 @@ jobs:
           node scripts/test-competitor-history.mjs
           node scripts/test-canonical-routes.mjs
           node scripts/test-supplier-auth.mjs
+          node scripts/test-supplier-premium.mjs
       - name: Verify audited history correction
         shell: pwsh
         run: ./scripts/test-history-corrections.ps1

@@ -1,4 +1,5 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
+import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
 const HOST='com.marketpulse.supplierhub';
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function native(operation) {
@@ -10,6 +11,13 @@ async function tab(id) { if(id==null) return null; try { return await chrome.tab
 async function probe(id) {
   return probeSupplierTab({extensionVersion:chrome.runtime.getManifest().version,tab,sleep:delay,inspect:async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:inspectSupplierPage}))[0]?.result},id);
 }
+const premium=new PremiumViewer({
+  extensionVersion:chrome.runtime.getManifest().version,now:()=>Date.now(),tab,sleep:delay,
+  load:async()=> (await chrome.storage.local.get('premium')).premium,
+  save:async value=>chrome.storage.local.set({premium:value}),
+  open:url=>chrome.tabs.create({url,active:true}),activate:id=>chrome.tabs.update(id,{active:true}),
+  inspect:async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:inspectPremiumPage}))[0]?.result
+});
 const connector=new SupplierConnector({
   load:async()=> (await chrome.storage.local.get('connection')).connection,
   save:async connection=>chrome.storage.local.set({connection}),
@@ -37,9 +45,11 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   const run=async()=>{
     if(message.type==='STATUS') {
       let vault; try {vault=await native('status');} catch {vault={ok:false,configured:false};}
-      return {state:await connector.read(),vault};
+      return {state:await connector.read(),vault,premium:(await chrome.storage.local.get('premium')).premium?.report};
     }
     if(message.type==='CHECK') return connector.check();
+    if(message.type==='OPEN_PREMIUM') return premium.check(true);
+    if(message.type==='CHECK_PREMIUM') return premium.check();
     if(message.type==='ENABLE') {await chrome.storage.local.set({connection:{...await connector.read(),enabled:message.enabled===true}});await schedule();return connector.read();}
     if(message.type==='CONFIGURE') return native('configure');
     if(message.type==='FORGET') {const r=await native('delete');if(!r.ok) return r;await chrome.storage.local.set({connection:{...await connector.read(),enabled:false,blockedVersion:'',lastAutoAt:0,pendingAttempt:false}});await schedule();return connector.state('credentials_required','credentials_removed');}
