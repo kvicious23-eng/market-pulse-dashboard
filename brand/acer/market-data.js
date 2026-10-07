@@ -19,12 +19,12 @@ window.MARKET_DATA = {
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Acer",
-                 "publishedAt":  "2026-10-07T12:16:18+09:00",
                  "historyBrands":  [
                                        "Acer"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-07T15:59:32+09:00"
              },
     "products":  [
                      {
@@ -251,7 +251,21 @@ window.MARKET_DATA = {
                          "itemId":  "28575928128",
                          "vendorItemId":  "95520178041",
                          "category":  "Notebook",
-                         "srp":  1558000
+                         "srp":  1558000,
+                         "supplierMetrics":  {
+                                                 "stock":  126,
+                                                 "dailySales":  8,
+                                                 "monthSales":  70,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -477,7 +491,21 @@ window.MARKET_DATA = {
                          "itemId":  "28951318769",
                          "vendorItemId":  "95881909514",
                          "category":  "Notebook",
-                         "srp":  1429000
+                         "srp":  1429000,
+                         "supplierMetrics":  {
+                                                 "stock":  3,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -703,7 +731,21 @@ window.MARKET_DATA = {
                          "itemId":  "28951318771",
                          "vendorItemId":  "95881909515",
                          "category":  "Notebook",
-                         "srp":  1569000
+                         "srp":  1569000,
+                         "supplierMetrics":  {
+                                                 "stock":  3,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "1TB",
@@ -854,7 +896,21 @@ window.MARKET_DATA = {
                          "itemId":  "26004597899",
                          "vendorItemId":  "92986675922",
                          "category":  "Notebook",
-                         "srp":  4099000
+                         "srp":  4099000,
+                         "supplierMetrics":  {
+                                                 "stock":  6,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -1104,7 +1160,21 @@ window.MARKET_DATA = {
                          "itemId":  "28714706385",
                          "vendorItemId":  "95655361667",
                          "category":  "Notebook",
-                         "srp":  1689000
+                         "srp":  1689000,
+                         "supplierMetrics":  {
+                                                 "stock":  8,
+                                                 "dailySales":  0,
+                                                 "monthSales":  5,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "1TB",
@@ -1306,7 +1376,21 @@ window.MARKET_DATA = {
                          "itemId":  "28287192873",
                          "vendorItemId":  "95240133006",
                          "category":  "Notebook",
-                         "srp":  1229000
+                         "srp":  1229000,
+                         "supplierMetrics":  {
+                                                 "stock":  122,
+                                                 "dailySales":  9,
+                                                 "monthSales":  45,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -1532,7 +1616,21 @@ window.MARKET_DATA = {
                          "itemId":  "28714706401",
                          "vendorItemId":  "95655361668",
                          "category":  "Notebook",
-                         "srp":  1439000
+                         "srp":  1439000,
+                         "supplierMetrics":  {
+                                                 "stock":  118,
+                                                 "dailySales":  9,
+                                                 "monthSales":  28,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -1659,7 +1757,21 @@ window.MARKET_DATA = {
                          "itemId":  "28067081535",
                          "vendorItemId":  "95023756227",
                          "category":  "Notebook",
-                         "srp":  2369000
+                         "srp":  2369000,
+                         "supplierMetrics":  {
+                                                 "stock":  null,
+                                                 "dailySales":  null,
+                                                 "monthSales":  null,
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "",
@@ -1736,7 +1848,21 @@ window.MARKET_DATA = {
                          "itemId":  "29147260106",
                          "vendorItemId":  "96070559959",
                          "category":  "Notebook",
-                         "srp":  2299000
+                         "srp":  2299000,
+                         "supplierMetrics":  {
+                                                 "stock":  1,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      }
                  ]
 };

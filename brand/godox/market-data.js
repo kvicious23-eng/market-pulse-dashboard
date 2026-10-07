@@ -19,12 +19,12 @@ window.MARKET_DATA = {
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Godox",
-                 "publishedAt":  "2026-10-07T12:16:18+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-07T15:59:32+09:00"
              },
     "products":  [
                      {
@@ -244,7 +244,21 @@ window.MARKET_DATA = {
                          "itemId":  "29147698397",
                          "vendorItemId":  "96070924334",
                          "category":  "Camera",
-                         "srp":  42000
+                         "srp":  42000,
+                         "supplierMetrics":  {
+                                                 "stock":  0,
+                                                 "dailySales":  0,
+                                                 "monthSales":  28,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      }
                  ]
 };

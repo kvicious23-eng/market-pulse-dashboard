@@ -20,12 +20,12 @@ window.MARKET_DATA = {
                                 },
                  "updatedAt":  "2026-09-14T19:42:57+09:00",
                  "brand":  "Lenovo",
-                 "publishedAt":  "2026-10-07T12:16:18+09:00",
                  "historyBrands":  [
                                        "Lenovo"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-07T15:59:32+09:00"
              },
     "products":  [
                      {
@@ -238,7 +238,21 @@ window.MARKET_DATA = {
                          "itemId":  "27303279355",
                          "vendorItemId":  "95415897534",
                          "category":  "Notebook",
-                         "srp":  1109000
+                         "srp":  1109000,
+                         "supplierMetrics":  {
+                                                 "stock":  null,
+                                                 "dailySales":  null,
+                                                 "monthSales":  null,
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "1TB",
@@ -420,7 +434,21 @@ window.MARKET_DATA = {
                          "itemId":  "27303268765",
                          "vendorItemId":  "95415897535",
                          "category":  "Notebook",
-                         "srp":  1159000
+                         "srp":  1159000,
+                         "supplierMetrics":  {
+                                                 "stock":  null,
+                                                 "dailySales":  null,
+                                                 "monthSales":  null,
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      },
                      {
                          "storage":  "512GB",
@@ -602,7 +630,21 @@ window.MARKET_DATA = {
                          "itemId":  "25515648568",
                          "vendorItemId":  "95415897536",
                          "category":  "Notebook",
-                         "srp":  1199000
+                         "srp":  1199000,
+                         "supplierMetrics":  {
+                                                 "stock":  null,
+                                                 "dailySales":  null,
+                                                 "monthSales":  null,
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
+                                                 "asOfDate":  "2026-10-06",
+                                                 "month":  "2026-10",
+                                                 "monthThrough":  "2026-10-06",
+                                                 "sourceDate":  "2026-10-06",
+                                                 "salesBasis":  "outbound",
+                                                 "source":  "Supplier Hub CSV"
+                                             }
                      }
                  ],
     "history":  [
