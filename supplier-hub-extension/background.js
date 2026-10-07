@@ -1,6 +1,7 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
 import {clickSupplierCsvDownload} from './csv-core.mjs';
+import {resumeAfterEdge} from './edge-resume-core.mjs';
 import {DailyCsv,DAILY_CSV_ALARM,kstDay,csvName,supplierDownload} from './daily-csv-core.mjs';
 const HOST='com.marketpulse.supplierhub';
 let csvClickRunning=false;
@@ -80,6 +81,10 @@ chrome.downloads.onDeterminingFilename.addListener((item,suggest)=>{
 // Recreate alarms after extension reloads and recover a persisted, in-flight job.
 schedule().then(()=>daily.tick()).catch(()=>{});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id===chrome.runtime.id&&sender.url?.startsWith(chrome.runtime.getURL('daily-resume.html')+'?')&&message?.type==='RESUME_AFTER_EDGE') {
+    resumeAfterEdge(message,{signal:()=>native('morning_status'),acknowledge:(id,signal)=>chrome.runtime.sendMessage(id,{type:'MARK_MORNING_RECOVERED',...signal}),tick:()=>daily.tick()})
+      .then(reply).catch(()=>reply({ok:false,reason:'local_connection_error'}));return true;
+  }
   // Only this extension's options page can start actions; web pages/content scripts cannot.
   if(sender.id!==chrome.runtime.id || sender.url!==chrome.runtime.getURL('options.html')) return false;
   const run=async()=>{

@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.33");
+assert.equal(manifest.version,"1.9.34");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -89,7 +89,7 @@ assert.equal((await downloadContext.waitForScanDownload(42)).state,'complete');
 downloadContext.chrome.downloads.search=async()=>[{state:'interrupted',error:'NETWORK_FAILED'}];
 await assert.rejects(downloadContext.waitForScanDownload(43),/scan-download-interrupted:NETWORK_FAILED/);
 const scanRequestStart=source.indexOf("let activeScanPromise=null;");
-const scanRequestEnd=source.indexOf("\n\nchrome.runtime.onInstalled",scanRequestStart);
+const scanRequestEnd=source.indexOf("\nconst SUPPLIER_EXTENSION_ID=",scanRequestStart);
 assert.ok(scanRequestStart>=0&&scanRequestEnd>scanRequestStart,"scan request guard was not found");
 const scanResolvers=[];
 const scanRequests=[];

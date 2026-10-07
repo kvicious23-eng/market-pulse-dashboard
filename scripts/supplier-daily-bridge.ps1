@@ -18,9 +18,12 @@ try {
   $request=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($RequestBase64)) | ConvertFrom-Json
   $result=@{ok=$false;reason='invalid_operation'}
   if ($request.operation -eq 'morning_status') {
-    $signal=Get-SupplierMorningSignal -Folder $folder -Day $day -Now $now
-    if ($signal) { Save-SupplierLocalState $signalPath $signal } else { $signal=Read-SupplierLocalState $signalPath }
-    if ($signal -and $signal.day -eq $date) { $result=$signal } else { $result=@{ready=$false;day=$date} }
+    $signal=Get-SupplierMorningSignal -Folder $folder -Day $day -Now $now -RepoPath $RepoPath
+    if ($signal) { Save-SupplierLocalState $signalPath $signal } else {
+      $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+      $signal=if ($receipt -and $receipt.scanSlot -ceq ($date+'T08:00+09:00')) {$null} else {Read-SupplierLocalState $signalPath}
+    }
+    if ($signal -and $signal.version -eq 2 -and $signal.day -eq $date) { $result=$signal } else { $result=@{ready=$false;day=$date} }
   } elseif ($request.operation -eq 'csv_complete') {
     if ([string]$request.day -cne $date) { $result=@{ok=$false;reason='csv_day_mismatch'} }
     else {

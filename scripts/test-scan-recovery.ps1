@@ -91,7 +91,7 @@ try {
   $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp
   $scripts=Join-Path $temp 'scripts'
   New-Item -ItemType Directory $scripts,$global:RecoveryTestFolder -Force | Out-Null
-  foreach ($name in @('scan-recovery.ps1','brand-lifecycle.ps1')) {Copy-Item (Join-Path $PSScriptRoot $name) $scripts}
+  foreach ($name in @('scan-recovery.ps1','brand-lifecycle.ps1','browser-profile.ps1')) {Copy-Item (Join-Path $PSScriptRoot $name) $scripts}
   $edgeSource=Get-Content (Join-Path $PSScriptRoot 'edge-fallback.ps1') -Raw -Encoding UTF8
   $edgeSource=$edgeSource.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",' $resultFolder=$global:RecoveryTestFolder')
   $edgeSource=$edgeSource.Replace('$slot=Get-ScanRecoverySlot','$slot=$global:RecoveryTestSlot')

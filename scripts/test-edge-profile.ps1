@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
+. (Join-Path $PSScriptRoot 'browser-profile.ps1')
 $source=Get-Content (Join-Path $repo 'scripts\edge-fallback.ps1') -Raw -Encoding UTF8
 $start=$source.IndexOf('function Get-EdgeScannerInstallations {')
 $end=$source.IndexOf('$scan = Get-LatestScan',$start)

@@ -1477,6 +1477,38 @@ function finishScan() {
   if(recentScanSlot(pending)&&pending===currentScheduledScanSlot()) requestScan(pending);
 }
 
+const SUPPLIER_EXTENSION_ID='djmlkkflbncanonpjhkdhghjmcompjnp';
+async function acknowledgeRecoveredMorning(message,sender) {
+  if(isEdgeBrowser||sender.id!==SUPPLIER_EXTENSION_ID||!sender.url?.startsWith(`chrome-extension://${SUPPLIER_EXTENSION_ID}/daily-resume.html?`)||
+    message?.type!=='MARK_MORNING_RECOVERED'||message.source!=='edge'||message.version!==2||
+    !/^[a-f0-9]{32}$/.test(message.runId||'')||message.scanSlot!==`${localDay()}T08:00+09:00`||
+    !Number.isFinite(Date.parse(message.completedAt))||Date.parse(message.completedAt)<Date.parse(message.scanSlot)||Date.parse(message.completedAt)>Date.now()+60000) return {ok:false,reason:'invalid-recovery-acknowledgement'};
+  if(activeScanPromise)return {ok:false,reason:'price-scan-active'};
+  await chrome.storage.local.set({lastRunSlot:message.scanSlot,lastRunDay:localDay(),morningRecoveryAcknowledgement:{runId:message.runId,scanSlot:message.scanSlot,completedAt:message.completedAt}});
+  return {ok:true};
+}
+chrome.runtime.onMessageExternal.addListener((message,sender,reply)=>{
+  acknowledgeRecoveredMorning(message,sender).then(reply).catch(()=>reply({ok:false,reason:'recovery-acknowledgement-error'}));return true;
+});
+async function waitForSupplierResume(slot) {
+  if(!slot?.endsWith('T08:00+09:00'))return;
+  let pending=false;
+  // Chrome may emit startup before its requested internal tab is registered.
+  for(let i=0;i<3;i++) {
+    const tabs=await chrome.tabs.query({});
+    pending=tabs.some(tab=>{
+      try {const u=new URL(tab.pendingUrl||tab.url);return u.hostname===SUPPLIER_EXTENSION_ID&&u.pathname==='/daily-resume.html'&&u.searchParams.get('slot')===slot;}catch{return false;}
+    });
+    if(pending)break;
+    if(i<2)await wait(500);
+  }
+  if(!pending)return;
+  for(let i=0;i<40;i++) {
+    if((await chrome.storage.local.get('lastRunSlot')).lastRunSlot===slot)return;
+    await wait(500);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   if(isEdgeBrowser) {
@@ -1492,11 +1524,12 @@ chrome.runtime.onStartup.addListener(async()=>{
     return;
   }
   await schedule();
-  const state=await chrome.storage.local.get(['lastRunSlot']);
   const dueSlot=currentScheduledScanSlot();
+  await waitForSupplierResume(dueSlot);
+  const state=await chrome.storage.local.get(['lastRunSlot']);
   if(recentScanSlot(dueSlot)&&state.lastRunSlot!==dueSlot) requestScan(dueSlot);
 });
-chrome.alarms.onAlarm.addListener(alarm=>{
+chrome.alarms.onAlarm.addListener(async alarm=>{
   if(isEdgeBrowser) return;
   const entry=SCHEDULED_SCAN_TIMES.find(candidate=>candidate.alarm===alarm.name);
   if(!entry) return;
@@ -1504,6 +1537,7 @@ chrome.alarms.onAlarm.addListener(alarm=>{
   const p=kstDateTimeParts(new Date(alarm.scheduledTime));
   const slot=`${p.year}-${p.month}-${p.day}T${entry.slot}+09:00`;
   if(!recentScanSlot(slot)||slot!==currentScheduledScanSlot()) return;
+  await waitForSupplierResume(slot);
   chrome.storage.local.get('lastRunSlot').then(state=>{
     if(state.lastRunSlot!==slot) requestScan(slot);
   }).catch(()=>{});

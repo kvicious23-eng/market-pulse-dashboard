@@ -1,5 +1,7 @@
 ﻿# Local CSV automation helpers. No credential access or raw CSV output.
 . (Join-Path $PSScriptRoot 'supplier-metrics.ps1')
+. (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+. (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 function Enter-MarketPulseRepositoryLock([string]$RepoPath,[int]$Seconds=600) {
   $sha=[Security.Cryptography.SHA256]::Create()
   try { $key=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([IO.Path]::GetFullPath($RepoPath).ToLowerInvariant())))).Replace('-','') } finally { $sha.Dispose() }
@@ -18,21 +20,35 @@ function Read-SupplierLocalState([string]$Path) {
   if (Test-Path -LiteralPath $Path) { return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json }
   return $null
 }
-function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffset]$Now) {
+function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffset]$Now,[string]$RepoPath='') {
   try {
-    $path=Join-Path $Folder 'latest-coupang-scan.json'
+    $slot=$Day.ToString('yyyy-MM-dd')+'T08:00+09:00'
+    $receipt=if ($RepoPath) {Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')} else {$null}
+    $edge=$receipt -and $receipt.scanSlot -ceq $slot
+    if ($edge) {
+      # Pending/failed recovery must never fall back to a blocked or late Chrome JSON.
+      if ($receipt.state -ne 'result-ready' -or $receipt.runId -notmatch '^[a-f0-9]{32}$' -or
+          $receipt.chromeRunId -notmatch '^[a-f0-9]{32}$' -or $receipt.reason -notin @('access-check','chrome-process-exit')) {return $null}
+      $path=Get-EdgeRecoveryResultPath $RepoPath $Folder $slot
+    } else { $path=Join-Path $Folder 'latest-coupang-scan.json' }
     if ((Get-Item -LiteralPath $path).Length -gt 10MB) { return $null }
     $scan=Read-SupplierLocalState $path
-    $slot=$Day.ToString('yyyy-MM-dd')+'T08:00+09:00'
     $start=[DateTimeOffset]::Parse([string]$scan.startedAt);$end=[DateTimeOffset]::Parse([string]$scan.completedAt)
-    $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
-    $local=[TimeZoneInfo]::ConvertTime($start,$zone)
-    $ids=@($scan.results | ForEach-Object { [string]$_.itemId })
-    if ($scan.browser -ne 'chrome' -or $scan.complete -ne $true -or $scan.scanSlot -cne $slot -or
-        $local.Date -ne $Day.Date -or $local.Hour -lt 8 -or $local.Hour -ge 12 -or $end -lt $start -or $end -gt $Now.AddMinutes(1) -or
+    $slotStart=[DateTimeOffset]::Parse($slot)
+    $rows=@($scan.results);$ids=@($rows | ForEach-Object { [string]$_.itemId })
+    $browser=if ($edge) {'edge'} else {'chrome'}
+    if ($scan.browser -ne $browser -or $scan.complete -ne $true -or $scan.scanSlot -cne $slot -or
+        $scan.runId -notmatch '^[a-f0-9]{32}$' -or $scan.version -lt 5 -or
+        $start -lt $slotStart -or $start -ge $slotStart.AddHours(4) -or $end -lt $start -or $end -gt $Now.AddMinutes(1) -or
+        ($end-$start).TotalHours -gt 3 -or
         [int]$scan.targetCount -ne $ids.Count -or [int]$scan.resultCount -ne $ids.Count -or
-        @($ids | Sort-Object -Unique).Count -ne $ids.Count -or @($ids | Where-Object { -not $_ }).Count -gt 0) { return $null }
-    return [pscustomobject]@{ready=$true;day=$Day.ToString('yyyy-MM-dd');completedAt=$end.ToString('o')}
+        @($ids | Sort-Object -Unique).Count -ne $ids.Count -or @($ids | Where-Object { -not $_ }).Count -gt 0 -or
+        @($rows | Where-Object {$_.ok -ne $true}).Count) { return $null }
+    $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+    if (-not $catalog -or -not $catalog.PSObject.Properties['products']) {return $null}
+    Assert-ScanCatalog -Catalog $catalog -Results $rows
+    return [pscustomobject]@{version=2;ready=$true;day=$Day.ToString('yyyy-MM-dd');source=$browser;
+      runId=$scan.runId;scanSlot=$slot;completedAt=$end.ToString('o')}
   } catch { return $null }
 }
 function Test-SupplierDailyCsv {

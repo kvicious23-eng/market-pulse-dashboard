@@ -11,7 +11,7 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
   withScanTimeout:async p=>p,wait:async()=>{},getTargets:async()=>products,validateProductCatalog:()=>[],
   waitForScanDownload:async id=>{if(failWitness&&id===1)throw Error('interrupted');events.push('complete:'+id);},
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>({ok:true}),collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
-  chrome:{runtime:{getManifest:()=>({version:'1.9.33'})},storage:{local:{get:async()=>({}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
+  chrome:{runtime:{getManifest:()=>({version:'1.9.34'})},storage:{local:{get:async()=>({}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
    downloads:{download:async o=>{files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
  vm.runInNewContext(scan+';this.run=scanAll;',context);
  if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else await context.run(slot,recovery);

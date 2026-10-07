@@ -9,6 +9,7 @@ $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloa
 $extensionPath = Join-Path $RepoPath 'chrome-extension'
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
+. (Join-Path $PSScriptRoot 'browser-profile.ps1')
 
 function Get-LatestScan {
   $file = Get-ChildItem $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
@@ -22,35 +23,7 @@ function Get-LatestScan {
 
 function Get-EdgeScannerInstallations {
   param([string]$UserDataPath,[string]$ExtensionPath)
-  $expectedPath=[IO.Path]::GetFullPath($ExtensionPath).TrimEnd('\')
-  foreach ($profile in @(Get-ChildItem $UserDataPath -Directory -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
-    $byId=@{}
-    foreach ($filename in @('Preferences','Secure Preferences')) {
-      $path=Join-Path $profile.FullName $filename
-      if (-not (Test-Path -LiteralPath $path)) { continue }
-      try { $settings=(Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json).extensions.settings } catch { continue }
-      if (-not $settings) { continue }
-      foreach ($property in $settings.PSObject.Properties) {
-        if ($property.Name -notmatch '^[a-p]{32}$') { continue }
-        if (-not $byId.ContainsKey($property.Name)) { $byId[$property.Name]=@{} }
-        foreach ($field in @('path','state','disable_reasons')) {
-          if ($property.Value.PSObject.Properties[$field]) { $byId[$property.Name][$field]=$property.Value.$field }
-        }
-      }
-    }
-    foreach ($id in $byId.Keys) {
-      $entry=$byId[$id]
-      if (-not $entry.path) { continue }
-      try { $path=[IO.Path]::GetFullPath([string]$entry.path).TrimEnd('\') } catch { continue }
-      if ($path -ine $expectedPath) { continue }
-      # New Edge profiles omit legacy state=1. Explicit disabled state/reasons
-      # still exclude an installation; a fresh matching Edge JSON proves execution.
-      if ($entry.ContainsKey('state') -and [string]$entry.state -ne '1') { continue }
-      if (@($entry.disable_reasons | Where-Object { $null -ne $_ -and [string]$_ -notin @('','0') }).Count) { continue }
-      [pscustomobject]@{Profile=$profile.Name;Id=$id}
-    }
-  }
+  Get-BrowserExtensionInstallations $UserDataPath $ExtensionPath
 }
 
 $scan = Get-LatestScan
@@ -78,7 +51,7 @@ if ($processExit) {
 } else {
   if (-not $scan) { return }
   $blocked = @($scan.Data.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
-  if (-not $blocked.Count -or $scan.Data.browser -eq 'edge') { return }
+  if (-not $blocked.Count -or $scan.Data.browser -ne 'chrome' -or $scan.Data.complete -ne $true) { return }
   try { $scanEnd = [DateTimeOffset]::Parse([string]$scan.Data.completedAt) } catch { return }
   if (([DateTimeOffset]::UtcNow - $scanEnd.ToUniversalTime()).TotalHours -gt 3) { return }
   $targets=@(foreach($row in @($scan.Data.results)) {
@@ -86,6 +59,14 @@ if ($processExit) {
       productId=$row.productId;itemId=$row.itemId;vendorItemId=$row.vendorItemId;url=$row.url;
       danawaUrl=$row.danawaUrl;enuriUrl=$row.enuriUrl}
   })
+  if ($scan.Data.runId -notmatch '^[a-f0-9]{32}$' -or $scan.Data.scanSlot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Chrome access-check recovery needs an identified scheduled scan.' }
+  if ([int]$scan.Data.targetCount -ne $targets.Count -or [int]$scan.Data.resultCount -ne $targets.Count) { throw 'Chrome access-check target count is invalid.' }
+  $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
+  Assert-ScanCatalog -Catalog $catalog -Results $targets
+  $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$scan.Data.scanSlot;runId=[guid]::NewGuid().ToString('N');
+    reason='access-check';chromeRunId=$scan.Data.runId;chromeStartedAt=$scan.Data.startedAt;chromeCompletedAt=$scan.Data.completedAt;
+    chromeExtensionVersion=$scan.Data.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');
+    blockedCount=$blocked.Count;targets=$targets}
   Write-Host "Chrome access-check on $($blocked.Count) product(s); starting Edge fallback."
 }
 
@@ -104,7 +85,7 @@ if ($installedExtensions.Count -ne 1) {
 $selected = $installedExtensions[0]
 $catalogJson=ConvertTo-Json -InputObject $targets -Depth 5 -Compress
 $triggerUrl = "chrome-extension://$($selected.Id)/fallback.html?catalog=$([Uri]::EscapeDataString($catalogJson))"
-if ($processExit) {
+if ($receipt) {
   $recovery=[pscustomobject]@{runId=$receipt.runId;reason=$receipt.reason;chromeRunId=$receipt.chromeRunId;
     chromeStartedAt=$receipt.chromeStartedAt;triggeredAt=$receipt.triggeredAt}
   $triggerUrl += "&slot=$([Uri]::EscapeDataString($receipt.scanSlot))&recovery=$([Uri]::EscapeDataString(($recovery | ConvertTo-Json -Compress)))"
@@ -116,28 +97,20 @@ try {
   $deadline = [DateTime]::UtcNow.AddMinutes($TimeoutMinutes)
   while ([DateTime]::UtcNow -lt $deadline) {
     Start-Sleep -Seconds 15
-    if ($processExit) {
-      $path=Join-Path $resultFolder "edge-recovery-$($receipt.runId).json"
-      $candidateData=Read-ScanRecoveryJson $path
-      if (-not $candidateData) { continue }
-      Assert-EdgeRecoveryResult -Payload $candidateData -Receipt $receipt -Targets $targets
-      # Catalogue edits during recollection must not publish a mixed catalogue.
-      $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
-      Assert-ScanCatalog -Catalog $catalog -Results @($candidateData.results)
-      $receipt.state='result-ready'
-      Write-ScanRecoveryJson $receiptPath $receipt
-      Write-Host "Edge process-exit recovery saved and list-matched: $($candidateData.resultCount) product(s). Publication validation is next."
-      return
+    $path=Join-Path $resultFolder "edge-recovery-$($receipt.runId).json"
+    $candidateData=Read-ScanRecoveryJson $path
+    if (-not $candidateData) { continue }
+    Assert-EdgeRecoveryResult -Payload $candidateData -Receipt $receipt -Targets $targets
+    $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
+    Assert-ScanCatalog -Catalog $catalog -Results @($candidateData.results)
+    $receipt.state='result-ready'
+    Write-ScanRecoveryJson $receiptPath $receipt
+    Write-Host "Edge $($receipt.reason) recovery saved and list-matched: $($candidateData.resultCount) product(s). Publication validation is next."
+    # Supplier errors must not turn a valid price recovery into a failed receipt.
+    if ($receipt.scanSlot -match 'T08:00\+09:00$') {
+      try { & (Join-Path $PSScriptRoot 'supplier-after-edge.ps1') -RepoPath $RepoPath -ResultFolder $resultFolder }
+      catch { Write-Warning 'Supplier Hub morning resume failed; inspect supplier-edge-resume.log. Price recovery remains ready.' }
     }
-    $candidate = Get-LatestScan
-    if (-not $candidate -or $candidate.Data.browser -ne 'edge') { continue }
-    try { $started = [DateTimeOffset]::Parse([string]$candidate.Data.startedAt) } catch { continue }
-    if ($started -le $scanEnd) { continue }
-    if ($candidate.Data.complete -ne $true -or @($candidate.Data.results | Where-Object { $_.ok -ne $true }).Count -gt 0) {
-      throw 'Edge fallback finished with incomplete prices; the existing dashboard is preserved.'
-    }
-    Assert-ScanCatalog -Catalog ([pscustomobject]@{products=$targets}) -Results @($candidate.Data.results)
-    Write-Host "Edge fallback completed: $($candidate.Data.resultCount) product(s)."
     return
   }
   throw 'Edge fallback did not finish before the timeout; the existing dashboard is preserved.'

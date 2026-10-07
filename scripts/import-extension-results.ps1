@@ -789,12 +789,13 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
-  if ($payload.recovery -and $payload.recovery.reason -eq 'chrome-process-exit') {
+  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','access-check')) {
     $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
-    $recoveryEvidence=[pscustomobject]@{reason='chrome-process-exit';exitCause='unknown';scanSlot=$payload.scanSlot;
+    $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';scanSlot=$payload.scanSlot;
       chromeRunId=$receipt.chromeRunId;edgeRunId=$payload.runId;chromeStartedAt=$receipt.chromeStartedAt;
       chromeExtensionVersion=$receipt.chromeExtensionVersion;edgeExtensionVersion=$payload.extensionVersion;
+      chromeCompletedAt=$receipt.chromeCompletedAt;accessCheckCount=$receipt.blockedCount;
       processObservedAt=$receipt.processObservation.observedAt;absentChecks=$receipt.processObservation.absentChecks;
       edgeStartedAt=$payload.startedAt;targetCount=$payload.targetCount;resultCount=$payload.resultCount;listMatched=$true}
   }

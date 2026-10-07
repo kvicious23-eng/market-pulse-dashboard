@@ -136,7 +136,7 @@ public static class SupplierHost {
             string text=output.Result;if(text.Length>8192)return new {ok=false,reason="daily_bridge_failed"};
             Dictionary<string,object> result=Json.Deserialize<Dictionary<string,object>>(text);
             Dictionary<string,object> safe=new Dictionary<string,object>();
-            foreach(string key in new[]{"ok","ready","day","completedAt","status","reason","attempts","checkedAt","asOfDate","monthThrough"}) {
+            foreach(string key in new[]{"ok","ready","version","source","runId","scanSlot","day","completedAt","status","reason","attempts","checkedAt","asOfDate","monthThrough"}) {
                 object value;if(result.TryGetValue(key,out value)&&(value==null||value is string||value is bool||value is int))safe[key]=value;
             }
             return safe;

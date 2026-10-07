@@ -33,6 +33,9 @@ on:
       - "scripts/test-competitor-rows.mjs"
       - "scripts/test-competitor-import.ps1"
       - "scripts/edge-fallback.ps1"
+      - "scripts/browser-profile.ps1"
+      - "scripts/supplier-after-edge.ps1"
+      - "scripts/test-morning-recovery.*"
       - "scripts/test-edge-profile.ps1"
       - "scripts/scan-recovery.ps1"
       - "scripts/run-scheduled-scan.ps1"
@@ -111,6 +114,7 @@ jobs:
           node --check chrome-extension/fallback.js
           node --check chrome-extension/options.js
           node --check chrome-extension/popup.js
+          node --input-type=module --check < supplier-hub-extension/daily-resume.js
           node --input-type=module --check < supplier-hub-extension/background.js
           node --input-type=module --check < supplier-hub-extension/options.js
           node --input-type=module --check < supplier-hub-extension/csv-ui.js
@@ -154,6 +158,7 @@ jobs:
           node scripts/test-supplier-premium.mjs
           node scripts/test-supplier-csv.mjs
           node scripts/test-supplier-daily.mjs
+          node scripts/test-morning-recovery.mjs
           node scripts/test-supplier-metrics-ui.mjs
       - name: Verify audited history correction
         shell: pwsh
@@ -201,6 +206,7 @@ jobs:
           ./scripts/test-supplier-native.ps1
           ./scripts/test-supplier-metrics.ps1
           ./scripts/test-supplier-daily.ps1
+          ./scripts/test-morning-recovery.ps1
 
   deploy:
     needs: [update, windows_history]

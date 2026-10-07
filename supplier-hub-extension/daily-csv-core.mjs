@@ -25,7 +25,7 @@ export class DailyCsv {
       if(job.day!==day){
         const signal=await this.io.signal();
         if(!signal?.ready||signal.day!==day)return job;
-        job=await this.set({}, {day,stage:'authentication',reason:'morning_scan_complete',scanCompletedAt:signal.completedAt});
+        job=await this.set({}, {day,stage:'authentication',reason:'morning_scan_complete',scanCompletedAt:signal.completedAt,scanBrowser:signal.source||null,scanRunId:signal.runId||null,scanSlot:signal.scanSlot||null});
       }
       if(job.stage==='stopped'&&!job.requestedAt&&(await this.io.authState?.())?.status==='connected')job=await this.set(job,{stage:'authentication',authChecks:0,reason:'authentication_restored'});
       if(['stopped','uncertain'].includes(job.stage))return job;

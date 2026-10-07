@@ -1,6 +1,6 @@
 # Chrome 종료 시 전체 목록 Edge 복구
 
-가격 확장 1.9.33과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
+가격 확장 1.9.34과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
 
 ## 판단과 실행
 
@@ -30,10 +30,12 @@ PC 종료·로그아웃 동안 Windows 감시도 실행할 수 없다. 시작 �
 
 ## 적용 및 검증 범위
 
-PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.33을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
+PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.34을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
 
 테스트는 시작 기록 저장 순서, 중단된 기록 다운로드, 완료/이전 회차 제외, 프로세스 관측 조건, 대상 중복/변경, Edge 시간/실행 ID/목록/실패, 늦은 Chrome 결과 배제, 예약 인자를 검사한다. 실제 운영 Chrome을 강제로 종료하거나 쿠팡 접근 차단을 유발하지 않는다. 구현·CI·PC 예약 적용과 실제 자연 발생 Chrome 종료 회차의 성공은 구분한다. 첫 성공 뒤에도 추적을 계속한다.
 
-Supplier Hub CSV는 기존 Chrome 08시 완료 신호를 사용한다. Edge 가격 복구만으로 Supplier Hub 인증/CSV 갱신을 완료했다고 하지 않는다. [PROJECT_RULES.md](PROJECT_RULES.md)와 [SUPPLIER_HUB_STARTUP.md](SUPPLIER_HUB_STARTUP.md)를 함께 따른다.
+Supplier Hub CSV는 당일 08시 정상 Chrome 완료 또는 같은 오전 회차의 검증된 Edge 전체 완료 뒤 시작한다. Edge에서 가격만 수집하며 인증과 CSV 다운로드는 기존 설정이 있는 Chrome에서 수행한다. Chrome의 차단 결과에서는 미리 시작하지 않는다. 가격 복구 성공만으로 Supplier Hub 인증/CSV 갱신을 완료했다고 하지 않는다. [PROJECT_RULES.md](PROJECT_RULES.md)와 [SUPPLIER_HUB_STARTUP.md](SUPPLIER_HUB_STARTUP.md)를 함께 따른다.
 
 공개 브랜드 메타 `collectionEvidence`는 새 회차 JSON의 브라우저·실행 버전·슬롯·실행 ID·시작/완료 시각·대상/결과 개수를 보존한다. 설치 버전 확인과 실제 실행 버전은 구분하며 기존 회차에 이 증거를 소급해 만들지 않는다. Edge 수집 회차의 경로 및 설명은 Edge로 표시한다.
+
+접근 차단과 프로세스 종료 모두 전환 영수증과 고유 `edge-recovery-{실행ID}.json`을 사용한다. 접근 차단 영수증에는 실패 상품 수와 Chrome 완료 시각을 기록하고 공개 메타에는 최소 전환 증거만 게시한다. 오전 완료 뒤 Supplier 연결을 여는 데 실패해도 이미 검증된 가격 복구의 `result-ready`는 보존한다. `reports/supplier-edge-resume.log`에 Chrome 연결 시작/실패를 남기고 인증·CSV·배포 성공은 별도 판정한다. 새 버전 적용 전 만들어진 구형 독립 Edge JSON에 전환 영수증을 소급 생성하지 않는다.

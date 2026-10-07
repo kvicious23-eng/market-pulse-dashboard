@@ -36,7 +36,8 @@ try {
   @((Row '20260930' '0001' 'FC' '8' '2')) | Export-Csv $boundary -NoTypeInformation -Encoding UTF8
   Check (Test-SupplierDailyCsv $boundary $root ([datetime]'2026-10-01') ([DateTimeOffset]'2026-10-01T08:10:00+09:00')).ok 'First day of month rejected.'
   # A finished morning scan is distinct from an afternoon/manual/Edge scan.
-  $scan=[pscustomobject]@{browser='chrome';scanSlot='2026-10-04T08:00+09:00';startedAt='2026-10-03T23:00:00Z';completedAt='2026-10-03T23:15:00Z';complete=$true;targetCount=1;resultCount=1;results=@([pscustomobject]@{itemId='1'})}
+  $scan=[pscustomobject]@{version=5;runId=('a'*32);browser='chrome';scanSlot='2026-10-04T08:00+09:00';startedAt='2026-10-03T23:00:00Z';completedAt='2026-10-03T23:15:00Z';complete=$true;targetCount=1;resultCount=1;results=@([pscustomobject]@{brand='Example';mtm='EXAMPLE1';productId='1';itemId='1';vendorItemId='1';ok=$true})}
+  Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') ([pscustomobject]@{products=@($scan.results)})
   $scanPath=Join-Path $folder 'latest-coupang-scan.json';Save-SupplierLocalState $scanPath $scan
   Check (Get-SupplierMorningSignal $folder $day $request).ready 'Morning signal rejected.'
   $scan.browser='edge';Save-SupplierLocalState $scanPath $scan;Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Edge scan started independent CSV.'
