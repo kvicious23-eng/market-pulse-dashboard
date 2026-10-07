@@ -80,7 +80,7 @@ public static class SupplierHost {
                 WriteFrame(output,result);
             }
             return 0;
-        } catch { return 3; }
+        } catch(Exception error) { Console.Error.WriteLine("native_protocol_error:"+error.GetType().Name); return 3; }
     }
     public static Dictionary<string,object> ReadFrame(Stream input) {
         byte[] size=new byte[4]; ReadExact(input,size);
