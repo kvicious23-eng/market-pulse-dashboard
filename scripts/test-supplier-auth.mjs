@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,safeDiagnostic} from '../supplier-hub-extension/auth-core.mjs';
+import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,safeDiagnostic,probeSupplierTab,officialOrPending} from '../supplier-hub-extension/auth-core.mjs';
 const official='https://xauth.coupang.com/auth/realms/seller/login-actions/authenticate?client_id=supplier-hub';
 function fixture(states,extra={}) {
   let saved={...DEFAULT_STATE,enabled:true,tabId:7,...extra};let clock=RETRY_INTERVAL*2;let submits=0,reads=0,opens=0;
@@ -15,8 +15,28 @@ const unsafeDiagnostic={extensionVersion:'test-secret',probe:'test-secret',host:
 assert.equal(JSON.stringify(safeDiagnostic(unsafeDiagnostic)).includes('test-secret'),false);
 assert.equal(JSON.stringify(safeDiagnostic(unsafeDiagnostic)).includes('test-user'),false);
 assert.equal(safeDiagnostic(unsafeDiagnostic).frameCount,50);
+// Exercise the production tab-loading loop, not only DOM classification.
+async function probeFixture(tabs,results=[{state:'authenticated',diagnostic:{probe:'inspected'}}]) {
+  let reads=0,inspections=0,wait=0;
+  const result=await probeSupplierTab({extensionVersion:'0.1.4',tab:async()=>tabs[Math.min(reads++,tabs.length-1)],sleep:async ms=>{wait+=ms;},inspect:async()=>{const r=results[Math.min(inspections++,results.length-1)];if(r instanceof Error)throw r;return r;}},7);
+  return {result,reads,inspections,wait};
+}
+const dashboardTab={id:7,url:'https://supplier.coupang.com/dashboard/KR',status:'complete'};
+let probeCase=await probeFixture([{url:'about:blank',pendingUrl:'https://supplier.coupang.com/',status:'loading'},{pendingUrl:'https://supplier.coupang.com/',status:'loading'},dashboardTab]);
+assert.equal(probeCase.result.state,'authenticated');assert.equal(probeCase.inspections,1);assert.equal(probeCase.wait,1500);
+probeCase=await probeFixture([{url:'about:blank',status:'complete'},dashboardTab]);assert.equal(probeCase.result.state,'authenticated');assert.equal(probeCase.inspections,1);
+probeCase=await probeFixture([{...dashboardTab,pendingUrl:official},dashboardTab]);assert.equal(probeCase.inspections,1);assert.equal(probeCase.wait,750,'Do not classify the old document while a new official navigation is pending');
+probeCase=await probeFixture([{url:'https://evil.test/',status:'complete'}]);assert.equal(probeCase.result.diagnostic.probe,'unsupported_page');assert.equal(probeCase.result.diagnostic.scheme,'https');assert.equal(probeCase.inspections,0);
+probeCase=await probeFixture([{...dashboardTab,pendingUrl:'https://evil.test/'}]);assert.equal(probeCase.inspections,0);assert.equal(probeCase.result.diagnostic.probe,'unsupported_page');
+probeCase=await probeFixture([{url:'about:blank',status:'loading'}]);assert.equal(probeCase.result.diagnostic.probe,'loading');assert.equal(probeCase.inspections,0);assert.equal(probeCase.wait,15000);
+probeCase=await probeFixture([null]);assert.equal(probeCase.result.diagnostic.probe,'tab_missing');assert.equal(probeCase.inspections,0);
+probeCase=await probeFixture([dashboardTab],[{state:'unverified',diagnostic:{probe:'inspected'}},{state:'authenticated',diagnostic:{probe:'inspected'}}]);assert.equal(probeCase.inspections,2);assert.equal(probeCase.result.state,'authenticated');
+probeCase=await probeFixture([dashboardTab],[new Error('test-private-server-error')]);assert.equal(probeCase.result.diagnostic.probe,'script_error');assert.equal(JSON.stringify(probeCase.result).includes('test-private-server-error'),false);
+assert.equal(officialOrPending({url:'about:blank',pendingUrl:'https://supplier.coupang.com/'}),true);
+assert.equal(officialOrPending({...dashboardTab,pendingUrl:'https://evil.test/'}),false);
 let f=fixture(['authenticated']);assert.equal((await f.connector.check()).status,'connected');assert.equal(f.get().reads,0);
 f=fixture(['authenticated']);let refreshes=0;f.io.tab=async()=>({id:7,url:'https://supplier.coupang.com/dashboard/KR'});f.io.refresh=async()=>{refreshes++;};await f.connector.check();assert.equal(refreshes,1);
+f=fixture(['authenticated']);f.io.tab=async()=>({id:7,pendingUrl:'https://supplier.coupang.com/',status:'loading'});f.io.refresh=async()=>{throw Error('Pending navigation must not be reloaded');};await f.connector.check();assert.equal(f.get().opens,0);assert.equal(f.get().reads,0);
 for(const state of ['verification','access_blocked','unverified','credential_error']){f=fixture([state]);await f.connector.check();assert.equal(f.get().reads,0,state);assert.equal(f.get().submits,0,state);}
 f=fixture(['login_form'],{enabled:false});assert.equal((await f.connector.check()).reason,'automatic_login_disabled');assert.equal(f.get().reads,0);
 f=fixture(['login_form']);f.io.native=async()=>({configured:false});assert.equal((await f.connector.check()).status,'credentials_required');

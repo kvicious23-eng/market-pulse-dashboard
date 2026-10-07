@@ -1,4 +1,4 @@
-import {SupplierConnector, CHECK_ALARM, permittedUrl, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
+import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 const HOST='com.marketpulse.supplierhub';
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function native(operation) {
@@ -8,21 +8,7 @@ async function native(operation) {
 }
 async function tab(id) { if(id==null) return null; try { return await chrome.tabs.get(id); } catch { return null; } }
 async function probe(id) {
-  const extensionVersion=chrome.runtime.getManifest().version;
-  let last={state:'unverified',diagnostic:{extensionVersion,probe:'loading'}};
-  for(let i=0;i<8;i++) {
-    const t=await tab(id); if(!t || !permittedUrl(t.url)) return {state:'unverified',diagnostic:{extensionVersion,probe:t?'unsupported_page':'tab_missing'}};
-    if(t.status==='complete') {
-      try {
-        const result=(await chrome.scripting.executeScript({target:{tabId:id},func:inspectSupplierPage}))[0]?.result;
-        if(result) last={...result,diagnostic:{...result.diagnostic,extensionVersion}};
-        if(result && result.state!=='unverified') return last;
-        // The document can be complete before Supplier Hub renders its app.
-      } catch { last={state:'unverified',diagnostic:{extensionVersion,probe:'script_error'}}; }
-    }
-    await delay(750);
-  }
-  return last;
+  return probeSupplierTab({extensionVersion:chrome.runtime.getManifest().version,tab,sleep:delay,inspect:async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:inspectSupplierPage}))[0]?.result},id);
 }
 const connector=new SupplierConnector({
   load:async()=> (await chrome.storage.local.get('connection')).connection,
@@ -57,7 +43,7 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     if(message.type==='ENABLE') {await chrome.storage.local.set({connection:{...await connector.read(),enabled:message.enabled===true}});await schedule();return connector.read();}
     if(message.type==='CONFIGURE') return native('configure');
     if(message.type==='FORGET') {const r=await native('delete');if(!r.ok) return r;await chrome.storage.local.set({connection:{...await connector.read(),enabled:false,blockedVersion:'',lastAutoAt:0,pendingAttempt:false}});await schedule();return connector.state('credentials_required','credentials_removed');}
-    if(message.type==='OPEN') {const s=await connector.read();let t=await tab(s.tabId);if(!t || !permittedUrl(t.url)) {t=await chrome.tabs.create({url:'https://supplier.coupang.com/',active:true});await chrome.storage.local.set({connection:{...s,tabId:t.id}});}else await chrome.tabs.update(t.id,{active:true});return {ok:true};}
+    if(message.type==='OPEN') {const s=await connector.read();let t=await tab(s.tabId);if(!officialOrPending(t)) {t=await chrome.tabs.create({url:'https://supplier.coupang.com/',active:true});await chrome.storage.local.set({connection:{...s,tabId:t.id}});}else await chrome.tabs.update(t.id,{active:true});return {ok:true};}
     return {ok:false};
   };
   run().then(reply).catch(()=>reply({ok:false,reason:'local_connection_error'}));return true;

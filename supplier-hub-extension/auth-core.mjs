@@ -7,6 +7,9 @@ export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId
 export function safeDiagnostic(raw={}) {
   const out={extensionVersion:/^\d+\.\d+\.\d+$/.test(raw.extensionVersion||'')?raw.extensionVersion:'',probe:['inspected','loading','tab_missing','unsupported_page','script_error','unavailable'].includes(raw.probe)?raw.probe:'unavailable',host:['supplier','seller_auth','other'].includes(raw.host)?raw.host:'other',view:['dashboard','login','other'].includes(raw.view)?raw.view:'other'};
   for(const key of ['visiblePassword','logoutPresent','logoutVisible','requiredTasks','deliveryRate','receivingIssues','myshop']) out[key]=raw[key]===true;
+  out.scheme=['https','http','about','chrome','chrome-error','chrome-extension','none','other'].includes(raw.scheme)?raw.scheme:'none';
+  out.tabStatus=['loading','complete','unknown'].includes(raw.tabStatus)?raw.tabStatus:'unknown';
+  out.pendingOfficial=raw.pendingOfficial===true;
   out.frameCount=Number.isInteger(raw.frameCount)?Math.max(0,Math.min(raw.frameCount,50)):0;
   return out;
 }
@@ -17,6 +20,37 @@ export function permittedUrl(url) {
     return u.protocol==='https:' && !u.username && !u.password && !u.port &&
       (u.hostname==='supplier.coupang.com' || (u.hostname==='xauth.coupang.com' && u.pathname.startsWith('/auth/realms/seller/')));
   } catch { return false; }
+}
+
+export function officialOrPending(tab) { return !!tab && permittedUrl(tab.pendingUrl||tab.url); }
+
+function tabDiagnostic(tab,extensionVersion) {
+  let u;try{u=new URL(tab?.url);}catch{}
+  return {extensionVersion,host:u?.hostname==='supplier.coupang.com'?'supplier':u?.hostname==='xauth.coupang.com'?'seller_auth':'other',view:u && /^\/dashboard\/KR\/?$/.test(u.pathname)?'dashboard':u && /\/login(?:\/|$)|\/login-actions\//.test(u.pathname)?'login':'other',scheme:u?u.protocol.slice(0,-1):'none',tabStatus:tab?.status==='loading'?'loading':tab?.status==='complete'?'complete':'unknown',pendingOfficial:permittedUrl(tab?.pendingUrl)};
+}
+
+// Read only an allowed, loaded document. A new tab may still expose about:blank
+// or no URL while its official pendingUrl is navigating; never inspect that placeholder.
+export async function probeSupplierTab(io,id) {
+  let last={state:'unverified',diagnostic:{extensionVersion:io.extensionVersion,probe:'loading'}};
+  for(let i=0;i<20;i++) {
+    const tab=await io.tab(id);const diagnostic=tabDiagnostic(tab,io.extensionVersion);
+    if(!tab) return {state:'unverified',diagnostic:{...diagnostic,probe:'tab_missing'}};
+    if(tab.pendingUrl && !permittedUrl(tab.pendingUrl)) return {state:'unverified',diagnostic:{...diagnostic,probe:'unsupported_page'}};
+    if(!permittedUrl(tab.url)) {
+      const placeholder=!tab.url || tab.url==='about:blank' || /^chrome:\/\/(newtab|new-tab-page)\/?$/.test(tab.url);
+      if(!diagnostic.pendingOfficial && !placeholder) return {state:'unverified',diagnostic:{...diagnostic,probe:'unsupported_page'}};
+      last={state:'unverified',diagnostic:{...diagnostic,probe:'loading'}};
+    } else if(tab.status==='complete' && !tab.pendingUrl) {
+      try {
+        const result=await io.inspect(id);
+        if(result) last={...result,diagnostic:{...diagnostic,...result.diagnostic,extensionVersion:io.extensionVersion}};
+        if(result && result.state!=='unverified') return last;
+      } catch {last={state:'unverified',diagnostic:{...diagnostic,probe:'script_error'}};}
+    } else last={state:'unverified',diagnostic:{...diagnostic,probe:'loading'}};
+    await io.sleep(750);
+  }
+  return last;
 }
 
 // Never persist page text, account names, URLs, cookies, tokens, or credentials.
@@ -38,21 +72,21 @@ export class SupplierConnector {
       let tab=await this.io.tab(s.tabId);
       let opened=false;
       // A replaced or navigated tab is not used as a credential destination.
-      if(!tab || !permittedUrl(tab.url)) {
+      if(!officialOrPending(tab)) {
         tab=await this.io.open(ENTRY);
         opened=true;
         s=await this.state('checking','opening_supplier',{tabId:tab.id});
       }
       // Verify a fresh Supplier response, rather than an old authenticated DOM.
       // Only the connector's own tab is refreshed; xauth challenge/login pages are left in place.
-      if(!opened && new URL(tab.url||ENTRY).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
+      if(!opened && !tab.pendingUrl && tab.status!=='loading' && permittedUrl(tab.url) && new URL(tab.url).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
       let p=await this.io.probe(tab.id);
       await this.noteProbe(p);
       if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
       if(p.state==='verification') return this.state('verification_required','additional_verification');
       if(p.state==='access_blocked') return this.state('access_blocked','access_message');
       if(p.state==='credential_error') return this.state('login_failed','credential_error');
-      if(p.state!=='login_form') return this.state('unverified','page_not_confirmed');
+      if(p.state!=='login_form') return this.state('unverified',({loading:'page_still_loading',unsupported_page:'unsupported_target_page',script_error:'page_probe_error',tab_missing:'target_tab_closed'})[p.diagnostic?.probe]||'page_not_confirmed');
       if(s.pendingAttempt) return this.state('login_failed','interrupted_attempt_requires_review',{pendingAttempt:false});
       const info=await this.io.native('status');
       if(info?.ok===false) return this.state('connection_error','local_host_or_browser_error');
