@@ -427,7 +427,7 @@ const calculateAvailable=({display,general,wowInstant,wowCoupon,cardRate=0,cardC
 const calculateSoldOut=({productPage,cardRate=0,cardCap=null})=>({
   general:null,
   preCard:null,
-  card:cardRate?Math.min(Math.floor(productPage*cardRate/100),cardCap??Infinity):null,
+  card:null,
   final:null
 });
 
@@ -437,7 +437,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   calculateSoldOut({productPage:950000,cardRate:2,cardCap:10000}),
-  {general:null,preCard:null,card:10000,final:null}
+  {general:null,preCard:null,card:null,final:null}
 );
 assert.equal(calculateAvailable({display:1000000,general:100000,wowInstant:50000,wowCoupon:30000,cardRate:8,cardCap:10000}).card,10000);
 assert.deepEqual(
@@ -471,5 +471,46 @@ if(godoxMine.status==='품절') {
   assert.equal(newestGodoxRow[history.headers.indexOf('최종 실구매가')],'');
 }
 
-console.log("Discount source and calculation rules passed.");
+// Exercise the actual dashboard render/export code with two capped card terms.
+// A sold-out historical numeric discount must never leak back into current UI.
+function dashboardFunction(name) {
+  const start=dashboard.indexOf(`  function ${name}(`);
+  assert.ok(start>=0,`${name} missing`);
+  let end=dashboard.indexOf('\n\n  function ',start+1);
+  if(end<0)end=dashboard.length;
+  return dashboard.slice(start,end);
+}
+const cardDisplayContext={
+  data:{meta:{brand:'Test',snapshotAt:'2026-10-07T16:00:00+09:00'},products:[]},refs:{productGrid:{}},activeMtm:'TEST',
+  productStats:p=>({mine:p.offers[0]}),priceTrend:()=>({className:'',label:''}),
+  escapeHtml:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
+  effectiveFinalPrice:o=>o.alertEligible?o.finalPrice:null,
+  downloadWorkbook:(headers,rows)=>{cardDisplayContext.exported={headers,rows};},safeUrl:()=> '#',Date
+};
+vm.createContext(cardDisplayContext);
+const cardFunctions=['formatWon','formatDiff','discountText','cardDiscountText','cardConditionText','cardStatusText','isSoldOut','offerStatus',
+  'priceBreakdown','checkoutDiscounts','checkoutDiscountText','checkoutDiscountExportValue','basisTypeText','renderSupplierMetrics','renderCards','exportMyProducts'];
+vm.runInContext(cardFunctions.map(dashboardFunction).join('\n'),cardDisplayContext);
+const twoCards={role:'mine',cardBenefitStatus:'captured',cardDiscount:20000,cardRate:5,cardMaxDiscount:30000,cardProviders:['현대'],
+  cardTerms:[{providers:['삼성'],rate:10,maxDiscount:10000},{providers:['현대'],rate:5,maxDiscount:30000}],
+  srp:500000,observedListPrice:500000,preCardPrice:400000,finalPrice:380000,shipping:0,alertEligible:true,
+  checkoutDiscountStatus:'captured',checkoutCouponDiscount:100000,wowInstantDiscount:0,wowCouponDiscount:0,status:'현재가 직접 확인'};
+cardDisplayContext.data.products=[{mtm:'TEST',offers:[twoCards]}];
+cardDisplayContext.renderCards();
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/삼성: 10% · 최대 10,000원/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/현대: 5% · 최대 30,000원/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/−20,000원/);
+const displaySoldout={...twoCards,status:'품절',alertEligible:false,checkoutDiscountReason:'buy-now-button-sold-out'};
+cardDisplayContext.data.products=[{mtm:'TEST',offers:[displaySoldout]}];
+cardDisplayContext.renderCards();
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/조건만 표시/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/삼성: 10%/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/현대: 5%/);
+assert.doesNotMatch(cardDisplayContext.refs.productGrid.innerHTML,/−20,000원/);
+cardDisplayContext.exportMyProducts();
+assert.equal(cardDisplayContext.exported.rows[0][cardDisplayContext.exported.headers.indexOf('카드할인')],'조건만 표시');
+assert.match(cardDisplayContext.exported.rows[0][cardDisplayContext.exported.headers.indexOf('카드사별 전체 조건')],/삼성: 10%.*현대: 5%/);
+assert.equal(cardDisplayContext.exported.headers.length,cardDisplayContext.exported.rows[0].length);
+
+console.log("Discount source, calculation, all-card conditions and sold-out display/export rules passed.");
 await import('./test-checkout-navigation.mjs');

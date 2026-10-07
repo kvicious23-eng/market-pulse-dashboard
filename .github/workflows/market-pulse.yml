@@ -33,6 +33,7 @@ on:
       - "scripts/test-competitor-rows.mjs"
       - "scripts/test-competitor-import.ps1"
       - "scripts/edge-fallback.ps1"
+      - "scripts/test-edge-profile.ps1"
       - "scripts/competitor-history-exclusions.json"
       - "scripts/test-competitor-history.mjs"
       - "scripts/test-canonical-routes.mjs"
@@ -188,6 +189,7 @@ jobs:
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           ./scripts/test-local-schedule.ps1
+          ./scripts/test-edge-profile.ps1
           ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1

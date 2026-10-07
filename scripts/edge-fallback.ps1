@@ -16,6 +16,39 @@ function Get-LatestScan {
   } catch { return $null }
 }
 
+function Get-EdgeScannerInstallations {
+  param([string]$UserDataPath,[string]$ExtensionPath)
+  $expectedPath=[IO.Path]::GetFullPath($ExtensionPath).TrimEnd('\')
+  foreach ($profile in @(Get-ChildItem $UserDataPath -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })) {
+    $byId=@{}
+    foreach ($filename in @('Preferences','Secure Preferences')) {
+      $path=Join-Path $profile.FullName $filename
+      if (-not (Test-Path -LiteralPath $path)) { continue }
+      try { $settings=(Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json).extensions.settings } catch { continue }
+      if (-not $settings) { continue }
+      foreach ($property in $settings.PSObject.Properties) {
+        if ($property.Name -notmatch '^[a-p]{32}$') { continue }
+        if (-not $byId.ContainsKey($property.Name)) { $byId[$property.Name]=@{} }
+        foreach ($field in @('path','state','disable_reasons')) {
+          if ($property.Value.PSObject.Properties[$field]) { $byId[$property.Name][$field]=$property.Value.$field }
+        }
+      }
+    }
+    foreach ($id in $byId.Keys) {
+      $entry=$byId[$id]
+      if (-not $entry.path) { continue }
+      try { $path=[IO.Path]::GetFullPath([string]$entry.path).TrimEnd('\') } catch { continue }
+      if ($path -ine $expectedPath) { continue }
+      # New Edge profiles omit legacy state=1. Explicit disabled state/reasons
+      # still exclude an installation; a fresh matching Edge JSON proves execution.
+      if ($entry.ContainsKey('state') -and [string]$entry.state -ne '1') { continue }
+      if (@($entry.disable_reasons | Where-Object { $null -ne $_ -and [string]$_ -notin @('','0') }).Count) { continue }
+      [pscustomobject]@{Profile=$profile.Name;Id=$id}
+    }
+  }
+}
+
 $scan = Get-LatestScan
 if (-not $scan) { return }
 $blocked = @($scan.Data.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
@@ -32,28 +65,11 @@ $edgeCandidates = @(
 $edge = $edgeCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 if (-not $edge) { throw 'Edge fallback unavailable: Microsoft Edge is not installed.' }
 
-# Unpacked extension IDs are profile specific. Read Edge's own profile settings,
-# then open the trigger page in the already signed-in profile.
+# Read both Edge profile formats; keep the saved login profile and extension ID.
 $userData = Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data'
-$profiles = @(Get-ChildItem $userData -Directory -ErrorAction SilentlyContinue |
-  Where-Object { $_.Name -eq 'Default' -or $_.Name -match '^Profile \d+$' })
-$installedExtensions = @()
-foreach ($edgeProfile in $profiles) {
-  $preferences = Join-Path $edgeProfile.FullName 'Preferences'
-  if (-not (Test-Path $preferences)) { continue }
-  try { $settings = (Get-Content -Raw -Encoding UTF8 $preferences | ConvertFrom-Json).extensions.settings } catch { continue }
-  if (-not $settings) { continue }
-  foreach ($property in $settings.PSObject.Properties) {
-    $extension = $property.Value
-    if (-not $extension.path) { continue }
-    try { $installedPath = [IO.Path]::GetFullPath([string]$extension.path).TrimEnd('\') } catch { continue }
-    if ($installedPath -ieq [IO.Path]::GetFullPath($extensionPath).TrimEnd('\') -and [int]$extension.state -eq 1) {
-      $installedExtensions += [pscustomobject]@{ Profile=$edgeProfile.Name; Id=$property.Name }
-    }
-  }
-}
+$installedExtensions = @(Get-EdgeScannerInstallations -UserDataPath $userData -ExtensionPath $extensionPath)
 if ($installedExtensions.Count -ne 1) {
-  throw "Edge fallback requires exactly one enabled C:\MarketPulse\chrome-extension installation in Edge (found $($installedExtensions.Count))."
+  throw "Edge fallback requires exactly one eligible C:\MarketPulse\chrome-extension installation in Edge (found $($installedExtensions.Count))."
 }
 $selected = $installedExtensions[0]
 $targets=@(foreach($row in @($scan.Data.results)) {

@@ -87,8 +87,17 @@
   }
 
   function cardDiscountText(offer) {
+    if (isSoldOut(offer)) return offer?.cardBenefitStatus === "captured"
+      ? '<span class="unknown">조건만 표시</span>' : escapeHtml(cardStatusText(offer?.cardBenefitStatus));
     if (offer?.cardBenefitStatus === "none") return "0원";
     return discountText(offer?.cardDiscount);
+  }
+
+  function cardConditionText(offer) {
+    if (offer?.cardBenefitStatus !== "captured") return cardStatusText(offer?.cardBenefitStatus);
+    const terms = Array.isArray(offer.cardTerms) && offer.cardTerms.length
+      ? offer.cardTerms : [{rate:offer.cardRate,maxDiscount:offer.cardMaxDiscount,providers:offer.cardProviders}];
+    return terms.map(term => `${Array.isArray(term.providers) ? term.providers.filter(Boolean).join(", ") : ""}: ${term.rate}% · ${Number.isFinite(term.maxDiscount) ? `최대 ${formatWon(term.maxDiscount)}` : "한도 표기 없음"}`).join(" / ");
   }
 
   function formatDiff(value) {
@@ -243,7 +252,7 @@
       "주문서 할인 상태", "판독 실패 항목", "주문서 할인 근거",
       "카드할인 상태", "카드할인", "카드할인 전 가격", "최종 실구매가", "배송비", "적용 카드사",
       "카드 할인율(%)", "최대 할인한도", "가격 조건", "확인 출처", "신뢰도",
-      "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각"
+      "신뢰도 설명", "가격 확인 시각", "최근 접근 시각", "상품 URL", "대시보드 조사 기준 시각", "카드사별 전체 조건"
     ];
     const rows = data.products.map((product) => {
       const mine = product.offers.find((offer) => offer.role === "mine") || {};
@@ -264,7 +273,7 @@
         Array.isArray(mine.checkoutUnparsedFields) ? mine.checkoutUnparsedFields.join(", ") : "",
         Array.isArray(mine.checkoutDiscountEvidence) ? mine.checkoutDiscountEvidence.join(" / ") : "",
         cardStatusText(mine.cardBenefitStatus),
-        mine.cardBenefitStatus === "none" ? 0 : Number.isFinite(mine.cardDiscount) ? mine.cardDiscount : "미확인",
+        isSoldOut(mine) ? "조건만 표시" : mine.cardBenefitStatus === "none" ? 0 : Number.isFinite(mine.cardDiscount) ? mine.cardDiscount : "미확인",
         Number.isFinite(breakdown.preCardPrice) ? breakdown.preCardPrice : "미확인",
         Number.isFinite(effectiveFinalPrice(mine)) ? effectiveFinalPrice(mine) : "미확인", mine.shipping,
         Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "",
@@ -272,7 +281,7 @@
         Number.isFinite(mine.cardMaxDiscount) ? mine.cardMaxDiscount : mine.cardBenefitStatus === "captured" ? "한도 표기 없음" : "미확인",
         mine.condition, mine.sourceType, mine.confidence,
         mine.confidenceText, mine.priceCheckedAt || mine.checkedAt, mine.availabilityCheckedAt,
-        safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt
+        safeUrl(mine.url) === "#" ? "" : safeUrl(mine.url), data.meta.snapshotAt, cardConditionText(mine)
       ];
     });
     const date = String(data.meta.snapshotAt || new Date().toISOString()).slice(0, 10);
@@ -437,9 +446,7 @@
       const breakdown = priceBreakdown(mine);
       const checkout = checkoutDiscounts(mine, breakdown.couponDiscount);
       const providers = Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "";
-      const cardCondition = Number.isFinite(mine.cardRate)
-        ? `${mine.cardRate}% · ${Number.isFinite(mine.cardMaxDiscount) ? `최대 ${formatWon(mine.cardMaxDiscount)}` : "한도 표기 없음"}`
-        : cardStatusText(mine.cardBenefitStatus);
+      const cardCondition = cardConditionText(mine);
       const checkedAt = mine.priceCheckedAt || mine.checkedAt || "미확인";
       const soldOut = isSoldOut(mine);
       const trend = priceTrend(mine);
@@ -463,7 +470,7 @@
           </span>
           <span class="overview-stack" data-label="카드 상세">
             <span><small>할인 전</small>${formatWon(breakdown.preCardPrice)}</span>
-            <span><small>${soldOut ? "상품페이지 카드할인 · 참고" : "카드할인"}</small>${cardDiscountText(mine)}</span>
+            <span><small>${soldOut ? "카드 혜택 · 조건" : "카드할인"}</small>${cardDiscountText(mine)}</span>
             <span><small>조건</small>${escapeHtml(cardCondition)}</span>
             ${providers ? `<span><small>카드사</small>${escapeHtml(providers)}</span>` : ""}
           </span>
@@ -566,7 +573,7 @@
             <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon, checkout.couponStatus) : '<span class="unknown">—</span>'}</span>
             <span class="cell-stack__total"><small>합계</small>${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</span>
           </td>
-          <td data-label="카드할인">${current ? `${cardDiscountText(offer)}${soldOut && mine ? ' <small>상품페이지 참고</small>' : ''}` : '<span class="unknown">—</span>'}</td>
+          <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
           <td data-label="최종 실구매가">${finalCell}</td>
           <td data-label="내 상품 대비">${diffCell}</td>
           <td data-label="신뢰도"><span class="confidence confidence--${confidenceClass(offer.confidence)}">${escapeHtml(offer.confidence)}</span></td>
@@ -631,12 +638,12 @@
       <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
-      <div class="evidence__item"><span>${isSoldOut(offer) ? "상품페이지 카드할인 · 참고" : "카드할인 금액"}</span><strong>${cardDiscountText(offer)}</strong></div>
+      <div class="evidence__item"><span>${isSoldOut(offer) ? "카드 혜택 · 조건" : "카드할인 금액"}</span><strong>${cardDiscountText(offer)}</strong></div>
       ${unparsed.length ? `<div class="evidence__item evidence__item--wide"><span>판독 실패 항목</span><p>${escapeHtml(unparsed.join(', '))}</p></div>` : ""}
       ${checkoutEvidence.length ? `<div class="evidence__item evidence__item--wide"><span>주문서 할인 근거</span><p>${checkoutEvidence.map(escapeHtml).join('<br>')}</p></div>` : ""}` : ""}
       <div class="evidence__item"><span>${activeView === "current" ? "최종 실구매가" : "참고가격"}</span><strong>${formatWon(finalValue)}</strong></div>
-      ${providers ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
-      ${Number.isFinite(offer.cardRate) ? `<div class="evidence__item"><span>카드 할인조건</span><strong>${escapeHtml(`${offer.cardRate}% · ${Number.isFinite(offer.cardMaxDiscount) ? `최대 ${formatWon(offer.cardMaxDiscount)}` : "할인한도 표기 없음"}`)}</strong></div>` : ""}
+      ${providers && !isSoldOut(offer) ? `<div class="evidence__item"><span>적용 카드사</span><strong>${escapeHtml(providers)}</strong></div>` : ""}
+      ${offer.cardBenefitStatus === "captured" ? `<div class="evidence__item evidence__item--wide"><span>카드사별 전체 조건</span><strong>${escapeHtml(cardConditionText(offer))}</strong></div>` : ""}
       <div class="evidence__item"><span>신뢰도</span><strong>${escapeHtml(offer.confidence)} · ${escapeHtml(offer.confidenceText)}</strong></div>
       <div class="evidence__item"><span>가격 확인 시각</span><strong>${escapeHtml(priceCheckedAt)}${priceCheckedAt === "미확인" ? "" : " KST"}</strong></div>
       ${accessCheckedAt ? `<div class="evidence__item"><span>최근 접근 시각</span><strong>${escapeHtml(accessCheckedAt)} KST</strong></div>` : ""}

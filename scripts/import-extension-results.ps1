@@ -605,8 +605,8 @@ foreach ($spec in $specs) {
           $cardBenefitStatus='unverified'
           $null
         } elseif ($soldOut) {
-          # Display-only product-page benefit; never qualifies a sold-out offer.
-           $pageBest.amount
+          # Without checkout, preserve card terms only; no applicable discount amount.
+           $null
          } elseif ($null -ne $checkoutBest) {
            $checkoutBest.amount
         } else { $null }
