@@ -27,7 +27,12 @@ function renderPremium(report) {
   document.querySelector('#premium-status').textContent=messages[premiumDiagnostic.reason]||reasons[premiumDiagnostic.reason]||'화면 확인 필요';
   document.querySelector('#premium-diagnostic').textContent=JSON.stringify(premiumDiagnostic,null,2);
 }
-async function refresh(){const r=await send({type:'STATUS'});render(r.state,r.vault);renderPremium(r.premium);}
+async function refresh(){const r=await send({type:'STATUS'});render(r.state,r.vault);renderPremium(r.premium);
+  const job=r.daily||{},report={extensionVersion:chrome.runtime.getManifest().version,day:job.day||'',stage:job.stage||'waiting',reason:job.reason||'morning_scan_pending',checkedAt:job.checkedAt||'',asOfDate:job.asOfDate||'',publication:r.publication||{}};
+  const stages={waiting:'08시 가격 수집 완료 대기',authentication:'인증 확인 중',page:'CSV 화면 준비 중',download:'다운로드 완료 대기',validating:'파일 기준일 검증 중',complete:'CSV 검증 완료',stopped:'CSV 작업 확인 필요',uncertain:'다운로드 요청 확인 필요'};
+  document.querySelector('#daily-status').textContent=(stages[report.stage]||report.stage)+' · '+report.reason;
+  document.querySelector('#daily-diagnostic').textContent=JSON.stringify(report,null,2);
+}
 for(const [id,type] of [['open-premium','OPEN_PREMIUM'],['check-premium','CHECK_PREMIUM']]) document.querySelector('#'+id).addEventListener('click',async event=>{
   const button=event.currentTarget;button.disabled=true;document.querySelector('#premium-status').textContent='화면을 확인하는 중이야.';
   try{renderPremium(await send({type}));}catch{document.querySelector('#premium-status').textContent='연결 관리 화면을 다시 열어줘.';}finally{button.disabled=false;}
@@ -41,3 +46,4 @@ for(const [id,type] of [['open','OPEN'],['check','CHECK'],['configure','CONFIGUR
 document.querySelector('#copy-diagnostic').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(JSON.stringify(diagnosticReport,null,2));document.querySelector('#notice').textContent='진단 정보를 복사했어. 계정·비밀번호·페이지 본문·인증 URL은 포함하지 않아.';}catch{document.querySelector('#notice').textContent='복사하지 못했어. 판독 진단 화면을 캡처해줘.';}});
 document.querySelector('#enabled').addEventListener('change',async event=>{await send({type:'ENABLE',enabled:event.target.checked});await refresh();});
 refresh();
+chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&(changes.dailyCsv||changes.connection))refresh().catch(()=>{});});

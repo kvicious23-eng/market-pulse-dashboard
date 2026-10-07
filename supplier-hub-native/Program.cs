@@ -66,6 +66,7 @@ public static class SupplierVault {
 
 public static class SupplierHost {
     private const string AllowedOrigin = "__EXTENSION_ORIGIN__";
+    private const string AutomationScript = "__AUTOMATION_SCRIPT__";
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
     [STAThread]
     public static int Main(string[] args) {
@@ -101,6 +102,9 @@ public static class SupplierHost {
     private static object Dispatch(Dictionary<string,object> request) {
         object op; if(request==null||!request.TryGetValue("operation",out op)) return new {ok=false,reason="invalid_operation"};
         string operation=op as string;
+        if(operation=="morning_status"||operation=="csv_complete"||operation=="daily_status") {
+            try {return DailyBridge(request);} catch {return new {ok=false,reason="daily_bridge_failed"};}
+        }
         if(operation=="configure") {
             Process.Start(new ProcessStartInfo {FileName=System.Reflection.Assembly.GetExecutingAssembly().Location,Arguments="--configure",UseShellExecute=true});
             return new {ok=true};
@@ -113,6 +117,30 @@ public static class SupplierHost {
             if(operation=="read") return new {ok=true,configured=true,username=c.Username,password=c.Password,version=c.Version};
             return new {ok=true,configured=true,version=c.Version};
         } finally {c.Password=null;c.Username=null;}
+    }
+    private static object DailyBridge(Dictionary<string,object> request) {
+        if(!File.Exists(AutomationScript)) return new {ok=false,reason="daily_bridge_not_installed"};
+        // The executable selects the script. Requests cannot choose a program or
+        // shell expression; JSON is carried as one base64 argument.
+        string encoded=Convert.ToBase64String(Encoding.UTF8.GetBytes(Json.Serialize(request)));
+        ProcessStartInfo start=new ProcessStartInfo {
+            FileName=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),@"WindowsPowerShell\v1.0\powershell.exe"),
+            Arguments="-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \""+AutomationScript+"\" -RequestBase64 "+encoded,
+            UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,
+            StandardOutputEncoding=Encoding.UTF8
+        };
+        using(Process process=new Process {StartInfo=start}) {
+            process.Start();var output=process.StandardOutput.ReadToEndAsync();var errors=process.StandardError.ReadToEndAsync();
+            if(!process.WaitForExit(12000)) {process.Kill();return new {ok=false,reason="daily_bridge_timeout"};}
+            if(process.ExitCode!=0) return new {ok=false,reason="daily_bridge_failed"};
+            string text=output.Result;if(text.Length>8192)return new {ok=false,reason="daily_bridge_failed"};
+            Dictionary<string,object> result=Json.Deserialize<Dictionary<string,object>>(text);
+            Dictionary<string,object> safe=new Dictionary<string,object>();
+            foreach(string key in new[]{"ok","ready","day","completedAt","status","reason","attempts","checkedAt","asOfDate","monthThrough"}) {
+                object value;if(result.TryGetValue(key,out value)&&(value==null||value is string||value is bool||value is int))safe[key]=value;
+            }
+            return safe;
+        }
     }
     private static void Configure() {
         Application.EnableVisualStyles();

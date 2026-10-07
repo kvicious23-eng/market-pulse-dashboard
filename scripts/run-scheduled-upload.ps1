@@ -3,6 +3,8 @@
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+$repositoryMutex=$null
 $reportsPath=Join-Path $RepoPath 'reports'
 New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
 $logPath=Join-Path $reportsPath 'scheduled-upload.log'
@@ -17,6 +19,7 @@ $expectedSlotStart=if ($null -ne $slotHour) {
 } else { '' }
 
 try {
+  $repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
   Add-Content -Path $logPath -Encoding UTF8 -Value "[$started] Scheduled upload started."
   # A 2>&1 pipeline makes PowerShell 5.1 treat normal native Git stderr
   # (including the "From ..." line of a successful pull) as a fatal error.
@@ -33,5 +36,6 @@ try {
   Add-Content -Path $logPath -Encoding UTF8 -Value $message
   Write-Error $message
   exit 1
+} finally {
+  if ($repositoryMutex) { $repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose() }
 }
-

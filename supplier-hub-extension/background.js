@@ -1,12 +1,13 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
 import {clickSupplierCsvDownload} from './csv-core.mjs';
+import {DailyCsv,DAILY_CSV_ALARM,kstDay,csvName,supplierDownload} from './daily-csv-core.mjs';
 const HOST='com.marketpulse.supplierhub';
 let csvClickRunning=false;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function native(operation) {
+async function native(operation,payload={}) {
   let timer;
-  try { return await Promise.race([chrome.runtime.sendNativeMessage(HOST,{operation}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('native_timeout')),10000);})]); }
+  try { return await Promise.race([chrome.runtime.sendNativeMessage(HOST,{operation,...payload}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('native_timeout')),15000);})]); }
   finally { clearTimeout(timer); }
 }
 async function tab(id) { if(id==null) return null; try { return await chrome.tabs.get(id); } catch { return null; } }
@@ -32,27 +33,66 @@ const connector=new SupplierConnector({
     return (await chrome.scripting.executeScript({target:{tabId:id},func:submitSupplierLogin,args:[username,password]}))[0]?.result;
   }
 });
+const daily=new DailyCsv({
+  now:()=>Date.now(),load:async()=>(await chrome.storage.local.get('dailyCsv')).dailyCsv,
+  save:async value=>chrome.storage.local.set({dailyCsv:value}),
+  signal:()=>native('morning_status'),authenticate:()=>connector.check(),authState:()=>connector.read(),
+  openPage:async()=>{
+    const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    if(await tab(id)){await chrome.tabs.reload(id,{bypassCache:true});await delay(750);}
+    return premium.check(true);
+  },
+  click:async()=>{
+    if(csvClickRunning)return {ok:false,reason:'csv_busy'};
+    csvClickRunning=true;
+    try {const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+      return (await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload}))[0]?.result;
+    }finally{csvClickRunning=false;}
+  },
+  downloads:job=>chrome.downloads.search({startedAfter:new Date(Date.parse(job.requestedAt)-2000).toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
+  validate:payload=>native('csv_complete',payload),publishStatus:()=>native('daily_status')
+});
 async function schedule() {
   const s=await connector.read();
-  if(s.enabled) await chrome.alarms.create(CHECK_ALARM,{delayInMinutes:1,periodInMinutes:15});
+  if(s.enabled) {if(!await chrome.alarms.get(CHECK_ALARM))await chrome.alarms.create(CHECK_ALARM,{delayInMinutes:1,periodInMinutes:15});}
   else await chrome.alarms.clear(CHECK_ALARM);
+  if(!await chrome.alarms.get(DAILY_CSV_ALARM))await chrome.alarms.create(DAILY_CSV_ALARM,{delayInMinutes:1,periodInMinutes:1});
 }
 chrome.action.onClicked.addListener(()=>chrome.runtime.openOptionsPage());
 chrome.runtime.onInstalled.addListener(()=>schedule());
-chrome.runtime.onStartup.addListener(async()=>{await schedule();if((await connector.read()).enabled) await connector.check();});
-chrome.alarms.onAlarm.addListener(async alarm=>{if(alarm.name===CHECK_ALARM && (await connector.read()).enabled) await connector.check();});
+chrome.runtime.onStartup.addListener(async()=>{await schedule();await daily.tick();});
+chrome.alarms.onAlarm.addListener(async alarm=>{
+  if(alarm.name===DAILY_CSV_ALARM)await daily.tick();
+  else if(alarm.name===CHECK_ALARM && (await daily.read()).day===kstDay(Date.now()) && (await connector.read()).enabled){await connector.check();await daily.tick();}
+});
+// Observe actual file completion, not the scanner's initial download request.
+chrome.downloads.onChanged.addListener(async delta=>{
+  if(delta.state?.current!=='complete')return;
+  const item=(await chrome.downloads.search({id:delta.id}))[0];
+  if(/(?:^|[\\/])MarketPulse[\\/]latest-coupang-scan\.json$/i.test(item?.filename||'')||csvName(item?.filename))await daily.tick();
+});
+chrome.downloads.onDeterminingFilename.addListener((item,suggest)=>{
+  daily.read().then(job=>{
+    if(job.stage==='download'&&supplierDownload(item,job))suggest({filename:'MarketPulse/SupplierPending/'+csvName(item.filename),conflictAction:'overwrite'});
+    else suggest();
+  }).catch(()=>suggest());return true;
+});
+// Recreate alarms after extension reloads and recover a persisted, in-flight job.
+schedule().then(()=>daily.tick()).catch(()=>{});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   // Only this extension's options page can start actions; web pages/content scripts cannot.
   if(sender.id!==chrome.runtime.id || sender.url!==chrome.runtime.getURL('options.html')) return false;
   const run=async()=>{
     if(message.type==='STATUS') {
       let vault; try {vault=await native('status');} catch {vault={ok:false,configured:false};}
-      return {state:await connector.read(),vault,premium:(await chrome.storage.local.get('premium')).premium?.report};
+      let publication;try{publication=await native('daily_status');}catch{publication={reason:'daily_local_connection_error'};}
+      return {state:await connector.read(),vault,premium:(await chrome.storage.local.get('premium')).premium?.report,daily:await daily.read(),publication};
     }
-    if(message.type==='CHECK') return connector.check();
+    if(message.type==='CHECK') {const result=await connector.check();await daily.tick();return result;}
     if(message.type==='OPEN_PREMIUM') return premium.check(true);
     if(message.type==='CHECK_PREMIUM') return premium.check();
     if(message.type==='DOWNLOAD_CSV') {
+      if(['download','validating'].includes((await daily.read()).stage))return {ok:false,reason:'csv_busy'};
       if(csvClickRunning)return {ok:false,reason:'csv_busy'};
       csvClickRunning=true;
       try {

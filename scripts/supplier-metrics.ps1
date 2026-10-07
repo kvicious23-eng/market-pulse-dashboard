@@ -120,6 +120,17 @@ function Get-SupplierRowMetrics {
   }
   return [pscustomobject]@{ByItemId=$byItem;SourceStatus=$SourceStatus}
 }
+function Read-SupplierCsvRows([string]$Path) {
+  if ((Get-Item -LiteralPath $Path).Length -gt 32MB) { throw 'CSV exceeds the size limit.' }
+  $bytes=[IO.File]::ReadAllBytes($Path)
+  if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) { $text=[Text.Encoding]::Unicode.GetString($bytes) }
+  elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 254 -and $bytes[1] -eq 255) { $text=[Text.Encoding]::BigEndianUnicode.GetString($bytes) }
+  else {
+    try { $text=[Text.UTF8Encoding]::new($false,$true).GetString($bytes) }
+    catch { $text=[Text.Encoding]::GetEncoding(949).GetString($bytes) }
+  }
+  return @($text.TrimStart([char]0xfeff) | ConvertFrom-Csv -ErrorAction Stop)
+}
 function Get-SupplierMetricBatch {
   param($Catalog,[string[]]$CsvFolders,[datetime]$AsOfDay)
   $files=@()
@@ -133,16 +144,7 @@ function Get-SupplierMetricBatch {
   $selected=$files | Sort-Object @{Expression={$_.through};Descending=$true},@{Expression={$_.file.LastWriteTimeUtc};Descending=$true} | Select-Object -First 1
   if (-not $selected) { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-missing' }
   try {
-    if ($selected.file.Length -gt 32MB) { throw 'CSV exceeds the size limit.' }
-    $bytes=[IO.File]::ReadAllBytes($selected.file.FullName)
-    if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) { $text=[Text.Encoding]::Unicode.GetString($bytes) }
-    elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 254 -and $bytes[1] -eq 255) { $text=[Text.Encoding]::BigEndianUnicode.GetString($bytes) }
-    else {
-      try { $text=[Text.UTF8Encoding]::new($false,$true).GetString($bytes) }
-      catch { $text=[Text.Encoding]::GetEncoding(949).GetString($bytes) }
-    }
-    $text=$text.TrimStart([char]0xfeff)
-    $rows=@($text | ConvertFrom-Csv -ErrorAction Stop)
+    $rows=@(Read-SupplierCsvRows $selected.file.FullName)
     return Get-SupplierRowMetrics $Catalog $rows $AsOfDay
   } catch { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-invalid' }
 }

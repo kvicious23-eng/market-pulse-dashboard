@@ -93,12 +93,12 @@ try {
   // Exercise production message dispatch, tab checks and injected click together.
   global.location.href='https://supplier.coupang.com/rpd/web-v2/basic/rocket';let handler,nativeReads=0;clicks=0;
   const storage={premium:{tabId:18}},listener={addListener:()=>{}};
-  global.chrome={runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,getManifest:()=>({version:'0.1.7'}),onMessage:{addListener:fn=>{handler=fn;}},onInstalled:listener,onStartup:listener,sendNativeMessage:async()=>{nativeReads++;throw new Error('Must not read credentials');}},action:{onClicked:listener},alarms:{onAlarm:listener},storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},tabs:{get:async id=>({id,url:global.location.href,status:'complete'})},scripting:{executeScript:async options=>[{result:options.func()}]}};
+  global.chrome={runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,getManifest:()=>({version:'0.1.11'}),onMessage:{addListener:fn=>{handler=fn;}},onInstalled:listener,onStartup:listener,sendNativeMessage:async(host,message)=>{if(message.operation==='read'){nativeReads++;throw new Error('Must not read credentials');}return {ready:false};}},action:{onClicked:listener},downloads:{onChanged:listener,onDeterminingFilename:listener,search:async()=>[]},alarms:{onAlarm:listener,get:async()=>({}),clear:async()=>{}},storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},tabs:{get:async id=>({id,url:global.location.href,status:'complete'})},scripting:{executeScript:async options=>[{result:options.func()}]}};
   await import('../supplier-hub-extension/background.js');
   const sender={id:'test',url:'chrome-extension://test/options.html'};
   let unauthorizedReply=false;assert.equal(handler({type:'DOWNLOAD_CSV'},{id:'other',url:'https://evil.test/'},()=>{unauthorizedReply=true;}),false);assert.equal(unauthorizedReply,false);
   const send=()=>new Promise(resolve=>handler({type:'DOWNLOAD_CSV'},sender,resolve));
   const replies=await Promise.all([send(),send()]);assert.equal(replies[0].reason,'csv_request_clicked');assert.equal(replies[1].reason,'csv_busy');assert.equal(clicks,1);assert.equal(nativeReads,0);
 } finally {Object.assign(global,original);}
-const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));assert.equal(manifest.permissions.includes('downloads'),false);assert.equal(manifest.permissions.includes('cookies'),false);
+const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));assert.equal(manifest.permissions.includes('downloads'),true);assert.equal(manifest.permissions.includes('cookies'),false);
 console.log('Supplier CSV checks passed: official one-click request, local decoding, exact matching, missing/ambiguous preservation, original rows and safe export.');

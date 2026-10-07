@@ -1001,6 +1001,7 @@ async function scanAll(scanSlot) {
       version:5,
       extensionVersion:chrome.runtime.getManifest().version,
       browser:/Edg\//.test(navigator.userAgent)?'edge':'chrome',
+      scanSlot,
       startedAt:scanStartedAt,
       scannedAt:completedAt,
       completedAt,

@@ -194,10 +194,15 @@ if ($scanKst -in $retiredScanTimes) {
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
-. (Join-Path $PSScriptRoot 'supplier-metrics.ps1')
+. (Join-Path $PSScriptRoot 'supplier-daily.ps1')
 $metricDay=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
 $metricPublishedAt=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $supplierBatch=Get-SupplierMetricBatch -Catalog $catalog -CsvFolders @((Split-Path -Parent $resultFolder),$resultFolder) -AsOfDay $metricDay
+$dailyQueue=Read-SupplierLocalState (Join-Path $RepoPath 'reports\supplier-daily-queue.json')
+if ($dailyQueue -and $dailyQueue.day -eq $metricDay.ToString('yyyy-MM-dd')) {
+  $dailyCheck=Test-SupplierDailyCsv -Path $dailyQueue.filename -DownloadRoot (Split-Path -Parent $resultFolder) -Day $metricDay -RequestedAt ([DateTimeOffset]::Parse($dailyQueue.requestedAt))
+  if ($dailyCheck.ok) { $supplierBatch=Get-SupplierRowMetrics -Catalog $catalog -Rows @(Read-SupplierCsvRows $dailyQueue.filename) -AsOfDay $metricDay }
+}
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
 }
