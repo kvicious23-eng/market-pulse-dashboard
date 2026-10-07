@@ -58,7 +58,7 @@ el('match-csv').addEventListener('click',()=>{
     const p=document.createElement('p');p.textContent=`일치 후보 ${result.matchedProductCount}/${catalog.products.length}개 상품 · ${result.matched.length}행. 여러 상품과 일치해 제외한 행 ${result.ambiguous.length}개. 중복 행은 합산하지 않아.`;el('csv-match-result').append(p);
     if(result.unmatchedProducts.length){const missing=document.createElement('p');missing.textContent='미매칭: '+result.unmatchedProducts.map(p=>`${p.brand} ${p.mtm}`).join(', ');el('csv-match-result').append(missing);}
     if(el('match-mode').value==='skuId'){
-      const absent=catalog.products.filter(p=>!p.skuId);const note=document.createElement('p');note.textContent='기존 상품코드와 SKUID 정확 일치로 대조했어. 선택한 카탈로그에서 상품코드를 읽지 못한 상품 '+absent.length+'개'+(absent.length?': '+absent.map(p=>p.brand+' '+p.mtm).join(', '):'')+'. 상품명·Item ID로 자동 대체하지 않아.';el('csv-match-result').append(note);
+      const absent=catalog.products.filter(p=>!p.skuId);const note=document.createElement('p');note.textContent='SKUID 정확 일치로 대조했어. 카탈로그에 SKUID가 없는 상품 '+absent.length+'개'+(absent.length?': '+absent.map(p=>p.brand+' '+p.mtm).join(', '):'')+'. 최초 등록 후 저장한 최신 카탈로그를 선택해. 상품명·Item ID로 자동 대체하지 않아.';el('csv-match-result').append(note);
     }
     const caution=document.createElement('p');caution.textContent='원본 행을 보존한 후보 추출이야. 파일의 재고 열·기준일·창고·SKU 의미를 확인한 뒤 계산 규칙을 정해야 해.';el('csv-match-result').append(caution);
     el('export-matched').disabled=result.matched.length===0;

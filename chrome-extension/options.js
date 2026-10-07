@@ -12,11 +12,19 @@ function parseCoupangUrl(value){
   }catch{return {productId:'',itemId:'',vendorItemId:''};}
 }
 function money(value){return String(value||'').replace(/[^0-9]/g,'');}
+function isSkuKey(key){return ['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase());}
+function registeredSku(product){
+  if(typeof product.skuId==='string'&&product.skuId.trim())return product.skuId.trim();
+  const entry=Object.entries(product).find(([key,value])=>isSkuKey(key)&&value!==null&&value!==undefined&&String(value).trim());
+  return entry?String(entry[1]).trim():'';
+}
 function validate(product,index){
   const errors=[];
   if(!product.brand)errors.push('Brand 필요');
   if(!product.mtm)errors.push('MTM 필요');
   if(!product.productId||!product.itemId||!product.vendorItemId)errors.push('쿠팡 URL의 ID 3개 필요');
+  if(product.skuId&&!/^\d+$/.test(product.skuId))errors.push('SKUID는 숫자로 입력');
+  if(product.enabled!==false&&product.skuId&&products.some((x,i)=>i!==index&&x.enabled!==false&&registeredSku(x)===product.skuId))errors.push('활성 상품 SKUID 중복');
   if(products.some((x,i)=>i!==index&&x.itemId===product.itemId))errors.push('Item ID 중복');
   if(products.some((x,i)=>i!==index&&x.vendorItemId===product.vendorItemId))errors.push('VendorItem ID 중복');
   if(products.some((x,i)=>i!==index&&x.brand.toLowerCase()===product.brand.toLowerCase()&&x.mtm.toLowerCase()===product.mtm.toLowerCase()))errors.push('브랜드·MTM 중복');
@@ -27,8 +35,10 @@ function validate(product,index){
 }
 function readCard(card){
   const ids=parseCoupangUrl(card.querySelector('.url').value.trim());
-  // Keep registered product codes and other metadata that have no editable field.
-  return {...products[Number(card.dataset.index)],brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),enuriUrl:card.querySelector('.enuriUrl').value.trim(),...ids};
+  const previous={...products[Number(card.dataset.index)]},skuId=card.querySelector('.skuId').value.trim();
+  // A single editor updates existing aliases too, preserving unrelated metadata.
+  for(const key of Object.keys(previous))if(isSkuKey(key))previous[key]=skuId;
+  return {...previous,skuId,brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),enuriUrl:card.querySelector('.enuriUrl').value.trim(),...ids};
 }
 function syncCard(card,index){
   const p=readCard(card); products[index]=p;
@@ -44,6 +54,7 @@ function render(){
     if(query&&!`${p.brand} ${p.mtm}`.toLowerCase().includes(query))return;
     const card=template.content.firstElementChild.cloneNode(true);card.dataset.index=index;
     for(const key of ['brand','category','mtm','url','danawaUrl','enuriUrl'])card.querySelector('.'+key).value=p[key]??'';
+    card.querySelector('.skuId').value=registeredSku(p);
     card.querySelector('.srp').value=p.srp?Number(p.srp).toLocaleString('ko-KR'):'';card.querySelector('.enabled').checked=p.enabled!==false;
     card.querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>syncCard(card,index)));
     card.querySelector('.remove').addEventListener('click',()=>{if(confirm(`${p.mtm||'이 상품'}을 목록에서 제거할까?`)){products.splice(index,1);render();}});

@@ -44,15 +44,28 @@ assert.equal(readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1'
 assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',SKUID:'123',productCode:'456'}]})),/catalog_sku_conflict/);
 assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',SKUID:'123'},{brand:'B',mtm:'M2',productCode:'123'}]})),/catalog_duplicate_sku_id/);
 
-// Editing visible fields must preserve the existing code, without a second input.
+// One SKU editor supports first registration and preserves existing metadata.
 const editor=readFileSync(new URL('../chrome-extension/options.js',import.meta.url),'utf8');
 const previous={SKUID:'00080556250',productCode:'00080556250',registrationNote:'keep existing metadata'};
 const readEditor=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nreadCard;', {URL,products:[previous]});
-const inputs={brand:'Godox',category:'Camera',mtm:'c100',srp:'42000',url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',danawaUrl:'',enuriUrl:''};
-const product=readEditor({dataset:{index:'0'},querySelector:s=>{if(s==='.enabled')return {checked:true};assert.ok(s.slice(1) in inputs,'No new SKU input');return {value:inputs[s.slice(1)]};}});
+const inputs={brand:'Godox',category:'Camera',mtm:'c100',skuId:' 00080556250 ',srp:'42000',url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',danawaUrl:'',enuriUrl:''};
+const fakeCard={dataset:{index:'0'},querySelector:s=>{if(s==='.enabled')return {checked:true};return {value:inputs[s.slice(1)]};}};
+const product=readEditor(fakeCard);
 assert.equal(product.SKUID,'00080556250');assert.equal(product.productCode,'00080556250');assert.equal(product.registrationNote,previous.registrationNote);assert.equal(product.mtm,'C100');
 assert.equal(readCatalog(JSON.stringify({version:1,products:[product]})).products[0].skuId,'00080556250');
-assert.doesNotMatch(readFileSync(new URL('../chrome-extension/options.html',import.meta.url),'utf8'),/class="skuId"/);
+assert.equal(product.skuId,'00080556250');
+assert.equal(readFileSync(new URL('../chrome-extension/options.html',import.meta.url),'utf8').match(/class="skuId"/g).length,1);
+inputs.skuId='00999';const edited=readEditor(fakeCard);assert.equal(edited.SKUID,'00999');assert.equal(edited.productCode,'00999');assert.equal(edited.skuId,'00999');assert.equal(edited.registrationNote,previous.registrationNote);
+assert.equal(readCatalog(JSON.stringify({version:1,products:[edited]})).products[0].skuId,'00999','Existing aliases cannot become conflicting stale codes');
+const readNew=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nreadCard;', {URL,products:[{}]});
+assert.equal(readNew(fakeCard).skuId,'00999','First registration is stored');
+inputs.skuId='';assert.equal(readNew(fakeCard).skuId,'','SKU is optional for price collection');
+const other={...product,brand:'Other',mtm:'OTHER',skuId:'00080556250',SKUID:'00080556250',itemId:'1',vendorItemId:'2'};
+const editorValidate=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nvalidate;', {URL,products:[product,other]});
+assert.equal(editorValidate(product,0).includes('활성 상품 SKUID 중복'),true);
+other.enabled=false;assert.equal(editorValidate(product,0).includes('활성 상품 SKUID 중복'),false);
+assert.equal(editorValidate({...product,skuId:'bad-code'},0).includes('SKUID는 숫자로 입력'),true);
+assert.equal(editorValidate({...product,skuId:''},0).includes('SKUID는 숫자로 입력'),false);
 const worker=readFileSync(new URL('../chrome-extension/background.js',import.meta.url),'utf8');
 const validateWorker=vm.runInNewContext('('+worker.slice(worker.indexOf('function validateProductCatalog('),worker.indexOf('\nconst wait ='))+')',{URL});
 assert.equal(validateWorker([product]).length,0);assert.equal(validateWorker([{...product,SKUID:'unresolved legacy code'}]).length,0,'CSV metadata must not block price scans');
