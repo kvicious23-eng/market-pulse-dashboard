@@ -45,6 +45,11 @@ on:
       - "scripts/test-brand-lifecycle.ps1"
       - "scripts/test-archived-brand.mjs"
       - "chrome-extension/**"
+      - "supplier-hub-extension/**"
+      - "supplier-hub-native/**"
+      - "scripts/install-supplier-hub-connector.ps1"
+      - "scripts/test-supplier-auth.mjs"
+      - "scripts/test-supplier-native.ps1"
       - "PROJECT_RULES.md"
 permissions:
   contents: write
@@ -93,6 +98,8 @@ jobs:
           node --check chrome-extension/fallback.js
           node --check chrome-extension/options.js
           node --check chrome-extension/popup.js
+          node --input-type=module --check < supplier-hub-extension/background.js
+          node --input-type=module --check < supplier-hub-extension/options.js
           node --check scripts/validate-market-data.mjs
           node --check scripts/test-discount-rules.mjs
           node --check scripts/test-history-export.mjs
@@ -128,6 +135,7 @@ jobs:
           node scripts/test-competitor-rows.mjs
           node scripts/test-competitor-history.mjs
           node scripts/test-canonical-routes.mjs
+          node scripts/test-supplier-auth.mjs
       - name: Verify audited history correction
         shell: pwsh
         run: ./scripts/test-history-corrections.ps1
@@ -169,6 +177,7 @@ jobs:
           ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
+          ./scripts/test-supplier-native.ps1
 
   deploy:
     needs: [update, windows_history]
@@ -190,4 +199,3 @@ jobs:
       - name: Deploy dashboard
         id: deployment
         uses: actions/deploy-pages@v5
-

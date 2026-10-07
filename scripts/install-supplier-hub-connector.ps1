@@ -1,0 +1,26 @@
+﻿param([string]$RepoPath = (Split-Path $PSScriptRoot -Parent))
+$ErrorActionPreference = 'Stop'
+$manifest = Get-Content (Join-Path $RepoPath 'supplier-hub-extension\manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$key = [Convert]::FromBase64String($manifest.key)
+$hash = [Security.Cryptography.SHA256]::Create()
+try { $bytes = $hash.ComputeHash($key) } finally { $hash.Dispose() }
+$extensionId = -join (0..15 | ForEach-Object { [char](97 + ($bytes[$_] -shr 4)); [char](97 + ($bytes[$_] -band 15)) })
+$origin = 'chrome-extension://' + $extensionId + '/'
+$installPath = Join-Path $env:LOCALAPPDATA 'MarketPulse\SupplierHub'
+New-Item -ItemType Directory -Force -Path $installPath | Out-Null
+$exe = Join-Path $installPath 'SupplierHubHost.exe'
+$source = (Get-Content (Join-Path $RepoPath 'supplier-hub-native\Program.cs') -Raw -Encoding UTF8).Replace('__EXTENSION_ORIGIN__', $origin)
+$build = Join-Path $installPath ('SupplierHubHost-' + [Guid]::NewGuid().ToString('N') + '.exe')
+Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies @('System.dll','System.Core.dll','System.Web.Extensions.dll','System.Windows.Forms.dll','System.Drawing.dll') -OutputAssembly $build -OutputType ConsoleApplication
+# Compile first. A running settings window may prevent replacement; preserve the existing host on failure.
+try { Move-Item -LiteralPath $build -Destination $exe -Force } catch { Remove-Item -LiteralPath $build -Force; throw 'Close the Supplier Hub account settings window and run the installer again.' }
+$hostManifest = Join-Path $installPath 'com.marketpulse.supplierhub.json'
+@{name='com.marketpulse.supplierhub';description='Market Pulse Supplier Hub local credential connector';path=$exe;type='stdio';allowed_origins=@($origin)} | ConvertTo-Json | Set-Content -LiteralPath $hostManifest -Encoding UTF8
+$registry = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.marketpulse.supplierhub'
+New-Item -Path $registry -Force | Out-Null
+Set-Item -Path $registry -Value $hostManifest
+Write-Host 'Supplier Hub local connector installed for this Windows user.'
+Write-Host ('Chrome extension folder: ' + (Join-Path $RepoPath 'supplier-hub-extension'))
+Write-Host ('Expected extension ID: ' + $extensionId)
+Write-Host 'Load this folder as a separate unpacked extension. Keep the price scanner as it is.'
+Write-Host 'Open the Supplier Hub connector icon, register the account in its local window, and check the connection.'
