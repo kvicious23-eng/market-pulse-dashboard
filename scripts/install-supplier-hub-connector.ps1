@@ -15,7 +15,8 @@ Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies @('Syste
 # Compile first. A running settings window may prevent replacement; preserve the existing host on failure.
 try { Move-Item -LiteralPath $build -Destination $exe -Force } catch { Remove-Item -LiteralPath $build -Force; throw 'Close the Supplier Hub account settings window and run the installer again.' }
 $hostManifest = Join-Path $installPath 'com.marketpulse.supplierhub.json'
-@{name='com.marketpulse.supplierhub';description='Market Pulse Supplier Hub local credential connector';path=$exe;type='stdio';allowed_origins=@($origin)} | ConvertTo-Json | Set-Content -LiteralPath $hostManifest -Encoding UTF8
+$hostJson = @{name='com.marketpulse.supplierhub';description='Market Pulse Supplier Hub local credential connector';path=$exe;type='stdio';allowed_origins=@($origin)} | ConvertTo-Json
+[IO.File]::WriteAllText($hostManifest, $hostJson, (New-Object Text.UTF8Encoding($false)))
 $registry = 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.marketpulse.supplierhub'
 New-Item -Path $registry -Force | Out-Null
 Set-Item -Path $registry -Value $hostManifest
