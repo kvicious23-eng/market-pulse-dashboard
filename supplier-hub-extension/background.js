@@ -11,7 +11,11 @@ async function probe(id) {
   for(let i=0;i<8;i++) {
     const t=await tab(id); if(!t || !permittedUrl(t.url)) return {state:'unverified'};
     if(t.status==='complete') {
-      try { return (await chrome.scripting.executeScript({target:{tabId:id},func:inspectSupplierPage}))[0]?.result||{state:'unverified'}; } catch { /* redirect may still be in progress */ }
+      try {
+        const result=(await chrome.scripting.executeScript({target:{tabId:id},func:inspectSupplierPage}))[0]?.result;
+        if(result && result.state!=='unverified') return result;
+        // The document can be complete before Supplier Hub renders its app.
+      } catch { /* redirect may still be in progress */ }
     }
     await delay(750);
   }

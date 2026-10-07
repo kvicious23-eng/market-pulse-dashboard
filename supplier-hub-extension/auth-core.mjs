@@ -38,7 +38,7 @@ export class SupplierConnector {
       // Only the connector's own tab is refreshed; xauth challenge/login pages are left in place.
       if(!opened && new URL(tab.url||ENTRY).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
       let p=await this.io.probe(tab.id);
-      if(p.state==='authenticated') return this.state('connected','supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
+      if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
       if(p.state==='verification') return this.state('verification_required','additional_verification');
       if(p.state==='access_blocked') return this.state('access_blocked','access_message');
       if(p.state==='credential_error') return this.state('login_failed','credential_error');
@@ -61,7 +61,7 @@ export class SupplierConnector {
       } finally { if(credential) { credential.password=''; credential.username=''; } credential=null; }
       for(let i=0;i<15;i++) {
         await this.io.sleep(2000); p=await this.io.probe(tab.id);
-        if(p.state==='authenticated') return this.state('connected','relogin_confirmed',{blockedVersion:'',pendingAttempt:false});
+        if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'relogin_dashboard_confirmed':'relogin_confirmed',{blockedVersion:'',pendingAttempt:false});
         if(p.state==='verification') return this.state('verification_required','additional_verification',{pendingAttempt:false});
         if(p.state==='access_blocked') return this.state('access_blocked','access_message',{pendingAttempt:false});
         if(p.state==='credential_error') return this.state('login_failed','credential_error',{pendingAttempt:false});
@@ -93,7 +93,12 @@ export function inspectSupplierPage() {
   }
   if(u.hostname==='supplier.coupang.com' && !password && !/\/login(?:\/|$)/.test(u.pathname)) {
     const logout=[...document.querySelectorAll('a,button,[role="button"]')].some(e=>visible(e)&&/^(로그아웃|logout|log out)$/i.test((e.innerText||e.getAttribute('aria-label')||'').trim()));
-    if(logout) return {state:'authenticated'};
+    if(logout) return {state:'authenticated',evidence:'logout_control'};
+    // Observed Korean Supplier Hub dashboard: the account menu can hide Logout.
+    // Require several rendered dashboard sections together, never the URL alone.
+    const dashboard=/^\/dashboard\/KR\/?$/.test(u.pathname);
+    const sections=[/필수\s*진행\s*사항/,/납품률/,/입고\s*기준\s*미준수/,/마이샵/];
+    if(dashboard && sections.every(pattern=>pattern.test(text))) return {state:'authenticated',evidence:'supplier_dashboard_widgets'};
   }
   return {state:'unverified'};
 }

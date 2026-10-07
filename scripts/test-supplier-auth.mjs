@@ -46,6 +46,17 @@ try {
   form.action=official.replace('supplier-hub','other-client');global.location.href=form.action;assert.equal(inspectSupplierPage().state,'unverified');assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
   form.action=official;global.location.href='https://evil.test/';assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
   global.location.href='https://supplier.coupang.com/dashboard/KR';global.document.querySelectorAll=s=>s==='a,button,[role="button"]'?[{getClientRects:()=>[{}],innerText:'로그아웃'}]:[];assert.equal(inspectSupplierPage().state,'authenticated');
+  global.document.querySelectorAll=()=>[];
+  body='';assert.equal(inspectSupplierPage().state,'unverified','Dashboard URL alone is insufficient');
+  const sections=['필수진행사항 (90)','납품률','입고기준 미준수','마이샵'];
+  body=sections.join(' ');assert.equal(inspectSupplierPage().evidence,'supplier_dashboard_widgets');
+  for(let i=0;i<sections.length;i++){body=sections.filter((_,j)=>i!==j).join(' ');assert.equal(inspectSupplierPage().state,'unverified','Missing dashboard section must remain unverified');}
+  body=sections.join(' ');global.location.href='https://supplier.coupang.com/login';assert.equal(inspectSupplierPage().state,'unverified');
+  global.location.href='https://evil.test/dashboard/KR';assert.equal(inspectSupplierPage().state,'unverified');
+  global.location.href='https://supplier.coupang.com/dashboard/KR';
+  for(const [phrase,state] of [['보안 문자','verification'],['접근이 제한','access_blocked'],['Invalid username or password','credential_error']]){body=sections.join(' ')+' '+phrase;assert.equal(inspectSupplierPage().state,state);}
+  body=sections.join(' ');global.document.querySelectorAll=s=>s==='input[type="password"]'?[password]:[];assert.equal(inspectSupplierPage().state,'unverified','Visible login form excludes dashboard recognition');
+  f=fixture(['authenticated'],{pendingAttempt:true,blockedVersion:'v1'});f.io.probe=async()=>({state:'authenticated',evidence:'supplier_dashboard_widgets'});assert.equal((await f.connector.check()).reason,'supplier_dashboard_confirmed');assert.equal(f.get().submits,0);assert.equal(f.get().saved.blockedVersion,'');
 } finally {Object.assign(global,original);}
 const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));
 const id=[...createHash('sha256').update(Buffer.from(manifest.key,'base64')).digest().subarray(0,16)].map(b=>String.fromCharCode(97+(b>>4),97+(b&15))).join('');
