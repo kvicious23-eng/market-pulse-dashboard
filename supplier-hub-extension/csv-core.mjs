@@ -54,12 +54,26 @@ export function readCsv(text,{delimiter='auto',headerRow=1}={}) {
   return {headers,rows,delimiter,headerRow};
 }
 
+function registeredSku(product) {
+  const values=[];
+  for(const [key,raw] of Object.entries(product)) {
+    if(!['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase()))continue;
+    if(raw===undefined||raw===null||raw==='')continue;
+    // Safely read existing numeric codes; never round a long numeric identifier.
+    if(typeof raw==='number'&&(!Number.isSafeInteger(raw)||raw<0))fail('catalog_sku_invalid');
+    if(typeof raw!=='string'&&typeof raw!=='number')fail('catalog_sku_invalid');
+    const value=String(raw).trim();if(!value)continue;
+    if(!/^\d+$/.test(value))fail('catalog_sku_invalid');values.push(value);
+  }
+  if(new Set(values).size>1)fail('catalog_sku_conflict');
+  return values[0]||'';
+}
+
 export function readCatalog(text) {
   let value;try{value=JSON.parse(String(text).replace(/^\ufeff/,''));}catch{fail('catalog_invalid');}
   if(value?.version!==1||!Array.isArray(value.products)||value.products.length>10000)fail('catalog_invalid');
   if(value.products.some(p=>!p||typeof p!=='object'||Array.isArray(p)||(p.enabled!==undefined&&typeof p.enabled!=='boolean')))fail('catalog_invalid');
-  if(value.products.some(p=>p.skuId!==undefined&&(typeof p.skuId!=='string'||(p.skuId.trim()!==''&&!/^\d+$/.test(p.skuId.trim())))))fail('catalog_sku_invalid');
-  const products=value.products.filter(p=>p?.enabled!==false).map(p=>({brand:typeof p.brand==='string'?p.brand.trim():'',mtm:typeof p.mtm==='string'?p.mtm.trim().toUpperCase():'',skuId:typeof p.skuId==='string'?p.skuId.trim():'',itemId:typeof p.itemId==='string'?p.itemId.trim():'',vendorItemId:typeof p.vendorItemId==='string'?p.vendorItemId.trim():''}));
+  const products=value.products.filter(p=>p?.enabled!==false).map(p=>({brand:typeof p.brand==='string'?p.brand.trim():'',mtm:typeof p.mtm==='string'?p.mtm.trim().toUpperCase():'',skuId:registeredSku(p),itemId:typeof p.itemId==='string'?p.itemId.trim():'',vendorItemId:typeof p.vendorItemId==='string'?p.vendorItemId.trim():''}));
   const keys=new Set();for(const p of products){const key=p.brand.toUpperCase()+'|'+p.mtm;if(!p.brand||!p.mtm||keys.has(key))fail('catalog_invalid');keys.add(key);}
   const skuIds=new Set();for(const p of products){if(!p.skuId)continue;if(skuIds.has(p.skuId))fail('catalog_duplicate_sku_id');skuIds.add(p.skuId);}
   return {products,savedAt:typeof value.savedAt==='string'?value.savedAt:''};

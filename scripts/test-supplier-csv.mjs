@@ -34,21 +34,33 @@ assert.equal(skuResult.matched.length,3);assert.equal(skuResult.matchedProductCo
 assert.equal(skuResult.matched[0].product.skuId,'00080556250');assert.equal(skuResult.matched[2].product.skuId,'12345678901234567890');
 assert.equal(readCsv(matchedCsv(skuTable,skuResult)).rows[0][3],'00080556250');
 assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',skuId:'123'},{brand:'B',mtm:'M2',skuId:'123'}]})),/catalog_duplicate_sku_id/);
-for(const skuId of [123,'1e10','123.0'])assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',skuId}]})),/catalog_sku_invalid/);
+for(const skuId of [Number.MAX_SAFE_INTEGER+1,'1e10','123.0'])assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',skuId}]})),/catalog_sku_invalid/);
+for(const key of ['SKUID','sku_id','SKU ID','productCode','Product_Code','상품코드']) {
+  const existing=readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',[key]:' 00080556250 '}]}));
+  assert.equal(existing.products[0].skuId,'00080556250');
+  assert.equal(matchCatalog(skuTable,existing,{column:0,mode:'skuId'}).matched.length,2);
+}
+assert.equal(readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',SKUID:80556250}]})).products[0].skuId,'80556250');
+assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',SKUID:'123',productCode:'456'}]})),/catalog_sku_conflict/);
+assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',SKUID:'123'},{brand:'B',mtm:'M2',productCode:'123'}]})),/catalog_duplicate_sku_id/);
 
-// Exercise actual product editor input, persisted targets and worker validation.
+// Editing visible fields must preserve the existing code, without a second input.
 const editor=readFileSync(new URL('../chrome-extension/options.js',import.meta.url),'utf8');
-const readEditor=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nreadCard;', {URL});
-const inputs={brand:'Godox',category:'Camera',mtm:'c100',skuId:' 00080556250 ',srp:'42000',url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',danawaUrl:'',enuriUrl:''};
-const product=readEditor({querySelector:s=>s==='.enabled'?{checked:true}:{value:inputs[s.slice(1)]}});assert.equal(product.skuId,'00080556250');assert.equal(product.mtm,'C100');
+const previous={SKUID:'00080556250',productCode:'00080556250',registrationNote:'keep existing metadata'};
+const readEditor=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nreadCard;', {URL,products:[previous]});
+const inputs={brand:'Godox',category:'Camera',mtm:'c100',srp:'42000',url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',danawaUrl:'',enuriUrl:''};
+const product=readEditor({dataset:{index:'0'},querySelector:s=>{if(s==='.enabled')return {checked:true};assert.ok(s.slice(1) in inputs,'No new SKU input');return {value:inputs[s.slice(1)]};}});
+assert.equal(product.SKUID,'00080556250');assert.equal(product.productCode,'00080556250');assert.equal(product.registrationNote,previous.registrationNote);assert.equal(product.mtm,'C100');
+assert.equal(readCatalog(JSON.stringify({version:1,products:[product]})).products[0].skuId,'00080556250');
+assert.doesNotMatch(readFileSync(new URL('../chrome-extension/options.html',import.meta.url),'utf8'),/class="skuId"/);
 const worker=readFileSync(new URL('../chrome-extension/background.js',import.meta.url),'utf8');
 const validateWorker=vm.runInNewContext('('+worker.slice(worker.indexOf('function validateProductCatalog('),worker.indexOf('\nconst wait ='))+')',{URL});
-assert.equal(validateWorker([product]).length,0);assert.equal(validateWorker([{...product,skuId:80556250}]).some(e=>e.includes('sku-id-invalid')),true);
-const second={...product,brand:'Other',mtm:'OTHER',itemId:'1',vendorItemId:'2',url:'https://www.coupang.com/vp/products/9738958594?itemId=1&vendorItemId=2'};
-assert.equal(validateWorker([product,second]).some(e=>e.includes('duplicate-sku-id')),true);assert.equal(validateWorker([product,{...second,enabled:false}]).some(e=>e.includes('duplicate-sku-id')),false);
+assert.equal(validateWorker([product]).length,0);assert.equal(validateWorker([{...product,SKUID:'unresolved legacy code'}]).length,0,'CSV metadata must not block price scans');
 const getTargets=vm.runInNewContext(worker.slice(0,worker.indexOf('function validateProductCatalog('))+'\ngetTargets;', {chrome:{storage:{local:{get:async()=>({products:[product]})}}}});
-assert.equal((await getTargets())[0].skuId,'00080556250');
-assert.match(worker,/configuredTargets\.filter\(x=>x\.enabled!==false\)\.map\(\(\{skuId,\.\.\.target\}\)=>target\)/,'SKUID is excluded from price JSON');
+assert.equal((await getTargets())[0].SKUID,'00080556250');
+const priceTargets=vm.runInNewContext(worker.match(/const targets=configuredTargets[^\n]+/)[0]+'\ntargets;', {configuredTargets:[{...product,skuId:'00080556250','상품코드':'00080556250'}]});
+assert.equal(priceTargets[0].itemId,product.itemId);assert.equal(priceTargets[0].mtm,'C100');
+for(const key of ['SKUID','productCode','skuId','상품코드'])assert.equal(key in priceTargets[0],false,'Local SKU code excluded from price JSON');
 
 const original={document:global.document,location:global.location,getComputedStyle:global.getComputedStyle,chrome:global.chrome};
 try {

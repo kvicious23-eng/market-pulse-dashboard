@@ -33,7 +33,7 @@ async function getTargets() {
 function validateProductCatalog(products) {
   if(!Array.isArray(products)) return ['product-catalog-is-not-an-array'];
   const errors=[];
-  const seenItemIds=new Set(),seenVendorItemIds=new Set(),seenBrandMtms=new Set(),seenSkuIds=new Set(),slugOwners=new Map();
+  const seenItemIds=new Set(),seenVendorItemIds=new Set(),seenBrandMtms=new Set(),slugOwners=new Map();
   for(const [index,product] of products.entries()){
     const label=String(product?.mtm||`row-${index+1}`).trim();
     const brand=String(product?.brand||'').trim();
@@ -41,9 +41,6 @@ function validateProductCatalog(products) {
     const productId=String(product?.productId||'').trim();
     const itemId=String(product?.itemId||'').trim();
     const vendorItemId=String(product?.vendorItemId||'').trim();
-    const skuId=product?.skuId;
-    if(skuId!==undefined&&(typeof skuId!=='string'||(skuId!==''&&!/^\d+$/.test(skuId)))) errors.push(label+':sku-id-invalid');
-    if(product?.enabled!==false&&skuId){if(seenSkuIds.has(skuId)) errors.push(label+':duplicate-sku-id');else seenSkuIds.add(skuId);}
     if(!brand||!mtm||!productId||!itemId||!vendorItemId) errors.push(`${label}:required-fields-missing`);
     try{
       const url=new URL(String(product?.url||''));
@@ -913,7 +910,7 @@ async function scanAll(scanSlot) {
     const configuredTargets=await withScanTimeout(getTargets(),15000,'scan-targets');
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
-    const targets=configuredTargets.filter(x=>x.enabled!==false).map(({skuId,...target})=>target);
+    const targets=configuredTargets.filter(x=>x.enabled!==false).map(product=>Object.fromEntries(Object.entries(product).filter(([key])=>!['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase()))));
     for (const target of targets) {
       let tab;
       await progress(target.mtm,'coupang-load',targets.length);

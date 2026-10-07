@@ -3,7 +3,8 @@ const el=id=>document.getElementById(id);
 let bytes=null,table=null,catalog=null,result=null,revision=0,catalogRevision=0;
 const errors={csv_too_large:'CSV는 32MB·20만 행·200만 셀 이내로 선택해줘.',csv_encoding_invalid:'문자 인코딩을 선택해줘.',csv_decode_failed:'파일의 문자 인코딩을 확인해줘. UTF-8 또는 한국어(EUC-KR)를 선택할 수 있어.',csv_delimiter_invalid:'구분자를 선택해줘.',csv_invalid_quotes:'CSV의 따옴표 구조를 읽지 못했어. 원본 CSV와 구분자를 확인해줘.',csv_header_invalid:'머리글 행은 1~100 사이로 입력해줘.',csv_header_missing:'머리글 행을 찾지 못했어.',csv_column_mismatch:'머리글과 열 개수가 다른 행이 있어. 머리글 행·구분자를 확인해줘.',catalog_invalid:'Market Pulse에서 저장한 최신 product-catalog.json을 선택해줘.',csv_match_column_required:'CSV에서 상품을 대조할 열을 선택해줘.',csv_match_mode_invalid:'대조 방식을 선택해줘.'};
 function error(e){el('csv-status').textContent=errors[e.message]||'파일을 읽지 못했어. 파일과 설정을 확인해줘.';}
-errors.catalog_sku_invalid='카탈로그의 SKUID는 숫자 문자열로 저장해야 해. Market Pulse 상품 관리에서 확인해줘.';
+errors.catalog_sku_invalid='기존 상품코드가 올바른 SKUID인지 확인해줘. 긴 ID는 숫자 문자열로 보존해야 해.';
+errors.catalog_sku_conflict='같은 상품에 저장된 SKUID와 상품코드가 서로 달라. 기존 등록 값의 출처를 확인해줘.';
 errors.catalog_duplicate_sku_id='여러 활성 상품에 같은 SKUID가 등록돼 있어. 매핑을 수정한 뒤 카탈로그를 다시 저장해줘.';
 function selectSkuColumn(){
   if(!table||el('match-mode').value!=='skuId')return;
@@ -57,7 +58,7 @@ el('match-csv').addEventListener('click',()=>{
     const p=document.createElement('p');p.textContent=`일치 후보 ${result.matchedProductCount}/${catalog.products.length}개 상품 · ${result.matched.length}행. 여러 상품과 일치해 제외한 행 ${result.ambiguous.length}개. 중복 행은 합산하지 않아.`;el('csv-match-result').append(p);
     if(result.unmatchedProducts.length){const missing=document.createElement('p');missing.textContent='미매칭: '+result.unmatchedProducts.map(p=>`${p.brand} ${p.mtm}`).join(', ');el('csv-match-result').append(missing);}
     if(el('match-mode').value==='skuId'){
-      const absent=catalog.products.filter(p=>!p.skuId);const note=document.createElement('p');note.textContent='SKUID 정확 일치로 대조했어. SKUID 미등록 '+absent.length+'개'+(absent.length?': '+absent.map(p=>p.brand+' '+p.mtm).join(', '):'')+'. 상품명·Item ID로 자동 대체하지 않아.';el('csv-match-result').append(note);
+      const absent=catalog.products.filter(p=>!p.skuId);const note=document.createElement('p');note.textContent='기존 상품코드와 SKUID 정확 일치로 대조했어. 선택한 카탈로그에서 상품코드를 읽지 못한 상품 '+absent.length+'개'+(absent.length?': '+absent.map(p=>p.brand+' '+p.mtm).join(', '):'')+'. 상품명·Item ID로 자동 대체하지 않아.';el('csv-match-result').append(note);
     }
     const caution=document.createElement('p');caution.textContent='원본 행을 보존한 후보 추출이야. 파일의 재고 열·기준일·창고·SKU 의미를 확인한 뒤 계산 규칙을 정해야 해.';el('csv-match-result').append(caution);
     el('export-matched').disabled=result.matched.length===0;
