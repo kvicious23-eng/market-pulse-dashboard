@@ -404,6 +404,33 @@
     }, 300000);
   }
 
+  function renderSupplierMetrics(product) {
+    const metric=product.supplierMetrics || {};
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+    const today=`${parts.year}-${parts.month}-${parts.day}`;
+    const previous=new Date(`${today}T00:00:00Z`);previous.setUTCDate(previous.getUTCDate()-1);
+    const expected=previous.toISOString().slice(0,10);
+    const current=metric.asOfDate===expected;
+    const reasons={
+      'sku-unregistered':'SKUID 등록 필요','sku-invalid':'SKUID 확인 필요','sku-conflict':'SKUID 확인 필요','sku-duplicate':'SKUID 중복',
+      'csv-missing':'CSV 다운로드 필요','csv-invalid':'CSV 확인 필요','sku-not-found':'미확인 · CSV에 해당 SKU 없음',
+      'date-missing':'전일 자료 없음','period-incomplete':'월 자료 일부 누락','duplicate-row':'CSV 중복 행 확인','value-invalid':'수량 확인 필요',pending:'연결 준비',stale:'자료 갱신 필요'
+    };
+    const definitions=[['재고','stock','stockStatus'],['판매','dailySales','dailySalesStatus'],['월판매','monthSales','monthSalesStatus']];
+    const tiles=definitions.map(([label,key,statusKey])=>{
+      const status=current?(metric[statusKey]||'pending'):(metric.asOfDate?'stale':'pending');
+      const valid=status==='confirmed'&&Number.isSafeInteger(metric[key]);
+      const period=key==='monthSales'?(metric.monthThrough<`${metric.month}-01`?`${metric.month}월 누적 · 아직 집계일 없음`:`${metric.month}-01 ~ ${metric.monthThrough}`):metric.asOfDate;
+      const detail=valid?`${period} · 모든 센터 합계 · ${key==='stock'?'현재재고수량':'출고수량 기준'} · 단위 개`:(reasons[status]||'확인 필요');
+      return `<span class="supplier-metric${valid?'':' supplier-metric--pending'}" title="${escapeHtml(detail)}"><span>${label}</span><strong>${valid?metric[key].toLocaleString('ko-KR'):'—'}</strong></span>`;
+    }).join('');
+    const statuses=definitions.map(([,key])=>current?(metric[`${key}Status`]||'pending'):(metric.asOfDate?'stale':'pending'));
+    const issues=[...new Set(statuses.filter(s=>s!=='confirmed'))];
+    const periodNote=`${expected.slice(5).replace('-','/')} 기준 · ${Number(parts.month)}월 누적 · 개`;
+    const note=issues.map(s=>reasons[s]||'확인 필요').join(' · ');
+    return `<span class="supplier-metrics" aria-label="재고 및 판매 수량">${tiles}</span><small class="supplier-metrics-note" title="판매·월판매는 출고수량 기준">${escapeHtml(periodNote)}</small>${note?`<small class="supplier-metrics-note supplier-metrics-note--pending">${escapeHtml(note)}</small>`:''}`;
+  }
+
   function renderCards() {
     const rows = data.products.map((product) => {
       const mine = productStats(product).mine || {};
@@ -421,6 +448,7 @@
           <span class="overview-model" data-label="내 쿠팡상품">
             <strong>${escapeHtml(product.mtm)}</strong><small>${escapeHtml(product.storage)} · ${escapeHtml(product.display)}</small>
             <i class="overview-status ${offerStatus(mine) !== "현재가 직접 확인" || mine.alertEligible !== true ? "overview-status--soldout" : ""}">${escapeHtml(offerStatus(mine))}</i>
+            ${renderSupplierMetrics(product)}
           </span>
           <span class="overview-stack" data-label="가격 기준">
             <span><small>SRP</small>${Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : '<span class="unknown">미입력</span>'}</span>
@@ -659,4 +687,3 @@
   watchForPublishedData();
   window.MarketPulse = { productStats, formatWon, exportMyProducts, getActiveMtm: () => activeMtm };
 })();
-

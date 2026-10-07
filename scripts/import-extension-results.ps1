@@ -194,6 +194,10 @@ if ($scanKst -in $retiredScanTimes) {
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
+. (Join-Path $PSScriptRoot 'supplier-metrics.ps1')
+$metricDay=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
+$metricPublishedAt=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
+$supplierBatch=Get-SupplierMetricBatch -Catalog $catalog -CsvFolders @((Split-Path -Parent $resultFolder),$resultFolder) -AsOfDay $metricDay
 function Decode-Utf8([string]$value) {
   return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($value))
 }
@@ -408,7 +412,18 @@ foreach ($spec in $specs) {
   }
 }
 if ($alreadyImported) {
-  Write-Host "This scan was already imported at $scanKst; retrying the pending push."
+  # New CSVs or SKU registrations can refresh the three approved metrics without
+  # recalculating a price scan against itself or adding duplicate history rows.
+  foreach ($spec in $specs) {
+    $existingPath=Join-Path $RepoPath $spec.Path
+    $existingData=Read-Data $existingPath
+    if (Set-BrandSupplierMetrics -Data $existingData -Batch $supplierBatch -PublishedAt $metricPublishedAt) { Write-Data $existingPath $existingData }
+  }
+  Invoke-Git -Arguments @('add','--','brand') | Out-Null
+  $metricDiff=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
+  if ($metricDiff -eq 1) { Invoke-Git -Arguments @('commit','-m','data: refresh Supplier Hub product metrics') | Out-Null }
+  Write-Host "This price scan was already imported at $scanKst; publishing pending data without repeating price history."
+  Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
   Invoke-Git -Arguments @('push','origin','main') | Out-Null
   return
 }
@@ -768,6 +783,7 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Set-BrandLifecycle -Data $data -Spec $spec -Catalog $catalog
+  [void](Set-BrandSupplierMetrics -Data $data -Batch $supplierBatch -PublishedAt $metricPublishedAt)
   Write-Data $path $data
 }
 if ($historyRows.Count -gt 0) {
@@ -840,4 +856,3 @@ if ($diffExit -eq 1) {
 }
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 Invoke-Git -Arguments @('push','origin','main') | Out-Null
-

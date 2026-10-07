@@ -100,6 +100,13 @@ h1 em { color: var(--green); font-style: normal; }
 .overview-model small { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; }
 .overview-status { width: max-content; margin-top: 10px; padding: 4px 7px; display: block; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-size: 9px; font-style: normal; font-weight: 900; }
 .overview-status--soldout { background: var(--red-soft); color: var(--red); }
+.supplier-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; margin-top: 11px; }
+.supplier-metric { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 7px 5px; border: 1px solid #dcebe2; border-radius: 7px; background: rgba(255,255,255,.8); }
+.supplier-metric > span { color: var(--muted); font-size: 8px; font-weight: 700; }
+.overview-model .supplier-metric strong { color: var(--green-dark); font-size: 11px; font-weight: 900; line-height: 1.3; overflow-wrap: anywhere; }
+.overview-model .supplier-metric--pending strong { color: #89958e; }
+.overview-model > .supplier-metrics-note { display: block; margin-top: 5px; font-size: 8px; line-height: 1.5; white-space: normal; overflow: visible; }
+.overview-model > .supplier-metrics-note--pending { margin-top: 1px; color: #8c6950; }
 .overview-stack { display: grid; align-content: start; gap: 3px; }
 .overview-stack > span { display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
 .overview-stack small { color: var(--muted); font-size: 8px; }

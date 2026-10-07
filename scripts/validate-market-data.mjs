@@ -32,6 +32,17 @@ for(const file of [...new Set(files)]){
     if(!product.itemId) fail(file,`${label}: itemId is missing`);
     if(ids.has(String(product.itemId))) fail(file,`${label}: duplicate itemId ${product.itemId}`);
     ids.add(String(product.itemId));
+    if (product.supplierMetrics) {
+      const metric=product.supplierMetrics;
+      const allowed=['stock','dailySales','monthSales','stockStatus','dailySalesStatus','monthSalesStatus','asOfDate','month','monthThrough','sourceDate','salesBasis','source'];
+      const states=['confirmed','sku-unregistered','sku-invalid','sku-conflict','sku-duplicate','csv-missing','csv-invalid','sku-not-found','date-missing','period-incomplete','duplicate-row','value-invalid'];
+      if (Object.keys(metric).some(key=>!allowed.includes(key))) fail(file,`${label}: Supplier metric object contains unsupported source fields`);
+      for (const field of ['stock','dailySales','monthSales']) {
+        if (!states.includes(metric[`${field}Status`])) fail(file,`${label}: Supplier metric ${field} status is invalid`);
+        if (metric[`${field}Status`]==='confirmed'?!Number.isSafeInteger(metric[field]):metric[field]!==null) fail(file,`${label}: Supplier metric ${field} must distinguish confirmed count and unavailable`);
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(metric.asOfDate||'')||!/^\d{4}-\d{2}$/.test(metric.month||'')||metric.monthThrough!==metric.asOfDate||metric.salesBasis!=='outbound'||metric.source!=='Supplier Hub CSV') fail(file,`${label}: Supplier metric periods or source are invalid`);
+    }
     const mine=product.offers?.find(offer=>offer.role==="mine");
     if(!mine){fail(file,`${label}: mine offer is missing`);continue;}
     for(const offer of product.offers||[]){

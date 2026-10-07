@@ -52,6 +52,9 @@ on:
       - "scripts/test-supplier-auth.mjs"
       - "scripts/test-supplier-premium.mjs"
       - "scripts/test-supplier-csv.mjs"
+      - "scripts/supplier-metrics.ps1"
+      - "scripts/test-supplier-metrics.ps1"
+      - "scripts/test-supplier-metrics-ui.mjs"
       - "scripts/test-supplier-native.ps1"
       - "PROJECT_RULES.md"
 permissions:
@@ -142,6 +145,7 @@ jobs:
           node scripts/test-supplier-auth.mjs
           node scripts/test-supplier-premium.mjs
           node scripts/test-supplier-csv.mjs
+          node scripts/test-supplier-metrics-ui.mjs
       - name: Verify audited history correction
         shell: pwsh
         run: ./scripts/test-history-corrections.ps1
@@ -184,6 +188,7 @@ jobs:
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
           ./scripts/test-supplier-native.ps1
+          ./scripts/test-supplier-metrics.ps1
 
   deploy:
     needs: [update, windows_history]
