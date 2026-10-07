@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import {MAX_CSV_BYTES,decodeCsv,parseDelimited,readCsv,readCatalog,matchCatalog,matchedCsv,clickSupplierCsvDownload} from '../supplier-hub-extension/csv-core.mjs';
 const csv='\ufeffMTM,재고,상품명,Item ID\r\n83N30037KR,0,"상품, 콤마",27303279355\r\n83N30037KR,,"줄1\n줄2 ""인용""",12345678901234567890\r\nSFG16-I71-75Y2,9,삭제 모델,28237319655\r\nC100,2,고독스 C100,29147698397\r\nC1000,7,다른 모델,999\r\n';
 const table=readCsv(csv);assert.equal(table.rows.length,5);assert.equal(table.rows[0][1],'0');assert.equal(table.rows[1][1],'');assert.equal(table.rows[1][2],'줄1\n줄2 "인용"');assert.equal(table.rows[1][3],'12345678901234567890');
@@ -24,6 +25,30 @@ assert.throws(()=>readCatalog('{"version":1,"products":[{"brand":"A","mtm":"B","
 const exported=readCsv(matchedCsv(table,result));assert.equal(exported.rows.length,3);assert.equal(exported.rows[1].at(-1),'12345678901234567890');assert.equal(exported.rows[0][4],'0');assert.equal(exported.rows[1][4],'');assert.equal(table.rows.length,5,'Original remains intact');
 const formulaTable=readCsv('MTM,값\nC100,"=HYPERLINK(""evil"")"');
 const formulaResult=matchCatalog(formulaTable,catalog,{column:0});assert.equal(readCsv(matchedCsv(formulaTable,formulaResult)).rows[0].at(-1).startsWith("'="),true);
+
+// SKUID is independent of title/Item ID; preserve leading zeros and long IDs.
+const skuCatalog=readCatalog(JSON.stringify({version:1,products:[{brand:'Godox',mtm:'C100',skuId:'00080556250',itemId:'29147698397'},{brand:'Acer',mtm:'A1',skuId:'12345678901234567890'},{brand:'Lenovo',mtm:'UNSET'},{brand:'Acer',mtm:'DELETED',skuId:'444',enabled:false}]}));
+const skuTable=readCsv('SKU ID,SKU 명,날짜,센터,현재재고수량\n00080556250,상품명에 모델 없음,20261006,FC,0\n00080556250,변경된 상품명,20261005,RC,\n12345678901234567890,이름 변경,20261006,FC,2\n80556250,C100,20261006,FC,99\n29147698397,C100,20261006,FC,99\n444,DELETED,20261006,FC,99');
+const skuResult=matchCatalog(skuTable,skuCatalog,{column:0,mode:'skuId'});
+assert.equal(skuResult.matched.length,3);assert.equal(skuResult.matchedProductCount,2);assert.equal(skuResult.unmatchedProducts[0].mtm,'UNSET');
+assert.equal(skuResult.matched[0].product.skuId,'00080556250');assert.equal(skuResult.matched[2].product.skuId,'12345678901234567890');
+assert.equal(readCsv(matchedCsv(skuTable,skuResult)).rows[0][3],'00080556250');
+assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',skuId:'123'},{brand:'B',mtm:'M2',skuId:'123'}]})),/catalog_duplicate_sku_id/);
+for(const skuId of [123,'1e10','123.0'])assert.throws(()=>readCatalog(JSON.stringify({version:1,products:[{brand:'A',mtm:'M1',skuId}]})),/catalog_sku_invalid/);
+
+// Exercise actual product editor input, persisted targets and worker validation.
+const editor=readFileSync(new URL('../chrome-extension/options.js',import.meta.url),'utf8');
+const readEditor=vm.runInNewContext(editor.slice(editor.indexOf('function parseCoupangUrl('),editor.indexOf('function syncCard('))+'\nreadCard;', {URL});
+const inputs={brand:'Godox',category:'Camera',mtm:'c100',skuId:' 00080556250 ',srp:'42000',url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',danawaUrl:'',enuriUrl:''};
+const product=readEditor({querySelector:s=>s==='.enabled'?{checked:true}:{value:inputs[s.slice(1)]}});assert.equal(product.skuId,'00080556250');assert.equal(product.mtm,'C100');
+const worker=readFileSync(new URL('../chrome-extension/background.js',import.meta.url),'utf8');
+const validateWorker=vm.runInNewContext('('+worker.slice(worker.indexOf('function validateProductCatalog('),worker.indexOf('\nconst wait ='))+')',{URL});
+assert.equal(validateWorker([product]).length,0);assert.equal(validateWorker([{...product,skuId:80556250}]).some(e=>e.includes('sku-id-invalid')),true);
+const second={...product,brand:'Other',mtm:'OTHER',itemId:'1',vendorItemId:'2',url:'https://www.coupang.com/vp/products/9738958594?itemId=1&vendorItemId=2'};
+assert.equal(validateWorker([product,second]).some(e=>e.includes('duplicate-sku-id')),true);assert.equal(validateWorker([product,{...second,enabled:false}]).some(e=>e.includes('duplicate-sku-id')),false);
+const getTargets=vm.runInNewContext(worker.slice(0,worker.indexOf('function validateProductCatalog('))+'\ngetTargets;', {chrome:{storage:{local:{get:async()=>({products:[product]})}}}});
+assert.equal((await getTargets())[0].skuId,'00080556250');
+assert.match(worker,/configuredTargets\.filter\(x=>x\.enabled!==false\)\.map\(\(\{skuId,\.\.\.target\}\)=>target\)/,'SKUID is excluded from price JSON');
 
 const original={document:global.document,location:global.location,getComputedStyle:global.getComputedStyle,chrome:global.chrome};
 try {

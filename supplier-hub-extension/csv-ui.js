@@ -3,6 +3,13 @@ const el=id=>document.getElementById(id);
 let bytes=null,table=null,catalog=null,result=null,revision=0,catalogRevision=0;
 const errors={csv_too_large:'CSV는 32MB·20만 행·200만 셀 이내로 선택해줘.',csv_encoding_invalid:'문자 인코딩을 선택해줘.',csv_decode_failed:'파일의 문자 인코딩을 확인해줘. UTF-8 또는 한국어(EUC-KR)를 선택할 수 있어.',csv_delimiter_invalid:'구분자를 선택해줘.',csv_invalid_quotes:'CSV의 따옴표 구조를 읽지 못했어. 원본 CSV와 구분자를 확인해줘.',csv_header_invalid:'머리글 행은 1~100 사이로 입력해줘.',csv_header_missing:'머리글 행을 찾지 못했어.',csv_column_mismatch:'머리글과 열 개수가 다른 행이 있어. 머리글 행·구분자를 확인해줘.',catalog_invalid:'Market Pulse에서 저장한 최신 product-catalog.json을 선택해줘.',csv_match_column_required:'CSV에서 상품을 대조할 열을 선택해줘.',csv_match_mode_invalid:'대조 방식을 선택해줘.'};
 function error(e){el('csv-status').textContent=errors[e.message]||'파일을 읽지 못했어. 파일과 설정을 확인해줘.';}
+errors.catalog_sku_invalid='카탈로그의 SKUID는 숫자 문자열로 저장해야 해. Market Pulse 상품 관리에서 확인해줘.';
+errors.catalog_duplicate_sku_id='여러 활성 상품에 같은 SKUID가 등록돼 있어. 매핑을 수정한 뒤 카탈로그를 다시 저장해줘.';
+function selectSkuColumn(){
+  if(!table||el('match-mode').value!=='skuId')return;
+  const columns=table.headers.flatMap((h,i)=>h.replace(/\s/g,'').toUpperCase()==='SKUID'?[i]:[]);
+  el('match-column').value=columns.length===1?String(columns[0]):'';
+}
 function clearResult(){result=null;el('export-matched').disabled=true;el('csv-match-result').replaceChildren();}
 function preview(headers,rows){
   const wrapper=el('csv-preview');wrapper.replaceChildren();
@@ -18,6 +25,7 @@ function parse(){
     const next=readCsv(decoded.text,{delimiter:el('csv-delimiter').value,headerRow:Number(el('csv-header').value)});
     table=next;el('csv-status').textContent=`PC에서 읽기 완료: ${next.rows.length.toLocaleString('ko-KR')}행 · ${next.headers.length}열 · ${decoded.encoding}. 처음 5행·12열을 표시해.`;
     for(const [i,h] of next.headers.entries())el('match-column').append(new Option(`${i+1}. ${h||'이름 없는 열'}`,String(i)));
+    selectSkuColumn();
     preview(next.headers,next.rows);
   }catch(e){error(e);}
 }
@@ -39,7 +47,8 @@ el('catalog-file').addEventListener('change',async event=>{
   const current=++catalogRevision;clearResult();catalog=null;el('catalog-status').textContent='';const file=event.target.files[0];if(!file)return;
   try{if(file.size>4*1024*1024)throw new Error('catalog_invalid');const text=await file.text();if(current!==catalogRevision)return;catalog=readCatalog(text);el('catalog-status').textContent=`카탈로그 활성 상품 ${catalog.products.length}개. ${catalog.savedAt?'저장 시각: '+catalog.savedAt:''}`;}catch(e){if(current===catalogRevision)error(e);}
 });
-for(const id of ['match-column','match-mode'])el(id).addEventListener('change',clearResult);
+el('match-column').addEventListener('change',clearResult);
+el('match-mode').addEventListener('change',()=>{clearResult();selectSkuColumn();});
 el('match-csv').addEventListener('click',()=>{
   clearResult();if(!table){el('csv-status').textContent='먼저 다운로드한 CSV를 선택해줘.';return;}if(!catalog){el('csv-status').textContent='최신 product-catalog.json을 선택해줘.';return;}
   try{
@@ -47,6 +56,9 @@ el('match-csv').addEventListener('click',()=>{
     result=matchCatalog(table,catalog,{column:Number(el('match-column').value),mode:el('match-mode').value});
     const p=document.createElement('p');p.textContent=`일치 후보 ${result.matchedProductCount}/${catalog.products.length}개 상품 · ${result.matched.length}행. 여러 상품과 일치해 제외한 행 ${result.ambiguous.length}개. 중복 행은 합산하지 않아.`;el('csv-match-result').append(p);
     if(result.unmatchedProducts.length){const missing=document.createElement('p');missing.textContent='미매칭: '+result.unmatchedProducts.map(p=>`${p.brand} ${p.mtm}`).join(', ');el('csv-match-result').append(missing);}
+    if(el('match-mode').value==='skuId'){
+      const absent=catalog.products.filter(p=>!p.skuId);const note=document.createElement('p');note.textContent='SKUID 정확 일치로 대조했어. SKUID 미등록 '+absent.length+'개'+(absent.length?': '+absent.map(p=>p.brand+' '+p.mtm).join(', '):'')+'. 상품명·Item ID로 자동 대체하지 않아.';el('csv-match-result').append(note);
+    }
     const caution=document.createElement('p');caution.textContent='원본 행을 보존한 후보 추출이야. 파일의 재고 열·기준일·창고·SKU 의미를 확인한 뒤 계산 규칙을 정해야 해.';el('csv-match-result').append(caution);
     el('export-matched').disabled=result.matched.length===0;
     preview(table.headers,result.matched.map(m=>m.values));

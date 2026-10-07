@@ -58,14 +58,16 @@ export function readCatalog(text) {
   let value;try{value=JSON.parse(String(text).replace(/^\ufeff/,''));}catch{fail('catalog_invalid');}
   if(value?.version!==1||!Array.isArray(value.products)||value.products.length>10000)fail('catalog_invalid');
   if(value.products.some(p=>!p||typeof p!=='object'||Array.isArray(p)||(p.enabled!==undefined&&typeof p.enabled!=='boolean')))fail('catalog_invalid');
-  const products=value.products.filter(p=>p?.enabled!==false).map(p=>({brand:typeof p.brand==='string'?p.brand.trim():'',mtm:typeof p.mtm==='string'?p.mtm.trim().toUpperCase():'',itemId:typeof p.itemId==='string'?p.itemId.trim():'',vendorItemId:typeof p.vendorItemId==='string'?p.vendorItemId.trim():''}));
+  if(value.products.some(p=>p.skuId!==undefined&&(typeof p.skuId!=='string'||(p.skuId.trim()!==''&&!/^\d+$/.test(p.skuId.trim())))))fail('catalog_sku_invalid');
+  const products=value.products.filter(p=>p?.enabled!==false).map(p=>({brand:typeof p.brand==='string'?p.brand.trim():'',mtm:typeof p.mtm==='string'?p.mtm.trim().toUpperCase():'',skuId:typeof p.skuId==='string'?p.skuId.trim():'',itemId:typeof p.itemId==='string'?p.itemId.trim():'',vendorItemId:typeof p.vendorItemId==='string'?p.vendorItemId.trim():''}));
   const keys=new Set();for(const p of products){const key=p.brand.toUpperCase()+'|'+p.mtm;if(!p.brand||!p.mtm||keys.has(key))fail('catalog_invalid');keys.add(key);}
+  const skuIds=new Set();for(const p of products){if(!p.skuId)continue;if(skuIds.has(p.skuId))fail('catalog_duplicate_sku_id');skuIds.add(p.skuId);}
   return {products,savedAt:typeof value.savedAt==='string'?value.savedAt:''};
 }
 
 export function matchCatalog(table,catalog,{column,mode='mtm'}={}) {
   if(!Number.isInteger(column)||column<0||column>=table.headers.length)fail('csv_match_column_required');
-  if(!['mtm','itemId','vendorItemId','title'].includes(mode))fail('csv_match_mode_invalid');
+  if(!['skuId','mtm','itemId','vendorItemId','title'].includes(mode))fail('csv_match_mode_invalid');
   const products=catalog.products,normalize=s=>String(s??'').trim().toUpperCase(),found=new Set(),matched=[],ambiguous=[];
   const index=new Map();
   if(mode!=='title')for(const [i,p] of products.entries()){const key=normalize(p[mode]);if(key){const list=index.get(key)||[];list.push(i);index.set(key,list);}}

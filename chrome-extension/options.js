@@ -17,6 +17,8 @@ function validate(product,index){
   if(!product.brand)errors.push('Brand 필요');
   if(!product.mtm)errors.push('MTM 필요');
   if(!product.productId||!product.itemId||!product.vendorItemId)errors.push('쿠팡 URL의 ID 3개 필요');
+  if(product.skuId&&!/^\d+$/.test(product.skuId))errors.push('SKUID는 숫자 문자열로 입력');
+  if(product.enabled!==false&&product.skuId&&products.some((x,i)=>i!==index&&x.enabled!==false&&x.skuId===product.skuId))errors.push('활성 상품 SKUID 중복');
   if(products.some((x,i)=>i!==index&&x.itemId===product.itemId))errors.push('Item ID 중복');
   if(products.some((x,i)=>i!==index&&x.vendorItemId===product.vendorItemId))errors.push('VendorItem ID 중복');
   if(products.some((x,i)=>i!==index&&x.brand.toLowerCase()===product.brand.toLowerCase()&&x.mtm.toLowerCase()===product.mtm.toLowerCase()))errors.push('브랜드·MTM 중복');
@@ -27,7 +29,7 @@ function validate(product,index){
 }
 function readCard(card){
   const ids=parseCoupangUrl(card.querySelector('.url').value.trim());
-  return {brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),enuriUrl:card.querySelector('.enuriUrl').value.trim(),...ids};
+  return {brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),skuId:card.querySelector('.skuId').value.trim(),srp:money(card.querySelector('.srp').value)?Number(money(card.querySelector('.srp').value)):null,enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),danawaUrl:card.querySelector('.danawaUrl').value.trim(),enuriUrl:card.querySelector('.enuriUrl').value.trim(),...ids};
 }
 function syncCard(card,index){
   const p=readCard(card); products[index]=p;
@@ -42,7 +44,7 @@ function render(){
   products.forEach((p,index)=>{
     if(query&&!`${p.brand} ${p.mtm}`.toLowerCase().includes(query))return;
     const card=template.content.firstElementChild.cloneNode(true);card.dataset.index=index;
-    for(const key of ['brand','category','mtm','url','danawaUrl','enuriUrl'])card.querySelector('.'+key).value=p[key]??'';
+    for(const key of ['brand','category','mtm','skuId','url','danawaUrl','enuriUrl'])card.querySelector('.'+key).value=p[key]??'';
     card.querySelector('.srp').value=p.srp?Number(p.srp).toLocaleString('ko-KR'):'';card.querySelector('.enabled').checked=p.enabled!==false;
     card.querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>syncCard(card,index)));
     card.querySelector('.remove').addEventListener('click',()=>{if(confirm(`${p.mtm||'이 상품'}을 목록에서 제거할까?`)){products.splice(index,1);render();}});
