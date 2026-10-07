@@ -23,7 +23,7 @@ function render(s,vault) {
 function renderPremium(report) {
   if(!report)return;
   premiumDiagnostic=premiumReport({state:report.status,diagnostic:report.observation},report.extensionVersion,report.checkedAt);
-  const messages={premium_page_visible:'프리미엄 데이터 2.0 주소와 본문 제목을 함께 확인했어. 업무 데이터 수집은 아직 실행하지 않아.',premium_login_required:'로그인이 필요해. 기존 연결 확인으로 로그인 상태를 복구한 뒤 다시 열어줘.',premium_verification_required:'추가 인증이 보여. 공식 화면에서 인증을 완료해줘.',premium_access_message:'접근 제한 문구가 보여. 실제 원인은 별도 확인이 필요해.',premium_page_not_confirmed:'주소와 화면 근거를 함께 확정하지 못했어. 열린 페이지와 진단을 확인해줘.'};
+  const messages={premium_route_opened:'지정한 주소를 열고 화면 읽기까지 확인했어. 업무 데이터 확인·수집은 별도 단계야.',premium_login_required:'로그인이 필요해. 기존 연결 확인으로 로그인 상태를 복구한 뒤 다시 열어줘.',premium_verification_required:'추가 인증이 보여. 공식 화면에서 인증을 완료해줘.',premium_access_message:'접근 제한 문구가 보여. 실제 원인은 별도 확인이 필요해.',premium_page_not_confirmed:'지정한 주소의 로딩과 화면 읽기를 확인하지 못했어. 열린 페이지와 진단을 확인해줘.'};
   document.querySelector('#premium-status').textContent=messages[premiumDiagnostic.reason]||reasons[premiumDiagnostic.reason]||'화면 확인 필요';
   document.querySelector('#premium-diagnostic').textContent=JSON.stringify(premiumDiagnostic,null,2);
 }
