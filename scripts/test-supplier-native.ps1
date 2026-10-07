@@ -36,5 +36,7 @@ try {
   if(-not $process.WaitForExit(10000)){ $process.Kill(); throw 'Native host did not exit.' }
   if($process.ExitCode -ne 0){throw 'Native protocol failed.'}
   $process.Dispose()
+  # The intentionally rejected origin returned 2; do not leak that expected code to the CI shell.
+  $global:LASTEXITCODE = 0
   Write-Host 'Supplier native vault, origin allowlist, and binary framing tests passed.'
 } finally { [Console]::InputEncoding = $originalInputEncoding; Remove-Item -LiteralPath $temp -Recurse -Force }
