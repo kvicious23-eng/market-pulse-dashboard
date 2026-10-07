@@ -48,6 +48,7 @@ on:
       - "supplier-hub-extension/**"
       - "supplier-hub-native/**"
       - "scripts/install-supplier-hub-connector.ps1"
+      - "INSTALL_SUPPLIER_HUB_CONNECTOR.cmd"
       - "scripts/test-supplier-auth.mjs"
       - "scripts/test-supplier-native.ps1"
       - "PROJECT_RULES.md"

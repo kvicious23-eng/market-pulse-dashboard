@@ -36,7 +36,37 @@ try {
   if(-not $process.WaitForExit(10000)){ $process.Kill(); throw 'Native host did not exit.' }
   if($process.ExitCode -ne 0){throw 'Native protocol failed.'}
   $process.Dispose()
+  # Exercise the actual CMD entry point without changing registry or real credentials.
+  foreach($folder in @('PlainPath','Path With Spaces')) {
+    $fixture = Join-Path $temp $folder
+    $scripts = Join-Path $fixture 'scripts'
+    $extension = Join-Path $fixture 'supplier-hub-extension'
+    New-Item -ItemType Directory -Path $scripts,$extension | Out-Null
+    Copy-Item (Join-Path $repo 'INSTALL_SUPPLIER_HUB_CONNECTOR.cmd') $fixture
+    Set-Content -LiteralPath (Join-Path $extension 'manifest.json') -Value '{}' -Encoding ASCII
+    $parameterLine = [IO.File]::ReadAllLines((Join-Path $repo 'scripts\install-supplier-hub-connector.ps1'))[0]
+    $probe = $parameterLine + "`r`n" + @'
+$ErrorActionPreference = 'Stop'
+$manifest = Get-Content (Join-Path $RepoPath 'supplier-hub-extension\manifest.json') -Raw | ConvertFrom-Json
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'received-path.txt'), [IO.Path]::GetFullPath($RepoPath))
+'@
+    Set-Content -LiteralPath (Join-Path $scripts 'install-supplier-hub-connector.ps1') -Value $probe -Encoding UTF8
+    $cmd = New-Object Diagnostics.ProcessStartInfo
+    $cmd.FileName = $env:ComSpec
+    $cmd.Arguments = '/d /c ""' + (Join-Path $fixture 'INSTALL_SUPPLIER_HUB_CONNECTOR.cmd') + '" <nul"'
+    $cmd.UseShellExecute = $false
+    $cmd.RedirectStandardOutput = $true; $cmd.RedirectStandardError = $true
+    $launcher = New-Object Diagnostics.Process; $launcher.StartInfo = $cmd
+    try {
+      [void]$launcher.Start()
+      if(-not $launcher.WaitForExit(15000)){ $launcher.Kill(); throw 'Supplier CMD installer did not exit.' }
+      $output = $launcher.StandardOutput.ReadToEnd() + $launcher.StandardError.ReadToEnd()
+      if($launcher.ExitCode -ne 0){throw ('Supplier CMD installer path failed: ' + $output)}
+      $received = [IO.File]::ReadAllText((Join-Path $scripts 'received-path.txt'))
+      if($received -ne [IO.Path]::GetFullPath($fixture)){throw 'Supplier CMD installer received the wrong repository path.'}
+    } finally { $launcher.Dispose() }
+  }
   # The intentionally rejected origin returned 2; do not leak that expected code to the CI shell.
   $global:LASTEXITCODE = 0
-  Write-Host 'Supplier native vault, origin allowlist, and binary framing tests passed.'
+  Write-Host 'Supplier native vault, origin allowlist, binary framing and CMD installer path tests passed.'
 } finally { [Console]::InputEncoding = $originalInputEncoding; Remove-Item -LiteralPath $temp -Recurse -Force }
