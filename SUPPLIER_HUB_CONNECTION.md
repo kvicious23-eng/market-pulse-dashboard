@@ -1,4 +1,4 @@
-# Supplier Hub 로그인 연결 검증 (0.1.0)
+# Supplier Hub 로그인 연결 검증 (0.1.1)
 
 재고 화면 읽기는 사용자가 과거 여러 차례 성공했다고 확인했다. 이번 단계의 목적은 같은 Chrome 프로필의 로그인 유지, 세션 만료 시 재로그인, 비밀번호 변경 및 오류 분류다. 이번 버전은 재고 수량을 수집하거나 공개 대시보드로 보내지 않는다.
 
@@ -6,7 +6,7 @@
 
 1. PowerShell에서 `git -C C:\MarketPulse pull --rebase origin main`을 실행한다.
 2. `C:\MarketPulse\INSTALL_SUPPLIER_HUB_CONNECTOR.cmd`를 실행한다. 현재 Windows 사용자용 연결 프로그램을 컴파일하고 Chrome Native Messaging을 등록한다. 별도 관리자 권한은 필요 없다.
-3. Supplier Hub에 로그인하는 **같은 Chrome 프로필**에서 `chrome://extensions`를 연다. 개발자 모드를 켜고 **압축해제된 확장 프로그램을 로드합니다**로 `C:\MarketPulse\supplier-hub-extension`을 추가한다. 가격 수집 확장 1.9.28은 그대로 둔다. 신규 확장 이름은 Market Pulse Supplier Hub Connector, 버전은 0.1.0이다.
+3. Supplier Hub에 로그인하는 **같은 Chrome 프로필**에서 `chrome://extensions`를 연다. 개발자 모드를 켜고 **압축해제된 확장 프로그램을 로드합니다**로 `C:\MarketPulse\supplier-hub-extension`을 추가한다. 가격 수집 확장 1.9.28은 그대로 둔다. 신규 확장 이름은 Supplier Hub Connector for Market Pulse, 버전은 0.1.1이며 파란색 SH 아이콘으로 구분한다. 이미 설치했으면 최신 코드를 받은 뒤 이 확장의 새로고침 버튼만 누른다.
 4. 신규 확장 아이콘을 눌러 연결 관리 화면을 연다. **Supplier Hub 열기**로 공식 화면을 열고, **연결 확인**을 누른다. 공식 Supplier Hub의 눈에 보이는 로그아웃 요소를 인증 성공 근거로 사용한다. 화면 구조가 다르면 `화면 확인 필요`로 남기므로 실제 DOM을 확인해 판독기를 보완해야 한다.
 5. **계정 등록 / 비밀번호 변경**을 누르면 PC의 별도 설정 창이 열린다. 그 창에서 아이디와 비밀번호를 입력하고 저장한다. 관리 URL이나 채팅으로 비밀번호를 보내지 않는다. 계정은 Windows 자격 증명 관리자 `MarketPulse.SupplierHub`에 저장된다.
 6. **자동 연결 확인·재로그인 사용**을 켜고 **연결 확인**을 누른다. Chrome 시작 때와 실행 중 15분 간격으로 확인한다. 연결기가 연 전용 Supplier Hub 탭을 새로고침해 서버에 다시 접속한 뒤 판단한다. xauth의 로그인·추가 인증 화면은 자동 새로고침하지 않는다. 공식 Supplier Hub에 이미 로그인돼 있으면 비밀번호를 요청하거나 제출하지 않는다.
