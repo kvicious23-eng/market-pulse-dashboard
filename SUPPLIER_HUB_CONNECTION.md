@@ -55,3 +55,5 @@ PC 연결 프로그램 위치는 `%LOCALAPPDATA%\MarketPulse\SupplierHub`다. �
 ### 확인된 PC 결과
 
 2026-10-07 13:14:12.848 KST 사용자 진단으로 실제 0.1.4의 `connected / supplier_dashboard_confirmed`를 확인했다. 공식 Supplier Hub 대시보드가 HTTPS로 로딩 완료됐고 네 판독 요소가 모두 확인됐다. 비밀번호 입력창은 없었으며 로그아웃은 존재하지만 메뉴 안에 숨겨진 상태였다. iframe은 0개였다. 기존 세션을 정상으로 판독하는 흐름은 실측 성공이다. Chrome 재시작·PC 재부팅 후 유지, 실제 세션 만료 후 저장 계정 재로그인, 비밀번호 변경 후 복구는 아직 실측 전이다. 저장 계정으로 자동 로그인했다고 추정하지 않는다.
+
+2026-10-07 13:47:36.177 KST 사용자 진단에서 실제 0.1.6의 `page_opened / premium_route_opened`를 확인했다. 지정한 프리미엄 경로가 HTTPS로 로딩 완료됐고 DOM 판독이 실행됐으며 `routeMatch: true`, `bodyReadable: true`였다. 비밀번호 입력창과 이동 대기는 없었고 iframe은 0개였다. 태구 PC Connector의 지정 페이지 열기·본문 읽기는 실측 성공이다. ChatGPT에서 화면을 직접 원격 조작하거나 업무 데이터 값을 전달받은 상태는 아니며, 업무 값·조회 권한·자동수집 및 인증 만료 후 복구는 별도 검증 대상이다.
