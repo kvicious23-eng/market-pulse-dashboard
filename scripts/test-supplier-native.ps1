@@ -1,6 +1,10 @@
 ﻿$ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSVersion.Major -ne 5) { throw 'Windows PowerShell 5.1 is required.' }
 $repo = Split-Path $PSScriptRoot -Parent
+$originalInputEncoding = [Console]::InputEncoding
+# .NET Framework creates an autoflushing text writer for redirected stdin.
+# Its default UTF-8 preamble would corrupt Chrome's binary length prefix.
+[Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('MarketPulseSupplierTest-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
@@ -33,4 +37,4 @@ try {
   if($process.ExitCode -ne 0){throw 'Native protocol failed.'}
   $process.Dispose()
   Write-Host 'Supplier native vault, origin allowlist, and binary framing tests passed.'
-} finally { Remove-Item -LiteralPath $temp -Recurse -Force }
+} finally { [Console]::InputEncoding = $originalInputEncoding; Remove-Item -LiteralPath $temp -Recurse -Force }
