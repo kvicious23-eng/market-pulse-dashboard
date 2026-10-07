@@ -1,7 +1,15 @@
 export const ENTRY = 'https://supplier.coupang.com/';
 export const CHECK_ALARM = 'supplier-session-check';
 export const RETRY_INTERVAL = 60 * 60 * 1000;
-export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId:null,checkedAt:'',lastAutoAt:0,blockedVersion:'',pendingAttempt:false,events:[]};
+export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId:null,checkedAt:'',lastAutoAt:0,blockedVersion:'',pendingAttempt:false,events:[],diagnostic:null};
+
+// Allow only fixed labels, boolean observations and bounded counts into saved diagnostics.
+export function safeDiagnostic(raw={}) {
+  const out={extensionVersion:/^\d+\.\d+\.\d+$/.test(raw.extensionVersion||'')?raw.extensionVersion:'',probe:['inspected','loading','tab_missing','unsupported_page','script_error','unavailable'].includes(raw.probe)?raw.probe:'unavailable',host:['supplier','seller_auth','other'].includes(raw.host)?raw.host:'other',view:['dashboard','login','other'].includes(raw.view)?raw.view:'other'};
+  for(const key of ['visiblePassword','logoutPresent','logoutVisible','requiredTasks','deliveryRate','receivingIssues','myshop']) out[key]=raw[key]===true;
+  out.frameCount=Number.isInteger(raw.frameCount)?Math.max(0,Math.min(raw.frameCount,50)):0;
+  return out;
+}
 
 export function permittedUrl(url) {
   try {
@@ -15,6 +23,7 @@ export function permittedUrl(url) {
 export class SupplierConnector {
   constructor(io) { this.io=io; this.running=false; }
   async read() { return {...DEFAULT_STATE,...await this.io.load()}; }
+  async noteProbe(p) { await this.io.save({...await this.read(),diagnostic:safeDiagnostic(p.diagnostic)}); }
   async state(status,reason,extra={}) {
     const old=await this.read(); const at=new Date(this.io.now()).toISOString();
     const next={...old,...extra,status,reason,checkedAt:at};
@@ -38,6 +47,7 @@ export class SupplierConnector {
       // Only the connector's own tab is refreshed; xauth challenge/login pages are left in place.
       if(!opened && new URL(tab.url||ENTRY).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
       let p=await this.io.probe(tab.id);
+      await this.noteProbe(p);
       if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
       if(p.state==='verification') return this.state('verification_required','additional_verification');
       if(p.state==='access_blocked') return this.state('access_blocked','access_message');
@@ -61,6 +71,7 @@ export class SupplierConnector {
       } finally { if(credential) { credential.password=''; credential.username=''; } credential=null; }
       for(let i=0;i<15;i++) {
         await this.io.sleep(2000); p=await this.io.probe(tab.id);
+        await this.noteProbe(p);
         if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'relogin_dashboard_confirmed':'relogin_confirmed',{blockedVersion:'',pendingAttempt:false});
         if(p.state==='verification') return this.state('verification_required','additional_verification',{pendingAttempt:false});
         if(p.state==='access_blocked') return this.state('access_blocked','access_message',{pendingAttempt:false});
@@ -77,30 +88,32 @@ export class SupplierConnector {
 export function inspectSupplierPage() {
   const visible=e=>e && e.getClientRects().length && getComputedStyle(e).visibility!=='hidden' && getComputedStyle(e).display!=='none';
   const text=(document.body?.innerText||'').replace(/\s+/g,' ');
+  const compact=text.replace(/[\s\u200b-\u200d\ufeff]/g,'');
   const u=new URL(location.href);
-  if(u.protocol!=='https:' || u.port || u.username || u.password) return {state:'unverified'};
-  if(!['supplier.coupang.com','xauth.coupang.com'].includes(u.hostname)) return {state:'unverified'};
-  if(/접근이 제한|접근이 차단|Access Denied|접속이 차단/i.test(text)) return {state:'access_blocked'};
-  if(/자동.?입력.?방지|로봇이 아닙|보안.?문자|인증번호.{0,20}(입력|전송)|본인.?인증|Verify you are human/i.test(text) || [...document.querySelectorAll('iframe')].some(e=>visible(e)&&/captcha|challenge/i.test(e.src))) return {state:'verification'};
-  if(/아이디.{0,20}비밀번호.{0,30}(일치하지|확인해|잘못)|Invalid username or password|비밀번호가.{0,15}(올바르지|틀렸|잘못)/i.test(text)) return {state:'credential_error'};
   const password=[...document.querySelectorAll('input[type="password"]')].find(visible);
+  const logoutElements=[...document.querySelectorAll('a,button,[role="button"]')].filter(e=>/^(로그아웃|logout|log out)$/i.test((e.innerText||e.getAttribute('aria-label')||'').trim()));
+  const diagnostic={probe:'inspected',host:u.hostname==='supplier.coupang.com'?'supplier':u.hostname==='xauth.coupang.com'?'seller_auth':'other',view:/^\/dashboard\/KR\/?$/.test(u.pathname)?'dashboard':/\/login(?:\/|$)|\/login-actions\//.test(u.pathname)?'login':'other',visiblePassword:!!password,logoutPresent:logoutElements.length>0,logoutVisible:logoutElements.some(visible),requiredTasks:compact.includes('필수진행사항'),deliveryRate:compact.includes('납품률'),receivingIssues:compact.includes('입고기준미준수'),myshop:compact.includes('마이샵'),frameCount:document.querySelectorAll('iframe').length};
+  const finish=(state,evidence)=>({state,...evidence?{evidence}:{},diagnostic});
+  if(u.protocol!=='https:' || u.port || u.username || u.password) return finish('unverified');
+  if(!['supplier.coupang.com','xauth.coupang.com'].includes(u.hostname)) return finish('unverified');
+  if(/접근이 제한|접근이 차단|Access Denied|접속이 차단/i.test(text)) return finish('access_blocked');
+  if(/자동.?입력.?방지|로봇이 아닙|보안.?문자|인증번호.{0,20}(입력|전송)|본인.?인증|Verify you are human/i.test(text) || [...document.querySelectorAll('iframe')].some(e=>visible(e)&&/captcha|challenge/i.test(e.src))) return finish('verification');
+  if(/아이디.{0,20}비밀번호.{0,30}(일치하지|확인해|잘못)|Invalid username or password|비밀번호가.{0,15}(올바르지|틀렸|잘못)/i.test(text)) return finish('credential_error');
   if(u.hostname==='xauth.coupang.com' && u.pathname.startsWith('/auth/realms/seller/') && password) {
     const form=password.form;
     const action=form?new URL(form.action||location.href):null;
     const username=form && [...form.querySelectorAll('input')].find(e=>visible(e)&&e!==password&&(/username|email|login/i.test(e.name||e.id)||e.autocomplete==='username'));
     const client=u.searchParams.get('client_id')||action?.searchParams.get('client_id');
-    if(username && client==='supplier-hub' && action?.origin===u.origin && action.pathname.startsWith('/auth/realms/seller/')) return {state:'login_form'};
+    if(username && client==='supplier-hub' && action?.origin===u.origin && action.pathname.startsWith('/auth/realms/seller/')) return finish('login_form');
   }
   if(u.hostname==='supplier.coupang.com' && !password && !/\/login(?:\/|$)/.test(u.pathname)) {
-    const logout=[...document.querySelectorAll('a,button,[role="button"]')].some(e=>visible(e)&&/^(로그아웃|logout|log out)$/i.test((e.innerText||e.getAttribute('aria-label')||'').trim()));
-    if(logout) return {state:'authenticated',evidence:'logout_control'};
+    if(diagnostic.logoutVisible) return finish('authenticated','logout_control');
     // Observed Korean Supplier Hub dashboard: the account menu can hide Logout.
     // Require several rendered dashboard sections together, never the URL alone.
     const dashboard=/^\/dashboard\/KR\/?$/.test(u.pathname);
-    const sections=[/필수\s*진행\s*사항/,/납품률/,/입고\s*기준\s*미준수/,/마이샵/];
-    if(dashboard && sections.every(pattern=>pattern.test(text))) return {state:'authenticated',evidence:'supplier_dashboard_widgets'};
+    if(dashboard && diagnostic.requiredTasks && diagnostic.deliveryRate && diagnostic.receivingIssues && diagnostic.myshop) return finish('authenticated','supplier_dashboard_widgets');
   }
-  return {state:'unverified'};
+  return finish('unverified');
 }
 
 export function submitSupplierLogin(username,password) {

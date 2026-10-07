@@ -8,18 +8,21 @@ async function native(operation) {
 }
 async function tab(id) { if(id==null) return null; try { return await chrome.tabs.get(id); } catch { return null; } }
 async function probe(id) {
+  const extensionVersion=chrome.runtime.getManifest().version;
+  let last={state:'unverified',diagnostic:{extensionVersion,probe:'loading'}};
   for(let i=0;i<8;i++) {
-    const t=await tab(id); if(!t || !permittedUrl(t.url)) return {state:'unverified'};
+    const t=await tab(id); if(!t || !permittedUrl(t.url)) return {state:'unverified',diagnostic:{extensionVersion,probe:t?'unsupported_page':'tab_missing'}};
     if(t.status==='complete') {
       try {
         const result=(await chrome.scripting.executeScript({target:{tabId:id},func:inspectSupplierPage}))[0]?.result;
-        if(result && result.state!=='unverified') return result;
+        if(result) last={...result,diagnostic:{...result.diagnostic,extensionVersion}};
+        if(result && result.state!=='unverified') return last;
         // The document can be complete before Supplier Hub renders its app.
-      } catch { /* redirect may still be in progress */ }
+      } catch { last={state:'unverified',diagnostic:{extensionVersion,probe:'script_error'}}; }
     }
     await delay(750);
   }
-  return {state:'unverified'};
+  return last;
 }
 const connector=new SupplierConnector({
   load:async()=> (await chrome.storage.local.get('connection')).connection,

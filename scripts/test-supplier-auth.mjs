@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin} from '../supplier-hub-extension/auth-core.mjs';
+import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,safeDiagnostic} from '../supplier-hub-extension/auth-core.mjs';
 const official='https://xauth.coupang.com/auth/realms/seller/login-actions/authenticate?client_id=supplier-hub';
 function fixture(states,extra={}) {
   let saved={...DEFAULT_STATE,enabled:true,tabId:7,...extra};let clock=RETRY_INTERVAL*2;let submits=0,reads=0,opens=0;
@@ -11,6 +11,10 @@ function fixture(states,extra={}) {
 }
 for(const url of ['http://supplier.coupang.com/','https://supplier.coupang.com.evil.test/','https://supplier.coupang.com@evil.test/','https://xauth.coupang.com/other/','https://supplier.coupang.com:444/']) assert.equal(permittedUrl(url),false,url);
 assert.equal(permittedUrl(official),true);
+const unsafeDiagnostic={extensionVersion:'test-secret',probe:'test-secret',host:'test-user',view:'test-secret',visiblePassword:'test-secret',frameCount:999,body:'test-secret',username:'test-user',url:official};
+assert.equal(JSON.stringify(safeDiagnostic(unsafeDiagnostic)).includes('test-secret'),false);
+assert.equal(JSON.stringify(safeDiagnostic(unsafeDiagnostic)).includes('test-user'),false);
+assert.equal(safeDiagnostic(unsafeDiagnostic).frameCount,50);
 let f=fixture(['authenticated']);assert.equal((await f.connector.check()).status,'connected');assert.equal(f.get().reads,0);
 f=fixture(['authenticated']);let refreshes=0;f.io.tab=async()=>({id:7,url:'https://supplier.coupang.com/dashboard/KR'});f.io.refresh=async()=>{refreshes++;};await f.connector.check();assert.equal(refreshes,1);
 for(const state of ['verification','access_blocked','unverified','credential_error']){f=fixture([state]);await f.connector.check();assert.equal(f.get().reads,0,state);assert.equal(f.get().submits,0,state);}
@@ -50,6 +54,9 @@ try {
   body='';assert.equal(inspectSupplierPage().state,'unverified','Dashboard URL alone is insufficient');
   const sections=['필수진행사항 (90)','납품률','입고기준 미준수','마이샵'];
   body=sections.join(' ');assert.equal(inspectSupplierPage().evidence,'supplier_dashboard_widgets');
+  body='필수 진 행 사항 납 품 률 입고기준 미준수 마이 샵';assert.equal(inspectSupplierPage().evidence,'supplier_dashboard_widgets','Rendered label whitespace is normalized');
+  body=sections.join(' ');assert.equal(inspectSupplierPage().diagnostic.logoutVisible,false);
+  body+=' 주식회사 테스트 Company Code: test-private-account';assert.equal(JSON.stringify(inspectSupplierPage()).includes('test-private-account'),false);
   for(let i=0;i<sections.length;i++){body=sections.filter((_,j)=>i!==j).join(' ');assert.equal(inspectSupplierPage().state,'unverified','Missing dashboard section must remain unverified');}
   body=sections.join(' ');global.location.href='https://supplier.coupang.com/login';assert.equal(inspectSupplierPage().state,'unverified');
   global.location.href='https://evil.test/dashboard/KR';assert.equal(inspectSupplierPage().state,'unverified');
@@ -57,6 +64,7 @@ try {
   for(const [phrase,state] of [['보안 문자','verification'],['접근이 제한','access_blocked'],['Invalid username or password','credential_error']]){body=sections.join(' ')+' '+phrase;assert.equal(inspectSupplierPage().state,state);}
   body=sections.join(' ');global.document.querySelectorAll=s=>s==='input[type="password"]'?[password]:[];assert.equal(inspectSupplierPage().state,'unverified','Visible login form excludes dashboard recognition');
   f=fixture(['authenticated'],{pendingAttempt:true,blockedVersion:'v1'});f.io.probe=async()=>({state:'authenticated',evidence:'supplier_dashboard_widgets'});assert.equal((await f.connector.check()).reason,'supplier_dashboard_confirmed');assert.equal(f.get().submits,0);assert.equal(f.get().saved.blockedVersion,'');
+  f=fixture(['unverified']);f.io.probe=async()=>({state:'unverified',diagnostic:unsafeDiagnostic});await f.connector.check();assert.equal(JSON.stringify(f.get().saved).includes('test-secret'),false);assert.equal(JSON.stringify(f.get().saved).includes('test-user'),false);
 } finally {Object.assign(global,original);}
 const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));
 const id=[...createHash('sha256').update(Buffer.from(manifest.key,'base64')).digest().subarray(0,16)].map(b=>String.fromCharCode(97+(b>>4),97+(b&15))).join('');
