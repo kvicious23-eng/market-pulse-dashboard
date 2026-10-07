@@ -85,7 +85,7 @@ public static class SupplierHost {
     public static Dictionary<string,object> ReadFrame(Stream input) {
         byte[] size=new byte[4]; ReadExact(input,size);
         uint length=BitConverter.ToUInt32(size,0);
-        if(length==0||length>4096) throw new InvalidOperationException("invalid_message");
+        if(length==0||length>4096) throw new InvalidDataException("invalid_message");
         byte[] payload=new byte[(int)length];ReadExact(input,payload);
         try { return Json.Deserialize<Dictionary<string,object>>(Encoding.UTF8.GetString(payload)); }
         finally { Array.Clear(payload,0,payload.Length); }
@@ -144,7 +144,7 @@ public static class SupplierHost {
             if(b.Password!="test-password-2"||v==v2) return 11;
             SupplierVault.Delete(target);if(SupplierVault.Read(target)!=null) return 12;
             using(MemoryStream stream=new MemoryStream()) {WriteFrame(stream,new Dictionary<string,object>{{"operation","status"}});stream.Position=0;if((string)ReadFrame(stream)["operation"]!="status")return 13;}
-            using(MemoryStream stream=new MemoryStream(new byte[]{255,255,255,127})) {try{ReadFrame(stream);return 14;}catch(InvalidOperationException){}}
+            using(MemoryStream stream=new MemoryStream(new byte[]{255,255,255,127})) {try{ReadFrame(stream);return 14;}catch(InvalidDataException){}}
             return 0;
         } finally {SupplierVault.Delete(target);}
     }

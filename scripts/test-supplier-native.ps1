@@ -18,7 +18,8 @@ try {
   $start.RedirectStandardInput=$true; $start.RedirectStandardOutput=$true; $start.RedirectStandardError=$true
   $process=New-Object Diagnostics.Process; $process.StartInfo=$start; [void]$process.Start()
   $payload=[Text.Encoding]::UTF8.GetBytes('{"operation":"invalid"}')
-  $frame=[BitConverter]::GetBytes([uint32]$payload.Length)+$payload
+  [byte[]]$frame=[BitConverter]::GetBytes([uint32]$payload.Length)+$payload
+  if([BitConverter]::ToUInt32($frame,0) -ne $payload.Length){throw 'Test request frame has an invalid size.'}
   $process.StandardInput.BaseStream.Write($frame,0,$frame.Length); $process.StandardInput.BaseStream.Flush(); $process.StandardInput.BaseStream.Close()
   $lengthBytes=New-Object byte[] 4; $offset=0
   while($offset -lt 4){$n=$process.StandardOutput.BaseStream.Read($lengthBytes,$offset,4-$offset);if($n -eq 0){[void]$process.WaitForExit(10000);throw ('No native frame returned. Exit: '+$process.ExitCode+' Category: '+$process.StandardError.ReadToEnd())};$offset+=$n}
