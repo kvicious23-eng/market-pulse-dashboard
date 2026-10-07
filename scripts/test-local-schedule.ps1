@@ -30,6 +30,7 @@ try {
   $upload=$global:MarketPulseScheduleTestTasks['Market Pulse Result Upload']
   if ((@($scan.Triggers.StartBoundary)-join ',') -ne '08:00,12:00,16:00,20:00') {throw 'Wrong scan triggers.'}
   if ((@($upload.Triggers.StartBoundary)-join ',') -ne '08:30,12:30,16:30,20:30') {throw 'Wrong upload triggers.'}
+  if ($scan.Actions.Arguments -notmatch 'run-scheduled-scan.ps1' -or $scan.Actions.Arguments -notmatch '-NonInteractive -WindowStyle Hidden') {throw 'Scan watchdog is not installed as a hidden action.'}
   if ($upload.Actions.Arguments -notmatch '-NonInteractive -WindowStyle Hidden') {throw 'Upload console is visible.'}
   if ($upload.Actions.Arguments -notmatch [regex]::Escape((Join-Path $repo 'scripts\run-scheduled-upload.ps1'))) {throw 'Wrong upload runner.'}
   $runner=Get-Content -Raw -Encoding UTF8 (Join-Path $repo 'scripts\run-scheduled-upload.ps1')

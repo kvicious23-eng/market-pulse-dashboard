@@ -887,13 +887,14 @@ function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
   return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
 }
 
-async function scanAll(scanSlot) {
+async function scanAll(scanSlot, recovery=null) {
   const lock = await chrome.storage.local.get('running');
   // An active scan in this worker is guarded synchronously by requestScan.
   // A persisted lock without an active promise belongs to a terminated worker.
   if(lock.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-worker-restart',lastScanErrorAt:new Date().toISOString()});
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const scanStartedAt = new Date().toISOString();
+  const runId=recovery?.runId||crypto.randomUUID().replaceAll('-','');
   const results = [];
   const scanWindowState={windowId:null,anchorTabIds:[]};
   const progress=async (mtm,stage,total)=>{
@@ -911,6 +912,17 @@ async function scanAll(scanSlot) {
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
     const targets=configuredTargets.filter(x=>x.enabled!==false).map(product=>Object.fromEntries(Object.entries(product).filter(([key])=>!['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase()))));
+    // A start witness contains the pinned catalogue, never partial prices or SKUIDs.
+    // Download completion precedes the first product so the Windows watchdog can
+    // distinguish a started collection from an absent/disabled extension.
+    if(!isEdgeBrowser&&scanSlot) {
+      const witness={version:1,browser:'chrome',extensionVersion:chrome.runtime.getManifest().version,
+        runId,scanSlot,startedAt:scanStartedAt,targetCount:targets.length,targets};
+      const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
+      const witnessDownload=await withScanTimeout(chrome.downloads.download({url:witnessUrl,
+        filename:'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
+      await waitForScanDownload(witnessDownload);
+    }
     for (const target of targets) {
       let tab;
       await progress(target.mtm,'coupang-load',targets.length);
@@ -1002,6 +1014,8 @@ async function scanAll(scanSlot) {
       extensionVersion:chrome.runtime.getManifest().version,
       browser:/Edg\//.test(navigator.userAgent)?'edge':'chrome',
       scanSlot,
+      runId,
+      recovery,
       startedAt:scanStartedAt,
       scannedAt:completedAt,
       completedAt,
@@ -1012,7 +1026,7 @@ async function scanAll(scanSlot) {
     };
     await progress(null,'download',targets.length);
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
+    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename:recovery?`MarketPulse/edge-recovery-${runId}.json`:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
     await waitForScanDownload(downloadId);
     await chrome.storage.local.set({
       lastRunDay:localDay(),
@@ -1444,13 +1458,13 @@ let activeScanPromise=null;
 let activeScanSlot=null;
 let pendingScanSlot=null;
 
-function requestScan(slot=currentScheduledScanSlot()) {
+function requestScan(slot=currentScheduledScanSlot(), recovery=null) {
   if(activeScanPromise) {
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
   activeScanSlot=slot;
-  activeScanPromise=scanAll(slot);
+  activeScanPromise=scanAll(slot,recovery);
   activeScanPromise.then(finishScan,finishScan);
   return true;
 }
@@ -1512,7 +1526,14 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     if(!isEdgeBrowser||errors.length||!message.products?.length) { sendResponse({ok:false,reason:'invalid-fallback-catalog'});return; }
     if(activeScanPromise||fallbackCatalogPending) {sendResponse({ok:false,reason:'already-running'});return;}
     fallbackCatalogPending=true;
-    chrome.storage.local.set({products:message.products}).then(()=>sendResponse(requestScan()?{ok:true}:{ok:false,reason:'already-running'}))
+    const recovery=message.recovery||null;
+    if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
+      !['chrome-process-exit','access-check'].includes(recovery.reason)||
+      !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
+      !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
+      fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;
+    }
+    chrome.storage.local.set({products:message.products}).then(()=>sendResponse(requestScan(message.scanSlot||null,recovery)?{ok:true}:{ok:false,reason:'already-running'}))
       .catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
   }

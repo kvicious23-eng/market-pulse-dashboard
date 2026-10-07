@@ -34,6 +34,9 @@ on:
       - "scripts/test-competitor-import.ps1"
       - "scripts/edge-fallback.ps1"
       - "scripts/test-edge-profile.ps1"
+      - "scripts/scan-recovery.ps1"
+      - "scripts/run-scheduled-scan.ps1"
+      - "scripts/test-scan-recovery.*"
       - "scripts/competitor-history-exclusions.json"
       - "scripts/test-competitor-history.mjs"
       - "scripts/test-canonical-routes.mjs"
@@ -138,6 +141,7 @@ jobs:
           node scripts/validate-market-data.mjs
           node scripts/test-discount-rules.mjs
           node scripts/test-scheduled-scans.mjs
+          node scripts/test-scan-recovery.mjs
           node scripts/test-archived-brand.mjs
           node scripts/test-access-diagnostics.mjs
           node scripts/test-price-sources.mjs
@@ -190,6 +194,7 @@ jobs:
           }
           ./scripts/test-local-schedule.ps1
           ./scripts/test-edge-profile.ps1
+          ./scripts/test-scan-recovery.ps1
           ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1

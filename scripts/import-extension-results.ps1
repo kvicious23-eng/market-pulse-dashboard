@@ -9,6 +9,9 @@ $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloa
 $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $minimumStart=if ($ExpectedSlotStart) { [DateTimeOffset]::Parse($ExpectedSlotStart) } else { $null }
+. (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+. (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
+$recoverySlot=if($minimumStart){$minimumStart.ToOffset([TimeSpan]::FromHours(9)).ToString('yyyy-MM-ddTHH:mmzzz')}else{Get-ScanRecoverySlot}
 
 # Windows PowerShell 5.1 can surface Git's normal stderr progress (for example,
 # "From https://github.com/...") as an ErrorRecord. Judge Git by its exit code.
@@ -33,6 +36,10 @@ function Invoke-Git {
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 
 function Get-LatestResultPath {
+  $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+  if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
+    return Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
+  }
   return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
@@ -72,7 +79,7 @@ do {
 } while ($true)
 
 # Wait for this slot's completed Chrome JSON before deciding whether Edge is
-# needed. At 08:30/14:30 the Chrome scan may still be running.
+# needed. At a scheduled upload the Chrome scan may still be running.
 $blockedChrome=@($payload.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
 if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
   foreach ($blocked in $blockedChrome) {
@@ -282,6 +289,9 @@ $text = @{
   ManagedUrl = Decode-Utf8 '6rSA66as7ZmU66m0IOuTseuhnSBVUkw='
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
+}
+if ([string]$payload.browser -eq 'edge') {
+  foreach ($key in @($text.Keys)) { $text[$key]=([string]$text[$key]).Replace('Chrome','Edge') }
 }
 
 function Read-Data($path) {
@@ -777,6 +787,18 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.lastAttemptStatus=if($partialCount -eq 0){'success'}else{'partial'}
   $data.meta.monitoring.lastAttemptText="$($spec.Brand) 수집 결과: 검증 $verified, 품절 $soldOutCount, 일부 $partialCount / 전체 $(@($data.products).Count)"
   $data.meta.snapshotAt=$scanKst
+  $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
+  $recoveryEvidence=$null
+  if ($payload.recovery -and $payload.recovery.reason -eq 'chrome-process-exit') {
+    $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+    Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
+    $recoveryEvidence=[pscustomobject]@{reason='chrome-process-exit';exitCause='unknown';scanSlot=$payload.scanSlot;
+      chromeRunId=$receipt.chromeRunId;edgeRunId=$payload.runId;chromeStartedAt=$receipt.chromeStartedAt;
+      chromeExtensionVersion=$receipt.chromeExtensionVersion;edgeExtensionVersion=$payload.extensionVersion;
+      processObservedAt=$receipt.processObservation.observedAt;absentChecks=$receipt.processObservation.absentChecks;
+      edgeStartedAt=$payload.startedAt;targetCount=$payload.targetCount;resultCount=$payload.resultCount;listMatched=$true}
+  }
+  $data.meta | Add-Member -NotePropertyName recoveryEvidence -NotePropertyValue $recoveryEvidence -Force
   $data.meta | Add-Member -NotePropertyName publishedAt -NotePropertyValue $scanKst -Force
   $data.meta.monitoring.lastAttemptAt=$scanKst
   if (@($brandResults | Where-Object { $_.competitorReason -or @($_.competitorPages | Where-Object {$_.source -in @('다나와','에누리')}).Count -gt 0 }).Count -gt 0) {

@@ -33,9 +33,14 @@ $scanTaskSettings = New-ScheduledTaskSettingsSet `
   -StartWhenAvailable `
   -WakeToRun `
   -AllowStartIfOnBatteries `
-  -DontStopIfGoingOnBatteries
+  -DontStopIfGoingOnBatteries `
+  -ExecutionTimeLimit (New-TimeSpan -Minutes 120) `
+  -MultipleInstances IgnoreNew
 
-$scanAction = New-ScheduledTaskAction -Execute $chrome -Argument '--no-first-run --new-window "chrome://newtab/"'
+$scanRunner=Join-Path $InstallPath 'scripts\run-scheduled-scan.ps1'
+if (-not (Test-Path $scanRunner)) {throw 'The scan watchdog runner is missing.'}
+$scanArguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$scanRunner+'" -RepoPath "'+$InstallPath+'"'
+$scanAction = New-ScheduledTaskAction -Execute $powershell -Argument $scanArguments
 $scanTriggers = @(
   New-ScheduledTaskTrigger -Daily -At "08:00"
   New-ScheduledTaskTrigger -Daily -At "12:00"

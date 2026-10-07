@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Market Pulse Coupang Scanner",
-  "version": "1.9.32",
+  "version": "1.9.33",
   "description": "Reads exact Coupang item prices in a normal Chrome session.",
   "icons": {
     "16": "icons/mp-16.png",

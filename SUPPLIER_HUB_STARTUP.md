@@ -1,6 +1,6 @@
 # Supplier Hub 아침 CSV 자동 갱신
 
-가격 확장 1.9.32와 Supplier Hub 확장 0.1.11은 아래 순서로 연결한다.
+가격 확장 1.9.33과 Supplier Hub 확장 0.1.11은 아래 순서로 연결한다.
 
 1. Chrome의 08시 슬롯 가격 JSON이 실제 다운로드 완료된 뒤 시작한다. 날짜·슬롯·완료 여부·결과 개수를 로컬에서 검증한다. 오후 가격 회차와 Edge 독립 수집은 시작 신호가 아니다.
 2. Supplier Hub 인증을 확인한다. 아침 완료 신호 전에는 자동 인증 점검을 시작하지 않는다. 이미 연결돼 있으면 그 세션을 사용하고, 로그인 화면이면 기존 자동 연결 설정과 저장 계정으로 재로그인한다. 추가 인증·접근 제한·인증 실패에서는 반복 제출을 중단한다. 다운로드 요청 전 인증만 막힌 경우 사용자가 인증을 복구해 정상 연결이 확인되면 이어서 진행한다.
@@ -14,3 +14,5 @@
 적용하려면 최신 코드에서 `INSTALL_SUPPLIER_HUB_CONNECTOR.cmd`를 다시 실행하고, 가격 확장과 Supplier Hub 확장을 각각 새로고침한다. 기존 계정은 유지된다. 확장 설치·코드 검사 성공과 실제 다음 아침 회차 성공, 세션 만료 후 재로그인 실측을 구분한다.
 
 집계·표시 규칙은 [PROJECT_RULES.md](PROJECT_RULES.md), 연결 절차는 [SUPPLIER_HUB_CONNECTION.md](SUPPLIER_HUB_CONNECTION.md)를 따른다.
+
+Chrome 프로세스 종료 시 Edge 전체 가격 복구는 [CHROME_RECOVERY.md](CHROME_RECOVERY.md)를 따른다. Edge 복구 파일과 Chrome 시작 기록은 이 CSV 작업의 오전 완료 신호가 아니다. Chrome 08시 완료 신호가 없으면 새 CSV를 내려받았다고 표시하지 않는다.
