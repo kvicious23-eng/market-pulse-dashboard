@@ -33,6 +33,12 @@ if ($Worker) {
   } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }
 }
 if (-not $ExpectedSlotStart) { Write-UploadLog 'No current upload slot; skipped.';exit 0 }
+# A delayed start must also finish before the next collection slot.
+$slotTime=[DateTimeOffset]::Parse($ExpectedSlotStart).ToOffset([TimeSpan]::FromHours(9))
+$nextHour=@(8,12,16,20 | Where-Object {$_ -gt $slotTime.Hour} | Select-Object -First 1)
+$nextDate=$slotTime.Date
+if($nextHour.Count){$nextDate=$nextDate.AddHours($nextHour[0])}else{$nextDate=$nextDate.AddDays(1).AddHours(8)}
+$nextSlotDeadline=New-Object DateTimeOffset($nextDate,[TimeSpan]::FromHours(9))
 $budgetPath=Join-Path $reportsPath 'scheduled-upload-budget.json'
 $key=([IO.Path]::GetFullPath($RepoPath) -replace '[^a-zA-Z0-9]','')
 $supervisor=New-Object Threading.Mutex($false,('Local\MarketPulse.UploadSupervisor.'+$key))
@@ -43,7 +49,9 @@ try {
   $budget=Read-SupplierLocalState $budgetPath
   if (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart) {
     $now=[DateTimeOffset]::UtcNow
-    $budget=[pscustomobject]@{scanSlot=$ExpectedSlotStart;startedAt=$now.ToString('o');deadlineAt=$now.AddSeconds($TimeoutSeconds).ToString('o');exhausted=$false;status='starting'}
+    $end=$now.AddSeconds($TimeoutSeconds)
+    if($end -gt $nextSlotDeadline){$end=$nextSlotDeadline}
+    $budget=[pscustomobject]@{scanSlot=$ExpectedSlotStart;startedAt=$now.ToString('o');deadlineAt=$end.ToString('o');exhausted=$false;status='starting'}
     Save-SupplierLocalState $budgetPath $budget
   }
   $deadline=[DateTimeOffset]::Parse($budget.deadlineAt)
