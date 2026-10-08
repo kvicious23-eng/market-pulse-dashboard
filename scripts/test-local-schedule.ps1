@@ -3,7 +3,10 @@ $repo=Split-Path -Parent $PSScriptRoot
 $tempRoot=Join-Path ([IO.Path]::GetTempPath()) ('market-pulse-schedule-'+[guid]::NewGuid())
 $originalProgramFiles=$env:ProgramFiles
 $global:MarketPulseScheduleTestTasks=@{}
-function New-ScheduledTaskSettingsSet { [pscustomobject]@{} }
+function New-ScheduledTaskSettingsSet {
+  param([switch]$StartWhenAvailable,[switch]$WakeToRun,[switch]$AllowStartIfOnBatteries,[switch]$DontStopIfGoingOnBatteries,[TimeSpan]$ExecutionTimeLimit,[string]$MultipleInstances,[int]$RestartCount,[TimeSpan]$RestartInterval)
+  [pscustomobject]@{ExecutionTimeLimit=$ExecutionTimeLimit;MultipleInstances=$MultipleInstances;RestartCount=$RestartCount}
+}
 function New-ScheduledTaskAction {
   param([string]$Execute,[string]$Argument)
   [pscustomobject]@{Execute=$Execute;Arguments=$Argument}
@@ -33,6 +36,7 @@ try {
   if ($scan.Actions.Arguments -notmatch 'run-scheduled-scan.ps1' -or $scan.Actions.Arguments -notmatch '-NonInteractive -WindowStyle Hidden') {throw 'Scan watchdog is not installed as a hidden action.'}
   if ($upload.Actions.Arguments -notmatch '-NonInteractive -WindowStyle Hidden') {throw 'Upload console is visible.'}
   if ($upload.Actions.Arguments -notmatch [regex]::Escape((Join-Path $repo 'scripts\run-scheduled-upload.ps1'))) {throw 'Wrong upload runner.'}
+  if ($upload.Settings.ExecutionTimeLimit -ne [TimeSpan]::FromHours(2) -or $upload.Settings.MultipleInstances -ne 'IgnoreNew') {throw 'Upload is not bounded to two hours.'}
   $runner=Get-Content -Raw -Encoding UTF8 (Join-Path $repo 'scripts\run-scheduled-upload.ps1')
   $block=[regex]::Match($runner,'(?ms)^\$slotHour=@.*?(?=^\$expectedSlotStart)').Value
   if (-not $block) {throw 'Slot selection code missing.'}

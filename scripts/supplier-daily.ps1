@@ -1,5 +1,6 @@
 ﻿# Local CSV automation helpers. No credential access or raw CSV output.
 . (Join-Path $PSScriptRoot 'supplier-metrics.ps1')
+. (Join-Path $PSScriptRoot 'git-timeout.ps1')
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 function Enter-MarketPulseRepositoryLock([string]$RepoPath,[int]$Seconds=600) {
@@ -94,11 +95,9 @@ function Test-SupplierDailyCsv {
   } catch { return @{ok=$false;reason='csv_invalid'} }
 }
 function Invoke-SupplierGit([string]$RepoPath,[string[]]$Arguments,[int[]]$Accepted=@(0)) {
-  $old=$ErrorActionPreference;$prompt=$env:GIT_TERMINAL_PROMPT
-  try { $ErrorActionPreference='Continue';$env:GIT_TERMINAL_PROMPT='0';$output=@(& git -C $RepoPath @Arguments 2>&1);$code=$LASTEXITCODE }
-  finally { $ErrorActionPreference=$old;$env:GIT_TERMINAL_PROMPT=$prompt }
-  if ($code -notin $Accepted) { throw 'Supplier metrics Git operation failed.' }
-  return [pscustomobject]@{Code=$code;Output=$output}
+  $result=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments $Arguments
+  if ($result.Code -notin $Accepted) { throw 'Supplier metrics Git operation failed.' }
+  return $result
 }
 function Publish-SupplierDailyMetrics {
   param([string]$RepoPath,$Queue,[string]$DownloadRoot,[datetime]$Day)

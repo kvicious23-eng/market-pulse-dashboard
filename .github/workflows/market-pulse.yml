@@ -45,6 +45,8 @@ on:
       - "scripts/test-canonical-routes.mjs"
       - "scripts/import-extension-results.ps1"
       - "scripts/run-scheduled-upload.ps1"
+      - "scripts/git-timeout.ps1"
+      - "scripts/test-upload-timeout.ps1"
       - "scripts/set-local-schedule.ps1"
       - "scripts/test-scheduled-scans.mjs"
       - "scripts/test-local-schedule.ps1"
@@ -198,6 +200,7 @@ jobs:
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           ./scripts/test-local-schedule.ps1
+          ./scripts/test-upload-timeout.ps1
           ./scripts/test-edge-profile.ps1
           ./scripts/test-scan-recovery.ps1
           ./scripts/test-brand-lifecycle.ps1

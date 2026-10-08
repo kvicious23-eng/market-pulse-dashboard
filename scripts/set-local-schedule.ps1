@@ -60,6 +60,8 @@ $uploadTaskSettings = New-ScheduledTaskSettingsSet `
   -WakeToRun `
   -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries `
+  -ExecutionTimeLimit (New-TimeSpan -Hours 2) `
+  -MultipleInstances IgnoreNew `
   -RestartCount 3 `
   -RestartInterval (New-TimeSpan -Minutes 15)
 $uploadArguments = '-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $uploadRunner + '" -RepoPath "' + $InstallPath + '"'
@@ -87,7 +89,8 @@ Write-Host "Market Pulse local schedule updated."
 Write-Host "  Automatic scan (Chrome start): $scanTime"
 Write-Host "  Result upload:                 $uploadTime"
 Write-Host "  Upload console:                Hidden (logs remain in reports\scheduled-upload.log)"
-Write-Host "  Upload retry:                  3 retries, every 15 minutes"
+Write-Host "  Upload retry:                  3 retries, every 15 minutes within the slot budget"
+Write-Host "  Upload budget:                 2 hours total per slot; includes retries; Git commands max 10 minutes"
 Write-Host "  Missed runs:                   Start when available"
 Write-Host "  Sleep mode:                    Wake the computer to run"
 Write-Host "  Windows time zone:             $localTimeZone"

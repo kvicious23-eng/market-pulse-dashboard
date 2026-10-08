@@ -10,6 +10,7 @@ $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $minimumStart=if ($ExpectedSlotStart) { [DateTimeOffset]::Parse($ExpectedSlotStart) } else { $null }
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+. (Join-Path $PSScriptRoot 'git-timeout.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 $recoverySlot=if($minimumStart){$minimumStart.ToOffset([TimeSpan]::FromHours(9)).ToString('yyyy-MM-ddTHH:mmzzz')}else{Get-ScanRecoverySlot}
 
@@ -17,18 +18,9 @@ $recoverySlot=if($minimumStart){$minimumStart.ToOffset([TimeSpan]::FromHours(9))
 # "From https://github.com/...") as an ErrorRecord. Judge Git by its exit code.
 function Invoke-Git {
   param([string[]]$Arguments, [int[]]$AcceptedExitCodes = @(0))
-  $previousPreference = $ErrorActionPreference
-  try {
-    $ErrorActionPreference = 'Continue'
-    & git -C $RepoPath @Arguments
-    $gitExitCode = $LASTEXITCODE
-  } finally {
-    $ErrorActionPreference = $previousPreference
-  }
-  if ($gitExitCode -notin $AcceptedExitCodes) {
-    throw "Git $($Arguments -join ' ') failed (exit $gitExitCode)."
-  }
-  return $gitExitCode
+  $result=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments $Arguments
+  if ($result.Code -notin $AcceptedExitCodes) { throw "Git operation failed (exit $($result.Code))." }
+  return $result.Code
 }
 
 # Keep the C:\MarketPulse checkout and brand-generation template current before

@@ -1,41 +1,85 @@
-﻿param(
-  [string]$RepoPath = "C:\MarketPulse"
+param(
+  [string]$RepoPath = "C:\MarketPulse",
+  [ValidateRange(1,7200)][int]$TimeoutSeconds=7200,
+  [switch]$Worker,
+  [string]$ExpectedSlotStart=''
 )
-
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
-$repositoryMutex=$null
 $reportsPath=Join-Path $RepoPath 'reports'
-New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
+New-Item -ItemType Directory $reportsPath -Force | Out-Null
 $logPath=Join-Path $reportsPath 'scheduled-upload.log'
-$importScript=Join-Path $RepoPath 'scripts\import-extension-results.ps1'
-$started=(Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz')
 $kstZone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $kstNow=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone)
 $slotHour=@(8,12,16,20 | Where-Object { $_ -le $kstNow.Hour } | Select-Object -Last 1)
 $slotHour=if ($slotHour.Count) { $slotHour[0] } else { $null }
-$expectedSlotStart=if ($null -ne $slotHour) {
-  "{0}T{1:00}:00:00+09:00" -f $kstNow.ToString('yyyy-MM-dd'),$slotHour
-} else { '' }
-
-try {
-  $repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
-  Add-Content -Path $logPath -Encoding UTF8 -Value "[$started] Scheduled upload started."
-  # A 2>&1 pipeline makes PowerShell 5.1 treat normal native Git stderr
-  # (including the "From ..." line of a successful pull) as a fatal error.
-  Start-Transcript -Path $logPath -Append | Out-Null
+$expectedSlotStart=if ($ExpectedSlotStart) {$ExpectedSlotStart} elseif($null -ne $slotHour){"{0}T{1:00}:00:00+09:00" -f $kstNow.ToString('yyyy-MM-dd'),$slotHour}else{''}
+function Write-UploadLog([string]$Message) {
+  Add-Content $logPath -Encoding UTF8 -Value ("[$([DateTimeOffset]::Now.ToString('o'))] $Message")
+}
+if ($Worker) {
+  $repositoryMutex=$null
   try {
-    & $importScript -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $expectedSlotStart
-  } finally {
-    Stop-Transcript | Out-Null
+    $repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
+    Write-UploadLog 'Scheduled upload worker started.'
+    Start-Transcript -Path $logPath -Append | Out-Null
+    try { & (Join-Path $RepoPath 'scripts\import-extension-results.ps1') -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $ExpectedSlotStart }
+    finally { Stop-Transcript | Out-Null }
+    Write-UploadLog 'Scheduled upload completed.'
+    exit 0
+  } catch {
+    Write-UploadLog ("Scheduled upload failed: "+$_.ToString())
+    exit 1
+  } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }
+}
+if (-not $ExpectedSlotStart) { Write-UploadLog 'No current upload slot; skipped.';exit 0 }
+$budgetPath=Join-Path $reportsPath 'scheduled-upload-budget.json'
+$key=([IO.Path]::GetFullPath($RepoPath) -replace '[^a-zA-Z0-9]','')
+$supervisor=New-Object Threading.Mutex($false,('Local\MarketPulse.UploadSupervisor.'+$key))
+$held=$false;$child=$null;$budget=$null
+try {
+  try {$held=$supervisor.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
+  if(-not $held){Write-UploadLog 'Upload supervisor already running; skipped duplicate.';exit 1}
+  $budget=Read-SupplierLocalState $budgetPath
+  if (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart) {
+    $now=[DateTimeOffset]::UtcNow
+    $budget=[pscustomobject]@{scanSlot=$ExpectedSlotStart;startedAt=$now.ToString('o');deadlineAt=$now.AddSeconds($TimeoutSeconds).ToString('o');exhausted=$false;status='starting'}
+    Save-SupplierLocalState $budgetPath $budget
   }
-  Add-Content -Path $logPath -Encoding UTF8 -Value "[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz'))] Scheduled upload completed."
-  exit 0
+  $deadline=[DateTimeOffset]::Parse($budget.deadlineAt)
+  $remaining=($deadline-[DateTimeOffset]::UtcNow).TotalSeconds
+  if ($budget.exhausted -or $remaining -le 0) {
+    $budget.status='deadline-exhausted';$budget.exhausted=$true
+    Save-SupplierLocalState $budgetPath $budget
+    Write-UploadLog ("Slot="+$ExpectedSlotStart+"; two-hour budget exhausted; waiting for the next scheduled slot; no new worker.")
+    exit 1
+  }
+  # Leave cleanup time before Task Scheduler's two-hour hard limit.
+  $reserve=[math]::Min(10,$remaining/10)
+  $cutoff=$deadline.AddSeconds(-$reserve)
+  $oldDeadline=$env:MARKET_PULSE_UPLOAD_DEADLINE
+  try {
+    $env:MARKET_PULSE_UPLOAD_DEADLINE=$cutoff.ToString('o')
+    $arguments=@('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-RepoPath',$RepoPath,'-Worker','-ExpectedSlotStart',$ExpectedSlotStart)
+    $child=Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList (($arguments | ForEach-Object {ConvertTo-MarketPulseArgument $_}) -join ' ') -WindowStyle Hidden -PassThru
+  } finally { $env:MARKET_PULSE_UPLOAD_DEADLINE=$oldDeadline }
+  $budget.status='running';Save-SupplierLocalState $budgetPath $budget
+  $waitMilliseconds=[int][math]::Max(1,($cutoff-[DateTimeOffset]::UtcNow).TotalMilliseconds)
+  if (-not $child.WaitForExit($waitMilliseconds)) {
+    Stop-MarketPulseProcessTree $child
+    $budget.status='timed-out';$budget.exhausted=$true
+    Save-SupplierLocalState $budgetPath $budget
+    Write-UploadLog ("Slot="+$ExpectedSlotStart+"; upload timeout; worker and its child processes stopped; next slot remains scheduled.")
+    exit 1
+  }
+  $code=$child.ExitCode
+  $budget.status=if($code -eq 0){'completed'}else{'failed'}
+  Save-SupplierLocalState $budgetPath $budget
+  exit $code
 } catch {
-  $message="[$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss zzz'))] Scheduled upload failed: $($_.ToString())"
-  Add-Content -Path $logPath -Encoding UTF8 -Value $message
-  Write-Error $message
+  Write-UploadLog ("Upload supervisor failed: "+$_.Exception.Message)
   exit 1
 } finally {
-  if ($repositoryMutex) { $repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose() }
+  if($child){if(-not $child.HasExited){Stop-MarketPulseProcessTree $child};$child.Dispose()}
+  if($held){$supervisor.ReleaseMutex()};$supervisor.Dispose()
 }
