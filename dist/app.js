@@ -434,8 +434,8 @@
     const current=metric.asOfDate===expected;
     const reasons={
       'sku-unregistered':'SKUID 등록 필요','sku-invalid':'SKUID 확인 필요','sku-conflict':'SKUID 확인 필요','sku-duplicate':'SKUID 중복',
-      'csv-missing':'CSV 다운로드 필요','csv-invalid':'CSV 확인 필요','sku-not-found':'미확인 · CSV에 해당 SKU 없음',
-      'date-missing':'전일 자료 없음','period-incomplete':'월 자료 일부 누락','duplicate-row':'CSV 중복 행 확인','value-invalid':'수량 확인 필요',pending:'연결 준비',stale:'자료 갱신 필요'
+      'csv-missing':'갱신 지연 · CSV 다운로드 필요','csv-invalid':'갱신 지연 · CSV 확인 필요','sku-not-found':'미확인 · CSV에 해당 SKU 없음',
+      'date-missing':'갱신 지연 · 전일 자료 없음','period-incomplete':'갱신 지연 · 월 자료 일부 누락','duplicate-row':'CSV 중복 행 확인','value-invalid':'수량 확인 필요',pending:'연결 준비',stale:'갱신 지연 · 자료 갱신 필요'
     };
     const definitions=[['재고','stock','stockStatus'],['판매','dailySales','dailySalesStatus'],['월판매','monthSales','monthSalesStatus']];
     const tiles=definitions.map(([label,key,statusKey])=>{
@@ -443,7 +443,7 @@
       const valid=status==='confirmed'&&Number.isSafeInteger(metric[key]);
       const period=key==='monthSales'?(metric.monthThrough<`${metric.month}-01`?`${metric.month}월 누적 · 아직 집계일 없음`:`${metric.month}-01 ~ ${metric.monthThrough}`):metric.asOfDate;
       const detail=valid?`${period} · 모든 센터 합계 · ${key==='stock'?'현재재고수량':'출고수량 기준'} · 단위 개`:(reasons[status]||'확인 필요');
-      return `<span class="supplier-metric${valid?'':' supplier-metric--pending'}" title="${escapeHtml(detail)}"><span>${label}</span><strong>${valid?metric[key].toLocaleString('ko-KR'):'—'}</strong></span>`;
+      return `<span class="supplier-metric${valid?'':' supplier-metric--pending'}" title="${escapeHtml(detail)}"><span>${label}</span><strong>${valid?metric[key].toLocaleString('ko-KR'):'미확인'}</strong></span>`;
     }).join('');
     const statuses=definitions.map(([,key])=>current?(metric[`${key}Status`]||'pending'):(metric.asOfDate?'stale':'pending'));
     const issues=[...new Set(statuses.filter(s=>s!=='confirmed'))];
