@@ -104,9 +104,9 @@ export function matchedCsv(table,result) {
 }
 
 // Injected only after a fresh route check. Click one exact visible export control once.
-export function clickSupplierCsvDownload() {
+export function clickSupplierCsvDownload(inspectOnly=false) {
   const u=new URL(location.href),text=document.body?.innerText||'';
-  const finish=(reason,count=0)=>({ok:reason==='csv_request_clicked',reason,buttonCount:Math.min(count,50)});
+  const finish=(reason,count=0)=>({ok:['csv_request_clicked','csv_button_ready'].includes(reason),reason,clicked:reason==='csv_request_clicked',buttonCount:Math.min(count,50)});
   if(u.protocol!=='https:'||u.hostname!=='supplier.coupang.com'||u.port||u.username||u.password||!/^\/rpd\/web-v2\/basic\/rocket\/?$/.test(u.pathname))return finish('csv_wrong_page');
   const visible=e=>!!(e&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden'&&getComputedStyle(e).display!=='none');
   if([...document.querySelectorAll('input[type="password"]')].some(visible))return finish('csv_login_required');
@@ -114,5 +114,6 @@ export function clickSupplierCsvDownload() {
   if(/자동.?입력.?방지|로봇이 아닙|보안.?문자|인증번호.{0,20}(입력|전송)|본인.?인증|Verify you are human/i.test(text)||[...document.querySelectorAll('iframe')].some(e=>visible(e)&&/captcha|challenge/i.test(e.src)))return finish('csv_verification_required');
   const buttons=[...document.querySelectorAll('button,a,[role="button"],input[type="button"],input[type="submit"]')].filter(e=>visible(e)&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&(e.innerText||e.value||e.getAttribute('aria-label')||'').replace(/[\s\u200b-\u200d\ufeff]/g,'')==='전체데이터다운로드');
   if(buttons.length!==1)return finish(buttons.length?'csv_button_ambiguous':'csv_button_missing',buttons.length);
+  if(inspectOnly)return finish('csv_button_ready',1);
   buttons[0].click();return finish('csv_request_clicked',1);
 }

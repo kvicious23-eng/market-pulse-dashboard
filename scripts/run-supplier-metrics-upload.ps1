@@ -5,9 +5,11 @@ $mutex=$null;$queue=$null
 $queuePath=Join-Path $RepoPath 'reports\supplier-daily-queue.json'
 $log=Join-Path $RepoPath 'reports\supplier-daily-upload.log'
 try {
-  $mutex=Enter-MarketPulseRepositoryLock $RepoPath
   $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
   $day=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$zone).Date
+  $queue=Read-SupplierLocalState $queuePath
+  if (-not $queue -or $queue.day -ne $day.ToString('yyyy-MM-dd') -or $queue.status -eq 'published') { exit 0 }
+  $mutex=Enter-MarketPulseRepositoryLock $RepoPath
   $queue=Read-SupplierLocalState $queuePath
   if (-not $queue -or $queue.day -ne $day.ToString('yyyy-MM-dd') -or $queue.status -eq 'published') { exit 0 }
   if ([int]$queue.attempts -ge 4) { throw 'publication_retry_limit' }
@@ -21,6 +23,7 @@ try {
   exit 0
 } catch {
   if ($queue) { $queue.status='failed';$queue.reason='publication_failed';$queue.checkedAt=[DateTimeOffset]::UtcNow.ToString('o');$queue | Add-Member -NotePropertyName nextAttemptAt -NotePropertyValue ([DateTimeOffset]::UtcNow.AddMinutes(15).ToString('o')) -Force;Save-SupplierLocalState $queuePath $queue }
-  Add-Content -LiteralPath $log -Encoding UTF8 -Value ([DateTimeOffset]::UtcNow.ToString('o')+' Supplier metrics publication failed.')
+  $failure=if (-not $mutex) { 'repository_lock_unavailable' } else { 'publication_failed' }
+  Add-Content -LiteralPath $log -Encoding UTF8 -Value ([DateTimeOffset]::UtcNow.ToString('o')+' Supplier metrics publication failed: '+$failure+'.')
   exit 1
 } finally { if ($mutex) { $mutex.ReleaseMutex();$mutex.Dispose() } }

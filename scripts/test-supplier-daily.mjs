@@ -29,3 +29,21 @@ assert.doesNotMatch(supplier,/chrome\.downloads\.onDeterminingFilename\.addListe
 assert.equal(supplierDownload({...download(f),filename:'C:\\Users\\Test\\Downloads\\basic_operation_rocket_2026100120261007.csv',startTime:new Date(f.now).toISOString()}, {requestedAt:new Date(f.now).toISOString()}),true,'The original CSV in Downloads is accepted without a renaming listener');
 assert.match(supplier,/daily\.read\(\)\)\.day===kstDay\(Date\.now\(\)\)/,'Automatic authentication monitoring waits for this morning signal');
 console.log('Daily CSV: morning gate, single request, worker recovery, real download completion, authentication stops, ambiguity and date validation passed.');
+
+// A delayed export control must not arm a download until it is ready.
+f=fixture();f.io.prepare=async()=>({ok:false,reason:'csv_button_missing'});daily=new DailyCsv(f.io);
+await daily.tick();assert.equal(f.saved.stage,'page');assert.equal(f.saved.requestedAt,undefined);assert.equal(f.clicks,0);
+f.io.prepare=async()=>({ok:true});await daily.tick();assert.equal(f.clicks,1);
+// Exhausted readiness retries do not loop forever after authentication succeeds.
+f=fixture();f.io.authState=async()=>f.auth;f.io.prepare=async()=>({ok:false,reason:'csv_button_missing'});daily=new DailyCsv(f.io);
+for(let i=0;i<8;i++)await daily.tick();assert.equal(f.saved.stage,'stopped');assert.equal(f.saved.pageChecks,5);assert.equal(f.clicks,0);
+// Legacy explicit no-click stop resumes only when download history is empty.
+f=fixture({day:kstDay(fixed),stage:'stopped',reason:'csv_button_missing',requestedAt:new Date(fixed).toISOString()});
+await new DailyCsv(f.io).tick();assert.equal(f.clicks,1);
+f=fixture({day:kstDay(fixed),stage:'stopped',reason:'csv_button_missing',requestedAt:new Date(fixed).toISOString()});f.items=[download(f)];
+await new DailyCsv(f.io).tick();assert.equal(f.clicks,0);assert.equal(f.saved.stage,'download');
+f=fixture({day:kstDay(fixed),stage:'stopped',reason:'csv_click_error',requestedAt:new Date(fixed).toISOString()});
+await new DailyCsv(f.io).tick();assert.equal(f.clicks,0);assert.equal(f.saved.stage,'stopped');
+console.log('Readiness and legacy no-click recovery passed; unknown clicks remain blocked.');
+
+f=fixture();f.io.prepare=async()=>({ok:false,reason:'csv_login_required'});await new DailyCsv(f.io).tick();assert.equal(f.saved.stage,'authentication');assert.equal(f.clicks,0);assert.equal(f.saved.requestedAt,undefined);

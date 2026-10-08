@@ -38,9 +38,20 @@ const daily=new DailyCsv({
   now:()=>Date.now(),load:async()=>(await chrome.storage.local.get('dailyCsv')).dailyCsv,
   save:async value=>chrome.storage.local.set({dailyCsv:value}),
   signal:()=>native('morning_status'),authenticate:()=>connector.check(),authState:()=>connector.read(),
-  openPage:async()=>{
+  prepare:async()=>{
     const id=(await chrome.storage.local.get('premium')).premium?.tabId;
-    if(await tab(id)){await chrome.tabs.reload(id,{bypassCache:true});await delay(750);}
+    if(!await tab(id))return {ok:false,reason:'csv_page_not_ready'};
+    let result;
+    for(let i=0;i<20;i++){
+      result=(await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload,args:[true]}))[0]?.result;
+      if(result?.ok||!['csv_button_missing','csv_page_not_ready'].includes(result?.reason))return result;
+      await delay(1000);
+    }
+    return result;
+  },
+  openPage:async(refresh=true)=>{
+    const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    if(refresh&&await tab(id)){await chrome.tabs.reload(id,{bypassCache:true});await delay(750);}
     return premium.check(true);
   },
   click:async()=>{

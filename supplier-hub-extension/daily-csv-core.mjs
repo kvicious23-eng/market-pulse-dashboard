@@ -27,7 +27,14 @@ export class DailyCsv {
         if(!signal?.ready||signal.day!==day)return job;
         job=await this.set({}, {day,stage:'authentication',reason:'morning_scan_complete',scanCompletedAt:signal.completedAt,scanBrowser:signal.source||null,scanRunId:signal.runId||null,scanSlot:signal.scanSlot||null});
       }
-      if(job.stage==='stopped'&&!job.requestedAt&&(await this.io.authState?.())?.status==='connected')job=await this.set(job,{stage:'authentication',authChecks:0,reason:'authentication_restored'});
+      // Earlier versions armed a request even when the exact button was absent.
+      // That path never clicked; still check download history before resuming it.
+      if(job.stage==='stopped'&&job.reason==='csv_button_missing'&&job.requestedAt&&!job.downloadId){
+        const candidates=(await this.io.downloads(job)).filter(item=>supplierDownload(item,job));
+        if(candidates.length)return this.set(job,{stage:'download',reason:'existing_download_observed'});
+        job=await this.set(job,{stage:'authentication',reason:'no_click_retry',previousRequestedAt:job.requestedAt,requestedAt:null,pageChecks:0});
+      }
+      if(job.stage==='stopped'&&!job.requestedAt&&!job.noClickConfirmed&&(await this.io.authState?.())?.status==='connected')job=await this.set(job,{stage:'authentication',authChecks:0,reason:'authentication_restored'});
       if(['stopped','uncertain'].includes(job.stage))return job;
       if(job.stage==='authentication'){
         const auth=await this.io.authenticate();
@@ -39,15 +46,28 @@ export class DailyCsv {
         job=await this.set(job,{stage:'page',reason:'authentication_confirmed'});
       }
       if(job.stage==='page'){
-        const page=await this.io.openPage();
+        const page=await this.io.openPage(!job.pageChecks);
         if(page?.status!=='page_opened'){
+          if(page?.status==='login_required')return this.set(job,{stage:'authentication',reason:'premium_login_required'});
           const retries=(job.pageChecks||0)+1;
           return this.set(job,{stage:page?.status==='unverified'&&retries<5?'page':'stopped',pageChecks:retries,reason:page?.reason||'csv_page_not_ready'});
         }
-        // Arm the durable request before injecting the click, including on a reload.
+        const ready=await this.io.prepare?.()||{ok:true};
+        if(!ready.ok){
+          if(ready.reason==='csv_login_required')return this.set(job,{stage:'authentication',reason:'premium_login_required'});
+          const retries=(job.pageChecks||0)+1;
+          const retryable=['csv_button_missing','csv_page_not_ready','csv_busy'].includes(ready.reason);
+          return this.set(job,{stage:retryable&&retries<5?'page':'stopped',pageChecks:retries,reason:ready.reason||'csv_page_not_ready',noClickConfirmed:true});
+        }
+        // Arm only after readiness, before the actual click. Unknown click errors
+        // remain durable and must never be blindly retried after worker restart.
         job=await this.set(job,{stage:'download',reason:'awaiting_download',requestedAt:new Date(this.io.now()).toISOString()});
         const click=await this.io.click();
-        if(!click?.ok)return this.set(job,{stage:'stopped',reason:click?.reason||'csv_click_error'});
+        if(!click?.ok){
+          const retries=(job.pageChecks||0)+1;
+          if(click?.clicked===false&&['csv_button_missing','csv_page_not_ready'].includes(click.reason))return this.set(job,{stage:retries<5?'page':'stopped',pageChecks:retries,reason:click.reason,previousRequestedAt:job.requestedAt,requestedAt:null,noClickConfirmed:true});
+          return this.set(job,{stage:'stopped',reason:click?.reason||'csv_click_error'});
+        }
       }
       if(job.stage==='download'||job.stage==='validating'){
         const candidates=(await this.io.downloads(job)).filter(item=>supplierDownload(item,job));
