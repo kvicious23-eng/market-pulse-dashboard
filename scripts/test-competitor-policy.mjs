@@ -1,8 +1,9 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const scanner = fs.readFileSync('chrome-extension/background.js', 'utf8');
+const scanner = readTestFile('chrome-extension/background.js', 'utf8');
 const start = scanner.indexOf('function readDanawaSellers(');
 const end = scanner.indexOf('\n\nasync function scanAll(', start);
 assert.ok(start >= 0 && end > start);
@@ -33,7 +34,7 @@ assert.equal(scan('GODOX C100 정품','무통장 입금 전용 35,000원').selle
 assert.equal(scan('GODOX C100 정품','41,910원 무료배송 현금영수증 발급 가능').sellers.length,1);
 assert.equal(scan('GODOX C100 정품','41,910원 무료배송 현금 영수증 발급 가능').sellers.length,1);
 
-const dashboard = fs.readFileSync('dist/app.js','utf8');
+const dashboard = readTestFile('dist/app.js','utf8');
 const a = dashboard.indexOf('function effectiveCompetitorPrice(');
 const b = dashboard.indexOf('\n\n  function isSoldOut(',a);
 const ctx = {
@@ -47,7 +48,7 @@ assert.equal(ctx.price(base,mine),41910);
 assert.equal(ctx.price({...base,competitionPolicyVerified:undefined},mine),null);
 assert.equal(ctx.price({...base,condition:'현금가 전용'},mine),null);
 assert.equal(ctx.price({...base,productTitle:'C100 해외구매'},mine),null);
-const acer = fs.readFileSync('scripts/update-acer-data.mjs','utf8');
+const acer = readTestFile('scripts/update-acer-data.mjs','utf8');
 const extract = acer.slice(acer.indexOf('function visibleText('),acer.indexOf('\n\nfunction sellerChannel('));
 const nodeCtx = {};
 vm.runInNewContext(extract+'\nthis.offers = danawaSellerOffers;',nodeCtx);
@@ -55,13 +56,13 @@ const html = (title, details)=>`<title>${title}</title><h3>쇼핑몰별 최저�
 assert.equal(nodeCtx.offers(html('Acer MTM123 정품','500,000원'),'MTM123').length,1);
 assert.equal(nodeCtx.offers(html('Acer MTM123 해외구매','340,000원'),'MTM123').length,0);
 assert.equal(nodeCtx.offers(html('Acer MTM123 정품','현금가 350,000원'),'MTM123').length,0);
-const importer = fs.readFileSync('scripts/import-extension-results.ps1','utf8');
+const importer = readTestFile('scripts/import-extension-results.ps1','utf8');
 assert.match(importer,/\$pageTitle=\[string\]\$page\.title/);
 assert.match(importer,/\$pageIdentityMatches=.*\$product\.mtm/);
 assert.match(importer,/\$entry\.seller \+ ' ' \+ \$label \+ ' ' \+ \$title\) -match \$excludedCompetitor/);
 assert.doesNotMatch(importer,/\$page\.source -eq '네이버'/);
 assert.doesNotMatch(scanner,/source:'네이버'|search\.shopping\.naver\.com/);
-assert.doesNotMatch(JSON.parse(fs.readFileSync('chrome-extension/manifest.json','utf8')).host_permissions.join(' '),/naver\.com/);
+assert.doesNotMatch(JSON.parse(readTestFile('chrome-extension/manifest.json','utf8')).host_permissions.join(' '),/naver\.com/);
 assert.match(importer,/\$title \+ ' ' \+ \$label\) -notmatch \[regex\]::Escape\(\[string\]\$spec\.Brand\)/);
 assert.match(importer,/competitionLastAttemptAt -NotePropertyValue \$scanKst/);
 assert.match(importer,/\$_.competitorReason -or @\(\$_.competitorPages \| Where-Object \{\$_.source -in @\('다나와','에누리'\)\}\)/);

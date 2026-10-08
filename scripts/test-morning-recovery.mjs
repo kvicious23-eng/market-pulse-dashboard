@@ -1,9 +1,10 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {resumeAfterEdge} from '../supplier-hub-extension/edge-resume-core.mjs';
 import {DailyCsv} from '../supplier-hub-extension/daily-csv-core.mjs';
-const source=fs.readFileSync('chrome-extension/background.js','utf8');
+const source=readTestFile('chrome-extension/background.js','utf8');
 const trusted='djmlkkflbncanonpjhkdhghjmcompjnp',priceId='a'.repeat(32),runId='b'.repeat(32);
 const signal={version:2,ready:true,source:'edge',day:'2026-10-08',scanSlot:'2026-10-08T08:00+09:00',runId,completedAt:'2026-10-08T08:35:00+09:00'};
 let saved={},clicks=0,acknowledgements=0;
@@ -34,6 +35,6 @@ await context.gate(signal.scanSlot);assert.equal(waits,2,'Ordinary startup only 
 context.chrome.tabs.query=async()=>[{pendingUrl:`chrome-extension://${trusted}/daily-resume.html?slot=${encodeURIComponent(signal.scanSlot)}`}];
 waits=0;await context.gate(signal.scanSlot);assert.equal(waits,0,'Verified recovery slot must not be recollected');
 delete state.lastRunSlot;await context.gate(signal.scanSlot);assert.equal(waits,40,'URL alone must not bypass normal collection forever');
-const manifest=JSON.parse(fs.readFileSync('chrome-extension/manifest.json'));
+const manifest=JSON.parse(readTestFile('chrome-extension/manifest.json'));
 assert.deepEqual(manifest.externally_connectable.ids,[trusted]);assert.ok(!manifest.permissions.includes('nativeMessaging'));
 console.log('Edge morning resume: Native correlation, exact trusted sender, startup catch-up acknowledgement, no synthetic price result, bounded wait and one daily CSV request passed.');

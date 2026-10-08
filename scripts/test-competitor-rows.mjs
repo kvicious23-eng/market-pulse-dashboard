@@ -1,3 +1,4 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync} from 'node:child_process';
 
-const source=fs.readFileSync('chrome-extension/background.js','utf8');
+const source=readTestFile('chrome-extension/background.js','utf8');
 const start=source.indexOf('function readDanawaSellers(');
 const end=source.indexOf('\n\nasync function scanAll(',start);
 function row(label,seller='판매처A',recommended=false) {
@@ -44,7 +45,7 @@ assert.equal(entry.price,43110);
 assert.equal(entry.shipping,3000);
 
 // Prevent legacy/snapshot mismatches from passing deployment again.
-const app=fs.readFileSync('dist/app.js','utf8');
+const app=readTestFile('dist/app.js','utf8');
 const a=app.indexOf('function effectiveCompetitorPrice('),b=app.indexOf('\n\n  function isSoldOut(',a);
 const appCtx={effectiveFinalPrice:x=>x.finalPrice,collectionDay:x=>x.priceCheckedAt.slice(0,10)};
 vm.runInNewContext(app.slice(a,b)+';this.price=effectiveCompetitorPrice;',appCtx);
@@ -54,12 +55,12 @@ assert.equal(appCtx.price(base,base),45000);
 assert.equal(appCtx.price({...base,finalPrice:42000},base),null);
 assert.equal(appCtx.price({...base,sellerRowVerified:false},base),null);
 assert.equal(appCtx.price(base,{...base,priceCheckedAt:'2026-10-02 08:00'}),null);
-const importer=fs.readFileSync('scripts/import-extension-results.ps1','utf8');
+const importer=readTestFile('scripts/import-extension-results.ps1','utf8');
 assert.match(importer,/price=\(\$price\+\$shipping\)/);
 assert.match(importer,/\$entry\.sellerRowVerified -ne \$true/);
 assert.match(importer,/if\(\$rowKey -in \$excludedKeys\)\{continue\}/);
-const exclusion=JSON.parse(fs.readFileSync('scripts/competitor-history-exclusions.json','utf8'));
-const historySource=fs.readFileSync('dist/competitor-price-history.js','utf8');
+const exclusion=JSON.parse(readTestFile('scripts/competitor-history-exclusions.json','utf8'));
+const historySource=readTestFile('dist/competitor-price-history.js','utf8');
 const history=JSON.parse(historySource.slice(historySource.indexOf('=')+1).trim().replace(/;$/,''));
 const indices=['수집시각','브랜드','MTM','비교 사이트','판매처','가격','상품 URL'].map(k=>history.headers.indexOf(k));
 const keys=new Set(exclusion.keys);

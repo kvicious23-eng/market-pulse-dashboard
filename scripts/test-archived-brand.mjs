@@ -1,3 +1,4 @@
+import {readTestFile} from './test-source.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ const data={meta:{brand:'Old Brand',historyBrands:['Old Brand'],snapshotAt:'2026
 const window={MARKET_DATA:data,MARKET_PULSE_HISTORY:history,MARKET_PULSE_COMPETITOR_HISTORY:history,MarketPulseXlsx:{createWorkbook:(_headers,rows)=>{downloads.push(rows);return {}; }},setInterval:()=>{}};
 const document={querySelector:node,scripts:[],body:{appendChild:()=>{}},createElement:()=>({click:()=>{},remove:()=>{}})};
 class TestURL extends URL {static createObjectURL(){return 'blob:test';}static revokeObjectURL(){}}
-vm.runInNewContext(fs.readFileSync('dist/app.js','utf8'),{window,document,location:{href:'https://example.test/brand/old-brand/'},URL:TestURL,setTimeout:()=>{},Date,Intl});
+vm.runInNewContext(readTestFile('dist/app.js','utf8'),{window,document,location:{href:'https://example.test/brand/old-brand/'},URL:TestURL,setTimeout:()=>{},Date,Intl});
 assert.equal(node('#totalCount').textContent,'0');
 assert.equal(node('#historyDownload').disabled,false);
 assert.equal(node('#exportExcel').disabled,false);

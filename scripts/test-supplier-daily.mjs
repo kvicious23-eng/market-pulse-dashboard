@@ -1,3 +1,4 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DailyCsv,kstDay,supplierDownload,csvName} from '../supplier-hub-extension/daily-csv-core.mjs';
@@ -23,8 +24,8 @@ f=fixture();daily=new DailyCsv(f.io);await daily.tick();f.items=[download(f),{..
 f=fixture();daily=new DailyCsv(f.io);await daily.tick();assert.equal(supplierDownload({...download(f),url:'https://evil.test/a',referrer:'https://evil.test/'},f.saved),false);assert.equal(supplierDownload({...download(f),startTime:'2026-10-07T08:00:00+09:00'},f.saved),false);assert.equal(csvName('../other.csv'),'');
 f.now=Date.parse('2026-10-09T07:59:00+09:00');f.ready=false;await new DailyCsv(f.io).tick();assert.equal(f.clicks,1,'Yesterday is not retried as today');
 assert.equal(kstDay(Date.parse('2026-10-07T15:00:00Z')),'2026-10-08');
-const worker=fs.readFileSync('chrome-extension/background.js','utf8');assert.match(worker,/browser:[^\n]+\n\s+scanSlot,/);
-const supplier=fs.readFileSync('supplier-hub-extension/background.js','utf8');assert.match(supplier,/delta\.state\?\.current!=='complete'/);
+const worker=readTestFile('chrome-extension/background.js','utf8');assert.match(worker,/browser:[^\n]+\n\s+scanSlot,/);
+const supplier=readTestFile('supplier-hub-extension/background.js','utf8');assert.match(supplier,/delta\.state\?\.current!=='complete'/);
 assert.doesNotMatch(supplier,/chrome\.downloads\.onDeterminingFilename\.addListener/,'Supplier must not intercept price/catalogue/start-witness download filenames');
 assert.equal(supplierDownload({...download(f),filename:'C:\\Users\\Test\\Downloads\\basic_operation_rocket_2026100120261007.csv',startTime:new Date(f.now).toISOString()}, {requestedAt:new Date(f.now).toISOString()}),true,'The original CSV in Downloads is accepted without a renaming listener');
 assert.match(supplier,/daily\.read\(\)\)\.day===kstDay\(Date\.now\(\)\)/,'Automatic authentication monitoring waits for this morning signal');

@@ -1,20 +1,21 @@
+import {readTestFile} from './test-source.mjs';
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
 // Windows PowerShell 5.1 reads BOM-less .ps1 files as the system ANSI code page.
 for (const path of ["scripts/apply-history-corrections.ps1", "scripts/local-coupang-scan.ps1", "scripts/test-history-corrections.ps1"]) {
-  const bytes = fs.readFileSync(path);
+  const bytes = readTestFile(path);
   assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], `${path} must have a UTF-8 BOM for Windows PowerShell 5.1`);
 }
 
-const source=fs.readFileSync("chrome-extension/background.js","utf8");
-const manifest=JSON.parse(fs.readFileSync("chrome-extension/manifest.json","utf8"));
-const importer=fs.readFileSync("scripts/import-extension-results.ps1","utf8");
-const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
-const dashboard=fs.readFileSync("dist/app.js","utf8");
-const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
-const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
+const source=readTestFile("chrome-extension/background.js","utf8");
+const manifest=JSON.parse(readTestFile("chrome-extension/manifest.json","utf8"));
+const importer=readTestFile("scripts/import-extension-results.ps1","utf8");
+const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
+const dashboard=readTestFile("dist/app.js","utf8");
+const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
+const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
 assert.equal(manifest.version,"1.9.37");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
@@ -185,7 +186,7 @@ assert.match(source,/cardTerms:terms|cardTerms,/);
 assert.match(importer,/\$cardSource -match/);
 assert.match(importer,/scan duration exceeds the three-hour safety limit/i);
 assert.match(importer,/Duplicate vendorItemId values/);
-assert.match(fs.readFileSync("scripts/brand-lifecycle.ps1","utf8"),/Brand URL names collide/);
+assert.match(readTestFile("scripts/brand-lifecycle.ps1","utf8"),/Brand URL names collide/);
 assert.match(importer,/\$minimumPrice=if \(\$null -ne \$product\.srp.*-lt 250000\) \{10000\} else \{250000\}/);
 assert.match(importer,/\$result\.price -ge \$minimumPrice/);
 assert.doesNotMatch(source,/recheckAvailabilityAfterCheckout|availabilityRecheck/);
@@ -389,7 +390,7 @@ assert.equal(reconcile(30000,80000,150000,200000).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).status,"captured");
 assert.equal(reconcile(null,null,150000,166790).wowTotal,150000);
 assert.doesNotMatch(importer,/\$memberTotal\s*-ne\s*\$wowTotal|checkout-wow-total-mismatch/);
-const corrections=JSON.parse(fs.readFileSync('scripts/history-corrections.json','utf8'));
+const corrections=JSON.parse(readTestFile('scripts/history-corrections.json','utf8'));
 assert.equal(corrections.length,7);
 assert.doesNotMatch(importer,/\$productPagePrice - \$preCardItemPrice -eq \$wowCoupon/);
 const audited=corrections[0];
@@ -399,14 +400,14 @@ assert.equal(audited.corrected['수집결과'],'success');
 assert.equal(audited.corrected['표시가']-audited.corrected['쿠폰할인 총금액'],audited.corrected['카드할인 전 가격']);
 assert.equal(audited.corrected['카드할인 전 가격']-audited.corrected['카드할인'],audited.corrected['최종 실구매가']);
 const historical={window:{}};
-vm.runInNewContext(fs.readFileSync('dist/price-history.js','utf8'),historical);
+vm.runInNewContext(readTestFile('dist/price-history.js','utf8'),historical);
 const history=historical.window.MARKET_PULSE_HISTORY;
 const auditedRows=history.rows.filter(row=>row[history.headers.indexOf('수집시각')]===audited.corrected['수집시각']&&row[history.headers.indexOf('MTM')]===audited.corrected.MTM);
 assert.ok(auditedRows.some(row=>Object.entries(audited.corrected)
   .every(([field,value])=>row[history.headers.indexOf(field)]===value)),
   "The audited corrected row must remain in published history.");
 const acer={window:{}};
-vm.runInNewContext(fs.readFileSync('brand/acer/market-data.js','utf8'),acer);
+vm.runInNewContext(readTestFile('brand/acer/market-data.js','utf8'),acer);
 const auditedOffer=acer.window.MARKET_DATA.products.find(product=>product.mtm===audited.corrected.MTM)?.offers.find(offer=>offer.role==='mine');
 if(acer.window.MARKET_DATA.meta.snapshotAt===audited.corrected['수집시각']) {
   assert.equal(auditedOffer.checkoutReprocessedFrom,`sha256:${audited.sourceSha256}`);
@@ -414,7 +415,7 @@ if(acer.window.MARKET_DATA.meta.snapshotAt===audited.corrected['수집시각']) 
   assert.equal(auditedOffer.alertEligible,true);
 }
 const auditedGodox={window:{}};
-vm.runInNewContext(fs.readFileSync('brand/godox/market-data.js','utf8'),auditedGodox);
+vm.runInNewContext(readTestFile('brand/godox/market-data.js','utf8'),auditedGodox);
 for(const correction of corrections.slice(1)){
   assert.equal(correction.originalExtensionVersion,"1.9.15");
   assert.equal(correction.corrected['수집결과'],'success');
@@ -469,7 +470,7 @@ assert.deepEqual(
 );
 
 const godoxData={window:{}};
-vm.runInNewContext(fs.readFileSync('brand/godox/market-data.js','utf8'),godoxData);
+vm.runInNewContext(readTestFile('brand/godox/market-data.js','utf8'),godoxData);
 const godoxMine=godoxData.window.MARKET_DATA.products.find(product=>product.mtm==='C100')?.offers.find(offer=>offer.role==='mine');
 const godoxRows=history.rows.filter(row=>row[history.headers.indexOf('브랜드')]==='Godox'&&row[history.headers.indexOf('MTM')]==='C100');
 assert.ok(godoxRows.length>=1);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readTestFile as readFileSync} from './test-source.mjs';
 import {createHash} from 'node:crypto';
 import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,safeDiagnostic,probeSupplierTab,officialOrPending} from '../supplier-hub-extension/auth-core.mjs';
 const official='https://xauth.coupang.com/auth/realms/seller/login-actions/authenticate?client_id=supplier-hub';

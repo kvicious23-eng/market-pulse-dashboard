@@ -1,8 +1,9 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const app=fs.readFileSync('dist/app.js','utf8');
+const app=readTestFile('dist/app.js','utf8');
 const start=app.indexOf('  function exportCompetitorHistory() {');
 const end=app.indexOf('  function productStats(',start);
 assert.ok(start>0&&end>start);
@@ -40,7 +41,7 @@ const result=productContext.productStats({offers:[mine,...prices.map(finalPrice=
 assert.equal(result.competitors.length,5);
 assert.equal(JSON.stringify(result.competitors.map(row=>row.finalPrice)),JSON.stringify([42000,43000,44000,45000,46000]));
 
-const scanner=fs.readFileSync('chrome-extension/background.js','utf8');
+const scanner=readTestFile('chrome-extension/background.js','utf8');
 const scannerStart=scanner.indexOf('function readEnuriSellers(');
 const scannerEnd=scanner.indexOf('\n\nasync function scanAll(',scannerStart);
 assert.ok(scannerStart>0&&scannerEnd>scannerStart);

@@ -1,14 +1,15 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source=fs.readFileSync('dist/app.js','utf8');
+const source=readTestFile('dist/app.js','utf8');
 const start=source.indexOf('  function exportPriceHistory() {');
 const end=source.indexOf('  function productStats(',start);
 assert.ok(start>=0&&end>start,'Price history export functions must be present');
 const exporter=source.slice(start,end);
 const historyContext={window:{}};
-vm.runInNewContext(fs.readFileSync('dist/price-history.js','utf8'),historyContext);
+vm.runInNewContext(readTestFile('dist/price-history.js','utf8'),historyContext);
 const history=historyContext.window.MARKET_PULSE_HISTORY;
 const brandIndex=history.headers.indexOf('브랜드');
 assert.ok(brandIndex>=0);

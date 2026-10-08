@@ -1,7 +1,8 @@
+import {readTestFile} from './test-source.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-const source=fs.readFileSync('dist/app.js','utf8');
+const source=readTestFile('dist/app.js','utf8');
 const start=source.indexOf('  function renderSupplierMetrics('),end=source.indexOf('  function renderCards(',start);
 assert.ok(start>=0&&end>start);
 const makeRender=now=>{

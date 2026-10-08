@@ -1,8 +1,9 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source=fs.readFileSync('chrome-extension/background.js','utf8');
+const source=readTestFile('chrome-extension/background.js','utf8');
 const start=source.indexOf('async function collectCheckoutDiscountsForTarget(');
 const end=source.indexOf('\n\nasync function diagnoseCheckoutDiscounts(',start);
 assert.ok(start>=0&&end>start);

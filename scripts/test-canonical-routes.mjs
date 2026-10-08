@@ -1,3 +1,4 @@
+import {readTestFile} from './test-source.mjs';
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
@@ -7,7 +8,7 @@ const redirects=[
 ];
 
 for(const redirect of redirects){
-  const html=fs.readFileSync(redirect.file,"utf8");
+  const html=readTestFile(redirect.file,"utf8");
   assert.match(html,new RegExp(`location\\.replace\\(target\\.href\\)`),`${redirect.file} must replace the legacy location`);
   assert.ok(html.includes(redirect.target),`${redirect.file} must target ${redirect.target}`);
   assert.ok(!/market-data\.js|dist\/app\.js|xlsx-export\.js/.test(html),`${redirect.file} must not render a dashboard`);

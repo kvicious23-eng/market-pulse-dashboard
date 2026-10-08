@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readTestFile as readFileSync} from './test-source.mjs';
 import vm from 'node:vm';
 import {MAX_CSV_BYTES,decodeCsv,parseDelimited,readCsv,readCatalog,matchCatalog,matchedCsv,clickSupplierCsvDownload,supplierExportFile} from '../supplier-hub-extension/csv-core.mjs';
 const csv='\ufeffMTM,재고,상품명,Item ID\r\n83N30037KR,0,"상품, 콤마",27303279355\r\n83N30037KR,,"줄1\n줄2 ""인용""",12345678901234567890\r\nSFG16-I71-75Y2,9,삭제 모델,28237319655\r\nC100,2,고독스 C100,29147698397\r\nC1000,7,다른 모델,999\r\n';

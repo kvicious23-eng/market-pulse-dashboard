@@ -22,6 +22,8 @@ on:
       - "dist/**"
       - "scripts/update-acer-data.mjs"
       - "scripts/validate-market-data.mjs"
+      - "scripts/test-source.mjs"
+      - "scripts/test-*.mjs"
       - "scripts/test-discount-rules.mjs"
       - "scripts/test-access-diagnostics.mjs"
       - "scripts/test-price-sources.mjs"
@@ -145,23 +147,7 @@ jobs:
       - name: Validate dashboard data
         run: |
           node scripts/validate-market-data.mjs
-          node scripts/test-discount-rules.mjs
-          node scripts/test-scheduled-scans.mjs
-          node scripts/test-scan-recovery.mjs
-          node scripts/test-archived-brand.mjs
-          node scripts/test-access-diagnostics.mjs
-          node scripts/test-price-sources.mjs
-          node scripts/test-history-export.mjs
-          node scripts/test-competitor-policy.mjs
-          node scripts/test-competitor-rows.mjs
-          node scripts/test-competitor-history.mjs
-          node scripts/test-canonical-routes.mjs
-          node scripts/test-supplier-auth.mjs
-          node scripts/test-supplier-premium.mjs
-          node scripts/test-supplier-csv.mjs
-          node scripts/test-supplier-daily.mjs
-          node scripts/test-morning-recovery.mjs
-          node scripts/test-supplier-metrics-ui.mjs
+          node scripts/test-line-endings.mjs
       - name: Verify audited history correction
         shell: pwsh
         run: ./scripts/test-history-corrections.ps1
@@ -184,6 +170,12 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Verify JavaScript with LF and CRLF sources
+        shell: powershell
+        run: node scripts/test-line-endings.mjs
       - name: Verify audited CSV repair in Windows PowerShell 5.1
         shell: powershell
         run: |

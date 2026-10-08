@@ -1,7 +1,8 @@
+import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const source=fs.readFileSync('chrome-extension/background.js','utf8');
+const source=readTestFile('chrome-extension/background.js','utf8');
 const scan=source.slice(source.indexOf('async function scanAll('),source.indexOf('\nconst SCHEDULED_SCAN_TIMES'));
 const products=[{brand:'Acer',mtm:'A',productId:'1',itemId:'2',vendorItemId:'3',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',skuId:'private'},
  {brand:'Lenovo',mtm:'B',productId:'4',itemId:'5',vendorItemId:'6',url:'https://www.coupang.com/vp/products/4?itemId=5&vendorItemId=6'}];
@@ -28,5 +29,5 @@ const recovery={runId:'b'.repeat(32),reason:'chrome-process-exit',chromeRunId:'a
 f=await run(true,recovery);assert.equal(f.files.length,1);assert.equal(f.files[0].filename,'MarketPulse/edge-recovery-'+recovery.runId+'.json');
 assert.equal(f.files[0].data.results.length,2,'Edge recollects all targets');assert.equal(f.files[0].data.recovery.reason,'chrome-process-exit');
 assert.equal(f.files[0].data.scanSlot,'2026-10-07T20:00+09:00');
-const settings=fs.readFileSync('scripts/set-local-schedule.ps1','utf8');assert.match(settings,/run-scheduled-scan\.ps1/);assert.match(settings,/-ExecutionTimeLimit \(New-TimeSpan -Minutes 120\)/);
+const settings=readTestFile('scripts/set-local-schedule.ps1','utf8');assert.match(settings,/run-scheduled-scan\.ps1/);assert.match(settings,/-ExecutionTimeLimit \(New-TimeSpan -Minutes 120\)/);
 console.log('Start witness ordering, no partial prices/SKUID, interrupted witness, manual isolation, full Edge recollection and unique recovery file passed.');
