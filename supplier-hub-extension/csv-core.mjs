@@ -137,3 +137,44 @@ export async function supplierExportForm(filename,submit=false) {
   if(buttons[0].disabled||buttons[0].getAttribute('aria-disabled')==='true')return {phase:'unverified',reason:'export_request_disabled',clicked:false};
   buttons[0].click();return {phase:'requested',reason:'export_request_clicked',clicked:true};
 }
+
+// Receive only the server export created by this durable request. Never select
+// an older same-day row merely because its filename matches.
+export async function supplierExportFile(expectedName,requestedAt,requestId='',click=false) {
+  const u=new URL(location.href);
+  if(u.origin!=='https://supplier.coupang.com'||!/^\/rpd\/web-v2\/basic\/rocket\/?$/.test(u.pathname))return {phase:'unverified',reason:'csv_wrong_page'};
+  const visible=e=>!!(e&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden'&&getComputedStyle(e).display!=='none');
+  if([...document.querySelectorAll('input[type="password"]')].some(visible))return {phase:'unverified',reason:'csv_login_required'};
+  const controls=()=>[...document.querySelectorAll('button,a,[role="button"]')].filter(visible);
+  const findTables=()=>[...document.querySelectorAll('table')].filter(t=>visible(t)&&/파일명/.test(t.querySelector('thead')?.innerText||'')&&/요청일시/.test(t.querySelector('thead')?.innerText||''));
+  let tables=findTables();
+  if(!tables.length&&!click){
+    let open=controls().filter(e=>e.innerText.replace(/\s/g,'')==='다운로드목록보기');
+    if(!open.length)open=controls().filter(e=>e.innerText.replace(/\s/g,'')==='전체데이터다운로드내역');
+    if(open.length!==1)return {phase:'waiting',reason:'export_history_not_ready'};
+    open[0].click();await new Promise(r=>setTimeout(r,1500));tables=findTables();
+  }
+  if(tables.length!==1)return {phase:'waiting',reason:'export_history_not_ready'};
+  const heads=[...tables[0].querySelectorAll('thead th')].map(e=>e.innerText.replace(/\s/g,''));
+  const index=name=>heads.indexOf(name),nameIndex=index('파일명'),dateIndex=index('요청일시'),stateIndex=index('상태'),idIndex=index('ID');
+  if([nameIndex,dateIndex,stateIndex,idIndex].some(i=>i<0))return {phase:'unverified',reason:'export_history_schema_unconfirmed'};
+  const parseDate=value=>{
+    const m=value.trim().match(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2}):(\d{2}) (AM|PM)$/i);
+    if(!m)return NaN;
+    let hour=Number(m[2])%12;if(m[5].toUpperCase()==='PM')hour+=12;
+    return Date.parse(m[1]+'T'+String(hour).padStart(2,'0')+':'+m[3]+':'+m[4]+'+09:00');
+  };
+  const rows=[...tables[0].querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=Date.parse(requestedAt)-2000);
+  if(rows.length>1)return {phase:'unverified',reason:'export_request_ambiguous'};
+  if(!rows.length)return {phase:'waiting',reason:'export_request_not_listed'};
+  const {row,cells}=rows[0],id=cells[idIndex];
+  if(!/^\d+$/.test(id)||requestId&&id!==requestId)return {phase:'unverified',reason:'export_request_id_mismatch'};
+  if(cells[stateIndex]!=='COMPLETED'){
+    if(!click){const refresh=controls().filter(e=>e.innerText.replace(/\s/g,'')==='새로고침');if(refresh.length===1)refresh[0].click();}
+    return {phase:'waiting',reason:'export_generation_pending',requestId:id};
+  }
+  const links=[...row.querySelectorAll('button,a,[role="button"]')].filter(e=>visible(e)&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&e.innerText.replace(/\s/g,'')==='다운로드');
+  if(links.length!==1)return {phase:'unverified',reason:'export_file_control_unconfirmed'};
+  if(!click)return {phase:'ready',reason:'export_file_ready',requestId:id};
+  links[0].click();return {phase:'clicked',reason:'export_file_clicked',requestId:id};
+}

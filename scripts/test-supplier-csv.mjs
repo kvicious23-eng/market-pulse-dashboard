@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {MAX_CSV_BYTES,decodeCsv,parseDelimited,readCsv,readCatalog,matchCatalog,matchedCsv,clickSupplierCsvDownload} from '../supplier-hub-extension/csv-core.mjs';
+import {MAX_CSV_BYTES,decodeCsv,parseDelimited,readCsv,readCatalog,matchCatalog,matchedCsv,clickSupplierCsvDownload,supplierExportFile} from '../supplier-hub-extension/csv-core.mjs';
 const csv='\ufeffMTM,재고,상품명,Item ID\r\n83N30037KR,0,"상품, 콤마",27303279355\r\n83N30037KR,,"줄1\n줄2 ""인용""",12345678901234567890\r\nSFG16-I71-75Y2,9,삭제 모델,28237319655\r\nC100,2,고독스 C100,29147698397\r\nC1000,7,다른 모델,999\r\n';
 const table=readCsv(csv);assert.equal(table.rows.length,5);assert.equal(table.rows[0][1],'0');assert.equal(table.rows[1][1],'');assert.equal(table.rows[1][2],'줄1\n줄2 "인용"');assert.equal(table.rows[1][3],'12345678901234567890');
 assert.deepEqual(parseDelimited('a,b,\r\n1,"",\r\n'),[['a','b',''],['1','','']]);
@@ -102,3 +102,19 @@ try {
 } finally {Object.assign(global,original);}
 const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));assert.equal(manifest.permissions.includes('downloads'),true);assert.equal(manifest.permissions.includes('cookies'),false);
 console.log('Supplier CSV checks passed: official one-click request, local decoding, exact matching, missing/ambiguous preservation, original rows and safe export.');
+
+// Match the current server request, excluding earlier same-name exports.
+{
+ const saved={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle};let fileClicks=0;
+ const visible={getClientRects:()=>[{}]};global.getComputedStyle=()=>({visibility:'visible',display:'block'});
+ const button={...visible,innerText:'다운로드',getAttribute:()=>null,click:()=>fileClicks++};
+ const row=(id,time)=>({querySelectorAll:selector=>selector==='td'?['',id,'reason','basic_operation_rocket_2026100120261007','COMPLETED','다운로드',time,''].map(innerText=>({innerText})):[button]});
+ let rows=[row('old','2026-10-08 10:44:46 AM'),row('2963085','2026-10-08 01:24:38 PM')];
+ const table={...visible,querySelector:()=>({innerText:'ID 파일명 상태 요청일시'}),querySelectorAll:selector=>selector==='thead th'?['','ID','요청 사유','파일명','상태','다운로드','요청일시','완료일시'].map(innerText=>({innerText})):rows};
+ global.location={href:'https://supplier.coupang.com/rpd/web-v2/basic/rocket'};global.document={querySelectorAll:selector=>selector==='table'?[table]:[]};
+ try{
+  let result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(fileClicks,0);
+  result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','2963085',true);assert.equal(result.phase,'clicked');assert.equal(fileClicks,1);
+  rows.push(row('another','2026-10-08 01:25:00 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','',true);assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
+ }finally{Object.assign(global,saved);}
+}

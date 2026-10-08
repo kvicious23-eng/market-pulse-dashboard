@@ -35,6 +35,7 @@ export class DailyCsv {
         job=await this.set(job,{stage:'authentication',reason:'no_click_retry',previousRequestedAt:job.requestedAt,requestedAt:null,pageChecks:0});
       }
       if(job.stage==='stopped'&&!job.requestedAt&&!job.noClickConfirmed&&(await this.io.authState?.())?.status==='connected')job=await this.set(job,{stage:'authentication',authChecks:0,reason:'authentication_restored'});
+      if(job.stage==='uncertain'&&job.reason==='csv_download_not_observed'&&job.exportClicked&&!job.fileClickAt&&this.io.now()-Date.parse(job.exportRequestAt)<65*60000)job=await this.set(job,{stage:'download',reason:'export_generation_wait_restored'});
       if(['stopped','uncertain'].includes(job.stage))return job;
       if(job.stage==='authentication'){
         const auth=await this.io.authenticate();
@@ -83,7 +84,19 @@ export class DailyCsv {
               job=await this.set(job,{reason:'export_requested_awaiting_file',exportClicked:true});
             }else if(form?.phase==='unverified')return this.set(job,{stage:'stopped',reason:form.reason});
           }
-          if(this.io.now()-Date.parse(job.requestedAt)>20*60000)return this.set(job,{stage:'uncertain',reason:'csv_download_not_observed'});
+          if(job.exportClicked&&!job.fileClickAt&&this.io.receiveFile){
+            const file=await this.io.receiveFile(job);
+            if(file?.phase==='ready'){
+              job=await this.set(job,{fileClickAt:new Date(this.io.now()).toISOString(),exportRequestId:file.requestId,reason:'export_file_click_armed'});
+              const received=await this.io.receiveFile(job,true);
+              if(received?.phase!=='clicked')return this.set(job,{stage:'uncertain',reason:received?.reason||'export_file_click_unconfirmed'});
+              job=await this.set(job,{reason:'export_file_clicked_awaiting_download'});
+            }else if(file?.phase==='unverified')return this.set(job,{stage:'stopped',reason:file.reason});
+            else job=await this.set(job,{reason:file?.reason||'export_generation_pending'});
+          }
+          const waitFrom=job.fileClickAt||job.exportRequestAt||job.requestedAt;
+          const waitMinutes=job.exportClicked&&!job.fileClickAt?65:20;
+          if(this.io.now()-Date.parse(waitFrom)>waitMinutes*60000)return this.set(job,{stage:'uncertain',reason:'csv_download_not_observed'});
           return job;
         }
         const item=candidates[0];

@@ -52,3 +52,5 @@ f=fixture();f.io.prepare=async()=>({ok:false,reason:'csv_login_required'});await
 f=fixture();let submits=0;f.io.exportForm=async(job,submit)=>{if(submit){assert.ok(f.saved.exportRequestAt);submits++;return {phase:'requested'};}return {phase:'form'};};
 daily=new DailyCsv(f.io);await daily.tick();assert.equal(submits,1);assert.equal(f.saved.exportClicked,true);await new DailyCsv(f.io).tick();assert.equal(submits,1);
 f=fixture();f.io.exportForm=async(job,submit)=>submit?{phase:'unverified',reason:'export_request_disabled'}:{phase:'form'};await new DailyCsv(f.io).tick();assert.equal(f.saved.stage,'uncertain');assert.ok(f.saved.exportRequestAt);
+
+f=fixture();let received=0;f.io.exportForm=async(job,submit)=>({phase:submit?'requested':'form'});f.io.receiveFile=async(job,click)=>{if(click){assert.equal(f.saved.exportRequestId,'123');assert.ok(f.saved.fileClickAt);received++;return {phase:'clicked'};}return {phase:'ready',requestId:'123'};};await new DailyCsv(f.io).tick();assert.equal(received,1);await new DailyCsv(f.io).tick();assert.equal(received,1);

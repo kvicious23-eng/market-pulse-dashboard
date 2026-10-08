@@ -1,6 +1,6 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
-import {clickSupplierCsvDownload,supplierExportForm} from './csv-core.mjs';
+import {clickSupplierCsvDownload,supplierExportForm,supplierExportFile} from './csv-core.mjs';
 import {resumeAfterEdge} from './edge-resume-core.mjs';
 import {DailyCsv,DAILY_CSV_ALARM,kstDay,csvName,supplierDownload} from './daily-csv-core.mjs';
 const HOST='com.marketpulse.supplierhub';
@@ -64,6 +64,14 @@ const daily=new DailyCsv({
   exportForm:async(job,submit=false)=>{
     const id=(await chrome.storage.local.get('premium')).premium?.tabId;
     return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportForm,args:['',submit]}))[0]?.result;
+  },
+  receiveFile:async(job,click=false)=>{
+    const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    const day=new Date(job.day+'T00:00:00Z'),through=new Date(day.getTime()-86400000);
+    const start=day.getUTCDate()===1?through:new Date(Date.UTC(day.getUTCFullYear(),day.getUTCMonth(),1));
+    const compact=d=>d.toISOString().slice(0,10).replaceAll('-','');
+    const name='basic_operation_rocket_'+compact(start)+compact(through);
+    return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportFile,args:[name,job.exportRequestAt,job.exportRequestId||'',click]}))[0]?.result;
   },
   downloads:job=>chrome.downloads.search({startedAfter:new Date(Date.parse(job.requestedAt)-2000).toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
   validate:payload=>native('csv_complete',payload),publishStatus:()=>native('daily_status')
