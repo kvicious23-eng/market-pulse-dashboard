@@ -47,3 +47,8 @@ await new DailyCsv(f.io).tick();assert.equal(f.clicks,0);assert.equal(f.saved.st
 console.log('Readiness and legacy no-click recovery passed; unknown clicks remain blocked.');
 
 f=fixture();f.io.prepare=async()=>({ok:false,reason:'csv_login_required'});await new DailyCsv(f.io).tick();assert.equal(f.saved.stage,'authentication');assert.equal(f.clicks,0);assert.equal(f.saved.requestedAt,undefined);
+
+// Opening the export form and submitting its request are separately durable.
+f=fixture();let submits=0;f.io.exportForm=async(job,submit)=>{if(submit){assert.ok(f.saved.exportRequestAt);submits++;return {phase:'requested'};}return {phase:'form'};};
+daily=new DailyCsv(f.io);await daily.tick();assert.equal(submits,1);assert.equal(f.saved.exportClicked,true);await new DailyCsv(f.io).tick();assert.equal(submits,1);
+f=fixture();f.io.exportForm=async(job,submit)=>submit?{phase:'unverified',reason:'export_request_disabled'}:{phase:'form'};await new DailyCsv(f.io).tick();assert.equal(f.saved.stage,'uncertain');assert.ok(f.saved.exportRequestAt);

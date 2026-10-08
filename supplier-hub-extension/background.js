@@ -1,6 +1,6 @@
 import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
-import {clickSupplierCsvDownload} from './csv-core.mjs';
+import {clickSupplierCsvDownload,supplierExportForm} from './csv-core.mjs';
 import {resumeAfterEdge} from './edge-resume-core.mjs';
 import {DailyCsv,DAILY_CSV_ALARM,kstDay,csvName,supplierDownload} from './daily-csv-core.mjs';
 const HOST='com.marketpulse.supplierhub';
@@ -60,6 +60,10 @@ const daily=new DailyCsv({
     try {const id=(await chrome.storage.local.get('premium')).premium?.tabId;
       return (await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload}))[0]?.result;
     }finally{csvClickRunning=false;}
+  },
+  exportForm:async(job,submit=false)=>{
+    const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportForm,args:['',submit]}))[0]?.result;
   },
   downloads:job=>chrome.downloads.search({startedAfter:new Date(Date.parse(job.requestedAt)-2000).toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
   validate:payload=>native('csv_complete',payload),publishStatus:()=>native('daily_status')

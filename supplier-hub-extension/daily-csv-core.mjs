@@ -73,6 +73,16 @@ export class DailyCsv {
         const candidates=(await this.io.downloads(job)).filter(item=>supplierDownload(item,job));
         if(candidates.length>1)return this.set(job,{stage:'uncertain',reason:'csv_download_ambiguous'});
         if(!candidates.length){
+          // Journal the server-side confirmation separately from opening the dialog.
+          if(this.io.exportForm&&!job.exportRequestAt){
+            const form=await this.io.exportForm(job);
+            if(form?.phase==='form'){
+              job=await this.set(job,{exportRequestAt:new Date(this.io.now()).toISOString(),reason:'export_request_armed'});
+              const submitted=await this.io.exportForm(job,true);
+              if(submitted?.phase!=='requested')return this.set(job,{stage:'uncertain',reason:submitted?.reason||'export_request_unconfirmed'});
+              job=await this.set(job,{reason:'export_requested_awaiting_file',exportClicked:true});
+            }else if(form?.phase==='unverified')return this.set(job,{stage:'stopped',reason:form.reason});
+          }
           if(this.io.now()-Date.parse(job.requestedAt)>20*60000)return this.set(job,{stage:'uncertain',reason:'csv_download_not_observed'});
           return job;
         }

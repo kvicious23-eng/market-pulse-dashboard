@@ -117,3 +117,23 @@ export function clickSupplierCsvDownload(inspectOnly=false) {
   if(inspectOnly)return finish('csv_button_ready',1);
   buttons[0].click();return finish('csv_request_clicked',1);
 }
+
+// The official export dialog is a separate request, not a completed download.
+// Return only fixed state; never return its surrounding business data.
+export async function supplierExportForm(filename,submit=false) {
+  const u=new URL(location.href);
+  if(u.origin!=='https://supplier.coupang.com'||!/^\/rpd\/web-v2\/basic\/rocket\/?$/.test(u.pathname))return {phase:'unverified',reason:'csv_wrong_page'};
+  const visible=e=>!!(e&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden'&&getComputedStyle(e).display!=='none');
+  if([...document.querySelectorAll('input[type="password"]')].some(visible))return {phase:'unverified',reason:'csv_login_required'};
+  const cancels=[...document.querySelectorAll('button,[role="button"]')].filter(e=>visible(e)&&e.innerText.trim()==='취소');
+  const panels=cancels.map(e=>e.parentElement?.parentElement).filter(e=>/요청 사유/.test(e?.innerText||'')&&/엑셀파일명/.test(e?.innerText||''));
+  if(!panels.length)return {phase:'absent',reason:'export_form_absent'};
+  if(panels.length!==1)return {phase:'unverified',reason:'export_form_ambiguous'};
+  const panel=panels[0];
+  const buttons=[...panel.querySelectorAll('button,[role="button"]')].filter(e=>visible(e)&&e.innerText.trim()==='요청');
+  if(buttons.length!==1)return {phase:'unverified',reason:'export_form_unconfirmed'};
+  if(!submit)return {phase:'form',reason:'export_form_ready'};
+  // The official request accepts empty reason/name. Preserve the user's fields.
+  if(buttons[0].disabled||buttons[0].getAttribute('aria-disabled')==='true')return {phase:'unverified',reason:'export_request_disabled',clicked:false};
+  buttons[0].click();return {phase:'requested',reason:'export_request_clicked',clicked:true};
+}
