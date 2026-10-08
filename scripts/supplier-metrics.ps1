@@ -132,7 +132,7 @@ function Read-SupplierCsvRows([string]$Path) {
   return @($text.TrimStart([char]0xfeff) | ConvertFrom-Csv -ErrorAction Stop)
 }
 function Get-SupplierMetricBatch {
-  param($Catalog,[string[]]$CsvFolders,[datetime]$AsOfDay)
+  param($Catalog,[string[]]$CsvFolders,[datetime]$AsOfDay,[switch]$RequireDailyValidation,[string]$DownloadRoot='')
   $files=@()
   foreach ($folder in $CsvFolders) {
     foreach ($file in @(Get-ChildItem -LiteralPath $folder -Filter 'basic_operation_rocket_*.csv' -File -ErrorAction SilentlyContinue)) {
@@ -144,6 +144,12 @@ function Get-SupplierMetricBatch {
   $selected=$files | Sort-Object @{Expression={$_.through};Descending=$true},@{Expression={$_.file.LastWriteTimeUtc};Descending=$true} | Select-Object -First 1
   if (-not $selected) { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-missing' }
   try {
+    # Original CSVs stay in Downloads. Automatic and manually discovered files
+    # pass the same complete-period/schema/quantity checks before publication.
+    if ($RequireDailyValidation) {
+      $check=Test-SupplierDailyCsv -Path $selected.file.FullName -DownloadRoot $DownloadRoot -Day $AsOfDay -RequestedAt ([DateTimeOffset]'1970-01-01T00:00:00Z')
+      if (-not $check.ok) { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-invalid' }
+    }
     $rows=@(Read-SupplierCsvRows $selected.file.FullName)
     return Get-SupplierRowMetrics $Catalog $rows $AsOfDay
   } catch { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-invalid' }

@@ -375,7 +375,7 @@ Excel 내보내기 형식은 `.xlsx`이다. 상단의 가격 히스토리 다운
 
 ## 22. 다운로드 파일명 충돌 방지 (1.9.35 / 0.1.13)
 
-- Supplier Hub 확장은 전역 `downloads.onDeterminingFilename` 리스너를 등록하지 않는다. 공식 CSV의 원래 파일명으로 다운로드 완료를 관측하고, 당일 요청·공식 출처·기간·허용 경로를 기존 Native 검증으로 확인한다. Downloads 루트와 기존 MarketPulse/SupplierPending 경로의 CSV는 계속 허용하며 원본을 보존한다.
+- Supplier Hub 확장은 전역 `downloads.onDeterminingFilename` 리스너를 등록하지 않는다. 공식 CSV의 원래 파일명으로 다운로드 완료를 관측하고, 당일 요청·공식 출처·기간·허용 경로를 기존 Native 검증으로 확인한다. Downloads 루트와 기존 MarketPulse/SupplierPending 경로의 CSV는 계속 허용하며 원본을 보존한다. 가격 업로더의 일반 CSV 탐색도 같은 전일·전체 월 날짜·필수 열·수량·중복 검증을 통과한 파일만 집계하므로 자동 승인 전의 파일이 우회 게시되지 않는다.
 - 가격 확장은 시작 기록 `MarketPulse/scan-start.json`, 정상 결과 `MarketPulse/latest-coupang-scan.json`, Edge 전환 결과 `MarketPulse/edge-recovery-{runId}.json` 각각의 실제 다운로드 완료 경로를 검증한다. 이름이 바뀌었거나 다른 상대 경로로 저장됐으면 성공으로 처리하거나 lastRunSlot/lastResult를 갱신하지 않고 `scan-download-path-mismatch`로 남긴다.
 - 2026-10-08 PC 진단에서 10월 7일 20시(20:13:53 완료)와 10월 8일 08시(08:18:15 완료)의 Chrome 1.9.34 JSON이 각 13개·실패 0으로 Downloads 루트의 일반 다운로드 이름 아래 보존돼 있음을 확인했다. 시작 기록도 다른 이름으로 저장돼 감시와 업로드가 찾지 못했다. 수집 미시작·Chrome 차단·프로세스 종료·JSON 유실로 분류하지 않는다. 해당 회차 결과 복구는 재수집과 구분하고 실행 ID·슬롯·카탈로그·할인 검증을 유지한다.
 - 이 수정의 구문/회귀 검증·소스 배포·PC 확장 새로고침·다음 예약의 실제 파일 경로/업로드/Pages 성공은 별도 증거다. 가격 및 CSV 집계·네 회차·검증된 오전 Chrome/Edge 완료 신호·실제 종료의 Edge 전체 재수집 조건은 유지한다.

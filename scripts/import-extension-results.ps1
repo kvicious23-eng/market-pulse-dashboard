@@ -204,7 +204,7 @@ Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
 $metricDay=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
 $metricPublishedAt=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
-$supplierBatch=Get-SupplierMetricBatch -Catalog $catalog -CsvFolders @((Split-Path -Parent $resultFolder),$resultFolder) -AsOfDay $metricDay
+$supplierBatch=Get-SupplierMetricBatch -Catalog $catalog -CsvFolders @((Split-Path -Parent $resultFolder),$resultFolder) -AsOfDay $metricDay -RequireDailyValidation -DownloadRoot (Split-Path -Parent $resultFolder)
 $dailyQueue=Read-SupplierLocalState (Join-Path $RepoPath 'reports\supplier-daily-queue.json')
 if ($dailyQueue -and $dailyQueue.day -eq $metricDay.ToString('yyyy-MM-dd')) {
   $dailyCheck=Test-SupplierDailyCsv -Path $dailyQueue.filename -DownloadRoot (Split-Path -Parent $resultFolder) -Day $metricDay -RequestedAt ([DateTimeOffset]::Parse($dailyQueue.requestedAt))

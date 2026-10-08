@@ -13,6 +13,9 @@ try {
   (Get-Item -LiteralPath $csv).LastWriteTimeUtc=$request.UtcDateTime.AddSeconds(5)
   $valid=Test-SupplierDailyCsv $csv $root $day $request
   Check $valid.ok 'Valid all-center daily export rejected.'
+  $batchCatalog=[pscustomobject]@{products=@([pscustomobject]@{brand='Example';itemId='1';skuId='0001'})}
+  $checkedBatch=Get-SupplierMetricBatch -Catalog $batchCatalog -CsvFolders @($root,$folder) -AsOfDay $day -RequireDailyValidation -DownloadRoot $root
+  Check ($checkedBatch.ByItemId['1'].stock -eq 14) 'Original CSV did not pass shared publication validation.'
   $pending=Join-Path $folder 'SupplierPending\basic_operation_rocket_2026100120261003.csv'
   Copy-Item $csv $pending
   Check (Test-SupplierDailyCsv $pending $root $day $request).ok 'Automatic pending folder rejected.'
@@ -25,6 +28,7 @@ try {
   Check (-not (Test-SupplierDailyCsv $csv $root $day.AddDays(1) $request).ok) 'Wrong previous day accepted.'
   $broken=@($rows | Where-Object { $_.'날짜' -ne '20261002' });$broken | Export-Csv $csv -NoTypeInformation -Encoding UTF8
   Check ((Test-SupplierDailyCsv $csv $root $day $request).reason -eq 'csv_period_incomplete') 'Missing monthly date accepted.'
+  Check ((Get-SupplierMetricBatch -Catalog $batchCatalog -CsvFolders @($root,$folder) -AsOfDay $day -RequireDailyValidation -DownloadRoot $root).SourceStatus -eq 'csv-invalid') 'Unvalidated original CSV bypassed full-month validation.'
   @($rows+$rows[0]) | Export-Csv $csv -NoTypeInformation -Encoding UTF8
   Check ((Test-SupplierDailyCsv $csv $root $day $request).reason -eq 'csv_duplicate_row') 'Duplicate date/SKU/center accepted.'
   $bad=@($rows | ForEach-Object { $_ | Select-Object * });$bad[0].'출고수량'=''
