@@ -1,6 +1,6 @@
 # Chrome 종료 시 전체 목록 Edge 복구
 
-가격 확장 1.9.36과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
+가격 확장 1.9.37과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
 
 ## 판단과 실행
 
@@ -30,7 +30,7 @@ PC 종료·로그아웃 동안 Windows 감시도 실행할 수 없다. 시작 �
 
 ## 적용 및 검증 범위
 
-PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.36을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
+PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.37을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
 
 테스트는 시작 기록 저장 순서, 중단된 기록 다운로드, 완료/이전 회차 제외, 프로세스 관측 조건, 대상 중복/변경, Edge 시간/실행 ID/목록/실패, 늦은 Chrome 결과 배제, 예약 인자를 검사한다. 실제 운영 Chrome을 강제로 종료하거나 쿠팡 접근 차단을 유발하지 않는다. 구현·CI·PC 예약 적용과 실제 자연 발생 Chrome 종료 회차의 성공은 구분한다. 첫 성공 뒤에도 추적을 계속한다.
 

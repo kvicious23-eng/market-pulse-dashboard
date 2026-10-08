@@ -695,22 +695,33 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
     ['dom-snapshot',cleanValues(capture?.after?.domSnapshot),cleanValues(capture?.before?.domSnapshot)]
   ]) {
     const before=new Set(beforeValues);
-    for (let index=0;index<afterValues.length;index++) {
-      const anchor=afterValues[index];
-      if (before.has(anchor)||!/(?:원|한도|할인|카드|%)/.test(anchor)) continue;
-      const text=afterValues.slice(Math.max(0,index-10),Math.min(afterValues.length,index+11)).join(' | ');
-      if (/추천이런건|쿠팡상품번호|다른 구성 보기|CPU 모델명|상품정보에 문제가/.test(text)) continue;
-      const rates=parseRates(text),providers=knownCards.filter(card=>text.includes(card));
-      const matchingProviders=providers.filter(card=>summaryProviders.includes(card));
-      const caps=parseCaps(text),explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text);
-      const rateMatches=rates.includes(expectedRate);
-      const cardContext=/(?:카드|할인한도|할인금액|최대할인)/.test(text);
-      if (!cardContext||(!rateMatches&&!matchingProviders.length)||(!caps.length&&!explicitlyUncapped)) continue;
-      if (rates.length&&!rateMatches) continue;
-      for (const cap of caps.length?caps:[null]) {
-        const amount=Number.isFinite(cap)?Math.min(Math.floor(preCardPrice*expectedRate/100),cap):Math.floor(preCardPrice*expectedRate/100);
-        candidates.push({source,rate:expectedRate,cap,amount,providers:matchingProviders,text});
+    // Anchor on the newly opened instant-discount section, not page-wide
+    // neighbors (coupon amounts, rewards and annual fees are unrelated).
+    const opened=afterValues.filter(value=>!before.has(value));
+    for (let index=0;index<opened.length;index++) {
+      if (!/^카드\s*즉시할인$/.test(opened[index])) continue;
+      const section=[];
+      for (let next=index+1;next<opened.length;next++) {
+        const value=opened[next];
+        if (/와우카드\s*혜택\s*자세히|카드사\s*및\s*당사|카드\s*즉시할인의\s*적용|유의사항|연회비|추천이런건|쿠팡상품번호/.test(value)) break;
+        if (/적립|캐시|캐시백|연회비|결제금액|판매가/.test(value)) continue;
+        section.push(value);
       }
+      const text=['카드즉시할인',...section].join(' | ');
+      const rates=[...new Set(parseRates(text))],caps=parseCaps(text);
+      const providers=knownCards.filter(card=>text.includes(card)&&summaryProviders.includes(card));
+      const explicitlyUncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(text);
+      cardDebug.scopedConditions ||= [];
+      cardDebug.scopedConditions.push({source,rates,caps,providers,text:text.slice(0,1600)});
+      // The fallback confirms one common condition; complete per-card DOM
+      // terms handle multiple alternatives without picking a representative.
+      if (rates.length!==1||rates[0]!==expectedRate||caps.length>1) {
+        return {captured:false,reason:'debugger-card-terms-ambiguous',cardDebug};
+      }
+      if (!caps.length&&!explicitlyUncapped) continue;
+      const cap=caps.length?caps[0]:null;
+      const amount=Number.isFinite(cap)?Math.min(Math.floor(preCardPrice*expectedRate/100),cap):Math.floor(preCardPrice*expectedRate/100);
+      candidates.push({source,rate:expectedRate,cap,amount,providers,text});
     }
   }
   cardDebug.candidateCount=candidates.length;

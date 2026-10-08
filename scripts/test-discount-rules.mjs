@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.36");
+assert.equal(manifest.version,"1.9.37");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -549,3 +549,15 @@ assert.match(reviewHtml,/400,000원/);
 assert.doesNotMatch(reviewHtml,/380,000원|−20,000원/);
 assert.equal(cardDisplayContext.publishedPrice({...review,status:'품절'}),null);
 assert.equal(cardDisplayContext.cardReviewRequired({...review,checkoutDiscountStatus:'unverified'}),false);
+
+// The instant-discount section excludes other benefit rates and legal amounts.
+for (const [rate,cap,basis] of [[3,38900,1529000],[2,23910,1289000]]) {
+  const detail=['상품 쿠폰 7% 최대 100,000원','와우카드 최대 10,000원 쿠팡캐시 적립','카드 혜택','카드즉시할인',`${rate}% 할인`,`/ 최대 ${cap.toLocaleString('en-US')}원 까지, 카드당 일 1회`,'와우카드 혜택 자세히보기','연회비: 20,000원','4% 적립'];
+  const checked=cardContext.parse(basis,`최대 ${rate}% 카드 즉시할인`,['삼성','KB국민'],cardCapture(detail));
+  assert.equal(checked.captured,true);assert.equal(checked.cardRate,rate);assert.equal(checked.cardMaxDiscount,cap);
+  assert.equal(checked.cardTerms[0].maxDiscount,cap);
+  assert.doesNotMatch(checked.cardBenefitText,/100,000|10,000|20,000|4%|7%/);
+}
+const mixedSection=cardContext.parse(1300000,'최대 3% 카드 즉시할인',['삼성','KB국민'],cardCapture(['카드즉시할인','삼성 3% 할인 최대 38,900원','KB국민 2% 할인 최대 30,000원','와우카드 혜택 자세히보기']));
+assert.equal(mixedSection.captured,false);
+assert.equal(mixedSection.cardDebug.scopedConditions[0].rates.length,2);
