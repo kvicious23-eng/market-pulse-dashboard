@@ -544,6 +544,7 @@ function debuggerSnapshotStrings(snapshot) {
     const value=typeof index==='number'?strings[index]:null;
     if (typeof value!=='string'||!value.trim()) return;
     const compact=value.replace(/\s+/g,' ').trim();
+    if(/https?:\/\/|^(?:blob:|data:)|[{}]|\b(?:width|height|table-layout|font-size|display|position)\s*:/i.test(compact))return;
     if (compact.length>1200||(!force&&!relevant(compact))||seen.has(compact)) return;
     seen.add(compact);
     values.push(compact);
@@ -556,11 +557,10 @@ function debuggerSnapshotStrings(snapshot) {
     }
   };
   for (const document of snapshot?.documents||[]) {
-    addRelevantWithNeighbors(document?.nodes?.nodeValue||[]);
-    for (const attrs of document?.nodes?.attributes||[]) for (const index of attrs||[]) add(index);
+    // layout.text contains rendered text; nodeValue/attributes/the global string
+    // table also contain script bodies, CSS declarations and tracking URLs.
     addRelevantWithNeighbors(document?.layout?.text||[]);
   }
-  for (let index=0;index<strings.length;index++) add(index);
   return values;
 }
 
@@ -573,15 +573,17 @@ function accessibilityStrings(tree) {
   const add=value=>{
     if (typeof value!=='string'||!value.trim()) return;
     const compact=value.replace(/\s+/g,' ').trim();
+    if(/https?:\/\/|^(?:blob:|data:)|[{}]|\b(?:width|height|table-layout|font-size|display|position)\s*:/i.test(compact))return;
     if (compact.length>1200||seen.has(compact)) return;
     seen.add(compact);
     values.push(compact);
   };
-  for (const node of nodes) for (const value of ownText(node)) add(value);
+  for (const node of nodes.filter(node=>!node.ignored)) for (const value of ownText(node)) add(value);
   for (const node of nodes) {
     const text=ownText(node).join(' | ');
     if (!/(?:카드\s*혜택|카드\s*즉시할인|할인한도|할인금액)/.test(text)) continue;
-    const related=[node,byId.get(node.parentId),...(node.childIds||[]).map(id=>byId.get(id))].filter(Boolean);
+    if(node.ignored)continue;
+    const related=[node,byId.get(node.parentId),...(node.childIds||[]).map(id=>byId.get(id))].filter(node=>node&&!node.ignored);
     const context=related.flatMap(ownText).join(' | ');
     add(context);
   }
@@ -638,11 +640,12 @@ async function dispatchTrustedClickAndCapture(tabId,point) {
 }
 
 function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,capture) {
+  const cleanValues=values=>(values||[]).filter(value=>typeof value==='string'&&!/https?:\/\/|^(?:blob:|data:)|[{}]|\b(?:width|height|table-layout|font-size|display|position)\s*:/i.test(value));
   const parseRates=text=>[...text.matchAll(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/g)].map(match=>Number(match[1])).filter(rate=>rate>0&&rate<=100);
   const expectedRate=parseRates(summaryText)[0]||null;
   const relevantNew=(afterValues,beforeValues)=>{
     const before=new Set(beforeValues||[]);
-    return (afterValues||[])
+    return cleanValues(afterValues)
       .filter(value=>!before.has(value)&&/(?:카드|할인|한도|최대|%|원)/.test(value))
       .map(value=>value.slice(0,300))
       .slice(0,20);
@@ -688,8 +691,8 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
   const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
   const candidates=[];
   for (const [source,afterValues,beforeValues] of [
-    ['accessibility',capture?.after?.accessibility||[],capture?.before?.accessibility||[]],
-    ['dom-snapshot',capture?.after?.domSnapshot||[],capture?.before?.domSnapshot||[]]
+    ['accessibility',cleanValues(capture?.after?.accessibility),cleanValues(capture?.before?.accessibility)],
+    ['dom-snapshot',cleanValues(capture?.after?.domSnapshot),cleanValues(capture?.before?.domSnapshot)]
   ]) {
     const before=new Set(beforeValues);
     for (let index=0;index<afterValues.length;index++) {
@@ -723,6 +726,14 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
     }
   }
   const best=bestBySource.sort((a,b)=>b.amount-a.amount)[0];
+  const providers=best.providers.length?best.providers:summaryProviders;
+  // A debugger fallback may confirm a single shared rate/cap, never select a
+  // representative option from multiple rates or limits it cannot attribute.
+  const rates=[...new Set(parseRates(best.text))];
+  const distinctCaps=[...new Set(candidates.map(candidate=>candidate.cap))];
+  if(rates.length!==1||rates[0]!==best.rate||distinctCaps.length!==1||!providers?.length) {
+    return {captured:false,reason:'debugger-card-terms-ambiguous',cardDebug};
+  }
   return {
     captured:true,
     cardBenefitStatus:'captured',
@@ -733,7 +744,8 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
     cardRate:best.rate,
     cardMaxDiscount:Number.isFinite(best.cap)?best.cap:null,
     cardDiscount:best.amount,
-    cardProviders:best.providers.length?best.providers:summaryProviders
+    cardProviders:providers,
+    cardTerms:[{rate:best.rate,maxDiscount:Number.isFinite(best.cap)?best.cap:null,providers}]
   };
 }
 

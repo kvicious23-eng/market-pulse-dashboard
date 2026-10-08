@@ -15,7 +15,24 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.35");
+assert.equal(manifest.version,"1.9.36");
+// DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
+const debugContext={};
+vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
+const strings=['width: 33%; min-width: 100%;','https://tracking.test/r=7%25','{"value":"100%"}','카드즉시할인','3% 할인','레저스포츠_노트북','최대 3만8,900원 할인, 카드당 월 1회'];
+const rendered=debugContext.snapshot({strings,documents:[{nodes:{nodeValue:[0,1,2],attributes:[[0,1]]},layout:{text:[3,4,5,6]}}]});
+assert.equal(rendered.some(text=>/33%|100%|tracking/.test(text)),false);
+const cardContext={};
+vm.runInNewContext(source.slice(source.indexOf('function parseDebuggerCardEvidence('),source.indexOf('\nasync function scanCoupangTab('))+';this.parse=parseDebuggerCardEvidence;',cardContext);
+const cardCapture=after=>({before:{accessibility:[],domSnapshot:[]},after:{accessibility:[],domSnapshot:after}});
+const fallback=cardContext.parse(1300000,'최대 3% 카드 즉시할인',['삼성','KB국민'],cardCapture(strings));
+assert.equal(fallback.captured,true);assert.equal(fallback.cardMaxDiscount,38900);
+assert.equal(fallback.cardTerms.length,1);assert.equal(fallback.cardTerms[0].rate,3);assert.equal(fallback.cardTerms[0].providers.length,2);
+assert.equal(/33%|100%|tracking/.test(fallback.cardBenefitText),false);
+const mixed=cardContext.parse(1300000,'최대 3% 카드 즉시할인',['삼성','KB국민'],cardCapture(['삼성 3% 할인 최대 38,900원','KB국민 2% 할인 최대 30,000원']));
+assert.equal(mixed.captured,false,'Debugger must not select a representative rate from mixed card conditions');
+const differentCaps=cardContext.parse(1300000,'최대 3% 카드 즉시할인',['삼성','KB국민'],cardCapture(['삼성 3% 할인 최대 38,900원','KB국민 3% 할인 최대 30,000원']));
+assert.equal(differentCaps.captured,false,'Unattributed limits must not be collapsed to the largest cap');
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
