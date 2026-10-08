@@ -211,7 +211,7 @@ assert.match(dashboard,/offerStatus\(offer\) === "현재가 직접 확인" : off
 const breakdownStart=dashboard.indexOf("function priceBreakdown(");
 const breakdownEnd=dashboard.indexOf("\n\n  function checkoutDiscounts",breakdownStart);
 assert.ok(breakdownStart>=0&&breakdownEnd>breakdownStart);
-const breakdownContext={isSoldOut:offer=>offer?.status==="품절"};
+const breakdownContext={isSoldOut:offer=>offer?.status==="품절",cardReviewRequired:offer=>offer?.cardBenefitStatus==="review-needed"};
 vm.runInNewContext(`${dashboard.slice(breakdownStart,breakdownEnd)};this.priceBreakdown=priceBreakdown;`,breakdownContext);
 const oldPrice={srp:1829000,observedListPrice:1829000,finalPrice:1662210,cardDiscount:16790,shipping:0,alertEligible:false,couponDiscount:null};
 const partial=breakdownContext.priceBreakdown(oldPrice);
@@ -511,7 +511,7 @@ const cardDisplayContext={
   downloadWorkbook:(headers,rows)=>{cardDisplayContext.exported={headers,rows};},safeUrl:()=> '#',Date
 };
 vm.createContext(cardDisplayContext);
-const cardFunctions=['formatWon','formatDiff','discountText','cardDiscountText','cardConditionText','cardStatusText','isSoldOut','offerStatus',
+const cardFunctions=['cardReviewRequired','publishedPrice','formatWon','formatDiff','discountText','cardDiscountText','cardConditionText','cardStatusText','isSoldOut','offerStatus',
   'priceBreakdown','checkoutDiscounts','checkoutDiscountText','checkoutDiscountExportValue','basisTypeText','renderSupplierMetrics','renderCards','exportMyProducts'];
 vm.runInContext(cardFunctions.map(dashboardFunction).join('\n'),cardDisplayContext);
 const twoCards={role:'mine',cardBenefitStatus:'captured',cardDiscount:20000,cardRate:5,cardMaxDiscount:30000,cardProviders:['현대'],
@@ -537,3 +537,15 @@ assert.equal(cardDisplayContext.exported.headers.length,cardDisplayContext.expor
 
 console.log("Discount source, calculation, all-card conditions and sold-out display/export rules passed.");
 await import('./test-checkout-navigation.mjs');
+
+const review={...twoCards,cardBenefitStatus:'review-needed',publishedPriceBasis:'pre-card',cardDiscount:null,finalPrice:400000,alertEligible:false};
+cardDisplayContext.data.products=[{mtm:'TEST',offers:[review]}];
+cardDisplayContext.renderCards();
+const reviewHtml=cardDisplayContext.refs.productGrid.innerHTML;
+assert.match(reviewHtml,/overview-row--card-review/);
+assert.match(reviewHtml,/카드할인 재확인 필요/);
+assert.match(reviewHtml,/카드 적용 전 금액/);
+assert.match(reviewHtml,/400,000원/);
+assert.doesNotMatch(reviewHtml,/380,000원|−20,000원/);
+assert.equal(cardDisplayContext.publishedPrice({...review,status:'품절'}),null);
+assert.equal(cardDisplayContext.cardReviewRequired({...review,checkoutDiscountStatus:'unverified'}),false);

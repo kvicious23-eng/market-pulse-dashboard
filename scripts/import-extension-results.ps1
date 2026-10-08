@@ -179,7 +179,7 @@ if ($unverifiedCheckouts.Count -gt 0) {
   throw "Incomplete checkout capture: $($unverifiedCheckouts.Count) product(s) have no confirmed order page ($(@($unverifiedCheckouts | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
 }
 
-# Reject a multi-rate popup before changing any brand file or local history.
+# Downgrade incomplete multi-rate evidence per product; publish only the verified pre-card price.
 # The scanner reports only one selected rate and cap; after checkout coupons a
 # different card might provide the largest discount.
 foreach ($result in $payloadResults) {
@@ -190,7 +190,8 @@ foreach ($result in $payloadResults) {
   $termRates=@($result.cardTerms | ForEach-Object { [decimal]$_.rate } | Sort-Object -Unique)
   if ($observedRates.Count -gt 1 -and ($termRates.Count -ne $observedRates.Count -or
       @($observedRates | Where-Object { $_ -notin $termRates }).Count -gt 0)) {
-    throw "Incomplete card terms for $($result.mtm). Keep the previous published snapshot."
+    $result | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue 'partial' -Force
+    $result | Add-Member -NotePropertyName cardTerms -NotePropertyValue @() -Force
   }
 }
 $retiredScanTimes=@('2026-09-27T14:17:34+09:00')
@@ -626,10 +627,13 @@ foreach ($spec in $specs) {
        $selectedTerm=if ($soldOut) {$pageBest.term} elseif ($null -ne $checkoutBest) {$checkoutBest.term} else {$null}
        $selectedProviders=if ($selectedTerm) {@($selectedTerm.providers | Where-Object { $_ })} else {$cardProviders}
        # A missing checkout layer or card detail is not a verified current final price.
+      $cardReviewRequired=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and
+        $null -ne $preCardPrice -and $null -eq $cardDiscount
+      if ($cardReviewRequired) { $cardBenefitStatus='review-needed' }
       $alertEligible=(-not $soldOut) -and $checkoutStatus -eq 'captured' -and $null -ne $cardDiscount -and
         $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
       $currentVerifiedFinal=if ($alertEligible){$preCardPrice-$cardDiscount}else{$null}
-      $final=if ($alertEligible){$currentVerifiedFinal}else{$previousFinalPrice}
+      $final=if ($alertEligible){$currentVerifiedFinal}elseif($cardReviewRequired){$preCardPrice}else{$previousFinalPrice}
       $couponTotal=if ($checkoutStatus -eq 'captured') {$checkout.Total} else {$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
@@ -643,6 +647,7 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName preCardPrice -NotePropertyValue $preCardPrice -Force
       $mine | Add-Member -NotePropertyName priceBasisType -NotePropertyValue $basisType -Force
       $mine | Add-Member -NotePropertyName cardBenefitStatus -NotePropertyValue $cardBenefitStatus -Force
+      $mine | Add-Member -NotePropertyName publishedPriceBasis -NotePropertyValue $(if($cardReviewRequired){'pre-card'}elseif($alertEligible){'final'}else{'unavailable'}) -Force
       $mine | Add-Member -NotePropertyName cardEvidenceSource -NotePropertyValue $cardSource -Force
        $mine | Add-Member -NotePropertyName cardRate -NotePropertyValue $(if($selectedTerm){$selectedTerm.rate}else{$null}) -Force
        $mine | Add-Member -NotePropertyName cardMaxDiscount -NotePropertyValue $(if($selectedTerm){$selectedTerm.maxDiscount}else{$null}) -Force

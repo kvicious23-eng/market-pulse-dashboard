@@ -29,3 +29,24 @@ $mismatch.matchedMtm='OTHER'
 if(@(Read-TestEntries @($mismatch)).Count -ne 0){throw 'Wrong model row was accepted.'}
 if(@(Read-TestEntries @($paid) '애플 맥북 정품').Count -ne 0){throw 'Wrong page identity was accepted.'}
 Write-Host 'Competitor import shipping and identity gates passed.'
+
+
+# Exercise actual importer card handling without writing real data or invoking Git.
+$cardStart=$source.IndexOf('$cardBenefitStatus=if ($result.cardBenefitStatus)')
+$cardEnd=$source.IndexOf('$couponTotal=if ($checkoutStatus', $cardStart)
+if($cardStart -lt 0 -or $cardEnd -le $cardStart){throw 'Card calculation block missing.'}
+$cardBlock=[ScriptBlock]::Create($source.Substring($cardStart,$cardEnd-$cardStart))
+function Test-CardState($state,$terms,$reason='') {
+  $result=[pscustomobject]@{cardBenefitStatus=$state;cardRate=3;cardProviders=@('Test');cardEvidenceSource='dom';cardMaxDiscount=38900;cardTerms=$terms;cardDiscount=38900;checkoutDiscountReason=$reason}
+  $preCardItemPrice=1000000;$preCardPrice=1003000;$productPagePrice=1300000
+  $checkoutStatus='captured';$previousFinalPrice=900000
+  . $cardBlock
+  [pscustomobject]@{review=$cardReviewRequired;status=$cardBenefitStatus;eligible=$alertEligible;final=$final;discount=$cardDiscount}
+}
+$partial=Test-CardState 'partial' @()
+if(-not $partial.review -or $partial.status -ne 'review-needed' -or $partial.eligible -or $partial.final -ne 1003000 -or $null -ne $partial.discount){throw 'Incomplete card evidence did not publish only the current pre-card amount.'}
+$captured=Test-CardState 'captured' @([pscustomobject]@{rate=3;maxDiscount=38900;providers=@('Test')})
+if($captured.review -or -not $captured.eligible -or $captured.discount -ne 30000 -or $captured.final -ne 973000){throw 'Verified coupon-first capped card calculation changed.'}
+$sold=Test-CardState 'partial' @() 'buy-now-button-sold-out'
+if($sold.review -or $sold.eligible){throw 'Sold-out card conditions became a purchasable pre-card amount.'}
+Write-Host 'Card review publication, previous-price exclusion, shipping and verified-card calculation passed.'

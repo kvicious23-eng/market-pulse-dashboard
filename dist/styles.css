@@ -271,3 +271,14 @@ td:first-child { min-width: 175px; text-align: left; }
   *,*::before,*::after { scroll-behavior: auto !important; transition: none !important; }
   .monitoring i { animation: none; }
 }
+
+/* A verified coupon-adjusted price with unresolved card benefits. */
+.overview-row.overview-row--card-review,
+.overview-row.overview-row--card-review:hover,
+.overview-row.overview-row--card-review[aria-selected="true"],
+.offer-table tr.is-card-review, tr.is-card-review td { background: #eff6ff; }
+.overview-status--card-review { background: #dbeafe; color: #1e40af; }
+.card-review-label { display: block; color: #1e40af; font-size: 12px; line-height: 1.5; }
+.overview-row--card-review .overview-result { color: #1e40af; }
+
+.overview-row.overview-row--card-review { box-shadow: inset 4px 0 0 #3b82f6; }

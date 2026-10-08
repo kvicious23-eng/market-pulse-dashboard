@@ -55,6 +55,12 @@ for(const file of [...new Set(files)]){
       }
     }
     if(soldOut(mine)&&mine.alertEligible===true) fail(file,`${label}: sold-out offer cannot be alert eligible`);
+    if(mine.cardBenefitStatus==="review-needed"){
+      if(soldOut(mine)||mine.alertEligible!==false||mine.checkoutDiscountStatus!=="captured"||
+         mine.publishedPriceBasis!=="pre-card"||!finite(mine.preCardPrice)||mine.preCardPrice<0||
+         mine.finalPrice!==mine.preCardPrice||mine.cardDiscount!==null)
+        fail(file,`${label}: card review needs the current pre-card price, no inferred discount and no final-price eligibility`);
+    }
     if(mine.alertEligible===true){
       if(mine.checkoutDiscountStatus!=="captured") fail(file,`${label}: eligible offer needs captured checkout discounts`);
       if(!["captured","none"].includes(mine.cardBenefitStatus)) fail(file,`${label}: eligible offer needs captured/none card status`);

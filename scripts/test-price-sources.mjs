@@ -27,6 +27,13 @@ try {
   // Checkout coupons are valid even if their derived price differs from the
   // product-page current price. The applicable card amount uses the coupon-adjusted price.
   verify(base,true);
+  const review={...base,cardBenefitStatus:"review-needed",publishedPriceBasis:"pre-card",alertEligible:false,cardDiscount:null,finalPrice:820_000};
+  verify(review,true);
+  verify({...review,finalPrice:803_600},false);
+  verify({...review,cardDiscount:0},false);
+  verify({...review,alertEligible:true},false);
+  verify({...review,checkoutDiscountStatus:"unverified"},false);
+  verify({...review,status:"품절"},false);
   assert.match(verify({...base,cardDiscount:19_000,finalPrice:801_000},false),/cardDiscount/);
   verify({...base,cardRate:8,cardMaxDiscount:10_000,cardDiscount:10_000,finalPrice:810_000},true);
   assert.match(verify({...base,cardEvidenceSource:"checkout"},false),/card evidence/);
@@ -42,3 +49,4 @@ try {
   fs.rmSync(root,{recursive:true,force:true});
 }
 console.log("Price source boundaries passed.");
+
