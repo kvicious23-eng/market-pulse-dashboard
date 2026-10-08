@@ -72,12 +72,10 @@ chrome.downloads.onChanged.addListener(async delta=>{
   const item=(await chrome.downloads.search({id:delta.id}))[0];
   if(/(?:^|[\\/])MarketPulse[\\/]latest-coupang-scan\.json$/i.test(item?.filename||'')||csvName(item?.filename))await daily.tick();
 });
-chrome.downloads.onDeterminingFilename.addListener((item,suggest)=>{
-  daily.read().then(job=>{
-    if(job.stage==='download'&&supplierDownload(item,job))suggest({filename:'MarketPulse/SupplierPending/'+csvName(item.filename),conflictAction:'overwrite'});
-    else suggest();
-  }).catch(()=>suggest());return true;
-});
+// Observe Supplier's original CSV download without registering a global filename
+// listener. Such a listener can discard filenames requested by the price scanner,
+// even when it calls suggest() without an override for an unrelated download.
+// Native validation already accepts the Downloads root and preserves the source.
 // Recreate alarms after extension reloads and recover a persisted, in-flight job.
 schedule().then(()=>daily.tick()).catch(()=>{});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{

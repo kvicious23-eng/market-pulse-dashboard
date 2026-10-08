@@ -98,11 +98,16 @@ async function openScanTab(url,stage,windowState) {
   }
 }
 
-async function waitForScanDownload(downloadId) {
+async function waitForScanDownload(downloadId, expectedFilename) {
   if(!Number.isInteger(downloadId)) throw new Error('scan-download-id-missing');
+  if(!expectedFilename||!/^MarketPulse\/[a-z0-9-]+\.json$/.test(expectedFilename)) throw new Error('scan-download-expected-path-missing');
   for(let attempt=0;attempt<60;attempt++) {
     const [item]=await withScanTimeout(chrome.downloads.search({id:downloadId}),10000,'scan-download-status');
-    if(item?.state==='complete') return item;
+    if(item?.state==='complete') {
+      const actual=String(item.filename||'').replaceAll('\\','/');
+      if(!actual.endsWith('/'+expectedFilename)) throw new Error('scan-download-path-mismatch:'+expectedFilename);
+      return item;
+    }
     if(item?.state==='interrupted') throw new Error(`scan-download-interrupted:${item.error||'unknown'}`);
     if(!item) throw new Error('scan-download-disappeared');
     await wait(1000);
@@ -921,7 +926,7 @@ async function scanAll(scanSlot, recovery=null) {
       const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
       const witnessDownload=await withScanTimeout(chrome.downloads.download({url:witnessUrl,
         filename:'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
-      await waitForScanDownload(witnessDownload);
+      await waitForScanDownload(witnessDownload,'MarketPulse/scan-start.json');
     }
     for (const target of targets) {
       let tab;
@@ -1026,8 +1031,9 @@ async function scanAll(scanSlot, recovery=null) {
     };
     await progress(null,'download',targets.length);
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename:recovery?`MarketPulse/edge-recovery-${runId}.json`:'MarketPulse/latest-coupang-scan.json', conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
-    await waitForScanDownload(downloadId);
+    const filename=recovery?`MarketPulse/edge-recovery-${runId}.json`:'MarketPulse/latest-coupang-scan.json';
+    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename, conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
+    await waitForScanDownload(downloadId,filename);
     await chrome.storage.local.set({
       lastRunDay:localDay(),
       lastRunSlot:scanSlot,

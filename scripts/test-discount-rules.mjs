@@ -15,7 +15,7 @@ const scheduleScript=fs.readFileSync("scripts/set-local-schedule.ps1","utf8");
 const dashboard=fs.readFileSync("dist/app.js","utf8");
 const lenovoRefresh=fs.readFileSync("scripts/update-market-data.mjs","utf8");
 const acerRefresh=fs.readFileSync("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.34");
+assert.equal(manifest.version,"1.9.35");
 // The uppermost rendered price wins, even if a lower price is crossed out.
 const readPriceStart=source.indexOf("async function readDisplayedPrice(");
 const readPriceEnd=source.indexOf("\nfunction snapshotCardDetailText(",readPriceStart);
@@ -81,13 +81,19 @@ assert.deepEqual(windowState.anchorTabIds,[15]);
 const downloadStart=source.indexOf("async function waitForScanDownload(");
 const downloadEnd=source.indexOf("\n\nfunction localDay",downloadStart);
 assert.ok(downloadStart>=0&&downloadEnd>downloadStart,"download completion check was not found");
-const downloadStates=[{state:'in_progress'},{state:'complete'}];
+const downloadStates=[{state:'in_progress'},{state:'complete',filename:'C:\\Users\\Test\\Downloads\\MarketPulse\\latest-coupang-scan.json'}];
 const downloadContext={Number,Error,wait:async()=>{},withScanTimeout:promise=>promise,
   chrome:{downloads:{search:async()=>[downloadStates.shift()]}}};
 vm.runInNewContext(`${source.slice(downloadStart,downloadEnd)};this.waitForScanDownload=waitForScanDownload;`,downloadContext);
-assert.equal((await downloadContext.waitForScanDownload(42)).state,'complete');
+assert.equal((await downloadContext.waitForScanDownload(42,'MarketPulse/latest-coupang-scan.json')).state,'complete');
 downloadContext.chrome.downloads.search=async()=>[{state:'interrupted',error:'NETWORK_FAILED'}];
-await assert.rejects(downloadContext.waitForScanDownload(43),/scan-download-interrupted:NETWORK_FAILED/);
+await assert.rejects(downloadContext.waitForScanDownload(43,'MarketPulse/latest-coupang-scan.json'),/scan-download-interrupted:NETWORK_FAILED/);
+for(const expected of ['MarketPulse/scan-start.json','MarketPulse/latest-coupang-scan.json','MarketPulse/edge-recovery-'+('b'.repeat(32))+'.json']) {
+  downloadContext.chrome.downloads.search=async()=>[{state:'complete',filename:'C:\\Users\\Test\\Downloads\\download (4).json'}];
+  await assert.rejects(downloadContext.waitForScanDownload(44,expected),/scan-download-path-mismatch/,'Renamed downloads cannot mark a scan successful');
+  downloadContext.chrome.downloads.search=async()=>[{state:'complete',filename:'/home/test/Downloads/'+expected}];
+  assert.equal((await downloadContext.waitForScanDownload(45,expected)).state,'complete');
+}
 const scanRequestStart=source.indexOf("let activeScanPromise=null;");
 const scanRequestEnd=source.indexOf("\nconst SUPPLIER_EXTENSION_ID=",scanRequestStart);
 assert.ok(scanRequestStart>=0&&scanRequestEnd>scanRequestStart,"scan request guard was not found");

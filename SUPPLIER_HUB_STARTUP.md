@@ -1,6 +1,6 @@
 # Supplier Hub 아침 CSV 자동 갱신
 
-가격 확장 1.9.34과 Supplier Hub 확장 0.1.12은 아래 순서로 연결한다.
+가격 확장 1.9.35과 Supplier Hub 확장 0.1.13은 아래 순서로 연결한다.
 
 1. 당일 08시 슬롯의 모든 상품이 성공한 Chrome 완료 JSON, 또는 그 회차를 대체한 검증된 Edge 완료 JSON을 신호로 시작한다. Chrome의 `complete: true`만으로는 부족하며 접근 실패가 남으면 기다린다. Edge는 `reports/edge-recovery.json`의 `result-ready`, 같은 슬롯/전환 ID/Chrome 실행 ID, 전환 후 시작, 전체 결과 성공, 전달 목록과 현재 카탈로그 일치가 필요하다. 오후 회차·독립 Edge·부분/실패/이전 회차 결과는 시작 신호가 아니다.
 2. Supplier Hub 인증을 확인한다. 아침 완료 신호 전에는 자동 인증 점검을 시작하지 않는다. 이미 연결돼 있으면 그 세션을 사용하고, 로그인 화면이면 기존 자동 연결 설정과 저장 계정으로 재로그인한다. 추가 인증·접근 제한·인증 실패에서는 반복 제출을 중단한다. 다운로드 요청 전 인증만 막힌 경우 사용자가 인증을 복구해 정상 연결이 확인되면 이어서 진행한다.
@@ -16,3 +16,6 @@
 집계·표시 규칙은 [PROJECT_RULES.md](PROJECT_RULES.md), 연결 절차는 [SUPPLIER_HUB_CONNECTION.md](SUPPLIER_HUB_CONNECTION.md)를 따른다.
 
 Chrome 접근 차단과 프로세스 종료 시 Edge 전체 가격 복구는 [CHROME_RECOVERY.md](CHROME_RECOVERY.md)를 따른다. 검증된 오전 Edge 완료 뒤 `supplier-after-edge.ps1`이 가격 확장과 Supplier Hub 확장이 함께 활성화된 기존 Chrome 프로필 하나를 선택해 내부 `daily-resume.html`을 연다. 로컬 연결 프로그램이 같은 회차의 신호를 다시 검증하며 Supplier 확장만 가격 확장에 오전 대체 완료를 알릴 수 있다. 검증된 알림을 받은 가격 확장은 이미 Edge가 완료한 오전 슬롯을 재수집하지 않는다. 시작 URL만으로 완료를 인정하지 않으며 알림이 없으면 최대 20초 뒤 정상 시작 동작을 유지한다. Chrome 복귀·신호 수신은 CSV 다운로드 성공이 아니다.
+
+
+다운로드 무결성: Supplier CSV는 전역 파일명 변경 리스너 없이 공식 원래 이름으로 저장·검증한다. 가격 시작 기록/정상 JSON/Edge 고유 JSON은 지정한 MarketPulse 상대 경로가 실제 다운로드 경로와 일치해야 완료로 인정한다. 일반 다운로드 이름으로 저장된 JSON은 미시작·접근 차단·프로세스 종료의 증거가 아니다.
