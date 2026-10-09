@@ -66,7 +66,15 @@ const daily=new DailyCsv({
     return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportForm,args:['',submit]}))[0]?.result;
   },
   receiveFile:async(job,click=false)=>{
-    const id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    let id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    // A browser restart invalidates the saved tab ID while the durable export
+    // request remains valid. Re-open/confirm the official page before checking
+    // that same request; never submit a replacement request here.
+    if(!await tab(id)){
+      const page=await premium.check(true);
+      if(page?.status!=='page_opened')return {phase:'waiting',reason:'export_history_not_ready'};
+      id=(await chrome.storage.local.get('premium')).premium?.tabId;
+    }
     const day=new Date(job.day+'T00:00:00Z'),through=new Date(day.getTime()-86400000);
     const start=day.getUTCDate()===1?through:new Date(Date.UTC(day.getUTCFullYear(),day.getUTCMonth(),1));
     const compact=d=>d.toISOString().slice(0,10).replaceAll('-','');
