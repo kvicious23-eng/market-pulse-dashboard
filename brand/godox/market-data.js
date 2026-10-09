@@ -35,7 +35,7 @@ window.MARKET_DATA = {
                                    ],
                  "lifecycleStatus":  "active",
                  "renamedTo":  null,
-                 "publishedAt":  "2026-10-09T08:30:07+09:00"
+                 "publishedAt":  "2026-10-09T09:57:15+09:00"
              },
     "products":  [
                      {
@@ -284,16 +284,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  42000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stock":  0,
+                                                 "dailySales":  0,
+                                                 "monthSales":  28,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
                                                  "asOfDate":  "2026-10-08",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-08",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-08",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
