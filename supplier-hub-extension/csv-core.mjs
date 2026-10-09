@@ -164,7 +164,18 @@ export async function supplierExportFile(expectedName,requestedAt,requestId='',c
     let hour=Number(m[2])%12;if(m[5].toUpperCase()==='PM')hour+=12;
     return Date.parse(m[1]+'T'+String(hour).padStart(2,'0')+':'+m[3]+':'+m[4]+'+09:00');
   };
-  const rows=[...tables[0].querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=Date.parse(requestedAt)-2000);
+  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=Date.parse(requestedAt)-2000);
+  let rows=matchingRows(tables[0]);
+  // Supplier can open the history modal with a stale snapshot immediately after
+  // accepting an export request. Refresh that snapshot before concluding that
+  // the durable request is absent. This never submits another export request.
+  if(!rows.length&&!click){
+    const refresh=controls().filter(e=>e.innerText.replace(/\s/g,'')==='새로고침');
+    if(refresh.length===1){
+      refresh[0].click();await new Promise(r=>setTimeout(r,1000));tables=findTables();
+      if(tables.length===1)rows=matchingRows(tables[0]);
+    }
+  }
   if(rows.length>1)return {phase:'unverified',reason:'export_request_ambiguous'};
   if(!rows.length)return {phase:'waiting',reason:'export_request_not_listed'};
   const {row,cells}=rows[0],id=cells[idIndex];

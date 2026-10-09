@@ -43,7 +43,7 @@ Chrome 도구 모음의 Market Pulse 확장 아이콘을 열고 `지금 수집`�
 
 ## 현재 적용 및 복구 기준 (2026-10-08)
 
-현재 가격 확장은 Chrome·Edge 1.9.37, Chrome Supplier Connector는 0.1.16이다. 확장 소스 변경이 있을 때만 두 브라우저의 해당 확장을 새로고침한다. 이번 검사·문서 변경은 확장 버전을 바꾸지 않으므로 다시 새로고침할 필요가 없다.
+현재 가격 확장은 Chrome·Edge 1.9.37, Chrome Supplier Connector는 0.1.17이다. 확장 소스 변경이 있을 때만 해당 브라우저 확장을 새로고침한다. Supplier0.1.17은 확장 소스 변경이므로 최신 코드를 받은 뒤 Chrome Supplier Connector를 새로고침해야 한다. 가격 확장은 변경되지 않았다.
 
 수집 감시와 업로드는 숨김 PowerShell로 실행하고 로그는 reports/scan-watchdog.log와 reports/scheduled-upload.log에 남긴다. 상품 화면은 일반 브라우저 창이다. 수집 예약은 PT2H/IgnoreNew, 업로드는 PT2H/IgnoreNew 및 같은 슬롯 첫 시도 기준 합산2시간 예산이다. Git 명령은 최대10분 또는 남은 전체 시간 중 짧은 한도를 적용한다. 재시도는15분 간격 최대3회이지만 예산을 초기화하지 않는다.
 

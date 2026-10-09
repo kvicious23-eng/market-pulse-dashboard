@@ -35,7 +35,11 @@ export class DailyCsv {
         job=await this.set(job,{stage:'authentication',reason:'no_click_retry',previousRequestedAt:job.requestedAt,requestedAt:null,pageChecks:0});
       }
       if(job.stage==='stopped'&&!job.requestedAt&&!job.noClickConfirmed&&(await this.io.authState?.())?.status==='connected')job=await this.set(job,{stage:'authentication',authChecks:0,reason:'authentication_restored'});
-      if(job.stage==='uncertain'&&job.reason==='csv_download_not_observed'&&job.exportClicked&&!job.fileClickAt&&this.io.now()-Date.parse(job.exportRequestAt)<65*60000)job=await this.set(job,{stage:'download',reason:'export_generation_wait_restored'});
+      // A confirmed server request may appear in the history after the original
+      // 65-minute observation window. Re-check that same request without ever
+      // submitting a second export. Once the file click is armed, the stricter
+      // no-repeat rule below still applies.
+      if(job.stage==='uncertain'&&job.reason==='csv_download_not_observed'&&job.exportClicked&&!job.fileClickAt)job=await this.set(job,{stage:'download',reason:'export_generation_recheck_restored'});
       if(['stopped','uncertain'].includes(job.stage))return job;
       if(job.stage==='authentication'){
         const auth=await this.io.authenticate();

@@ -55,3 +55,11 @@ daily=new DailyCsv(f.io);await daily.tick();assert.equal(submits,1);assert.equal
 f=fixture();f.io.exportForm=async(job,submit)=>submit?{phase:'unverified',reason:'export_request_disabled'}:{phase:'form'};await new DailyCsv(f.io).tick();assert.equal(f.saved.stage,'uncertain');assert.ok(f.saved.exportRequestAt);
 
 f=fixture();let received=0;f.io.exportForm=async(job,submit)=>({phase:submit?'requested':'form'});f.io.receiveFile=async(job,click)=>{if(click){assert.equal(f.saved.exportRequestId,'123');assert.ok(f.saved.fileClickAt);received++;return {phase:'clicked'};}return {phase:'ready',requestId:'123'};};await new DailyCsv(f.io).tick();assert.equal(received,1);await new DailyCsv(f.io).tick();assert.equal(received,1);
+
+// A late server row is recovered from the same durable request after 65 minutes.
+// It must not submit a replacement export.
+f=fixture({day:kstDay(fixed),stage:'uncertain',reason:'csv_download_not_observed',requestedAt:new Date(fixed-66*60000).toISOString(),exportRequestAt:new Date(fixed-66*60000).toISOString(),exportClicked:true});
+let lateChecks=0,lateClicks=0,lateSubmits=0;
+f.io.exportForm=async(job,submit)=>{if(submit)lateSubmits++;return {phase:'form'};};
+f.io.receiveFile=async(job,click)=>{lateChecks++;if(click){lateClicks++;return {phase:'clicked'};}return {phase:'ready',requestId:'2963723'};};
+await new DailyCsv(f.io).tick();assert.equal(lateSubmits,0);assert.equal(lateChecks,2);assert.equal(lateClicks,1);assert.equal(f.saved.exportRequestId,'2963723');assert.equal(f.saved.stage,'download');

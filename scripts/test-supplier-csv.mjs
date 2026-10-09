@@ -105,16 +105,18 @@ console.log('Supplier CSV checks passed: official one-click request, local decod
 
 // Match the current server request, excluding earlier same-name exports.
 {
- const saved={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle};let fileClicks=0;
+ const saved={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle};let fileClicks=0,refreshClicks=0;
  const visible={getClientRects:()=>[{}]};global.getComputedStyle=()=>({visibility:'visible',display:'block'});
  const button={...visible,innerText:'다운로드',getAttribute:()=>null,click:()=>fileClicks++};
+ const refresh={...visible,innerText:'새로고침',getAttribute:()=>null,click:()=>{refreshClicks++;rows=[row('2963085','2026-10-08 01:24:38 PM')];}};
  const row=(id,time)=>({querySelectorAll:selector=>selector==='td'?['',id,'reason','basic_operation_rocket_2026100120261007','COMPLETED','다운로드',time,''].map(innerText=>({innerText})):[button]});
  let rows=[row('old','2026-10-08 10:44:46 AM'),row('2963085','2026-10-08 01:24:38 PM')];
  const table={...visible,querySelector:()=>({innerText:'ID 파일명 상태 요청일시'}),querySelectorAll:selector=>selector==='thead th'?['','ID','요청 사유','파일명','상태','다운로드','요청일시','완료일시'].map(innerText=>({innerText})):rows};
- global.location={href:'https://supplier.coupang.com/rpd/web-v2/basic/rocket'};global.document={querySelectorAll:selector=>selector==='table'?[table]:[]};
+ global.location={href:'https://supplier.coupang.com/rpd/web-v2/basic/rocket'};global.document={querySelectorAll:selector=>selector==='table'?[table]:selector==='button,a,[role="button"]'?[refresh]:[]};
  try{
   let result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(fileClicks,0);
   result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','2963085',true);assert.equal(result.phase,'clicked');assert.equal(fileClicks,1);
   rows.push(row('another','2026-10-08 01:25:00 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','',true);assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
+  rows=[];result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(refreshClicks,1);assert.equal(fileClicks,1,'Refreshing history must not click the file before durable arming');
  }finally{Object.assign(global,saved);}
 }
