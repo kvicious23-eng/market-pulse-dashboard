@@ -94,11 +94,15 @@
     return discountText(offer?.cardDiscount);
   }
 
-  function cardConditionText(offer) {
+  function cardConditionText(offer, includeProviders = true) {
     if (offer?.cardBenefitStatus !== "captured") return cardStatusText(offer?.cardBenefitStatus);
     const terms = Array.isArray(offer.cardTerms) && offer.cardTerms.length
       ? offer.cardTerms : [{rate:offer.cardRate,maxDiscount:offer.cardMaxDiscount,providers:offer.cardProviders}];
-    return terms.map(term => `${Array.isArray(term.providers) ? term.providers.filter(Boolean).join(", ") : ""}: ${term.rate}% · ${Number.isFinite(term.maxDiscount) ? `최대 ${formatWon(term.maxDiscount)}` : "한도 표기 없음"}`).join(" / ");
+    const conditions = terms.map(term => {
+      const providers = includeProviders && Array.isArray(term.providers) ? term.providers.filter(Boolean).join(", ") : "";
+      return `${providers ? `${providers}: ` : ""}${term.rate}% · ${Number.isFinite(term.maxDiscount) ? `최대 ${formatWon(term.maxDiscount)}` : "한도 표기 없음"}`;
+    });
+    return (includeProviders ? conditions : [...new Set(conditions)]).join(" / ");
   }
 
   function formatDiff(value) {
@@ -458,7 +462,7 @@
       const breakdown = priceBreakdown(mine);
       const checkout = checkoutDiscounts(mine, breakdown.couponDiscount);
       const providers = Array.isArray(mine.cardProviders) ? mine.cardProviders.filter(Boolean).join(", ") : "";
-      const cardCondition = cardConditionText(mine);
+      const cardCondition = cardConditionText(mine, false);
       const checkedAt = mine.priceCheckedAt || mine.checkedAt || "미확인";
       const soldOut = isSoldOut(mine);
       const trend = priceTrend(mine);
@@ -483,8 +487,8 @@
           <span class="overview-stack" data-label="카드 상세">
             <span><small>할인 전</small>${formatWon(breakdown.preCardPrice)}</span>
             <span><small>${soldOut ? "카드 혜택 · 조건" : "카드할인"}</small>${cardDiscountText(mine)}</span>
-            <span><small>조건</small>${escapeHtml(cardCondition)}</span>
-            ${providers ? `<span><small>카드사</small>${escapeHtml(providers)}</span>` : ""}
+            <span class="overview-stack__text"><small>조건</small><span>${escapeHtml(cardCondition)}</span></span>
+            ${providers ? `<span class="overview-stack__text"><small>카드사</small><span>${escapeHtml(providers)}</span></span>` : ""}
           </span>
           <span class="overview-result" data-label="${cardReviewRequired(mine) ? "카드 적용 전 금액" : "최종 실구매가"}">
             <strong>${soldOut ? '<span class="unknown">구매 불가</span>' : formatWon(publishedPrice(mine))}</strong>

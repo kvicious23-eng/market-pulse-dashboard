@@ -110,6 +110,9 @@ h1 em { color: var(--green); font-style: normal; }
 .overview-stack { display: grid; align-content: start; gap: 3px; }
 .overview-stack > span { display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
 .overview-stack small { color: var(--muted); font-size: 8px; }
+.overview-stack > .overview-stack__text { white-space: normal; align-items: baseline; }
+.overview-stack__text > small { flex-shrink: 0; }
+.overview-stack__text > span { min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .overview-stack__total { margin-top: 3px; padding-top: 4px; border-top: 1px solid var(--line); font-weight: 900; }
 .overview-result { display: flex; align-items: flex-end; flex-direction: column; justify-content: center; text-align: right; }
 .overview-result strong { font-size: 13px; font-weight: 900; }
