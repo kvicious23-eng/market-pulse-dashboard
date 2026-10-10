@@ -1665,6 +1665,10 @@ chrome.alarms.onAlarm.addListener(async alarm=>{
 chrome.action.onClicked.addListener(()=>requestScan());
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
+  if (message?.type==='GET_EXTENSION_HEALTH') {
+    sendResponse({version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus});
+    return;
+  }
   if (message?.type==='GET_PRODUCTS') {
     getTargets().then(products=>sendResponse({ok:true,products}));
     return true;

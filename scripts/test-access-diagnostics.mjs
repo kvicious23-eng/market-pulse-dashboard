@@ -68,3 +68,20 @@ listeners.remove(7);assert.equal(d.accessDiagnosticTabs.size,0);
 d=diagnostics(true).context;assert.equal((await d.captureAccessDiagnostic(999)).observerStatus,'registration-failed');
 const manifest=JSON.parse(readTestFile('chrome-extension/manifest.json','utf8'));assert.ok(manifest.permissions.includes('webRequest'));
 console.log('Access classification, passive scope, privacy whitelist, unavailable evidence, bounded attempts and local archive success/failure passed.');
+
+// Exercise real maintenance code: busy scans cannot reload; verification needs worker evidence.
+const maintenance=readTestFile('chrome-extension/maintenance.js','utf8');
+async function checkMaintenance(mode,running,workerVersion='1.9.38') {
+ const receipts=[],effects=[];
+ const context={URLSearchParams,Date,setTimeout,clearTimeout,Promise,navigator:{userAgent:'Chrome/1'},location:{search:`?mode=${mode}&nonce=${'a'.repeat(32)}&version=1.9.38`},document:{querySelector:()=>({})},
+ chrome:{runtime:{getManifest:()=>({version:'1.9.38'}),sendMessage:async m=>m.type==='GET_SCAN_STATUS'?{running}:{version:workerVersion,observerStatus:'registered'},reload:()=>effects.push('reload')},
+ permissions:{contains:async()=>true},alarms:{getAll:async()=>[]},tabs:{getCurrent:async()=>({id:9}),remove:async()=>effects.push('close')},
+ downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));return 1;},search:async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/extension-maintenance-chrome.json'}]}}};
+ vm.runInNewContext(maintenance.slice(0,maintenance.lastIndexOf('\nmaintainExtension().catch')),context);
+ await context.maintainExtension();return {receipt:receipts[0],effects};
+}
+let maintenanceResult=await checkMaintenance('reload',true);assert.equal(maintenanceResult.receipt.status,'busy');assert.deepEqual(maintenanceResult.effects,[]);
+maintenanceResult=await checkMaintenance('reload',false);assert.deepEqual(maintenanceResult.effects,['reload']);
+maintenanceResult=await checkMaintenance('verify',false,'1.9.37');assert.equal(maintenanceResult.receipt.status,'verification-failed');assert.deepEqual(maintenanceResult.effects,[]);
+maintenanceResult=await checkMaintenance('verify',false);assert.equal(maintenanceResult.receipt.status,'verified');assert.deepEqual(maintenanceResult.effects,['close']);
+console.log('Extension maintenance busy guard, reload request and actual worker-version verification passed.');
