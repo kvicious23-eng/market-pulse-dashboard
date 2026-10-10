@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.37");
+assert.equal(manifest.version,"1.9.38");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);

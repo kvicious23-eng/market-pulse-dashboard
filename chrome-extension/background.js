@@ -80,9 +80,13 @@ async function withScanTimeout(promise,ms,stage) {
 }
 
 async function openScanTab(url,stage,windowState) {
-  const create=()=>withScanTimeout(chrome.tabs.create({
+  const create=async()=>{
+    const tab=await withScanTimeout(chrome.tabs.create({
     url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})
   }),15000,stage);
+    accessDiagnosticTabs.set(tab.id,{openedAt:new Date().toISOString(),responses:[]});
+    return tab;
+  };
   try {
     return await create();
   } catch(error) {
@@ -96,6 +100,81 @@ async function openScanTab(url,stage,windowState) {
     if(Number.isInteger(anchorId)) windowState.anchorTabIds.push(anchorId);
     return await create();
   }
+}
+
+// Observe only enrolled product tabs; never request, block or modify traffic.
+const accessDiagnosticTabs=new Map();
+function safeAccessRoute(value) {
+  try {
+    const url=new URL(value);
+    if(url.protocol!=='https:'||url.hostname!=='www.coupang.com')return null;
+    return /^\/vp\/products\/\d+\/?$/.test(url.pathname)?'product':/error|denied|captcha/i.test(url.pathname)?'error':'other';
+  }catch{return null;}
+}
+function safeAccessHeaders(headers) {
+  const safe={};
+  for(const header of Array.isArray(headers)?headers:[]) {
+    const name=String(header.name||'').toLowerCase(),value=String(header.value||'').trim();
+    if(name==='server'&&/^(?:AkamaiGHost|nginx|cloudfront|cloudflare|envoy|Apache)(?:\/[\d.]+)?$/i.test(value))safe.server=value;
+    if(name==='retry-after') {
+      if(/^\d{1,6}$/.test(value))safe.retryAfterSeconds=Number(value);
+      else if(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)&&Number.isFinite(Date.parse(value)))safe.retryAfterDate=new Date(value).toISOString();
+    }
+    if(name==='x-cache'&&/^(?:Hit|Miss|Error|RefreshHit) from cloudfront$/i.test(value))safe.cache=value;
+    if(name==='content-type'&&/^(?:text\/html|text\/plain|application\/json)(?:\s*;\s*charset=[a-z0-9-]+)?$/i.test(value))safe.contentType=value;
+  }
+  return safe;
+}
+function observeAccessResponse(details,event) {
+  const state=accessDiagnosticTabs.get(details.tabId),route=safeAccessRoute(details.url);
+  if(!state||details.type!=='main_frame'||details.frameId!==0||!route)return;
+  const row={event,route,at:Number.isFinite(details.timeStamp)?new Date(details.timeStamp).toISOString():new Date().toISOString(),
+    status:Number.isInteger(details.statusCode)&&details.statusCode>=100&&details.statusCode<=599?details.statusCode:null,
+    fromCache:details.fromCache===true,headers:safeAccessHeaders(details.responseHeaders)};
+  if(event==='error')row.error=/^net::ERR_[A-Z0-9_]{1,70}$/.test(details.error||'')?details.error:'network-error-unclassified';
+  state.responses.push(row);state.responses=state.responses.slice(-6);
+}
+let accessObserverStatus='unavailable';
+if(typeof chrome!=='undefined'&&chrome.webRequest) {
+ try {
+  const filter={urls:['https://www.coupang.com/*'],types:['main_frame']};
+  chrome.webRequest.onCompleted.addListener(details=>observeAccessResponse(details,'complete'),filter,['responseHeaders']);
+  chrome.webRequest.onBeforeRedirect.addListener(details=>observeAccessResponse(details,'redirect'),filter,['responseHeaders']);
+  chrome.webRequest.onErrorOccurred.addListener(details=>observeAccessResponse(details,'error'),filter);
+  accessObserverStatus='registered';
+ }catch{accessObserverStatus='registration-failed';}
+}
+if(typeof chrome!=='undefined')chrome.tabs.onRemoved?.addListener(tabId=>accessDiagnosticTabs.delete(tabId));
+function readAccessPageDiagnostic() {
+  const text=document.body?.innerText||'';
+  const marker=text.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i)?.[0]||'';
+  const reference=text.match(/Reference\s*#?\s*(\d{1,3}\.[a-f0-9]{1,32}\.\d{1,16}\.[a-f0-9]{1,32})(?![a-z0-9.])/i)?.[1]||null;
+  const nav=typeof performance!=='undefined'?performance.getEntriesByType('navigation')[0]:null;
+  return {marker:marker.toLowerCase(),reference:marker?reference:null,
+    navigationStatus:Number.isInteger(nav?.responseStatus)&&nav.responseStatus>=100&&nav.responseStatus<=599?nav.responseStatus:null,
+    navigationType:['navigate','reload','back_forward'].includes(nav?.type)?nav.type:null};
+}
+async function captureAccessDiagnostic(tabId) {
+  const state=accessDiagnosticTabs.get(tabId);
+  let page=null;
+  try {page=(await withScanTimeout(chrome.scripting.executeScript({target:{tabId},func:readAccessPageDiagnostic}),5000,'access-diagnostic'))[0]?.result||null;}catch{}
+  return {version:1,observedAt:new Date().toISOString(),openedAt:state?.openedAt||null,
+    observerStatus:accessObserverStatus,networkObservation:state?.responses.length?'observed':'not-observed',responses:state?.responses.slice()||[],page};
+}
+async function saveAccessDiagnosticArchive(payload) {
+  const relevant=payload.results.some(row=>row.accessDiagnostics?.some(attempt=>attempt.reason==='access-check'||attempt.diagnostic?.page?.marker||attempt.diagnostic?.responses?.some(response=>response.event==='error'||response.status===403||response.status===429||response.status>=500)))
+    ||payload.recovery?.reason==='access-check';
+  if(!relevant)return 'not-needed';
+  const archive={version:1,browser:payload.browser,extensionVersion:payload.extensionVersion,runId:payload.runId,
+    scanSlot:payload.scanSlot,startedAt:payload.startedAt,completedAt:payload.completedAt,
+    chromeRunId:payload.recovery?.chromeRunId||null,
+    results:payload.results.map(row=>({mtm:row.mtm,ok:row.ok===true,attempts:row.accessDiagnostics||[]}))};
+  try {
+    const filename=`MarketPulse/access-diagnostic-${payload.runId}.json`;
+    const id=await withScanTimeout(chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(archive)),filename,conflictAction:'overwrite',saveAs:false}),10000,'access-archive-start');
+    await withScanTimeout(waitForScanDownload(id,filename),20000,'access-archive-complete');
+    return 'saved';
+  }catch{return 'save-failed';}
 }
 
 async function waitForScanDownload(downloadId, expectedFilename) {
@@ -766,6 +845,7 @@ async function scanCoupangTab(tabId,target) {
   });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
+  if(accessDiagnosticTabs.has(tabId))scan.accessDiagnostic=await captureAccessDiagnostic(tabId);
   if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
   if (!scan.cardClickPoint) {
     scan.cardInteractionStatus='card-click-target-not-found';
@@ -961,6 +1041,7 @@ async function scanAll(scanSlot, recovery=null) {
         await progress(target.mtm,'coupang-price',targets.length);
         const priceScan=await withScanTimeout(scanCoupangTab(tab.id,target),90000,`coupang-price:${target.mtm}`);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
+        if(priceScan.accessDiagnostic){result.accessDiagnostics=[{phase:'initial',reason:priceScan.reason||'ok',diagnostic:priceScan.accessDiagnostic}];delete result.accessDiagnostic;}
         if(priceScan?.ok) {
           try {
             await progress(target.mtm,'checkout',targets.length);
@@ -994,8 +1075,11 @@ async function scanAll(scanSlot, recovery=null) {
         }
         results.push(result);
       } catch (error) {
-        results.push({...target, ok:false, reason:String(error), checkedAt:new Date().toISOString()});
+        const failed={...target,ok:false,reason:String(error),checkedAt:new Date().toISOString()};
+        if(tab?.id&&accessDiagnosticTabs.has(tab.id))failed.accessDiagnostics=[{phase:'initial',reason:'browser-error',diagnostic:await captureAccessDiagnostic(tab.id)}];
+        results.push(failed);
       } finally {
+        if (tab?.id) accessDiagnosticTabs.delete(tab.id);
         if (tab?.id) await withScanTimeout(closeChildTabs(tab.id),15000,`child-close:${target.mtm}`).catch(()=>{});
         if (tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`coupang-close:${target.mtm}`).catch(()=>{});
       }
@@ -1013,6 +1097,8 @@ async function scanAll(scanSlot, recovery=null) {
         await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
         const retryScan=await withScanTimeout(scanCoupangTab(retryTab.id,result),90000,`retry-price:${result.mtm}`);
+         const attempts=[...(result.accessDiagnostics||[])];
+         if(retryScan?.accessDiagnostic)attempts.push({phase:'retry',reason:retryScan.reason||'ok',diagnostic:retryScan.accessDiagnostic});
          result.retryStatus=retryScan?.ok?'recovered':retryScan?.reason==='access-check'?'access-check':'other-failure';
          result.retryCheckedAt=new Date().toISOString();
          if (retryScan?.ok) {
@@ -1022,14 +1108,18 @@ async function scanAll(scanSlot, recovery=null) {
          } else if (retryScan?.reason==='access-check') {
            result.accessCheckDetail=retryScan.accessCheckDetail||result.accessCheckDetail;
          }
+         if(attempts.length)result.accessDiagnostics=attempts.slice(-2);
+         delete result.accessDiagnostic;
          if (retryScan?.ok) {
            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result),90000,`retry-checkout:${result.mtm}`));
          }
        } catch (error) {
+         if(retryTab?.id&&accessDiagnosticTabs.has(retryTab.id))result.accessDiagnostics=[...(result.accessDiagnostics||[]),{phase:'retry',reason:'browser-error',diagnostic:await captureAccessDiagnostic(retryTab.id)}].slice(-2);
          result.retryStatus='browser-error';
          result.retryCheckedAt=new Date().toISOString();
          result.retryError=error?.name||'unknown';
       } finally {
+        if (retryTab?.id) accessDiagnosticTabs.delete(retryTab.id);
         if (retryTab?.id) await withScanTimeout(closeChildTabs(retryTab.id),15000,`retry-child-close:${result.mtm}`).catch(()=>{});
         if (retryTab?.id) await withScanTimeout(chrome.tabs.remove(retryTab.id),15000,`retry-close:${result.mtm}`).catch(()=>{});
       }
@@ -1052,6 +1142,7 @@ async function scanAll(scanSlot, recovery=null) {
       complete:results.length===targets.length&&new Set(itemIds).size===targets.length,
       results
     };
+    payload.diagnosticArchiveStatus=await saveAccessDiagnosticArchive(payload);
     await progress(null,'download',targets.length);
     const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
     const filename=recovery?`MarketPulse/edge-recovery-${runId}.json`:'MarketPulse/latest-coupang-scan.json';
