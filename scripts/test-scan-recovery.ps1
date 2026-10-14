@@ -156,11 +156,14 @@ $temp=Join-Path ([IO.Path]::GetTempPath()) ('MPSave-'+[guid]::NewGuid().ToString
 try {
   New-Item $temp -ItemType Directory -Force | Out-Null
   $normal=Join-Path $temp 'latest-coupang-scan.json';$unique=Join-Path $temp ('latest-coupang-scan-'+('a'*32)+'.json')
-  $chrome=[pscustomobject]@{browser='chrome';complete=$true;scanSlot=$slot;runId=('a'*32)}
+  $chrome=[pscustomobject]@{browser='chrome';complete=$true;scanSlot=$slot;runId=('a'*32);targetCount=1;resultCount=1;results=@($row)}
   Write-ScanRecoveryJson $normal ([pscustomobject]@{browser='chrome';complete=$true;scanSlot='old'})
   Write-ScanRecoveryJson $unique $chrome
   if ((Get-SavedChromeResultPath $temp $slot) -cne $unique) {throw 'Unique saved Chrome result was not selected.'}
   if (Get-SavedChromeResultPath $temp 'different') {throw 'Another slot was selected.'}
+  Write-ScanRecoveryJson $normal ([pscustomobject]@{browser='chrome';complete=$true;scanSlot=$slot;runId=('b'*32);targetCount=2;resultCount=2;results=@($row)})
+  (Get-Item $normal).LastWriteTimeUtc=[DateTime]::UtcNow.AddSeconds(1)
+  if ((Get-SavedChromeResultPath $temp $slot) -cne $unique) {throw 'Invalid completed-looking JSON overrode the full result.'}
   $edgeSaved=Join-Path $temp ('edge-recovery-'+('b'*32)+'-saved.json');Write-ScanRecoveryJson $edgeSaved @{}
   if ((Get-SavedEdgeRunPath $temp ('b'*32)) -cne $edgeSaved) {throw 'Unique Edge save retry was not selected.'}
 } finally {Remove-Item $temp -Recurse -Force}

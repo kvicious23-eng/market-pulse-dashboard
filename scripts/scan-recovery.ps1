@@ -72,7 +72,11 @@ function Get-ScanCollectionEvidence($Payload) {
 function Get-SavedChromeResultPath([string]$Folder,[string]$Slot='') {
   foreach ($file in @(Get-ChildItem -LiteralPath $Folder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending)) {
     $data=Read-ScanRecoveryJson $file.FullName
-    if ($data -and $data.browser -eq 'chrome' -and $data.complete -eq $true -and (-not $Slot -or $data.scanSlot -ceq $Slot)) { return $file.FullName }
+    $rows=@($data.results)
+    if ($data -and $data.browser -eq 'chrome' -and $data.complete -eq $true -and $data.runId -match '^[a-f0-9]{32}$' -and
+        $rows.Count -gt 0 -and [int]$data.targetCount -eq $rows.Count -and [int]$data.resultCount -eq $rows.Count -and
+        @($rows | ForEach-Object { [string]$_.itemId } | Sort-Object -Unique).Count -eq $rows.Count -and
+        (-not $Slot -or $data.scanSlot -ceq $Slot)) { return $file.FullName }
   }
   return $null
 }
@@ -113,7 +117,12 @@ function Invoke-ScanSaveRecovery([string]$RepoPath,[string]$Folder,[string]$Slot
   }
   if (-not $failure) { return }
   # A completed Chrome file wins before a save-error handoff has started.
-  if (Get-SavedChromeResultPath $Folder $Slot) { return }
+  $completedPath=Get-SavedChromeResultPath $Folder $Slot
+  if ($completedPath) {
+    $completed=Read-ScanRecoveryJson $completedPath
+    $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+    try {Assert-ScanCatalog -Catalog $catalog -Results @($completed.results);return}catch{}
+  }
   $mutex=New-Object Threading.Mutex($false,('Local\MarketPulseSaveHandoff.'+($Slot -replace '[^0-9]','')))
   $held=$false
   try {
