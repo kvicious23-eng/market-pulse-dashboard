@@ -118,5 +118,9 @@ console.log('Supplier CSV checks passed: official one-click request, local decod
   result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','2963085',true);assert.equal(result.phase,'clicked');assert.equal(fileClicks,1);
   rows.push(row('another','2026-10-08 01:25:00 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','',true);assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
   rows=[];result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(refreshClicks,1);assert.equal(fileClicks,1,'Refreshing history must not click the file before durable arming');
+  rows=[row('old','2026-10-08 01:24:34 PM'),row('2963085','2026-10-08 01:24:35 PM')];
+  result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.187Z');assert.equal(result.requestId,'2963085','Whole-second server time includes the 2-second boundary despite local milliseconds');
+  result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.187Z','different',true);assert.equal(result.reason,'export_request_id_mismatch');assert.equal(fileClicks,1);
+  rows.push(row('another','2026-10-08 01:24:36 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.187Z');assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
  }finally{Object.assign(global,saved);}
 }

@@ -164,7 +164,10 @@ export async function supplierExportFile(expectedName,requestedAt,requestId='',c
     let hour=Number(m[2])%12;if(m[5].toUpperCase()==='PM')hour+=12;
     return Date.parse(m[1]+'T'+String(hour).padStart(2,'0')+':'+m[3]+':'+m[4]+'+09:00');
   };
-  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=Date.parse(requestedAt)-2000);
+  // Supplier history has whole-second precision; discard local milliseconds
+  // before applying the existing two-second tolerance.
+  const requestSecond=Math.floor(Date.parse(requestedAt)/1000)*1000;
+  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=requestSecond-2000);
   let rows=matchingRows(tables[0]);
   // Supplier can open the history modal with a stale snapshot immediately after
   // accepting an export request. Refresh that snapshot before concluding that
