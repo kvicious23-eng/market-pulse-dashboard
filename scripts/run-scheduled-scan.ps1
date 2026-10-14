@@ -25,9 +25,11 @@ try {
     if ($receipt -and $receipt.scanSlot -ceq $slot) { Write-WatchLog "Slot=$slot; existing recovery state=$($receipt.state); no second handoff.";exit 0 }
     $alive=@(Get-Process -ErrorAction Stop | Where-Object {$_.ProcessName -eq 'chrome' -and $_.SessionId -eq $session}).Count -gt 0
     if ($alive) {$seen=$true;$absent=0} elseif($seen) {$absent++}
+    Invoke-ScanSaveRecovery $RepoPath $folder $slot
     $witness=Read-ScanRecoveryJson (Join-Path $folder 'scan-start.json')
     if ($witness -and $witness.scanSlot -ceq $slot) {
-      $completed=Read-ScanRecoveryJson (Join-Path $folder 'latest-coupang-scan.json')
+      $completedPath=Get-SavedChromeResultPath $folder $slot
+      $completed=Read-ScanRecoveryJson $completedPath
       if ($completed -and $completed.browser -eq 'chrome' -and $completed.runId -ceq $witness.runId -and $completed.complete -eq $true) {
         Write-WatchLog "Slot=$slot; Chrome completed and saved JSON; watchdog finished.";exit 0
       }

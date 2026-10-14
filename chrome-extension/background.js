@@ -194,6 +194,62 @@ async function waitForScanDownload(downloadId, expectedFilename) {
   throw new Error('scan-download-completion-timeout');
 }
 
+function scanSaveTargets(results) {
+  const keys=['brand','mtm','category','srp','productId','itemId','vendorItemId','url','danawaUrl','enuriUrl'];
+  return results.map(row=>Object.fromEntries(keys.filter(key=>row[key]!==undefined).map(key=>[key,row[key]])));
+}
+function scanSaveDeadline(startedAt,slot) {
+  const start=Date.parse(startedAt),base=Date.parse(slot);
+  const hour=Number(slot?.match(/T(08|12|16|20):00\+09:00$/)?.[1]);
+  const next=base+(hour===20?12:4)*3600000;
+  return Math.min(start+120*60000,next);
+}
+async function downloadScanPayload(payload,filename) {
+  const id=await withScanTimeout(chrome.downloads.download({
+    url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2)),
+    filename,conflictAction:'overwrite',saveAs:false}),30000,'scan-download-start');
+  await withScanTimeout(waitForScanDownload(id,filename),30000,'scan-download-complete');
+}
+async function saveCompletedScan(payload) {
+  // Persist the complete source before attempting any filesystem write.
+  const retained=(await chrome.storage.local.get('pendingScanResults')).pendingScanResults||[];
+  await chrome.storage.local.set({pendingScanResult:payload,pendingScanResults:[...retained.filter(row=>row.scanSlot===payload.scanSlot),payload].slice(-2)});
+  const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';
+  let originalError;
+  let savedFilename=filename;
+  try {await downloadScanPayload(payload,filename);}
+  catch(error) {
+    if(!String(error).includes('FILE_ACCESS_DENIED'))throw error;
+    originalError=error;
+    const unique=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}-saved.json`:`MarketPulse/latest-coupang-scan-${payload.runId}.json`;
+    try {await downloadScanPayload(payload,unique);savedFilename=unique;}
+    catch {
+      if(payload.browser!=='chrome'||payload.recovery||!payload.scanSlot)throw originalError;
+      const old=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
+      const same=old?.scanSlot===payload.scanSlot;
+      const firstStartedAt=same?old.firstStartedAt:payload.startedAt;
+      const deadlineAt=new Date(scanSaveDeadline(firstStartedAt,payload.scanSlot)).toISOString();
+      const chromeRetries=same?old.chromeRetries:0;
+      const canRetry=chromeRetries<1&&Date.now()<Date.parse(deadlineAt);
+      const proof={version:1,browser:'chrome',reason:'file-save-error',error:'FILE_ACCESS_DENIED',saveAttempts:2,
+        stage:canRetry?'chrome-retry-queued':Date.now()<Date.parse(deadlineAt)?'edge-ready':'deadline-exhausted',
+        chromeRetries:canRetry?1:chromeRetries,scanSlot:payload.scanSlot,runId:payload.runId,
+        firstStartedAt,startedAt:payload.startedAt,completedAt:payload.completedAt,
+        deadlineAt,extensionVersion:payload.extensionVersion,targetCount:payload.targetCount,targets:scanSaveTargets(payload.results)};
+      await chrome.storage.local.set({scanSaveRecovery:proof});
+      // A unique proof avoids overwriting another recovery signal. Failure to
+      // save this evidence never authorizes Windows to guess the cause.
+      await downloadScanPayload(proof,`MarketPulse/scan-save-recovery-${payload.runId}.json`).catch(()=>{});
+      if(canRetry)queuedSaveRetry={slot:payload.scanSlot,deadlineAt};
+      throw originalError;
+    }
+  }
+  const prior=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
+  await chrome.storage.local.set({pendingScanResult:null,pendingScanResults:[],
+    lastScanSave:{scanSlot:payload.scanSlot,runId:payload.runId,filename:savedFilename,method:originalError?'unique-file':'canonical',originalError:originalError?'FILE_ACCESS_DENIED':null},
+    scanSaveRecovery:prior?.scanSlot===payload.scanSlot?{...prior,stage:'complete'}:null});
+}
+
 function localDay() {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul'}).format(new Date());
 }
@@ -1001,6 +1057,10 @@ async function scanAll(scanSlot, recovery=null) {
   // A persisted lock without an active promise belongs to a terminated worker.
   if(lock.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-worker-restart',lastScanErrorAt:new Date().toISOString()});
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
+  const saveRecovery=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
+  const recoveryDeadline=!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running'].includes(saveRecovery.stage)?Date.parse(saveRecovery.deadlineAt):Infinity;
+  const checkRecoveryBudget=()=>{if(Date.now()>=recoveryDeadline)throw Error('scan-save-recovery-budget-exhausted');};
+  if(!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.stage==='chrome-retry-queued')await chrome.storage.local.set({scanSaveRecovery:{...saveRecovery,stage:'chrome-retry-running'}});
   const scanStartedAt = new Date().toISOString();
   const runId=recovery?.runId||crypto.randomUUID().replaceAll('-','');
   const results = [];
@@ -1032,6 +1092,7 @@ async function scanAll(scanSlot, recovery=null) {
       await waitForScanDownload(witnessDownload,'MarketPulse/scan-start.json');
     }
     for (const target of targets) {
+      checkRecoveryBudget();
       let tab;
       await progress(target.mtm,'coupang-load',targets.length);
       try {
@@ -1090,6 +1151,7 @@ async function scanAll(scanSlot, recovery=null) {
     // Retry blocked pages after the full pass. Processing the other targets
     // creates cooldown time without a long idle timer that Chrome may stop.
     for (const result of results.filter(x=>!x.ok && x.reason==='access-check')) {
+      checkRecoveryBudget();
       let retryTab;
       try {
         await progress(result.mtm,'coupang-retry',targets.length);
@@ -1144,10 +1206,7 @@ async function scanAll(scanSlot, recovery=null) {
     };
     payload.diagnosticArchiveStatus=await saveAccessDiagnosticArchive(payload);
     await progress(null,'download',targets.length);
-    const url = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
-    const filename=recovery?`MarketPulse/edge-recovery-${runId}.json`:'MarketPulse/latest-coupang-scan.json';
-    const downloadId=await withScanTimeout(chrome.downloads.download({url, filename, conflictAction:'overwrite', saveAs:false}),30000,'scan-download-start');
-    await waitForScanDownload(downloadId,filename);
+    await saveCompletedScan(payload);
     await chrome.storage.local.set({
       lastRunDay:localDay(),
       lastRunSlot:scanSlot,
@@ -1577,6 +1636,7 @@ async function diagnoseCheckoutDiscounts() {
 let activeScanPromise=null;
 let activeScanSlot=null;
 let pendingScanSlot=null;
+let queuedSaveRetry=null;
 
 function requestScan(slot=currentScheduledScanSlot(), recovery=null) {
   if(activeScanPromise) {
@@ -1594,7 +1654,10 @@ function finishScan() {
   activeScanSlot=null;
   const pending=pendingScanSlot;
   pendingScanSlot=null;
+  const saveRetry=queuedSaveRetry;
+  queuedSaveRetry=null;
   if(recentScanSlot(pending)&&pending===currentScheduledScanSlot()) requestScan(pending);
+  else if(saveRetry?.slot===currentScheduledScanSlot()&&Date.now()<Date.parse(saveRetry.deadlineAt))requestScan(saveRetry.slot);
 }
 
 const SUPPLIER_EXTENSION_ID='djmlkkflbncanonpjhkdhghjmcompjnp';
@@ -1646,7 +1709,12 @@ chrome.runtime.onStartup.addListener(async()=>{
   await schedule();
   const dueSlot=currentScheduledScanSlot();
   await waitForSupplierResume(dueSlot);
-  const state=await chrome.storage.local.get(['lastRunSlot']);
+  const state=await chrome.storage.local.get(['lastRunSlot','scanSaveRecovery']);
+  const retry=state.scanSaveRecovery;
+  if(retry?.scanSlot===dueSlot&&retry.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running','edge-ready','deadline-exhausted'].includes(retry.stage)) {
+    if(retry.stage==='chrome-retry-queued'&&Date.now()<Date.parse(retry.deadlineAt))requestScan(dueSlot);
+    return;
+  }
   if(recentScanSlot(dueSlot)&&state.lastRunSlot!==dueSlot) requestScan(dueSlot);
 });
 chrome.alarms.onAlarm.addListener(async alarm=>{
@@ -1686,7 +1754,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     fallbackCatalogPending=true;
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
-      !['chrome-process-exit','access-check'].includes(recovery.reason)||
+      !['chrome-process-exit','access-check','file-save-error'].includes(recovery.reason)||
       !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;

@@ -2,7 +2,8 @@
   [string]$RepoPath = 'C:\MarketPulse',
   [int]$TimeoutMinutes = 40,
   $StartWitness=$null,
-  $ExitProof=$null
+  $ExitProof=$null,
+  $SaveFailure=$null
 )
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
@@ -29,7 +30,17 @@ function Get-EdgeScannerInstallations {
 $scan = Get-LatestScan
 $processExit=$null -ne $StartWitness
 $receipt=$null;$receiptPath=Join-Path $RepoPath 'reports\edge-recovery.json'
-if ($processExit) {
+if ($SaveFailure) {
+  $slot=$SaveFailure.scanSlot
+  $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
+  Assert-ScanSaveFailure $SaveFailure $slot $catalog
+  $targets=@($SaveFailure.targets)
+  $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
+    reason='file-save-error';chromeRunId=$SaveFailure.runId;chromeStartedAt=$SaveFailure.startedAt;
+    chromeCompletedAt=$SaveFailure.completedAt;chromeExtensionVersion=$SaveFailure.extensionVersion;
+    triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');targets=$targets}
+  Write-Host 'Chrome save recovery exhausted; starting one full Edge recollection.'
+} elseif ($processExit) {
   $slot=Get-ScanRecoverySlot
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
   Assert-ScanStartWitness $StartWitness $slot $catalog
@@ -97,7 +108,7 @@ try {
   $deadline = [DateTime]::UtcNow.AddMinutes($TimeoutMinutes)
   while ([DateTime]::UtcNow -lt $deadline) {
     Start-Sleep -Seconds 15
-    $path=Join-Path $resultFolder "edge-recovery-$($receipt.runId).json"
+    $path=Get-SavedEdgeRunPath $resultFolder $receipt.runId
     $candidateData=Read-ScanRecoveryJson $path
     if (-not $candidateData) { continue }
     Assert-EdgeRecoveryResult -Payload $candidateData -Receipt $receipt -Targets $targets

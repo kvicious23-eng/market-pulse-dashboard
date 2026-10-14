@@ -26,6 +26,7 @@ try {
   $chrome.results[0].ok=$true;Save-SupplierLocalState $latest $chrome
   Check ((Get-SupplierMorningSignal $folder $day $now $temp).source -eq 'edge') 'Late Chrome superseded pinned Edge signal.'
   $receipt.reason='chrome-process-exit';$edge.recovery.reason=$receipt.reason;Save-SupplierLocalState $receiptPath $receipt;Save-SupplierLocalState $edgePath $edge
+  $receipt.reason='file-save-error';$edge.recovery.reason=$receipt.reason;Save-SupplierLocalState $receiptPath $receipt;Save-SupplierLocalState $edgePath $edge
   Check ((Get-SupplierMorningSignal $folder $day $now $temp).source -eq 'edge') 'Process-exit Edge completion rejected.'
   $edge.complete=$false;Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Partial Edge accepted.';$edge.complete=$true
   $edge.results[0].mtm='Unexpected';Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Wrong Edge list accepted.';$edge.results[0].mtm='Current'

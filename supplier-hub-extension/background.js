@@ -101,7 +101,7 @@ chrome.alarms.onAlarm.addListener(async alarm=>{
 chrome.downloads.onChanged.addListener(async delta=>{
   if(delta.state?.current!=='complete')return;
   const item=(await chrome.downloads.search({id:delta.id}))[0];
-  if(/(?:^|[\\/])MarketPulse[\\/]latest-coupang-scan\.json$/i.test(item?.filename||'')||csvName(item?.filename))await daily.tick();
+  if(/(?:^|[\\/])MarketPulse[\\/]latest-coupang-scan(?:-[a-f0-9]{32})?\.json$/i.test(item?.filename||'')||csvName(item?.filename))await daily.tick();
 });
 // Observe Supplier's original CSV download without registering a global filename
 // listener. Such a listener can discard filenames requested by the price scanner,

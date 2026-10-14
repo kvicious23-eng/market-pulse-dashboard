@@ -32,13 +32,14 @@ function Get-LatestResultPath {
   if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
     return Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
   }
-  return Get-ChildItem -Path $resultFolder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
+  $normalSlot=if($minimumStart){$recoverySlot}else{''}
+  return Get-SavedChromeResultPath $resultFolder $normalSlot
 }
 
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
 $candidateError=''
 do {
+  if ($recoverySlot) { Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot }
   $resultPath = Get-LatestResultPath
   $payload=$null
   if ($resultPath) {
@@ -786,7 +787,7 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
-  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','access-check')) {
+  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','access-check','file-save-error')) {
     $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
     $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';scanSlot=$payload.scanSlot;

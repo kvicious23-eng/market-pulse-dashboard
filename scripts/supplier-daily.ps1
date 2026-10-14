@@ -29,9 +29,9 @@ function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffse
     if ($edge) {
       # Pending/failed recovery must never fall back to a blocked or late Chrome JSON.
       if ($receipt.state -ne 'result-ready' -or $receipt.runId -notmatch '^[a-f0-9]{32}$' -or
-          $receipt.chromeRunId -notmatch '^[a-f0-9]{32}$' -or $receipt.reason -notin @('access-check','chrome-process-exit')) {return $null}
+          $receipt.chromeRunId -notmatch '^[a-f0-9]{32}$' -or $receipt.reason -notin @('access-check','chrome-process-exit','file-save-error')) {return $null}
       $path=Get-EdgeRecoveryResultPath $RepoPath $Folder $slot
-    } else { $path=Join-Path $Folder 'latest-coupang-scan.json' }
+    } else { $path=Get-SavedChromeResultPath $Folder $slot }
     if ((Get-Item -LiteralPath $path).Length -gt 10MB) { return $null }
     $scan=Read-SupplierLocalState $path
     $start=[DateTimeOffset]::Parse([string]$scan.startedAt);$end=[DateTimeOffset]::Parse([string]$scan.completedAt)

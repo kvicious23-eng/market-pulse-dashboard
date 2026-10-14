@@ -1,6 +1,6 @@
 ﻿# Shared local recovery validation; no credentials, cookies or partial prices.
 function Read-ScanRecoveryJson([string]$Path) {
-  if (-not (Test-Path -LiteralPath $Path)) { return $null }
+  if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return $null }
   try { Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop } catch { return $null }
 }
 function Write-ScanRecoveryJson([string]$Path,$Data) {
@@ -57,7 +57,7 @@ function Get-EdgeRecoveryResultPath([string]$RepoPath,[string]$ResultFolder,[str
   if ($receipt.state -eq 'failed') { throw 'Edge recovery failed; preserve the previous dashboard and inspect scan-watchdog.log.' }
   if ($receipt.state -eq 'started') { return '' }
   if ($receipt.state -ne 'result-ready' -or $receipt.runId -notmatch '^[a-f0-9]{32}$') { throw 'Invalid Edge recovery receipt.' }
-  $path=Join-Path $ResultFolder ("edge-recovery-$($receipt.runId).json")
+  $path=Get-SavedEdgeRunPath $ResultFolder $receipt.runId
   $payload=Read-ScanRecoveryJson $path
   Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
   return $path
@@ -67,4 +67,66 @@ function Get-ScanCollectionEvidence($Payload) {
   [pscustomobject]@{browser=[string]$Payload.browser;extensionVersion=[string]$Payload.extensionVersion;
     scanSlot=$Payload.scanSlot;runId=$Payload.runId;startedAt=$Payload.startedAt;completedAt=$Payload.completedAt;
     targetCount=[int]$Payload.targetCount;resultCount=[int]$Payload.resultCount}
+}
+
+function Get-SavedChromeResultPath([string]$Folder,[string]$Slot='') {
+  foreach ($file in @(Get-ChildItem -LiteralPath $Folder -Filter 'latest-coupang-scan*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending)) {
+    $data=Read-ScanRecoveryJson $file.FullName
+    if ($data -and $data.browser -eq 'chrome' -and $data.complete -eq $true -and (-not $Slot -or $data.scanSlot -ceq $Slot)) { return $file.FullName }
+  }
+  return $null
+}
+function Get-SavedEdgeRunPath([string]$Folder,[string]$RunId) {
+  if ($RunId -notmatch '^[a-f0-9]{32}$') { return $null }
+  Get-ChildItem -LiteralPath $Folder -Filter "edge-recovery-$RunId*.json" -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -cmatch "^edge-recovery-$RunId(?:-saved)?\.json$" } |
+    Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
+}
+function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if (-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -ne 'chrome' -or
+      $Failure.scanSlot -cne $Slot -or $Failure.reason -ne 'file-save-error' -or $Failure.error -ne 'FILE_ACCESS_DENIED' -or
+      $Failure.stage -ne 'edge-ready' -or [int]$Failure.chromeRetries -ne 1 -or [int]$Failure.saveAttempts -ne 2 -or
+      $Failure.runId -notmatch '^[a-f0-9]{32}$' -or $Slot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Unconfirmed Chrome save failure.' }
+  $slotStart=[DateTimeOffset]::Parse($Slot)
+  $first=[DateTimeOffset]::Parse([string]$Failure.firstStartedAt)
+  $start=[DateTimeOffset]::Parse([string]$Failure.startedAt)
+  $end=[DateTimeOffset]::Parse([string]$Failure.completedAt)
+  $deadline=[DateTimeOffset]::Parse([string]$Failure.deadlineAt)
+  $next=$slotStart.AddHours($(if($slotStart.Hour -eq 20){12}else{4}))
+  if ($first -lt $slotStart -or $start -lt $first -or $end -lt $start -or $end -gt $Now.AddMinutes(1) -or
+      $deadline -gt $first.AddHours(2) -or $deadline -gt $next -or $deadline -le $Now) { throw 'Save recovery is stale or outside its budget.' }
+  $targets=@($Failure.targets)
+  if (-not $targets.Count -or [int]$Failure.targetCount -ne $targets.Count) { throw 'Save recovery target count is invalid.' }
+  foreach ($row in $targets) {
+    $url=[uri]([string]$row.url)
+    if ($row.productId -notmatch '^\d+$' -or $row.itemId -notmatch '^\d+$' -or $row.vendorItemId -notmatch '^\d+$' -or
+        $url.Scheme -ne 'https' -or $url.Host -ne 'www.coupang.com' -or $url.AbsolutePath -ne "/vp/products/$($row.productId)" -or
+        $url.Query -notmatch "(?:\?|&)itemId=$($row.itemId)(?:&|$)" -or $url.Query -notmatch "(?:\?|&)vendorItemId=$($row.vendorItemId)(?:&|$)") { throw 'Save recovery product URL is invalid.' }
+  }
+  Assert-ScanCatalog -Catalog $Catalog -Results $targets
+}
+function Invoke-ScanSaveRecovery([string]$RepoPath,[string]$Folder,[string]$Slot) {
+  $failure=$null
+  foreach ($file in @(Get-ChildItem -LiteralPath $Folder -Filter 'scan-save-recovery-*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending)) {
+    $candidate=Read-ScanRecoveryJson $file.FullName
+    if ($candidate.scanSlot -ceq $Slot -and $candidate.stage -eq 'edge-ready') { $failure=$candidate;break }
+  }
+  if (-not $failure) { return }
+  # A completed Chrome file wins before a save-error handoff has started.
+  if (Get-SavedChromeResultPath $Folder $Slot) { return }
+  $mutex=New-Object Threading.Mutex($false,('Local\MarketPulseSaveHandoff.'+($Slot -replace '[^0-9]','')))
+  $held=$false
+  try {
+    try {$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
+    if (-not $held) { return }
+    $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+    if ($receipt.scanSlot -ceq $Slot) { return }
+    $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+    Assert-ScanSaveFailure $failure $Slot $catalog
+    $end=[DateTimeOffset]::Parse($failure.deadlineAt)
+    if ($env:MARKET_PULSE_UPLOAD_DEADLINE) { $workerEnd=[DateTimeOffset]::Parse($env:MARKET_PULSE_UPLOAD_DEADLINE);if($workerEnd -lt $end){$end=$workerEnd} }
+    $minutes=[math]::Min(40,[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes))
+    if ($minutes -lt 1) { throw 'No time remains for Edge save recovery.' }
+    & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -SaveFailure $failure -TimeoutMinutes $minutes
+  } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }

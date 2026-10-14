@@ -56,7 +56,7 @@ $originalProgramFiles=$env:ProgramFiles;$originalLocalAppData=$env:LOCALAPPDATA
 $second=[pscustomobject]@{brand='Lenovo';mtm='Second';enabled=$true;productId='4';itemId='5';vendorItemId='6';url='https://www.coupang.com/vp/products/4?itemId=5&vendorItemId=6'}
 $catalog.products+= $second;$w.targets+= $second;$w.targetCount=2
 $global:RecoveryTestFolder=Join-Path $temp 'Downloads'
-$global:RecoveryProcessChecks=0;$global:RecoveryLaunches=0;$global:RecoveryTestSlot=$slot
+$global:RecoveryProcessChecks=0;$global:RecoveryLaunches=0;$global:RecoveryTestSlot=$slot;$global:RecoveryExpectedReason='chrome-process-exit'
 function Get-Process {
   param($Id,[string]$Name,[string]$ErrorAction)
   if ($Id) {return [pscustomobject]@{SessionId=1}}
@@ -79,7 +79,7 @@ function Start-Process {
     $fields=$pair.Split('=',2);$query[$fields[0]]=[uri]::UnescapeDataString($fields[1])
   }
   $sent=$query.catalog | ConvertFrom-Json;$sent=@($sent);$context=$query.recovery | ConvertFrom-Json
-  if ($query.slot -cne $slot -or $sent.Count -ne 2 -or $context.reason -ne 'chrome-process-exit') {throw 'Wrong handoff context.'}
+  if ($query.slot -cne $slot -or $sent.Count -ne 2 -or $context.reason -ne $global:RecoveryExpectedReason) {throw 'Wrong handoff context.'}
   foreach ($product in $sent) {$product | Add-Member ok $true -Force}
   $edgePayload=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$query.slot;runId=$context.runId;recovery=$context;
     startedAt=[DateTimeOffset]::Parse($context.triggeredAt).AddMilliseconds(1).ToString('o');targetCount=$sent.Count;resultCount=$sent.Count;results=$sent}
@@ -113,10 +113,55 @@ try {
     $selected=Get-EdgeRecoveryResultPath $temp $global:RecoveryTestFolder $slot
     if ($selected -match 'latest-coupang' -or -not $selected) {throw 'Late Chrome result overrode the Edge result.'}
     Write-Host 'Isolated watchdog -> Edge launch -> full collection -> pinned receipt -> upload selection passed; no live browser was touched.'
+    # Replay the new save-error branch through the real handoff with the same isolated transport.
+    Remove-Item (Join-Path $temp 'reports\edge-recovery.json'),(Join-Path $global:RecoveryTestFolder 'latest-coupang-scan.json') -Force
+    $proofNow=[DateTimeOffset]::UtcNow;$proofEnd=$proofNow.AddHours(2);$nextSlot=$start.AddHours($(if($start.Hour -eq 20){12}else{4}));if($nextSlot -lt $proofEnd){$proofEnd=$nextSlot}
+    if (($proofEnd-$proofNow).TotalMinutes -gt 1) {
+      $saveProof=[pscustomobject]@{version=1;browser='chrome';reason='file-save-error';error='FILE_ACCESS_DENIED';saveAttempts=2;stage='edge-ready';chromeRetries=1;scanSlot=$slot;runId=('c'*32);firstStartedAt=$proofNow.ToString('o');startedAt=$proofNow.ToString('o');completedAt=$proofNow.ToString('o');deadlineAt=$proofEnd.ToString('o');extensionVersion='1.9.39';targetCount=2;targets=@($w.targets)}
+      Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder ('scan-save-recovery-'+('c'*32)+'.json')) $saveProof
+      $global:RecoveryExpectedReason='file-save-error'
+      $handoffSource=Get-Content (Join-Path $scripts 'scan-recovery.ps1') -Raw -Encoding UTF8
+      $handoffSource=$handoffSource.Replace("(Join-Path `$PSScriptRoot 'edge-fallback.ps1')","(Join-Path `$scripts 'edge-fallback.ps1')")
+      . ([ScriptBlock]::Create($handoffSource))
+      Invoke-ScanSaveRecovery $temp $global:RecoveryTestFolder $slot
+      $savedReceipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+      if ($global:RecoveryLaunches -ne 2 -or $savedReceipt.reason -ne 'file-save-error' -or $savedReceipt.state -ne 'result-ready') {throw 'Confirmed save failure did not produce one full Edge recovery.'}
+      Remove-Item (Join-Path $global:RecoveryTestFolder 'latest-coupang-scan.json') -Force
+      Invoke-ScanSaveRecovery $temp $global:RecoveryTestFolder $slot
+      if ($global:RecoveryLaunches -ne 2) {throw 'A second monitor duplicated the save-error Edge handoff.'}
+      Write-Host 'Save-error proof -> one Edge transport -> full result -> receipt deduplication passed.'
+    }
+
   }
 } finally {
   $env:ProgramFiles=$originalProgramFiles;$env:LOCALAPPDATA=$originalLocalAppData
   Remove-Item Function:\Get-Process,Function:\Start-Process,Function:\Start-Sleep -ErrorAction SilentlyContinue
-  Remove-Variable RecoveryTestFolder,RecoveryProcessChecks,RecoveryLaunches,RecoveryTestSlot -Scope Global -ErrorAction SilentlyContinue
+  Remove-Variable RecoveryTestFolder,RecoveryProcessChecks,RecoveryLaunches,RecoveryTestSlot,RecoveryExpectedReason -Scope Global -ErrorAction SilentlyContinue
   Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# File-save failures are a distinct, proved branch with one consumed Chrome retry.
+$catalog=[pscustomobject]@{products=@($row)}
+$saveNow=$start.AddMinutes(45)
+$saveFailure=[pscustomobject]@{version=1;browser='chrome';reason='file-save-error';error='FILE_ACCESS_DENIED';saveAttempts=2;stage='edge-ready';chromeRetries=1;scanSlot=$slot;runId=('c'*32);firstStartedAt=$start.ToString('o');startedAt=$start.AddMinutes(20).ToString('o');completedAt=$start.AddMinutes(40).ToString('o');deadlineAt=$start.AddHours(2).ToString('o');targetCount=1;targets=@($row)}
+Assert-ScanSaveFailure $saveFailure $slot $catalog $saveNow
+foreach ($change in @(@{field='chromeRetries';value=0},@{field='stage';value='chrome-retry-queued'},@{field='error';value='NETWORK_FAILED'},@{field='saveAttempts';value=1},@{field='targetCount';value=2},@{field='scanSlot';value='2000-01-01T08:00+09:00'})) {
+  $bad=$saveFailure | ConvertTo-Json -Depth 8 | ConvertFrom-Json;$bad.($change.field)=$change.value
+  Must-Fail {Assert-ScanSaveFailure $bad $slot $catalog $saveNow}
+}
+Must-Fail {Assert-ScanSaveFailure $saveFailure $slot $catalog $start.AddHours(2)}
+$bad=$saveFailure | ConvertTo-Json -Depth 8 | ConvertFrom-Json;$bad.deadlineAt=$start.AddHours(3).ToString('o');Must-Fail {Assert-ScanSaveFailure $bad $slot $catalog $saveNow}
+$bad=$saveFailure | ConvertTo-Json -Depth 8 | ConvertFrom-Json;$bad.targets[0].url='https://evil.example/vp/products/1';Must-Fail {Assert-ScanSaveFailure $bad $slot $catalog $saveNow}
+$temp=Join-Path ([IO.Path]::GetTempPath()) ('MPSave-'+[guid]::NewGuid().ToString('N'))
+try {
+  New-Item $temp -ItemType Directory -Force | Out-Null
+  $normal=Join-Path $temp 'latest-coupang-scan.json';$unique=Join-Path $temp ('latest-coupang-scan-'+('a'*32)+'.json')
+  $chrome=[pscustomobject]@{browser='chrome';complete=$true;scanSlot=$slot;runId=('a'*32)}
+  Write-ScanRecoveryJson $normal ([pscustomobject]@{browser='chrome';complete=$true;scanSlot='old'})
+  Write-ScanRecoveryJson $unique $chrome
+  if ((Get-SavedChromeResultPath $temp $slot) -cne $unique) {throw 'Unique saved Chrome result was not selected.'}
+  if (Get-SavedChromeResultPath $temp 'different') {throw 'Another slot was selected.'}
+  $edgeSaved=Join-Path $temp ('edge-recovery-'+('b'*32)+'-saved.json');Write-ScanRecoveryJson $edgeSaved @{}
+  if ((Get-SavedEdgeRunPath $temp ('b'*32)) -cne $edgeSaved) {throw 'Unique Edge save retry was not selected.'}
+} finally {Remove-Item $temp -Recurse -Force}
+Write-Host 'Save-error proof, dates, budget, exact catalogue and unique result selection passed.'
