@@ -81,7 +81,7 @@ const daily=new DailyCsv({
     const name='basic_operation_rocket_'+compact(start)+compact(through);
     return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportFile,args:[name,job.exportRequestAt,job.exportRequestId||'',click]}))[0]?.result;
   },
-  downloads:job=>chrome.downloads.search({startedAfter:new Date(Date.parse(job.requestedAt)-2000).toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
+  downloads:job=>chrome.downloads.search({startedAfter:new Date(kstDay(Date.parse(job.requestedAt))+'T00:00:00+09:00').toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
   validate:payload=>native('csv_complete',payload),publishStatus:()=>native('daily_status')
 });
 async function schedule() {

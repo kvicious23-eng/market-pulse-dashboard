@@ -158,16 +158,16 @@ export async function supplierExportFile(expectedName,requestedAt,requestId='',c
   const heads=[...tables[0].querySelectorAll('thead th')].map(e=>e.innerText.replace(/\s/g,''));
   const index=name=>heads.indexOf(name),nameIndex=index('파일명'),dateIndex=index('요청일시'),stateIndex=index('상태'),idIndex=index('ID');
   if([nameIndex,dateIndex,stateIndex,idIndex].some(i=>i<0))return {phase:'unverified',reason:'export_history_schema_unconfirmed'};
-  const parseDate=value=>{
-    const m=value.trim().match(/^(\d{4}-\d{2}-\d{2}) (\d{1,2}):(\d{2}):(\d{2}) (AM|PM)$/i);
-    if(!m)return NaN;
-    let hour=Number(m[2])%12;if(m[5].toUpperCase()==='PM')hour+=12;
-    return Date.parse(m[1]+'T'+String(hour).padStart(2,'0')+':'+m[3]+':'+m[4]+'+09:00');
+  const requested=Date.parse(requestedAt);
+  if(!Number.isFinite(requested))return {phase:'unverified',reason:'export_request_date_invalid'};
+  const requestDay=new Date(requested+9*3600000).toISOString().slice(0,10);
+  const parseDay=value=>{
+    const day=value.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s|$)/)?.[1];
+    const time=Date.parse((day||'')+'T00:00:00+09:00');
+    return Number.isFinite(time)&&new Date(time+9*3600000).toISOString().slice(0,10)===day?day:null;
   };
-  // Supplier history has whole-second precision; discard local milliseconds
-  // before applying the existing two-second tolerance.
-  const requestSecond=Math.floor(Date.parse(requestedAt)/1000)*1000;
-  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDate(cells[dateIndex])>=requestSecond-2000);
+  // Daily exports match the KST calendar date; hours/minutes/seconds are audit only.
+  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDay(cells[dateIndex])===requestDay);
   let rows=matchingRows(tables[0]);
   // Supplier can open the history modal with a stale snapshot immediately after
   // accepting an export request. Refresh that snapshot before concluding that

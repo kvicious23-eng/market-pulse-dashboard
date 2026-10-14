@@ -4,7 +4,8 @@ export const DAILY_CSV_ALARM='supplier-daily-csv';
 export const csvName=filename=>(String(filename||'').split(/[\\/]/).pop()||'').match(/^basic_operation_rocket_(\d{8})(\d{8})(?: \(\d+\))?\.csv$/i)?.[0]||'';
 export function kstDay(now){return new Date(now+9*3600000).toISOString().slice(0,10);}
 export function supplierDownload(item,job){
-  if(!csvName(item?.filename)||!job?.requestedAt||Date.parse(item.startTime)<Date.parse(job.requestedAt)-2000)return false;
+  const started=Date.parse(item?.startTime),requested=Date.parse(job?.requestedAt);
+  if(!csvName(item?.filename)||!Number.isFinite(started)||!Number.isFinite(requested)||kstDay(started)!==kstDay(requested))return false;
   try {
     const url=new URL(item.url),ref=item.referrer?new URL(item.referrer):null;
     return premiumUrl(item.referrer)||(url.protocol==='blob:'&&url.origin==='https://supplier.coupang.com')||(!ref&&url.origin==='https://supplier.coupang.com');

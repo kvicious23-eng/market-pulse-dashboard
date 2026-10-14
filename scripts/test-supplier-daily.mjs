@@ -64,3 +64,12 @@ let lateChecks=0,lateClicks=0,lateSubmits=0;
 f.io.exportForm=async(job,submit)=>{if(submit)lateSubmits++;return {phase:'form'};};
 f.io.receiveFile=async(job,click)=>{lateChecks++;if(click){lateClicks++;return {phase:'clicked'};}return {phase:'ready',requestId:'2963723'};};
 await new DailyCsv(f.io).tick();assert.equal(lateSubmits,0);assert.equal(lateChecks,2);assert.equal(lateClicks,1);assert.equal(f.saved.exportRequestId,'2963723');assert.equal(f.saved.stage,'download');
+
+// KST day-only download matching spans UTC midnight and ignores request clock time.
+const calendarJob={requestedAt:'2026-10-08T14:00:59.999+09:00'};
+const calendarDownload={...download(f),startTime:'2026-10-07T15:00:00Z'};
+assert.equal(supplierDownload(calendarDownload,calendarJob),true);
+assert.equal(supplierDownload({...calendarDownload,startTime:'2026-10-07T14:59:59.999Z'},calendarJob),false);
+assert.equal(supplierDownload({...calendarDownload,startTime:'2026-10-08T15:00:00Z'},calendarJob),false);
+assert.equal(supplierDownload({...calendarDownload,startTime:'invalid'},calendarJob),false);
+assert.match(supplier,/startedAfter:new Date\(kstDay\(Date.parse\(job.requestedAt\)\)\+'T00:00:00\+09:00'\)/);

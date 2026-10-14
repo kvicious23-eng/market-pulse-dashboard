@@ -64,7 +64,8 @@ function Test-SupplierDailyCsv {
     $previous=$Day.Date.AddDays(-1);$start=if ($Day.Day -eq 1) { $previous } else { $Day.Date.AddDays(1-$Day.Day) }
     if ($from -gt $start -or $through -ne $previous) { return @{ok=$false;reason='csv_period_mismatch'} }
     $file=Get-Item -LiteralPath $full
-    if ($file.LastWriteTimeUtc -lt $RequestedAt.UtcDateTime.AddSeconds(-2)) { return @{ok=$false;reason='csv_file_not_fresh'} }
+    $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+    if ([TimeZoneInfo]::ConvertTimeFromUtc($file.LastWriteTimeUtc,$zone).Date -ne $Day.Date) { return @{ok=$false;reason='csv_file_not_fresh'} }
     # Only direct files in the known download folders; no junction/symlink escape.
     $entries=@($file)
     for ($directory=$parent;$directory.Length -ge $root.Length;$directory=[IO.Path]::GetDirectoryName($directory)) { $entries+=Get-Item -LiteralPath $directory }

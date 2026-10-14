@@ -1,6 +1,7 @@
 ﻿$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
 function Check($Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
+function Stamp-CsvDay([string]$Path,[datetime]$Day) { (Get-Item -LiteralPath $Path).LastWriteTimeUtc=([DateTimeOffset]($Day.ToString('yyyy-MM-dd')+'T08:00:00+09:00')).UtcDateTime }
 function Row($Date,$Sku,$Center,$Stock,$Sales) { [pscustomobject]@{'날짜'=$Date;'SKU ID'=$Sku;'센터'=$Center;'현재재고수량'=$Stock;'출고수량'=$Sales;'매입원가'='private-cost'} }
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('MarketPulseDaily-'+[guid]::NewGuid().ToString('N'))
 $root=Join-Path $temp 'Downloads';$folder=Join-Path $root 'MarketPulse';$repo=Join-Path $temp 'Repository';$remote=Join-Path $temp 'Remote.git'
@@ -10,6 +11,7 @@ try {
   $csv=Join-Path $folder 'basic_operation_rocket_2026100120261003.csv'
   $rows=@((Row '20261001' '0001' 'FC' '90' '2'),(Row '20261002' '0001' 'FC' '80' '1'),(Row '20261003' '0001' 'FC' '10' '3'),(Row '20261003' '0001' 'RC' '4' '2'),(Row '20261001' '2' 'FC' '99' '9'))
   $rows | Export-Csv -LiteralPath $csv -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $csv $day
   (Get-Item -LiteralPath $csv).LastWriteTimeUtc=$request.UtcDateTime.AddSeconds(5)
   $valid=Test-SupplierDailyCsv $csv $root $day $request
   Check $valid.ok 'Valid all-center daily export rejected.'
@@ -23,21 +25,32 @@ try {
   Remove-Item $csv
   Check ((Get-SupplierMetricBatch ([pscustomobject]@{products=@()}) @($folder) $day).SourceStatus -eq 'csv-missing') 'Unvalidated pending download was selected.'
   Copy-Item $pending $csv
-  Check (-not (Test-SupplierDailyCsv $csv $root $day $request.AddMinutes(1)).ok) 'Old file accepted as new request.'
+  Check (Test-SupplierDailyCsv $csv $root $day $request.AddHours(6)).ok 'Same-day earlier file rejected by clock time.'
+  Stamp-CsvDay $csv $day.AddDays(-1)
+  Check (-not (Test-SupplierDailyCsv $csv $root $day $request).ok) 'Yesterday file accepted.'
+  Stamp-CsvDay $csv $day.AddDays(1)
+  Check (-not (Test-SupplierDailyCsv $csv $root $day $request).ok) 'Future file accepted.'
+  (Get-Item -LiteralPath $csv).LastWriteTimeUtc=([DateTimeOffset]'2026-10-03T15:00:00Z').UtcDateTime
+  Check (Test-SupplierDailyCsv $csv $root $day $request).ok 'KST midnight file rejected.'
   Check (-not (Test-SupplierDailyCsv (Join-Path $temp 'outside.csv') $root $day $request).ok) 'Outside download path accepted.'
   Check (-not (Test-SupplierDailyCsv $csv $root $day.AddDays(1) $request).ok) 'Wrong previous day accepted.'
   $broken=@($rows | Where-Object { $_.'날짜' -ne '20261002' });$broken | Export-Csv $csv -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $csv $day
   Check ((Test-SupplierDailyCsv $csv $root $day $request).reason -eq 'csv_period_incomplete') 'Missing monthly date accepted.'
   Check ((Get-SupplierMetricBatch -Catalog $batchCatalog -CsvFolders @($root,$folder) -AsOfDay $day -RequireDailyValidation -DownloadRoot $root).SourceStatus -eq 'csv-invalid') 'Unvalidated original CSV bypassed full-month validation.'
   @($rows+$rows[0]) | Export-Csv $csv -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $csv $day
   Check ((Test-SupplierDailyCsv $csv $root $day $request).reason -eq 'csv_duplicate_row') 'Duplicate date/SKU/center accepted.'
   $bad=@($rows | ForEach-Object { $_ | Select-Object * });$bad[0].'출고수량'=''
   $bad | Export-Csv $csv -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $csv $day
   Check (-not (Test-SupplierDailyCsv $csv $root $day $request).ok) 'Blank quantity accepted.'
   $rows | Export-Csv $csv -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $csv $day
   # Month boundary: prior-day stock exists, current month has zero elapsed days.
   $boundary=Join-Path $folder 'basic_operation_rocket_2026093020260930.csv'
   @((Row '20260930' '0001' 'FC' '8' '2')) | Export-Csv $boundary -NoTypeInformation -Encoding UTF8
+  Stamp-CsvDay $boundary ([datetime]'2026-10-01')
   Check (Test-SupplierDailyCsv $boundary $root ([datetime]'2026-10-01') ([DateTimeOffset]'2026-10-01T08:10:00+09:00')).ok 'First day of month rejected.'
   # A finished morning scan is distinct from an afternoon/manual/Edge scan.
   $scan=[pscustomobject]@{version=5;runId=('a'*32);browser='chrome';scanSlot='2026-10-04T08:00+09:00';startedAt='2026-10-03T23:00:00Z';completedAt='2026-10-03T23:15:00Z';complete=$true;targetCount=1;resultCount=1;results=@([pscustomobject]@{brand='Example';mtm='EXAMPLE1';productId='1';itemId='1';vendorItemId='1';ok=$true})}
