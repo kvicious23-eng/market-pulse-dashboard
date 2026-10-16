@@ -285,3 +285,5 @@ td:first-child { min-width: 175px; text-align: left; }
 .overview-row--card-review .overview-result { color: #1e40af; }
 
 .overview-row.overview-row--card-review { box-shadow: inset 4px 0 0 #3b82f6; }
+
+.is-card-review .row-badge { background: #dbeafe; color: #1e40af; }

@@ -25,7 +25,7 @@ $payload=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$slot;runId=$r
 Assert-EdgeRecoveryResult $payload $receipt $receipt.targets
 $payload.runId='c'*32;Must-Fail {Assert-EdgeRecoveryResult $payload $receipt $receipt.targets};$payload.runId=$receipt.runId
 $payload.startedAt=$start.ToString('o');Must-Fail {Assert-EdgeRecoveryResult $payload $receipt $receipt.targets};$payload.startedAt=$start.AddMinutes(4).ToString('o')
-$payload.results[0].ok=$false;Must-Fail {Assert-EdgeRecoveryResult $payload $receipt $receipt.targets};$payload.results[0].ok=$true
+$payload.results[0].ok=$false;Assert-EdgeRecoveryResult $payload $receipt $receipt.targets;$payload.results[0].ok=$true
 $evidence=Get-ScanCollectionEvidence $payload
 if ($evidence.browser -ne 'edge' -or $evidence.targetCount -ne 1 -or $evidence.PSObject.Properties['results']) {throw 'Public collection evidence is incorrect or contains raw results.'}
 $importSource=Get-Content (Join-Path $PSScriptRoot 'import-extension-results.ps1') -Raw -Encoding UTF8

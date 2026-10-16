@@ -27,6 +27,17 @@ try {
   // Checkout coupons are valid even if their derived price differs from the
   // product-page current price. The applicable card amount uses the coupon-adjusted price.
   verify(base,true);
+  const failed={...base,collectionStatus:"review-needed",collectionIssue:"tab-edit-busy",collectionAttemptedAt:"2026-10-16 16:42",status:"수집 오류 · 재확인 필요",
+    alertEligible:false,priceChange:null,publishedPriceBasis:"last-verified",finalPrice:800000,lastVerifiedFinalPrice:800000,
+    lastVerifiedPriceCheckedAt:"2026-10-16 12:13",priceCheckedAt:"2026-10-16 12:13",checkoutDiscountStatus:"stale",cardBenefitStatus:"unverified",
+    preCardPrice:null,cardDiscount:null,checkoutCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null};
+  verify(failed,true);
+  verify({...failed,alertEligible:true},false);
+  verify({...failed,finalPrice:801000},false);
+  verify({...failed,preCardPrice:800000},false);
+  verify({...failed,priceCheckedAt:"2026-10-16 16:42"},false);
+  verify({...failed,collectionIssue:"raw private error"},false);
+  verify({...failed,finalPrice:null,lastVerifiedFinalPrice:null,lastVerifiedPriceCheckedAt:"",priceCheckedAt:""},true);
   const review={...base,cardBenefitStatus:"review-needed",publishedPriceBasis:"pre-card",alertEligible:false,cardDiscount:null,finalPrice:820_000};
   verify(review,true);
   verify({...review,finalPrice:803_600},false);

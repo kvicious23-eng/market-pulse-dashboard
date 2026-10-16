@@ -157,21 +157,8 @@ if ([int]$payload.targetCount -ne $payloadResults.Count) {
 if ([int]$payload.resultCount -ne $payloadResults.Count) {
   throw "Inconsistent scan: resultCount is $($payload.resultCount) but the file contains $($payloadResults.Count) results."
 }
-# complete=true describes a finished scan, not a successful price capture.
-# Keep the last published dashboard/history if any product is blocked, or if
-# a buyable product never reached a confirmed checkout discount read.
-$failedPrices=@($payloadResults | Where-Object { $_.ok -ne $true })
-if ($failedPrices.Count -gt 0) {
-  throw "Incomplete price capture: $($failedPrices.Count) product(s) failed ($(@($failedPrices | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
-}
-$unverifiedCheckouts=@($payloadResults | Where-Object {
-  $_.checkoutDiscountStatus -ne 'captured' -and
-  [string]$_.checkoutDiscountReason -notin @('buy-now-button-not-found','buy-now-button-sold-out')
-})
-if ($unverifiedCheckouts.Count -gt 0) {
-  throw "Incomplete checkout capture: $($unverifiedCheckouts.Count) product(s) have no confirmed order page ($(@($unverifiedCheckouts | ForEach-Object { [string]$_.mtm }) -join ', ')). Keep the previous published snapshot."
-}
-
+# Finished, identity-matched scans may contain per-model capture failures.
+# Structural/catalogue/time integrity checks still reject the whole payload.
 # Downgrade incomplete multi-rate evidence per product; publish only the verified pre-card price.
 # The scanner reports only one selected rate and cap; after checkout coupons a
 # different card might provide the largest discount.
@@ -286,6 +273,26 @@ $text = @{
 }
 if ([string]$payload.browser -eq 'edge') {
   foreach ($key in @($text.Keys)) { $text[$key]=([string]$text[$key]).Replace('Chrome','Edge') }
+}
+
+function Set-ModelCollectionFailure($Mine,$Result,[string]$AttemptedAt) {
+  $reason=if ($Result.ok -ne $true) {'product-unavailable'} else {'checkout-unconfirmed'}
+  if ($Result.reason -eq 'access-check') {$reason='access-check'}
+  elseif ([string]$Result.checkoutDiscountReason -match 'Tabs cannot be edited right now') {$reason='tab-edit-busy'}
+  $previous=$Mine.lastVerifiedFinalPrice
+  $values=@{
+    collectionStatus='review-needed'; collectionIssue=$reason; collectionAttemptedAt=$AttemptedAt
+    status='수집 오류 · 재확인 필요'; alertEligible=$false; priceChange=$null; priceTrend='unavailable'; priceComparisonAt=''
+    publishedPriceBasis='last-verified'; finalPrice=$previous
+    priceCheckedAt=[string]$Mine.lastVerifiedPriceCheckedAt; checkedAt=[string]$Mine.lastVerifiedPriceCheckedAt
+    availabilityCheckedAt=$null; checkoutDiscountStatus='stale'; checkoutDiscountReason='collection-failed'
+    cardBenefitStatus='unverified'; cardRate=$null; cardMaxDiscount=$null; cardProviders=@(); cardTerms=@(); cardBenefitText=''; cardEvidenceSource=''
+    priceBasisType='unverified'; observedListPrice=$null; productPagePrice=$null; preCardPrice=$null; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
+    checkoutCouponDiscount=$null; checkoutCouponSource=$null; wowInstantDiscount=$null; wowCouponDiscount=$null
+    checkoutDiscountCheckedAt=''; checkoutDiscountEvidence=@(); checkoutUnparsedFields=@(); checkoutDiscountFieldStatus=$null
+    condition='이번 회차 수집 오류. 마지막 검증 가격은 참고용이며 현재 가격 비교에서 제외.'; confidence='C'; confidenceText='재확인 필요'
+  }
+  foreach ($key in $values.Keys) {$Mine | Add-Member -NotePropertyName $key -NotePropertyValue $values[$key] -Force}
 }
 
 function Read-Data($path) {
@@ -496,11 +503,13 @@ foreach ($spec in $specs) {
     } | Select-Object -First 1
     $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
     if (-not $mine) { continue }
+    foreach ($key in @('collectionStatus','collectionIssue','collectionAttemptedAt')) {$mine.PSObject.Properties.Remove($key)}
     # A fresh scan replaces any operator report attached to an older snapshot.
     $mine.PSObject.Properties.Remove('availabilityReportAt')
     $mine.PSObject.Properties.Remove('availabilityReportSource')
     $mine.PSObject.Properties.Remove('checkoutReprocessedFrom')
     $alertEligible=$false
+    $cardReviewRequired=$false
     $currentVerifiedFinal=$null
     $checkoutStatus='missing'
     $soldOut=$false
@@ -524,7 +533,7 @@ foreach ($spec in $specs) {
     } else {$kst}
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $availabilityAt -Force
     $minimumPrice=if ($null -ne $product.srp -and [long]$product.srp -gt 0 -and [long]$product.srp -lt 250000) {10000} else {250000}
-    if ($result.ok -and [long]$result.price -ge $minimumPrice -and [long]$result.price -le 7000000) {
+    if ($result.ok -and ($result.checkoutDiscountStatus -eq 'captured' -or [string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out')) -and [long]$result.price -ge $minimumPrice -and [long]$result.price -le 7000000) {
       $productPagePrice=[long]$result.price
       # The managed catalog/dashboard value is authoritative. A scan result can
       # be older than a catalog edit, so it must not overwrite the current SRP.
@@ -682,6 +691,10 @@ foreach ($spec in $specs) {
       $mine.status=if($null -ne $mine.finalPrice){$text.RecentFailed}else{$text.MissingFailed}
       $partialCount++
     }
+    if (-not $alertEligible -and -not $soldOut -and -not $cardReviewRequired) {
+      Set-ModelCollectionFailure $mine $result $kst
+      $checkoutStatus='stale'
+    }
     # The scanner must identify the product page and the individual price row.
     # Older payloads without this evidence cannot promote a competitor price.
     $excludedCompetitor='해외\s*(구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체'
@@ -748,7 +761,7 @@ foreach ($spec in $specs) {
         $competitor | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
       }
     }
-    $historyHasCurrentPrice=($result.ok -eq $true)
+    $historyHasCurrentPrice=($result.ok -eq $true -and $mine.collectionStatus -ne 'review-needed')
     $historyCollectionSucceeded=$alertEligible -or $checkoutStatus -eq 'soldout'
     $historySrp=if($historyHasCurrentPrice -and $null -ne $mine.srp){$mine.srp}elseif($historyHasCurrentPrice -and $null -ne $product.srp){$product.srp}else{$null}
     $historyBasis=if($historyHasCurrentPrice){$mine.observedListPrice}else{$null}

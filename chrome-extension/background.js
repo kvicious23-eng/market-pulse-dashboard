@@ -79,11 +79,26 @@ async function withScanTimeout(promise,ms,stage) {
   }
 }
 
+async function withTabEditRetry(operation) {
+  const deadline=Date.now()+12000;
+  // Only an explicit rejected tab edit is safe to repeat; never retry timeouts.
+  for(let attempt=0;;attempt++) {
+    try { return await operation(); }
+    catch(error) {
+      if(attempt>=2||!/Tabs cannot be edited right now/i.test(String(error))) throw error;
+      const delay=1000*(attempt+1);
+      if(Date.now()+delay>=deadline) throw error;
+      await wait(delay);
+      if(Date.now()>=deadline) throw error;
+    }
+  }
+}
+
 async function openScanTab(url,stage,windowState) {
   const create=async()=>{
-    const tab=await withScanTimeout(chrome.tabs.create({
+    const tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({
     url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})
-  }),15000,stage);
+  })),15000,stage);
     accessDiagnosticTabs.set(tab.id,{openedAt:new Date().toISOString(),responses:[]});
     return tab;
   };
@@ -923,7 +938,7 @@ async function scanCoupangTab(tabId,target) {
     &&beforeLocation.searchParams.get('vendorItemId')===afterLocation.searchParams.get('vendorItemId');
   if (!sameProduct) {
     scan.cardInteractionStatus='navigation-blocked';
-    await chrome.tabs.update(tabId,{url:beforeUrl});
+    await withTabEditRetry(()=>chrome.tabs.update(tabId,{url:beforeUrl}));
     await waitForComplete(tabId);
     return scan;
   }
@@ -1123,7 +1138,7 @@ async function scanAll(scanSlot, recovery=null) {
             await progress(target.mtm,`competitor-${page.source}`,targets.length);
             const parsed=new URL(page.url);
             if(parsed.protocol!=='https:'||parsed.hostname!==page.host) throw new Error('unsupported-competitor-url');
-            externalTab=await withScanTimeout(chrome.tabs.create({url:page.url,active:true}),15000,`competitor-open:${target.mtm}`);
+            externalTab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:page.url,active:true})),15000,`competitor-open:${target.mtm}`);
             await withScanTimeout(waitForComplete(externalTab.id),60000,`competitor-load:${target.mtm}`);
             await wait(6000);
             const scan=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]}),30000,`competitor-read:${target.mtm}`);
@@ -1481,7 +1496,7 @@ async function collectCheckoutDiscountsForTarget(target) {
   try {
     // Coupang's buy-now flow can depend on a foreground tab and can open a
     // child tab. The product and checkout pages are both read in Chrome.
-    tab=await withScanTimeout(chrome.tabs.create({url:target.url,active:true}),15000,`checkout-open:${target.mtm}`);
+    tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:target.url,active:true})),15000,`checkout-open:${target.mtm}`);
     checkoutTab=tab;
     await withScanTimeout(waitForComplete(tab.id),60000,`checkout-load:${target.mtm}`);
     await wait(7000);

@@ -8,7 +8,8 @@ const start=source.indexOf('async function collectCheckoutDiscountsForTarget(');
 const end=source.indexOf('\n\nasync function diagnoseCheckoutDiscounts(',start);
 assert.ok(start>=0&&end>start);
 
-async function scan({child,confirmed}) {
+async function scan({child,confirmed,busyFailures=0,createError}) {
+  let createAttempts=0;
   const removed=[];
   const original={id:10,status:'complete',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'};
   const checkout={id:11,status:'complete',openerTabId:10,url:'https://order.coupang.com/order/orderSheet.pang'};
@@ -17,6 +18,7 @@ async function scan({child,confirmed}) {
     wait:async()=>{},
     waitForComplete:async()=>{},
     withScanTimeout:async promise=>promise,
+
     enterCheckoutDiagnostic(){},
     readCheckoutDiscounts(){},
     reconcileCheckoutDiscounts(regular,instant,coupon){
@@ -24,7 +26,7 @@ async function scan({child,confirmed}) {
     },
     chrome:{
       tabs:{
-        async create(options){assert.equal(options.active,true);return original;},
+        async create(options){createAttempts++;assert.equal(options.active,true);if(createError)throw Error(createError);if(createAttempts<=busyFailures)throw Error('Tabs cannot be edited right now (user may be dragging a tab).');return original;},
         async get(){return original;},
         async query(options){assert.deepEqual(Object.keys(options),[]);return child?[original,checkout,{id:12,openerTabId:999,status:'complete',url:checkout.url}]:[original];},
         async remove(id){removed.push(id);}
@@ -44,9 +46,9 @@ async function scan({child,confirmed}) {
       }}
     }
   };
-  vm.runInNewContext(`${source.slice(start,end)};this.collect=collectCheckoutDiscountsForTarget`,context);
+  vm.runInNewContext(`${source.slice(source.indexOf('async function withTabEditRetry('),source.indexOf('async function openScanTab('))}\n${source.slice(start,end)};this.collect=collectCheckoutDiscountsForTarget`,context);
   const result=await context.collect({url:original.url,mtm:'TEST',productId:'1',itemId:'2',vendorItemId:'3'});
-  return {result,removed};
+  return {result,removed,createAttempts};
 }
 
 const newTab=await scan({child:true,confirmed:true});
@@ -62,3 +64,15 @@ assert.equal(productPage.result.checkoutPagePath,'/vp/products/1');
 assert.equal(productPage.result.checkoutEntryButtonEvidence,'바로구매');
 assert.deepEqual(productPage.removed,[10]);
 console.log('Checkout navigation and fail-closed tests passed.');
+
+const transient=await scan({child:true,confirmed:true,busyFailures:2});
+assert.equal(transient.createAttempts,3);
+assert.equal(transient.result.checkoutDiscountStatus,'captured');
+const persistent=await scan({child:true,confirmed:true,busyFailures:9});
+assert.equal(persistent.createAttempts,3);
+assert.equal(persistent.result.checkoutDiscountStatus,'missing');
+assert.match(persistent.result.checkoutDiscountReason,/Tabs cannot be edited/);
+const otherError=await scan({createError:'scan-timeout:checkout-open'});
+assert.equal(otherError.createAttempts,1);
+assert.equal(otherError.result.checkoutDiscountStatus,'missing');
+console.log('Explicit tab-edit rejection retries twice; timeout never retries.');

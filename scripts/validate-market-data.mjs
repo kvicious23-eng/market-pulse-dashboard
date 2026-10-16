@@ -54,6 +54,15 @@ for(const file of [...new Set(files)]){
         fail(file,`${label}: competitor eligibility must be explicitly true or false`);
       }
     }
+    if(mine.collectionStatus === "review-needed") {
+      if(mine.alertEligible !== false || mine.priceChange !== null || mine.publishedPriceBasis !== "last-verified" ||
+         mine.finalPrice !== (mine.lastVerifiedFinalPrice ?? null) || mine.checkoutDiscountStatus !== "stale" ||
+         mine.cardBenefitStatus !== "unverified" || !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(mine.collectionAttemptedAt || "") ||
+         !["access-check","tab-edit-busy","product-unavailable","checkout-unconfirmed"].includes(mine.collectionIssue) ||
+         [mine.preCardPrice,mine.cardDiscount,mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.wowCouponDiscount].some(finite) ||
+         (finite(mine.finalPrice) && (!mine.lastVerifiedPriceCheckedAt || mine.priceCheckedAt !== mine.lastVerifiedPriceCheckedAt)))
+        fail(file,`${label}: failed collection must retain only a dated reference price and exclude comparisons`);
+    }
     if(soldOut(mine)&&mine.alertEligible===true) fail(file,`${label}: sold-out offer cannot be alert eligible`);
     if(mine.cardBenefitStatus==="review-needed"){
       if(soldOut(mine)||mine.alertEligible!==false||mine.checkoutDiscountStatus!=="captured"||

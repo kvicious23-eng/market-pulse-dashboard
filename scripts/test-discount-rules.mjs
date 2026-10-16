@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.39");
+assert.equal(manifest.version,"1.9.40");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -84,7 +84,7 @@ assert.ok(openTabStart>=0&&openTabEnd>openTabStart,"window recovery helper was n
 const createdTabs=[];
 const windowState={windowId:null,anchorTabIds:[]};
 let openedWindows=0;
-const tabContext={Number,Error,withScanTimeout:promise=>promise,
+const tabContext={Number,Error,withTabEditRetry:operation=>operation(),withScanTimeout:promise=>promise,
   chrome:{tabs:{
     create:async spec=>{createdTabs.push(spec);if(createdTabs.length===1) throw new Error('No current window');return {id:20+createdTabs.length};},
     query:async()=>[{id:15}]
@@ -512,7 +512,7 @@ const cardDisplayContext={
   downloadWorkbook:(headers,rows)=>{cardDisplayContext.exported={headers,rows};},safeUrl:()=> '#',Date
 };
 vm.createContext(cardDisplayContext);
-const cardFunctions=['cardReviewRequired','publishedPrice','formatWon','formatDiff','discountText','cardDiscountText','cardConditionText','cardStatusText','isSoldOut','offerStatus',
+const cardFunctions=['collectionReviewRequired','reviewRequired','reviewLabel','collectionIssueText','cardReviewRequired','publishedPrice','formatWon','formatDiff','discountText','cardDiscountText','cardConditionText','cardStatusText','isSoldOut','offerStatus',
   'priceBreakdown','checkoutDiscounts','checkoutDiscountText','checkoutDiscountExportValue','basisTypeText','renderSupplierMetrics','renderCards','exportMyProducts'];
 vm.runInContext(cardFunctions.map(dashboardFunction).join('\n'),cardDisplayContext);
 const twoCards={role:'mine',cardBenefitStatus:'captured',cardDiscount:20000,cardRate:5,cardMaxDiscount:30000,cardProviders:['현대'],
@@ -564,3 +564,19 @@ for (const [rate,cap,basis] of [[3,38900,1529000],[2,23910,1289000]]) {
 const mixedSection=cardContext.parse(1300000,'최대 3% 카드 즉시할인',['삼성','KB국민'],cardCapture(['카드즉시할인','삼성 3% 할인 최대 38,900원','KB국민 2% 할인 최대 30,000원','와우카드 혜택 자세히보기']));
 assert.equal(mixedSection.captured,false);
 assert.equal(mixedSection.cardDebug.scopedConditions[0].rates.length,2);
+
+const collectionFailure={...twoCards,collectionStatus:'review-needed',collectionIssue:'tab-edit-busy',collectionAttemptedAt:'2026-10-16 16:42',
+  status:'수집 오류 · 재확인 필요',alertEligible:false,cardBenefitStatus:'unverified',checkoutDiscountStatus:'stale',checkoutDiscountReason:'collection-failed',
+  publishedPriceBasis:'last-verified',finalPrice:375000,lastVerifiedFinalPrice:375000,lastVerifiedPriceCheckedAt:'2026-10-16 12:13',priceCheckedAt:'2026-10-16 12:13',priceChange:null};
+cardDisplayContext.data.products=[{mtm:'TEST',offers:[collectionFailure]},{mtm:'NORMAL',offers:[twoCards]}];
+cardDisplayContext.renderCards();
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/overview-row--card-review/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/수집 오류 · 재확인 필요/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/마지막 검증 가격 · 현재가 미확인/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/브라우저 탭 일시 오류 · 시도 2026-10-16 16:42/);
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/확인 2026-10-16 12:13/);
+assert.equal(cardDisplayContext.publishedPrice(collectionFailure),375000);
+assert.equal(cardDisplayContext.effectiveFinalPrice(collectionFailure),null);
+assert.equal(cardDisplayContext.isSoldOut({...collectionFailure,status:'품절'}),false);
+assert.equal(cardDisplayContext.publishedPrice({...collectionFailure,lastVerifiedFinalPrice:null}),null);
+console.log('Mixed successful and blue failed models render with dated reference prices only.');

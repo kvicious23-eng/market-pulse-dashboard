@@ -47,8 +47,7 @@ function Assert-EdgeRecoveryResult($Payload,$Receipt,$Targets) {
       $Payload.recovery.reason -cne $Receipt.reason -or $Payload.recovery.chromeRunId -cne $Receipt.chromeRunId -or
       [DateTimeOffset]::Parse([string]$Payload.startedAt) -le [DateTimeOffset]::Parse([string]$Receipt.triggeredAt)) { throw 'Invalid or stale Edge recovery result.' }
   $rows=@($Payload.results)
-  if ($rows.Count -ne @($Targets).Count -or [int]$Payload.targetCount -ne $rows.Count -or [int]$Payload.resultCount -ne $rows.Count -or
-      @($rows | Where-Object { $_.ok -ne $true }).Count) { throw 'Edge recovery collection is incomplete.' }
+  if ($rows.Count -ne @($Targets).Count -or [int]$Payload.targetCount -ne $rows.Count -or [int]$Payload.resultCount -ne $rows.Count) { throw 'Edge recovery collection is incomplete.' }
   Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($Targets)}) -Results $rows
 }
 function Get-EdgeRecoveryResultPath([string]$RepoPath,[string]$ResultFolder,[string]$Slot) {
