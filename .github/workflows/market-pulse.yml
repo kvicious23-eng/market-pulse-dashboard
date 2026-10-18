@@ -26,6 +26,7 @@ on:
       - "scripts/test-*.mjs"
       - "scripts/test-discount-rules.mjs"
       - "scripts/test-access-diagnostics.mjs"
+      - "scripts/analyze-access-diagnostics.mjs"
       - "scripts/test-price-sources.mjs"
       - "scripts/test-history-export.mjs"
       - "scripts/test-history-corrections.ps1"

@@ -71,6 +71,20 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
+# Derived diagnostics stay on this PC and do not affect price publication.
+# Include recovered first-attempt denials rather than logging only final failures.
+$accessAnalyzer=Join-Path $PSScriptRoot 'analyze-access-diagnostics.mjs'
+if (Test-Path $accessAnalyzer) {
+  try {
+    if ([string]$payload.runId -notmatch '^[a-f0-9]{32}$') { throw 'Invalid diagnostic run ID.' }
+    $nodeApplication=Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1
+    $accessSummaryPath=Join-Path $RepoPath ("reports\access-summary-$($payload.runId).json")
+    $accessSummaryLines=& $nodeApplication.Source $accessAnalyzer --folder $resultFolder --slot ([string]$payload.scanSlot) --output $accessSummaryPath
+    if ($LASTEXITCODE -ne 0) { throw 'Diagnostic analysis process failed.' }
+    foreach ($line in $accessSummaryLines) { Write-Host $line }
+  } catch { Write-Warning 'Access summary unavailable; price validation and existing recovery continue.' }
+}
+
 # Wait for this slot's completed Chrome JSON before deciding whether Edge is
 # needed. At a scheduled upload the Chrome scan may still be running.
 $blockedChrome=@($payload.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
