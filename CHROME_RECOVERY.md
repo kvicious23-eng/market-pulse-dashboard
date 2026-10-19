@@ -1,6 +1,6 @@
 # Chrome 종료 시 전체 목록 Edge 복구
 
-가격 확장 1.9.40과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
+가격 확장 1.9.41과 Windows 숨김 수집 감시 작업을 함께 적용한다. 접근 제한은 기존 완료 Chrome JSON의 `access-check` 분기를 사용하며, 프로세스 종료는 아래 별도 증거로 판단한다. 두 분기 모두 Edge에서 전체 목록을 새로 수집한다.
 
 ## 판단과 실행
 
@@ -30,7 +30,7 @@ PC 종료·로그아웃 동안 Windows 감시도 실행할 수 없다. 시작 �
 
 ## 적용 및 검증 범위
 
-PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.40을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
+PC에서 최신 코드를 받고 `UPDATE_LOCAL_SCHEDULE.cmd`를 실행한다. Chrome과 Edge의 `C:\MarketPulse\chrome-extension`을 각각 새로고침해 1.9.41을 확인한다. 수집 작업의 실행 프로그램은 Windows PowerShell, 인자는 Hidden과 `run-scheduled-scan.ps1`이어야 한다. 업로드 네 시각은 유지된다.
 
 테스트는 시작 기록 저장 순서, 중단된 기록 다운로드, 완료/이전 회차 제외, 프로세스 관측 조건, 대상 중복/변경, Edge 시간/실행 ID/목록/실패, 늦은 Chrome 결과 배제, 예약 인자를 검사한다. 실제 운영 Chrome을 강제로 종료하거나 쿠팡 접근 차단을 유발하지 않는다. 구현·CI·PC 예약 적용과 실제 자연 발생 Chrome 종료 회차의 성공은 구분한다. 첫 성공 뒤에도 추적을 계속한다.
 
@@ -57,7 +57,7 @@ Supplier Hub CSV는 당일 08시 정상 Chrome 완료 또는 같은 오전 회�
 HTTP 상태나 Reference 미관측은 null이며 화면 Access Denied만으로403을 추정하지 않는다. 완료 전 프로세스 종료라면 이 파일이 없을 수 있으므로 기존 시작 기록·프로세스 부재 관측·Edge 복구 로그를 함께 확인한다. Chrome·Edge의 가격 확장을 각각 새로고침해야 적용되며, 다음 자연 차단 회차에서 파일 생성과 비교 근거를 별도 검증한다.
 
 
-## 로컬 저장 실패 복구 (가격1.9.40/Supplier0.1.20)
+## 로컬 저장 실패 복구 (가격1.9.41/Supplier0.1.20)
 
 완료 결과는 파일 쓰기 전에 확장 저장소 pendingScanResult/pendingScanResults에 현재 회차 최대2개로 보존한다. FILE_ACCESS_DENIED가 확인되면 고유 latest-coupang-scan-{실행ID}.json에 저장을1회 재시도한다. 저장 성공과 실제 경로를 확인한 결과만 업로더·감시·Supplier 오전 신호가 선택한다. 고유 저장이 성공하면 재수집 없이 게시하고 확장 저장소에 마지막 저장 방법/오류를 남긴다.
 
@@ -65,4 +65,4 @@ HTTP 상태나 Reference 미관측은 null이며 화면 Access Denied만으로40
 
 저장복구 예산은 최초 수집 시작부터 최대2시간 및 다음 수집 슬롯 중 빠른 시각이다. Edge 대기는40분·복구 남은 예산·업로더 남은 예산 중 최소값을 사용한다. 실행 전 카탈로그 일치와 기존 Edge 영수증을 확인하고 슬롯별 잠금으로 중복 전환을 막는다. 만료·실패 시 이전 공개 데이터를 유지한다. 폴더 전체 쓰기 거부로 증거 파일마저 저장되지 않으면 자동 Edge 전환을 허가할 근거가 없으므로 로컬 확장 상태를 점검해야 한다.
 
-Chrome·Edge 가격1.9.40와 Chrome Supplier0.1.20을 각각 재로드해 적용한다. 이 복구 분기의 합성 검사·PC 활성화와 다음 자연 발생 저장 실패에서의 실제 성공은 구분한다. 실제 운영 파일을 잠그거나 권한을 제거해 차단을 유발하지 않는다.
+Chrome·Edge 가격1.9.41와 Chrome Supplier0.1.20을 각각 재로드해 적용한다. 이 복구 분기의 합성 검사·PC 활성화와 다음 자연 발생 저장 실패에서의 실제 성공은 구분한다. 실제 운영 파일을 잠그거나 권한을 제거해 차단을 유발하지 않는다.

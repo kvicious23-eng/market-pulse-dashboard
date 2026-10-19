@@ -393,6 +393,110 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   const strike=uppermost?{price:uppermost.price,selector:'visible-product-price',basisType:crossedOut?'crossed-out':'top-visible'}:null;
   const basisEvidence=uppermost?{top:uppermost.top,left:uppermost.left,text:uppermost.text,
     activePriceTop:primary.top,titleTop:title.rect.top+scrollY,priceBlockCount:priceBlock.length}:null;
+  async function locateCardBenefitControl(mainPriceTop) {
+    const textOf=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+    const shown=node=>{
+      const r=node.getBoundingClientRect(),s=getComputedStyle(node);
+      return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';
+    };
+    const mixed=text=>/쿠팡\s*캐시|쿠페이|적립|무이자|배송|장바구니|바로\s*구매|구매하기/.test(text);
+    const box=r=>({left:Math.round(r.left),right:Math.round(r.right),top:Math.round(r.top),bottom:Math.round(r.bottom)});
+    // Use each rendered line fragment, never the union of wrapped text lines.
+    const phraseRects=(root,pattern)=>{
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];
+      let raw='';
+      for(let n=walker.nextNode();n;n=walker.nextNode()) {
+        if(!n.parentElement||!shown(n.parentElement)||/^(SCRIPT|STYLE|NOSCRIPT)$/.test(n.parentElement.tagName))continue;
+        nodes.push({node:n,start:raw.length,end:raw.length+(n.nodeValue||'').length});raw+=n.nodeValue||'';
+      }
+      const match=raw.match(pattern);if(!match)return [];
+      const start=match.index,end=start+match[0].length;
+      const first=nodes.find(n=>n.end>start),last=nodes.find(n=>n.end>=end);
+      if(!first||!last)return [];
+      const range=document.createRange();range.setStart(first.node,start-first.start);range.setEnd(last.node,end-last.start);
+      return [...range.getClientRects()].filter(r=>r.width>0&&r.height>0);
+    };
+    const possible=[...document.querySelectorAll('div,li,p,span,strong')]
+      .filter(n=>shown(n)&&/카드\s*즉시할인/.test(textOf(n))&&textOf(n).length<260);
+    const debug={summaryFound:possible.length>0,reason:possible.length?'card-row-not-isolated':'card-summary-not-found',candidates:[]};
+    const seeds=possible.filter(n=>!mixed(textOf(n))&&n.getBoundingClientRect().height<=180)
+      .map(node=>({node,rects:phraseRects(node,/카드\s*즉시할인/)}))
+      .filter(e=>e.rects.length)
+      .map(e=>({...e,top:Math.min(...e.rects.map(r=>r.top))+scrollY}))
+      .filter(e=>!Number.isFinite(mainPriceTop)||(e.top>=mainPriceTop-120&&e.top<=mainPriceTop+700))
+      .sort((a,b)=>a.top-b.top||textOf(a.node).length-textOf(b.node).length||a.node.getBoundingClientRect().height-b.node.getBoundingClientRect().height);
+    let row=seeds[0]?.node;
+    if(!row)return {summaryText:possible.length?textOf(possible[0]).slice(0,260):'',point:null,debug};
+    // Expand only within this one compact benefit. Never absorb the whole panel.
+    for(let depth=0;depth<6&&row.parentElement;depth++) {
+      const parent=row.parentElement,t=textOf(parent),r=parent.getBoundingClientRect();
+      if(!shown(parent)||r.height>180||t.length>360||mixed(t)||(t.match(/카드\s*즉시할인/g)||[]).length!==1)break;
+      row=parent;
+    }
+    const before=row.getBoundingClientRect();
+    if(before.top<20||before.bottom>innerHeight-20) {
+      row.scrollIntoView({block:'center',inline:'nearest'});
+      await new Promise(resolve=>setTimeout(resolve,350));
+    }
+    const rowRect=row.getBoundingClientRect();
+    const cardRects=phraseRects(row,/카드\s*즉시할인/),wowRects=phraseRects(row,/와우\s*전용/);
+    const anchors=[...cardRects,...wowRects];
+    debug.rowRect=box(rowRect);debug.cardTextRects=cardRects.map(box);debug.wowRects=wowRects.map(box);
+    debug.scope='isolated-card-benefit-row';debug.reason='no-row-info-candidate';
+    const selector='svg,i,button,a,[role="button"],[aria-label],[title],[data-tooltip],[class*="info"],[class*="tooltip"],[class*="icon"],[onclick]';
+    const normalize=raw=>{
+      const clickable=raw.closest('button,a,[role="button"],[onclick]');
+      if(clickable&&row.contains(clickable)) {
+        const r=clickable.getBoundingClientRect();if(r.width<=96&&r.height<=96)return clickable;
+      }
+      return raw;
+    };
+    const describe=raw=>{
+      const target=normalize(raw);
+      if(!row.contains(target)||!shown(target))return null;
+      const rect=target.getBoundingClientRect(),tag=target.tagName.toLowerCase();
+      const label=[target.getAttribute('aria-label'),target.getAttribute('title'),target.className?.baseVal||target.className,textOf(target)].filter(Boolean).join(' ');
+      if(rect.width<4||rect.height<4||rect.width>96||rect.height>96||mixed(label)||/arrow|chevron|close|닫기|공유|좋아요|찜/i.test(label))return null;
+      const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      if(x<rowRect.left-8||x>rowRect.right+8||y<rowRect.top-8||y>rowRect.bottom+8)return null;
+      const distance=Math.min(...anchors.map(a=>Math.hypot(Math.max(a.left-x,0,x-a.right),Math.max(a.top-y,0,y-a.bottom))));
+      if(distance>240)return null;
+      const explicit=/info|tooltip|help|안내|정보|상세|ⓘ/i.test(label)||/^[i?]$/i.test(textOf(target));
+      const icon=explicit||['svg','i'].includes(tag)||Boolean(target.querySelector('svg,i'));
+      return icon?{target,tag,label:label.slice(0,160),explicit,x,y,rect,distance}:null;
+    };
+    const raw=[...row.querySelectorAll(selector)];
+    // Probe both sides and below every actual text fragment, but accept only
+    // controls belonging to this row. Other benefits cannot supply a target.
+    for(const a of anchors)for(const y of [(a.top+a.bottom)/2,a.bottom+12,a.bottom+32,a.bottom+64]) {
+      for(const x of [a.left-96,a.left-48,a.left-16,a.right+8,a.right+24,a.right+64,a.right+128,a.right+224]) {
+        if(x<rowRect.left-8||x>rowRect.right+8||y<rowRect.top-8||y>rowRect.bottom+8)continue;
+        for(const n of document.elementsFromPoint(x,y)) {
+          const target=n.closest(selector);if(target&&row.contains(target))raw.push(target);
+        }
+      }
+    }
+    const candidates=[];
+    for(const node of raw) {
+      const entry=describe(node);if(!entry||candidates.some(c=>c.target===entry.target))continue;
+      candidates.push(entry);
+    }
+    // A nested SVG and its one clickable wrapper describe one control.
+    const controls=candidates.filter(a=>!candidates.some(b=>b!==a&&b.target.contains(a.target)));
+    const explicit=controls.filter(c=>c.explicit),choices=explicit.length?explicit:controls;
+    debug.candidates=controls.slice(0,20).map(c=>({tag:c.tag,label:c.label,infoLike:true,explicitInfo:c.explicit,x:Math.round(c.x),y:Math.round(c.y),width:Math.round(c.rect.width),height:Math.round(c.rect.height),distance:Math.round(c.distance)}));
+    if(choices.length!==1) {
+      if(choices.length>1)debug.reason='ambiguous-row-info-candidates';
+      return {summaryText:textOf(row),point:null,debug};
+    }
+    const hit=choices[0],point={x:Math.round(hit.x),y:Math.round(hit.y)};
+    const front=document.elementsFromPoint(point.x,point.y)[0];
+    const visibleHit=Boolean(front&&(front===hit.target||hit.target.contains(front)));
+    if(!visibleHit){debug.reason='row-info-candidate-obscured';return {summaryText:textOf(row),point:null,debug};}
+    debug.reason='selected';debug.selected=debug.candidates.find(c=>c.x===point.x&&c.y===point.y);
+    return {summaryText:textOf(row),point,debug};
+  }
+
   let cardDiscount=null;
   let cardRate=null;
   let cardMaxDiscount=null;
@@ -402,25 +506,14 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   let cardClickPoint=null;
   let cardClickDebug={summaryFound:false,reason:'card-summary-not-found',candidates:[]};
   if (preferred) {
-    const visible=node=>{
-      const style=getComputedStyle(node);
-      return style.display!=='none'&&style.visibility!=='hidden'&&node.getBoundingClientRect().width>0;
-    };
-    const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
-    const mainPriceTop=positionedPrices
-      .filter(entry=>entry.price===preferred.price)
+    const mainPriceTop=positionedPrices.filter(entry=>entry.price===preferred.price)
       .reduce((top,entry)=>Math.min(top,entry.top),Infinity);
-    const summaryNodes=[...document.querySelectorAll('div,li,p')]
-      .filter(node=>visible(node)&&/카드\s*즉시할인/.test(compact(node))&&compact(node).length<260)
-      .map(node=>({node,top:node.getBoundingClientRect().top+scrollY,text:compact(node)}))
-      .filter(entry=>!Number.isFinite(mainPriceTop)||(entry.top>=mainPriceTop-120&&entry.top<=mainPriceTop+700))
-      .sort((a,b)=>a.top-b.top||a.text.length-b.text.length);
-    const summaryRoot=summaryNodes[0]?.node||null;
-    const summaryText=compact(summaryRoot);
-    if (summaryRoot) {
-      cardBenefitStatus='partial';
-      cardClickDebug={summaryFound:true,reason:'wow-label-not-found',candidates:[]};
-    }
+    const located=await locateCardBenefitControl(mainPriceTop);
+    const summaryText=located.summaryText;
+    const compact=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
+    cardClickDebug=located.debug;
+    cardClickPoint=located.point;
+    if(located.debug.summaryFound)cardBenefitStatus='partial';
     const parseRate=text=>Number(text.match(/(?:최대\s*)?([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1]||0);
     const parseKrwAmount=raw=>{
       const normalized=raw.replace(/[\s,]/g,'');
@@ -440,86 +533,6 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
     };
     let detailText='';
     let detailRoot=null;
-    if (summaryRoot) {
-      // Expand only to the compact row that still contains the exact card
-      // summary and the adjacent "와우 전용" label.
-      let cardRow=summaryRoot;
-      for (let depth=0;depth<4&&cardRow.parentElement;depth++) {
-        const parent=cardRow.parentElement;
-        const text=compact(parent);
-        if (text.length>420||!/카드\s*즉시할인/.test(text)||!/와우\s*전용/.test(text)) break;
-        cardRow=parent;
-      }
-      const initialRowRect=cardRow.getBoundingClientRect();
-      if (initialRowRect.top<20||initialRowRect.bottom>innerHeight-20) {
-        cardRow.scrollIntoView({block:'center',inline:'nearest'});
-        await new Promise(resolve=>setTimeout(resolve,350));
-      }
-      let wowRect=null;
-      const walker=document.createTreeWalker(cardRow,NodeFilter.SHOW_TEXT);
-      for (let textNode=walker.nextNode();textNode;textNode=walker.nextNode()) {
-        const match=textNode.nodeValue?.match(/와우\s*전용/);
-        if (!match) continue;
-        const range=document.createRange();
-        range.setStart(textNode,match.index);
-        range.setEnd(textNode,match.index+match[0].length);
-        const rect=range.getBoundingClientRect();
-        if (rect.width>0&&rect.height>0) { wowRect=rect; break; }
-      }
-      if (wowRect) {
-        const wowCenterY=wowRect.top+wowRect.height/2;
-        const rowRect=cardRow.getBoundingClientRect();
-        cardClickDebug.wowRect={left:Math.round(wowRect.left),right:Math.round(wowRect.right),top:Math.round(wowRect.top),bottom:Math.round(wowRect.bottom)};
-        cardClickDebug.rowRect={left:Math.round(rowRect.left),right:Math.round(rowRect.right),top:Math.round(rowRect.top),bottom:Math.round(rowRect.bottom)};
-        const describe=target=>{
-          const rect=target.getBoundingClientRect();
-          const tag=target.tagName.toLowerCase();
-          const label=[target.getAttribute('aria-label'),target.getAttribute('title'),target.className?.baseVal||target.className,compact(target)].filter(Boolean).join(' ');
-          const infoLike=['svg','i','button'].includes(tag)||target.getAttribute('role')==='button'||/info|tooltip|help|안내|정보|^[ⓘi?]$/i.test(label);
-          const centerX=rect.left+rect.width/2,centerY=rect.top+rect.height/2;
-          return {target,tag,label:label.slice(0,160),infoLike,rect,centerX,centerY,dx:centerX-wowRect.right,dy:centerY-wowCenterY};
-        };
-        const iconSelector='svg,i,button,[role="button"],[aria-label],[title],[data-tooltip],[class*="info"],[class*="tooltip"]';
-        const direct=[...document.querySelectorAll(iconSelector)]
-          .filter(visible)
-          .map(describe)
-          .filter(entry=>entry.rect.width>=4&&entry.rect.height>=4&&entry.rect.width<=72&&entry.rect.height<=72
-            &&entry.dx>=-8&&entry.dx<=160&&Math.abs(entry.dy)<=48);
-        const probed=[];
-        for (const yOffset of [0,-8,8,-16,16,-28,28]) {
-          for (let xOffset=4;xOffset<=140;xOffset+=4) {
-            const x=wowRect.right+xOffset,y=wowCenterY+yOffset;
-            for (const raw of document.elementsFromPoint(x,y)) {
-              const target=raw.closest(iconSelector);
-              if (!target||probed.some(entry=>entry.target===target)) continue;
-              const entry=describe(target);
-              if (entry.rect.width>=4&&entry.rect.height>=4&&entry.rect.width<=72&&entry.rect.height<=72&&entry.dx>=-8&&entry.dx<=160&&Math.abs(entry.dy)<=48) probed.push(entry);
-            }
-          }
-        }
-        const all=[...direct,...probed].filter((entry,index,list)=>list.findIndex(other=>other.target===entry.target)===index);
-        all.sort((a,b)=>(b.infoLike-a.infoLike)||Math.abs(a.dy)-Math.abs(b.dy)||Math.abs(a.dx-12)-Math.abs(b.dx-12));
-        cardClickDebug.candidates=all.slice(0,20).map(entry=>({
-          tag:entry.tag,label:entry.label,infoLike:entry.infoLike,
-          x:Math.round(entry.centerX),y:Math.round(entry.centerY),
-          width:Math.round(entry.rect.width),height:Math.round(entry.rect.height),
-          dx:Math.round(entry.dx),dy:Math.round(entry.dy)
-        }));
-        const hit=all.find(entry=>entry.infoLike)||null;
-        if (hit) {
-          cardClickPoint={x:Math.round(hit.centerX),y:Math.round(hit.centerY)};
-          cardClickDebug.reason='selected';
-          cardClickDebug.selected={
-            tag:hit.tag,label:hit.label,infoLike:hit.infoLike,
-            x:Math.round(hit.centerX),y:Math.round(hit.centerY),
-            width:Math.round(hit.rect.width),height:Math.round(hit.rect.height),
-            dx:Math.round(hit.dx),dy:Math.round(hit.dy)
-          };
-        } else {
-          cardClickDebug.reason=all.length?'no-info-like-candidate':'no-nearby-icon-candidate';
-        }
-      }
-    }
     cardBenefitText=[summaryText,detailText].filter(Boolean).join(' | ').slice(0,4000);
     const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
     cardProviders=knownCards.filter(card=>cardBenefitText.includes(card));
