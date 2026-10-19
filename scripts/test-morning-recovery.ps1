@@ -13,7 +13,10 @@ try {
   $signal=Get-SupplierMorningSignal $folder $day $now $temp
   Check ($signal.version -eq 2 -and $signal.source -eq 'chrome') 'Normal Chrome morning completion rejected.'
   $chrome.results[0].ok=$false;Save-SupplierLocalState $latest $chrome
-  Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Blocked Chrome prematurely started CSV.'
+  Check (Get-SupplierMorningSignal $folder $day $now $temp).ready 'Failed Chrome price blocked independent inventory.'
+  $chrome.complete=$false;Save-SupplierLocalState $latest $chrome
+  Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Incomplete failed Chrome accepted.'
+  $chrome.complete=$true;Save-SupplierLocalState $latest $chrome
   $receipt=[pscustomobject]@{version=1;state='started';reason='access-check';runId=('b'*32);chromeRunId=$chrome.runId;scanSlot=$slot;triggeredAt='2026-10-08T08:30:00+09:00';targets=@($target)}
   $receiptPath=Join-Path $temp 'reports\edge-recovery.json';Save-SupplierLocalState $receiptPath $receipt
   $row.ok=$true;$edge=[pscustomobject]@{version=5;browser='edge';runId=$receipt.runId;recovery=[pscustomobject]@{reason=$receipt.reason;chromeRunId=$chrome.runId};scanSlot=$slot;startedAt='2026-10-08T08:30:01+09:00';completedAt='2026-10-08T08:40:00+09:00';complete=$true;targetCount=1;resultCount=1;results=@($row)}
@@ -30,7 +33,7 @@ try {
   Check ((Get-SupplierMorningSignal $folder $day $now $temp).source -eq 'edge') 'Process-exit Edge completion rejected.'
   $edge.complete=$false;Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Partial Edge accepted.';$edge.complete=$true
   $edge.results[0].mtm='Unexpected';Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Wrong Edge list accepted.';$edge.results[0].mtm='Current'
-  $edge.results[0].ok=$false;Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Failed Edge product accepted.';$edge.results[0].ok=$true
+  $edge.results[0].ok=$false;Save-SupplierLocalState $edgePath $edge;Check (Get-SupplierMorningSignal $folder $day $now $temp).ready 'Failed Edge price blocked independent inventory.';$edge.results[0].ok=$true
   $edge.runId='c'*32;Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Uncorrelated Edge accepted.';$edge.runId=$receipt.runId
   $edge.completedAt='2026-10-08T09:50:00+09:00';Save-SupplierLocalState $edgePath $edge;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Future completion accepted.';$edge.completedAt='2026-10-08T08:40:00+09:00';Save-SupplierLocalState $edgePath $edge
   $catalog.products[0].mtm='Changed';Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') $catalog;Check ($null -eq (Get-SupplierMorningSignal $folder $day $now $temp)) 'Edited catalogue accepted.';$catalog.products[0].mtm='Current';Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') $catalog
@@ -67,5 +70,5 @@ try {
     Remove-Item Function:\Start-Process -ErrorAction SilentlyContinue
     Remove-Variable MorningResumeLaunches -Scope Global -ErrorAction SilentlyContinue
   }
-  Write-Host 'Chrome success/blocked, correlated access/exit Edge, pending/failed/stale/partial/wrong-list/noon/independent Edge and current catalogue morning gates passed.'
+  Write-Host 'Chrome completed with successful/failed prices, correlated access/exit Edge, pending/failed/stale/partial/wrong-list/noon/independent Edge and current catalogue morning gates passed.'
 } finally {Remove-Item $temp -Recurse -Force}

@@ -7,6 +7,10 @@ $temp=Join-Path ([IO.Path]::GetTempPath()) ('MarketPulseDaily-'+[guid]::NewGuid(
 $root=Join-Path $temp 'Downloads';$folder=Join-Path $root 'MarketPulse';$repo=Join-Path $temp 'Repository';$remote=Join-Path $temp 'Remote.git'
 New-Item -ItemType Directory -Path $folder,(Join-Path $folder 'SupplierPending'),(Join-Path $repo 'brand\example'),(Join-Path $repo 'dist') -Force | Out-Null
 try {
+  Check (-not (Get-SupplierInventorySignal ([DateTimeOffset]'2026-10-03T22:59:59Z')).ready) 'Inventory started before 08 KST.'
+  $inventory=Get-SupplierInventorySignal ([DateTimeOffset]'2026-10-03T23:00:00Z')
+  Check ($inventory.ready -and $inventory.day -eq '2026-10-04' -and $inventory.source -eq 'independent') 'Inventory did not start independently at 08 KST.'
+  Check (-not (Get-SupplierInventorySignal ([DateTimeOffset]'2026-10-04T15:00:00Z')).ready) 'Yesterday readiness crossed KST midnight.'
   $day=[datetime]'2026-10-04';$request=[DateTimeOffset]'2026-10-04T08:15:00+09:00'
   $csv=Join-Path $folder 'basic_operation_rocket_2026100120261003.csv'
   $rows=@((Row '20261001' '0001' 'FC' '90' '2'),(Row '20261002' '0001' 'FC' '80' '1'),(Row '20261003' '0001' 'FC' '10' '3'),(Row '20261003' '0001' 'RC' '4' '2'),(Row '20261001' '2' 'FC' '99' '9'))
@@ -57,6 +61,13 @@ try {
   Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') ([pscustomobject]@{products=@($scan.results)})
   $scanPath=Join-Path $folder 'latest-coupang-scan.json';Save-SupplierLocalState $scanPath $scan
   Check (Get-SupplierMorningSignal $folder $day $request).ready 'Morning signal rejected.'
+  $scan.results[0].ok=$false;Save-SupplierLocalState $scanPath $scan
+  Check (Get-SupplierMorningSignal $folder $day $request).ready 'Price failure prevented daily inventory.'
+  $scan.targetCount=2;Save-SupplierLocalState $scanPath $scan
+  Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Missing result accepted.'
+  $scan.targetCount=1;$scan.results+=@($scan.results[0]);$scan.targetCount=2;$scan.resultCount=2;Save-SupplierLocalState $scanPath $scan
+  Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Duplicate failed result accepted.'
+  $scan.results=@($scan.results[0]);$scan.targetCount=1;$scan.resultCount=1
   $scan.browser='edge';Save-SupplierLocalState $scanPath $scan;Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Edge scan started independent CSV.'
   $scan.browser='chrome';$scan.scanSlot='2026-10-04T12:00+09:00';Save-SupplierLocalState $scanPath $scan;Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Noon scan started daily CSV.'
   $scan.scanSlot='2026-10-04T08:00+09:00';$scan.complete=$false;Save-SupplierLocalState $scanPath $scan;Check ($null -eq (Get-SupplierMorningSignal $folder $day $request)) 'Incomplete JSON accepted.'

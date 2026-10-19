@@ -6,7 +6,6 @@ $folder=Join-Path $root 'MarketPulse'
 $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $now=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$zone);$day=$now.Date;$date=$day.ToString('yyyy-MM-dd')
 $queuePath=Join-Path $RepoPath 'reports\supplier-daily-queue.json'
-$signalPath=Join-Path $RepoPath 'reports\supplier-morning-signal.json'
 function Start-PendingSupplierPublication($Queue) {
   if ($Queue -and $Queue.PSObject.Properties['nextAttemptAt'] -and $Queue.nextAttemptAt -and $now -lt [DateTimeOffset]::Parse($Queue.nextAttemptAt)) { return }
   if ($Queue -and $Queue.day -eq $date -and $Queue.status -ne 'published' -and [int]$Queue.attempts -lt 4 -and $now.Hour -ge 8 -and ($now.Hour -gt 8 -or $now.Minute -ge 30)) {
@@ -18,12 +17,15 @@ try {
   $request=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($RequestBase64)) | ConvertFrom-Json
   $result=@{ok=$false;reason='invalid_operation'}
   if ($request.operation -eq 'morning_status') {
-    $signal=Get-SupplierMorningSignal -Folder $folder -Day $day -Now $now -RepoPath $RepoPath
-    if ($signal) { Save-SupplierLocalState $signalPath $signal } else {
-      $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
-      $signal=if ($receipt -and $receipt.scanSlot -ceq ($date+'T08:00+09:00')) {$null} else {Read-SupplierLocalState $signalPath}
+    $signal=Get-SupplierInventorySignal $now
+    # Preserve the trusted Edge acknowledgement when available, without making
+    # inventory depend on a price run or a pending/failed recovery receipt.
+    if ($signal.ready) {
+      $priceSignal=Get-SupplierMorningSignal -Folder $folder -Day $day -Now $now -RepoPath $RepoPath
+      if ($priceSignal) { $signal=$priceSignal }
     }
-    if ($signal -and $signal.version -eq 2 -and $signal.day -eq $date) { $result=$signal } else { $result=@{ready=$false;day=$date} }
+    Save-SupplierLocalState (Join-Path $RepoPath 'reports\supplier-inventory-signal.json') $signal
+    $result=$signal
   } elseif ($request.operation -eq 'csv_complete') {
     if ([string]$request.day -cne $date) { $result=@{ok=$false;reason='csv_day_mismatch'} }
     else {

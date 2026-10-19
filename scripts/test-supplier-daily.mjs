@@ -73,3 +73,10 @@ assert.equal(supplierDownload({...calendarDownload,startTime:'2026-10-07T14:59:5
 assert.equal(supplierDownload({...calendarDownload,startTime:'2026-10-08T15:00:00Z'},calendarJob),false);
 assert.equal(supplierDownload({...calendarDownload,startTime:'invalid'},calendarJob),false);
 assert.match(supplier,/startedAfter:new Date\(kstDay\(Date.parse\(job.requestedAt\)\)\+'T00:00:00\+09:00'\)/);
+
+// Native clock readiness needs no price JSON, including absent/failed price runs.
+f=fixture();f.io.signal=async()=>({version:3,ready:true,source:'independent',day:kstDay(f.now)});
+await new DailyCsv(f.io).tick();assert.equal(f.clicks,1);assert.equal(f.saved.scanBrowser,'independent');assert.equal(f.saved.scanRunId,null);
+const bridge=readTestFile('scripts/supplier-daily-bridge.ps1','utf8');
+assert.match(bridge,/\$signal=Get-SupplierInventorySignal \$now/);
+assert.doesNotMatch(bridge,/Read-SupplierLocalState \$signalPath/,'Stale price readiness must not bypass the inventory clock');

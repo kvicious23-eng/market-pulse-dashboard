@@ -21,6 +21,13 @@ function Read-SupplierLocalState([string]$Path) {
   if (Test-Path -LiteralPath $Path) { return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json }
   return $null
 }
+# Inventory has its own KST daily start; a price result is never a prerequisite.
+function Get-SupplierInventorySignal([DateTimeOffset]$Now) {
+  $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+  $local=[TimeZoneInfo]::ConvertTime($Now,$zone)
+  return [pscustomobject]@{version=3;ready=($local.Hour -ge 8);day=$local.ToString('yyyy-MM-dd');
+    source='independent';startedAfter=($local.ToString('yyyy-MM-dd')+'T08:00+09:00')}
+}
 function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffset]$Now,[string]$RepoPath='') {
   try {
     $slot=$Day.ToString('yyyy-MM-dd')+'T08:00+09:00'
@@ -43,8 +50,8 @@ function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffse
         $start -lt $slotStart -or $start -ge $slotStart.AddHours(4) -or $end -lt $start -or $end -gt $Now.AddMinutes(1) -or
         ($end-$start).TotalHours -gt 3 -or
         [int]$scan.targetCount -ne $ids.Count -or [int]$scan.resultCount -ne $ids.Count -or
-        @($ids | Sort-Object -Unique).Count -ne $ids.Count -or @($ids | Where-Object { -not $_ }).Count -gt 0 -or
-        @($rows | Where-Object {$_.ok -ne $true}).Count) { return $null }
+        $ids.Count -lt 1 -or @($ids | Sort-Object -Unique).Count -ne $ids.Count -or @($ids | Where-Object { -not $_ }).Count -gt 0) { return $null }
+    # Price outcome is independent of SKU-based inventory; require a complete, correlated run only.
     $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
     if (-not $catalog -or -not $catalog.PSObject.Properties['products']) {return $null}
     Assert-ScanCatalog -Catalog $catalog -Results $rows
