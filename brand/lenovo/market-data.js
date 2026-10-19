@@ -36,7 +36,7 @@ window.MARKET_DATA = {
                                    ],
                  "lifecycleStatus":  "active",
                  "renamedTo":  null,
-                 "publishedAt":  "2026-10-20T08:30:08+09:00"
+                 "publishedAt":  "2026-10-20T08:51:19+09:00"
              },
     "products":  [
                      {
@@ -255,13 +255,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-19",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-19",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-19",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -452,13 +452,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-19",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-19",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-19",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -644,13 +644,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-19",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-19",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-19",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
