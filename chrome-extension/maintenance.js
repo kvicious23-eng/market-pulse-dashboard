@@ -9,7 +9,7 @@ async function maintainExtension() {
   if(!['reload','verify'].includes(mode)||!/^[a-f0-9]{32}$/.test(nonce||'')||!/^\d+\.\d+\.\d+$/.test(expected||''))throw Error('invalid-maintenance-request');
   const state=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}));
   if(!state||typeof state.running!=='boolean')throw Error('scan-state-unavailable');
-  const browser=/Edg\//.test(navigator.userAgent)?'edge':'chrome';
+  const browser=/Whale\//.test(navigator.userAgent)?'whale':/Edg\//.test(navigator.userAgent)?'edge':'chrome';
   const version=chrome.runtime.getManifest().version;
   const receipt={nonce,browser,mode,expected,version,at:new Date().toISOString(),status:state.running?'busy':mode==='reload'?'reload-requested':'verification-failed'};
   if(mode==='verify'&&!state.running) {

@@ -70,6 +70,9 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
+# Validation-only browsers cannot become a production price source.
+if ([string]$payload.browser -notin @('chrome','edge')) { throw 'Unsupported production scan browser.' }
+
 # Derived diagnostics stay on this PC and do not affect price publication.
 # Include recovered first-attempt denials rather than logging only final failures.
 $accessAnalyzer=Join-Path $PSScriptRoot 'analyze-access-diagnostics.mjs'

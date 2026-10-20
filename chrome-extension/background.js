@@ -199,7 +199,7 @@ async function saveAccessDiagnosticArchive(payload) {
     chromeRunId:payload.recovery?.chromeRunId||null,
     results:payload.results.map(row=>({mtm:row.mtm,ok:row.ok===true,attempts:row.accessDiagnostics||[]}))};
   try {
-    const filename=`MarketPulse/access-diagnostic-${payload.runId}.json`;
+    const filename=`MarketPulse/${payload.browser==='whale'?'whale-access-diagnostic':'access-diagnostic'}-${payload.runId}.json`;
     const id=await withScanTimeout(chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(archive)),filename,conflictAction:'overwrite',saveAs:false}),10000,'access-archive-start');
     await withScanTimeout(waitForScanDownload(id,filename),20000,'access-archive-complete');
     return 'saved';
@@ -243,14 +243,14 @@ async function saveCompletedScan(payload) {
   // Persist the complete source before attempting any filesystem write.
   const retained=(await chrome.storage.local.get('pendingScanResults')).pendingScanResults||[];
   await chrome.storage.local.set({pendingScanResult:payload,pendingScanResults:[...retained.filter(row=>row.scanSlot===payload.scanSlot),payload].slice(-2)});
-  const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';
+  const filename=payload.browser==='whale'?`MarketPulse/whale-validation-${payload.runId}.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';
   let originalError;
   let savedFilename=filename;
   try {await downloadScanPayload(payload,filename);}
   catch(error) {
     if(!String(error).includes('FILE_ACCESS_DENIED'))throw error;
     originalError=error;
-    const unique=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}-saved.json`:`MarketPulse/latest-coupang-scan-${payload.runId}.json`;
+    const unique=payload.browser==='whale'?`MarketPulse/whale-validation-${payload.runId}-saved.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}-saved.json`:`MarketPulse/latest-coupang-scan-${payload.runId}.json`;
     try {await downloadScanPayload(payload,unique);savedFilename=unique;}
     catch {
       if(payload.browser!=='chrome'||payload.recovery||!payload.scanSlot)throw originalError;
@@ -1127,7 +1127,7 @@ async function scanAll(scanSlot, recovery=null) {
     // A start witness contains the pinned catalogue, never partial prices or SKUIDs.
     // Download completion precedes the first product so the Windows watchdog can
     // distinguish a started collection from an absent/disabled extension.
-    if(!isEdgeBrowser&&scanSlot) {
+    if(!isEdgeBrowser&&!/Whale\//.test(globalThis.navigator?.userAgent||'')&&scanSlot) {
       const witness={version:1,browser:'chrome',extensionVersion:chrome.runtime.getManifest().version,
         runId,scanSlot,startedAt:scanStartedAt,targetCount:targets.length,targets};
       const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
@@ -1236,7 +1236,7 @@ async function scanAll(scanSlot, recovery=null) {
     const payload = {
       version:5,
       extensionVersion:chrome.runtime.getManifest().version,
-      browser:/Edg\//.test(navigator.userAgent)?'edge':'chrome',
+      browser:/Whale\//.test(navigator.userAgent)?'whale':/Edg\//.test(navigator.userAgent)?'edge':'chrome',
       scanSlot,
       runId,
       recovery,
@@ -1706,7 +1706,7 @@ function finishScan() {
 
 const SUPPLIER_EXTENSION_ID='djmlkkflbncanonpjhkdhghjmcompjnp';
 async function acknowledgeRecoveredMorning(message,sender) {
-  if(isEdgeBrowser||sender.id!==SUPPLIER_EXTENSION_ID||!sender.url?.startsWith(`chrome-extension://${SUPPLIER_EXTENSION_ID}/daily-resume.html?`)||
+  if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')||sender.id!==SUPPLIER_EXTENSION_ID||!sender.url?.startsWith(`chrome-extension://${SUPPLIER_EXTENSION_ID}/daily-resume.html?`)||
     message?.type!=='MARK_MORNING_RECOVERED'||message.source!=='edge'||message.version!==2||
     !/^[a-f0-9]{32}$/.test(message.runId||'')||message.scanSlot!==`${localDay()}T08:00+09:00`||
     !Number.isFinite(Date.parse(message.completedAt))||Date.parse(message.completedAt)<Date.parse(message.scanSlot)||Date.parse(message.completedAt)>Date.now()+60000) return {ok:false,reason:'invalid-recovery-acknowledgement'};
@@ -1738,7 +1738,7 @@ async function waitForSupplierResume(slot) {
 
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
-  if(isEdgeBrowser) {
+  if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')) {
     for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
   } else await schedule();
 });
@@ -1746,7 +1746,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   // A browser restart stops the previous service worker and its scan.
   const previous=await chrome.storage.local.get('running');
   if(previous.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-browser-restart',lastScanErrorAt:new Date().toISOString()});
-  if(isEdgeBrowser) {
+  if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')) {
     for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
     return;
   }
@@ -1762,7 +1762,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   if(recentScanSlot(dueSlot)&&state.lastRunSlot!==dueSlot) requestScan(dueSlot);
 });
 chrome.alarms.onAlarm.addListener(async alarm=>{
-  if(isEdgeBrowser) return;
+  if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')) return;
   const entry=SCHEDULED_SCAN_TIMES.find(candidate=>candidate.alarm===alarm.name);
   if(!entry) return;
   scheduleEntry(entry).catch(()=>{});

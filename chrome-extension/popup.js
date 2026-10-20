@@ -1,5 +1,6 @@
 document.querySelector('#manage').addEventListener('click',()=>chrome.runtime.openOptionsPage());
 const status=document.querySelector('#status');
+if(/Whale\//.test(navigator.userAgent))status.textContent='웨일 예비 검증 모드 · 자동수집 없음 · 결과는 운영 가격에 게시되지 않아.';
 chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
   if(state?.running){
     const progress=state.scanProgress;
@@ -16,7 +17,7 @@ chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
 document.querySelector('#scan').addEventListener('click',async()=>{
   const response=await chrome.runtime.sendMessage({type:'RUN_SCAN'});
   status.textContent=response?.ok
-    ? '수집을 시작했어. 열린 탭을 그대로 두면 돼.'
+    ? (/Whale\//.test(navigator.userAgent)?'웨일 수동 검증을 시작했어. 운영 가격에는 게시되지 않아.':'수집을 시작했어. 열린 탭을 그대로 두면 돼.')
     : response?.reason==='already-running'
       ? '이미 수집 중이야. 진행이 멈췄다면 확장 프로그램을 새로고침한 뒤 다시 시작해.'
       : `수집을 시작하지 못했어: ${response?.reason||'원인 미확인'}`;

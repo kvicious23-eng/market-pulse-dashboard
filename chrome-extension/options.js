@@ -70,8 +70,8 @@ async function save(){
   if(!result?.ok){notice.textContent='저장 중 오류가 발생했어.';return;}
   const payload={version:1,savedAt:new Date().toISOString(),products};
   const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
-  await chrome.downloads.download({url,filename:'MarketPulse/product-catalog.json',conflictAction:'overwrite',saveAs:false});
-  notice.textContent='저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
+  await chrome.downloads.download({url,filename:/Whale\//.test(navigator.userAgent)?'MarketPulse/whale-product-catalog.json':'MarketPulse/product-catalog.json',conflictAction:'overwrite',saveAs:false});
+  notice.textContent=/Whale\//.test(navigator.userAgent)?'저장 완료. 웨일 수동 검증에 적용돼.':'저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
 }
 document.querySelector('#add').addEventListener('click',()=>{products.unshift({brand:'Acer',category:'Notebook',mtm:'',srp:null,enabled:true,url:'',danawaUrl:'',enuriUrl:'',productId:'',itemId:'',vendorItemId:''});render();window.scrollTo({top:0,behavior:'smooth'});});
 document.querySelector('#save').addEventListener('click',save);document.querySelector('#saveBottom').addEventListener('click',save);document.querySelector('#search').addEventListener('input',render);
