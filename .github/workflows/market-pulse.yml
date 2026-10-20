@@ -40,6 +40,7 @@ on:
       - "scripts/supplier-after-edge.ps1"
       - "scripts/test-morning-recovery.*"
       - "scripts/test-edge-profile.ps1"
+      - "scripts/test-whale-noon.ps1"
       - "scripts/scan-recovery.ps1"
       - "scripts/run-scheduled-scan.ps1"
       - "scripts/test-scan-recovery.*"
@@ -193,6 +194,7 @@ jobs:
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           ./scripts/test-local-schedule.ps1
+          ./scripts/test-whale-noon.ps1
           ./scripts/test-upload-timeout.ps1
           ./scripts/test-edge-profile.ps1
           ./scripts/test-scan-recovery.ps1

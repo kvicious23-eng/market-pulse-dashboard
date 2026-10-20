@@ -21,5 +21,5 @@ assert.match(source,/!isEdgeBrowser&&!\/Whale/,'Whale must not write a Chrome st
 assert.match(source,/whale-access-diagnostic/);
 assert.match(readTestFile('chrome-extension/options.js','utf8'),/whale-product-catalog\.json/);
 assert.match(readTestFile('chrome-extension/maintenance.js','utf8'),/\?'whale':/);
-assert.match(readTestFile('scripts/import-extension-results.ps1','utf8'),/payload\.browser -notin @\('chrome','edge'\)/);
-console.log('Whale has no automatic alarms/startup scan, isolated canonical/unique results, catalog and diagnostics, distinct identity and no production importer admission.');
+assert.match(readTestFile('scripts/import-extension-results.ps1','utf8'),/Assert-PrimaryScanSource/);
+console.log('Whale has no automatic alarms/startup scan, isolated canonical/unique results, catalog and diagnostics, distinct identity and scheduled-request-only production admission.');

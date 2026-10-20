@@ -73,5 +73,12 @@ try {
   fs.writeFileSync(path.join(folder,`access-diagnostic-${'c'.repeat(32)}.json`),'{invalid');
   assert.ok(analyzeFolder(folder).errors.some(e=>e.error==='unreadable-or-invalid-diagnostic'));
   assert.equal(JSON.parse(fs.readFileSync(path.join(folder,`access-diagnostic-${input.runId}.json`),'utf8')).results.length,4,'sources unchanged');
+  const whaleFolder=path.join(folder,'whale-only');fs.mkdirSync(whaleFolder);
+  const whale={...input,browser:'whale',scanSlot:'2026-10-21T12:00+09:00',primaryRequestId:'e'.repeat(32)};
+  fs.writeFileSync(path.join(whaleFolder,`whale-access-diagnostic-${whale.runId}.json`),JSON.stringify(whale));
+  const whaleReport=analyzeFolder(whaleFolder);
+  assert.equal(whaleReport.runs.length,1);assert.equal(whaleReport.runs[0].primaryBrowser,'whale');assert.equal(whaleReport.runs[0].initialBlocked,3);
+  fs.writeFileSync(path.join(whaleFolder,`whale-validation-${'f'.repeat(32)}.json`),JSON.stringify({...whale,primaryRequestId:null}));
+  assert.equal(analyzeFolder(whaleFolder).runs.length,1,'Manual validation must stay out of operational access history');
 } finally {fs.rmSync(folder,{recursive:true,force:true});}
 console.log('Access analysis initial/retry/final counts, unknown evidence, chronology, pairing, privacy, CLI and conflict checks passed.');

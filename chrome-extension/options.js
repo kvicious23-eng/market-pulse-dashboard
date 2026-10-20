@@ -1,6 +1,10 @@
 const cards=document.querySelector('#cards');
 const template=document.querySelector('#cardTemplate');
 const notice=document.querySelector('#notice');
+if(/Whale\//.test(navigator.userAgent)){
+  const help=document.querySelector('footer p');
+  if(help)help.textContent='이 목록은 웨일 수동 검증용이야. 12시 자동수집은 Chrome에서 저장한 공용 관리 목록을 동기화해.';
+}
 let products=[];
 
 function parseCoupangUrl(value){
@@ -71,7 +75,7 @@ async function save(){
   const payload={version:1,savedAt:new Date().toISOString(),products};
   const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
   await chrome.downloads.download({url,filename:/Whale\//.test(navigator.userAgent)?'MarketPulse/whale-product-catalog.json':'MarketPulse/product-catalog.json',conflictAction:'overwrite',saveAs:false});
-  notice.textContent=/Whale\//.test(navigator.userAgent)?'저장 완료. 웨일 수동 검증에 적용돼.':'저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
+  notice.textContent=/Whale\//.test(navigator.userAgent)?'저장 완료. 수동 검증에 적용돼. 12시 자동수집은 공용 관리 목록을 사용해.':'저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
 }
 document.querySelector('#add').addEventListener('click',()=>{products.unshift({brand:'Acer',category:'Notebook',mtm:'',srp:null,enabled:true,url:'',danawaUrl:'',enuriUrl:'',productId:'',itemId:'',vendorItemId:''});render();window.scrollTo({top:0,behavior:'smooth'});});
 document.querySelector('#save').addEventListener('click',save);document.querySelector('#saveBottom').addEventListener('click',save);document.querySelector('#search').addEventListener('input',render);

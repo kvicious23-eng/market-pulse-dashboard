@@ -4,6 +4,7 @@
 function Must-Fail([scriptblock]$Action) { $failed=$false;try {& $Action}catch{$failed=$true};if(-not $failed){throw 'Expected validation failure.'} }
 $slot=Get-ScanRecoverySlot
 if (-not $slot) {$slot=[DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(9)).AddDays(-1).ToString('yyyy-MM-dd')+'T20:00+09:00'}
+if((Get-PrimaryScanBrowser $slot) -eq 'whale'){$slot=$slot.Substring(0,10)+'T08:00+09:00'}
 $start=[DateTimeOffset]::Parse($slot)
 $row=[pscustomobject]@{brand='Acer';mtm='Current';enabled=$true;productId='1';itemId='2';vendorItemId='3';url='https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'}
 $catalog=[pscustomobject]@{products=@($row)}
@@ -94,7 +95,7 @@ try {
   foreach ($name in @('scan-recovery.ps1','brand-lifecycle.ps1','browser-profile.ps1')) {Copy-Item (Join-Path $PSScriptRoot $name) $scripts}
   $edgeSource=Get-Content (Join-Path $PSScriptRoot 'edge-fallback.ps1') -Raw -Encoding UTF8
   $edgeSource=$edgeSource.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",' $resultFolder=$global:RecoveryTestFolder')
-  $edgeSource=$edgeSource.Replace('$slot=Get-ScanRecoverySlot','$slot=$global:RecoveryTestSlot')
+  $edgeSource=$edgeSource.Replace('$slot=Get-ScanRecoverySlot','$slot=$global:RecoveryTestSlot').Replace('(Get-ScanRecoverySlot)','($global:RecoveryTestSlot)')
   $edgeSource | Set-Content (Join-Path $scripts 'edge-fallback.ps1') -Encoding UTF8
   $watchSource=Get-Content (Join-Path $PSScriptRoot 'run-scheduled-scan.ps1') -Raw -Encoding UTF8
   $watchSource=$watchSource.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:RecoveryTestFolder')

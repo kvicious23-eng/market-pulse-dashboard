@@ -1,6 +1,6 @@
 document.querySelector('#manage').addEventListener('click',()=>chrome.runtime.openOptionsPage());
 const status=document.querySelector('#status');
-if(/Whale\//.test(navigator.userAgent))status.textContent='웨일 예비 검증 모드 · 자동수집 없음 · 결과는 운영 가격에 게시되지 않아.';
+if(/Whale\//.test(navigator.userAgent))status.textContent='12시 웨일 자동수집 · 이 버튼은 수동 검증용이며 운영 가격에 게시되지 않아.';
 chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
   if(state?.running){
     const progress=state.scanProgress;
@@ -10,8 +10,12 @@ chrome.runtime.sendMessage({type:'GET_SCAN_STATUS'}).then(state=>{
   } else if(state?.lastScanError) {
     status.textContent=`마지막 수집 오류: ${state.lastScanError}`;
   } else if(state?.lastResult?.completedAt) {
-    const failed=(state.lastResult.results||[]).filter(result=>!result.ok).length;
-    status.textContent=`마지막 JSON 저장: ${new Date(state.lastResult.completedAt).toLocaleString('ko-KR')} · ${state.lastResult.resultCount}/${state.lastResult.targetCount}개 기록${failed?` (가격 수집 실패 ${failed}개)`:''}`;
+    const rows=state.lastResult.results||[];
+    const failed=rows.filter(r=>!r.ok).length;
+    const soldOut=r=>r.ok&&['buy-now-button-not-found','buy-now-button-sold-out'].includes(r.checkoutDiscountReason);
+    const checkoutMissing=rows.filter(r=>r.ok&&!soldOut(r)&&r.checkoutDiscountStatus!=='captured').length;
+    const cardMissing=rows.filter(r=>r.ok&&!soldOut(r)&&!['captured','none'].includes(r.cardBenefitStatus)).length;
+    status.textContent=`마지막 JSON 저장: ${new Date(state.lastResult.completedAt).toLocaleString('ko-KR')} · ${state.lastResult.resultCount}/${state.lastResult.targetCount}개 기록 · 상품 실패 ${failed} · 주문서 미확인 ${checkoutMissing} · 카드 미확인 ${cardMissing}`;
   }
 }).catch(()=>{});
 document.querySelector('#scan').addEventListener('click',async()=>{

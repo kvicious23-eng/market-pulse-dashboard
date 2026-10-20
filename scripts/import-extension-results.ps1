@@ -31,8 +31,8 @@ function Get-LatestResultPath {
   if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
     return Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
   }
-  $normalSlot=if($minimumStart){$recoverySlot}else{''}
-  return Get-SavedChromeResultPath $resultFolder $normalSlot
+  $normalSlot=if($minimumStart -or (Get-PrimaryScanBrowser $recoverySlot) -eq 'whale'){$recoverySlot}else{''}
+  return Get-SavedPrimaryResultPath $resultFolder $normalSlot $RepoPath
 }
 
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
@@ -70,8 +70,8 @@ do {
   Start-Sleep -Seconds 30
 } while ($true)
 
-# Validation-only browsers cannot become a production price source.
-if ([string]$payload.browser -notin @('chrome','edge')) { throw 'Unsupported production scan browser.' }
+# A manual Whale validation is never a production source.
+Assert-PrimaryScanSource $payload $recoverySlot $resultFolder $RepoPath
 
 # Derived diagnostics stay on this PC and do not affect price publication.
 # Include recovered first-attempt denials rather than logging only final failures.
@@ -95,15 +95,16 @@ if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
     $safeMtm=[regex]::Replace([string]$blocked.mtm,'[\r\n]',' ')
     $safeDetail=[regex]::Replace([string]$blocked.accessCheckDetail,'[\r\n]',' ')
     $safeRetry=[regex]::Replace([string]$blocked.retryStatus,'[\r\n]',' ')
-    Write-Host "Chrome access-check: MTM=$safeMtm; detail=$safeDetail; retry=$safeRetry; retryAt=$($blocked.retryCheckedAt)"
+    Write-Host "$($payload.browser) access-check: MTM=$safeMtm; detail=$safeDetail; retry=$safeRetry; retryAt=$($blocked.retryCheckedAt)"
   }
   $chromeCompletedAt=[DateTimeOffset]::Parse([string]$payload.completedAt)
   $edgeFallback=Join-Path $RepoPath 'scripts\edge-fallback.ps1'
   if (-not (Test-Path $edgeFallback)) { throw 'Edge fallback script is missing; the blocked Chrome scan cannot be published.' }
-  & $edgeFallback -RepoPath $RepoPath
+  & $edgeFallback -RepoPath $RepoPath -PrimaryBrowser ([string]$payload.browser)
   $resultPath=Get-LatestResultPath
   if (-not $resultPath) { throw 'Edge fallback did not save a scan JSON.' }
   $payload=Get-Content -Raw -Encoding UTF8 $resultPath | ConvertFrom-Json -ErrorAction Stop
+  Assert-PrimaryScanSource $payload $recoverySlot $resultFolder $RepoPath
   if ([string]$payload.browser -ne 'edge' -or [DateTimeOffset]::Parse([string]$payload.startedAt) -le $chromeCompletedAt) {
     throw 'Edge fallback did not produce a newer Edge scan; the blocked Chrome scan cannot be published.'
   }
@@ -292,8 +293,9 @@ $text = @{
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
 }
-if ([string]$payload.browser -eq 'edge') {
-  foreach ($key in @($text.Keys)) { $text[$key]=([string]$text[$key]).Replace('Chrome','Edge') }
+if ([string]$payload.browser -in @('edge','whale')) {
+  $label=if($payload.browser -eq 'whale'){'Whale'}else{'Edge'}
+  foreach ($key in @($text.Keys)) { $text[$key]=([string]$text[$key]).Replace('Chrome',$label) }
 }
 
 function Set-ModelCollectionFailure($Mine,$Result,[string]$AttemptedAt) {
@@ -821,10 +823,10 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
-  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','access-check','file-save-error')) {
+  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','whale-process-exit','access-check','file-save-error')) {
     $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
-    $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';scanSlot=$payload.scanSlot;
+    $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';primaryBrowser=$receipt.primaryBrowser;scanSlot=$payload.scanSlot;
       chromeRunId=$receipt.chromeRunId;edgeRunId=$payload.runId;chromeStartedAt=$receipt.chromeStartedAt;
       chromeExtensionVersion=$receipt.chromeExtensionVersion;edgeExtensionVersion=$payload.extensionVersion;
       chromeCompletedAt=$receipt.chromeCompletedAt;accessCheckCount=$receipt.blockedCount;

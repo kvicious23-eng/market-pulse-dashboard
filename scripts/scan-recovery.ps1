@@ -16,8 +16,8 @@ function Get-ScanRecoverySlot([DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   $hour=@(8,12,16,20 | Where-Object {$_ -le $kst.Hour} | Select-Object -Last 1)
   if ($hour.Count) { '{0}T{1:00}:00+09:00' -f $kst.ToString('yyyy-MM-dd'),$hour[0] }
 }
-function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog) {
-  if (-not $Witness -or $Witness.version -ne 1 -or $Witness.browser -ne 'chrome' -or
+function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog,[string]$Browser='chrome') {
+  if (-not $Witness -or $Witness.version -ne 1 -or $Witness.browser -cne $Browser -or
       $Witness.scanSlot -cne $Slot -or $Witness.runId -notmatch '^[a-f0-9]{32}$') { throw 'Missing or mismatched Chrome start witness.' }
   $slotStart=[DateTimeOffset]::Parse($Slot)
   $start=[DateTimeOffset]::Parse([string]$Witness.startedAt)
@@ -37,7 +37,7 @@ function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog) {
 }
 function Test-ChromeExitRecovery($Witness,$Completed,[bool]$ChromeSeen,[int]$AbsentChecks) {
   # Missing JSON alone, a closed window, and an unobserved Chrome launch are not exit proof.
-  $finished=$Completed -and $Completed.browser -eq 'chrome' -and $Completed.runId -ceq $Witness.runId -and
+  $finished=$Completed -and $Completed.browser -ceq $Witness.browser -and $Completed.runId -ceq $Witness.runId -and
     $Completed.scanSlot -ceq $Witness.scanSlot -and $Completed.complete -eq $true
   [bool]($Witness -and $ChromeSeen -and $AbsentChecks -ge 2 -and -not $finished)
 }
@@ -46,6 +46,7 @@ function Assert-EdgeRecoveryResult($Payload,$Receipt,$Targets) {
       $Payload.scanSlot -cne $Receipt.scanSlot -or $Payload.runId -cne $Receipt.runId -or
       $Payload.recovery.reason -cne $Receipt.reason -or $Payload.recovery.chromeRunId -cne $Receipt.chromeRunId -or
       [DateTimeOffset]::Parse([string]$Payload.startedAt) -le [DateTimeOffset]::Parse([string]$Receipt.triggeredAt)) { throw 'Invalid or stale Edge recovery result.' }
+  if($Receipt.primaryBrowser -eq 'whale' -and ($Payload.recovery.primaryBrowser -ne 'whale' -or $Payload.recovery.primaryRequestId -cne $Receipt.primaryRequestId)){throw 'Whale recovery context mismatch.'}
   $rows=@($Payload.results)
   if ($rows.Count -ne @($Targets).Count -or [int]$Payload.targetCount -ne $rows.Count -or [int]$Payload.resultCount -ne $rows.Count) { throw 'Edge recovery collection is incomplete.' }
   Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($Targets)}) -Results $rows
@@ -85,11 +86,16 @@ function Get-SavedEdgeRunPath([string]$Folder,[string]$RunId) {
     Where-Object { $_.Name -cmatch "^edge-recovery-$RunId(?:-saved)?\.json$" } |
     Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1 -ExpandProperty FullName
 }
-function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
-  if (-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -ne 'chrome' -or
+function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow,[string]$RepoPath='') {
+  if (-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -cne (Get-PrimaryScanBrowser $Slot) -or
       $Failure.scanSlot -cne $Slot -or $Failure.reason -ne 'file-save-error' -or $Failure.error -ne 'FILE_ACCESS_DENIED' -or
       $Failure.stage -ne 'edge-ready' -or [int]$Failure.chromeRetries -ne 1 -or [int]$Failure.saveAttempts -ne 2 -or
       $Failure.runId -notmatch '^[a-f0-9]{32}$' -or $Slot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Unconfirmed Chrome save failure.' }
+  if($Failure.browser -eq 'whale') {
+    $q=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')
+    Assert-WhalePrimaryRequest $q $Slot $Catalog $Now
+    if($Failure.primaryRequestId -cne $q.requestId){throw 'Mismatched Whale save proof.'}
+  }
   $slotStart=[DateTimeOffset]::Parse($Slot)
   $first=[DateTimeOffset]::Parse([string]$Failure.firstStartedAt)
   $start=[DateTimeOffset]::Parse([string]$Failure.startedAt)
@@ -116,7 +122,7 @@ function Invoke-ScanSaveRecovery([string]$RepoPath,[string]$Folder,[string]$Slot
   }
   if (-not $failure) { return }
   # A completed Chrome file wins before a save-error handoff has started.
-  $completedPath=Get-SavedChromeResultPath $Folder $Slot
+  $completedPath=Get-SavedPrimaryResultPath $Folder $Slot $RepoPath
   if ($completedPath) {
     $completed=Read-ScanRecoveryJson $completedPath
     $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
@@ -130,11 +136,73 @@ function Invoke-ScanSaveRecovery([string]$RepoPath,[string]$Folder,[string]$Slot
     $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
     if ($receipt.scanSlot -ceq $Slot) { return }
     $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
-    Assert-ScanSaveFailure $failure $Slot $catalog
+    Assert-ScanSaveFailure $failure $Slot $catalog -RepoPath $RepoPath
     $end=[DateTimeOffset]::Parse($failure.deadlineAt)
     if ($env:MARKET_PULSE_UPLOAD_DEADLINE) { $workerEnd=[DateTimeOffset]::Parse($env:MARKET_PULSE_UPLOAD_DEADLINE);if($workerEnd -lt $end){$end=$workerEnd} }
     $minutes=[math]::Min(40,[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes))
     if ($minutes -lt 1) { throw 'No time remains for Edge save recovery.' }
-    & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -SaveFailure $failure -TimeoutMinutes $minutes
+    & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -SaveFailure $failure -TimeoutMinutes $minutes -PrimaryBrowser (Get-PrimaryScanBrowser $Slot)
   } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
+
+function Get-PrimaryScanBrowser([string]$Slot) {
+  if ($Slot -cmatch '^\d{4}-\d{2}-\d{2}T12:00\+09:00$' -and $Slot.Substring(0,10) -cge '2026-10-21') {return 'whale'}
+  return 'chrome'
+}
+function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if ((Get-PrimaryScanBrowser $Slot) -ne 'whale' -or -not $Request -or $Request.version -ne 1 -or $Request.browser -ne 'whale' -or
+      $Request.scanSlot -cne $Slot -or $Request.requestId -notmatch '^[a-f0-9]{32}$') {throw 'Invalid Whale noon request.'}
+  if(-not $Catalog -or -not $Catalog.PSObject.Properties['products'] -or $null -eq $Catalog.products){throw 'Saved catalog is required for Whale.'}
+  $rows=@($Request.targets)
+  if(@($rows|Group-Object itemId|Where-Object {$_.Count -gt 1}).Count -or @($rows|Group-Object vendorItemId|Where-Object {$_.Count -gt 1}).Count){throw 'Duplicate Whale targets.'}
+  foreach($row in $rows){
+    $url=[uri]([string]$row.url)
+    if(-not $row.brand -or -not $row.mtm -or $row.productId -notmatch '^\d+$' -or $row.itemId -notmatch '^\d+$' -or $row.vendorItemId -notmatch '^\d+$' -or
+       $url.Scheme -ne 'https' -or $url.Host -ne 'www.coupang.com' -or $url.AbsolutePath -ne "/vp/products/$($row.productId)" -or
+       $url.Query -notmatch "(?:\?|&)itemId=$($row.itemId)(?:&|$)" -or $url.Query -notmatch "(?:\?|&)vendorItemId=$($row.vendorItemId)(?:&|$)"){throw 'Invalid Whale target identity.'}
+  }
+  $slotAt=[DateTimeOffset]::Parse($Slot);$requested=[DateTimeOffset]::Parse([string]$Request.requestedAt)
+  if ($requested -lt $slotAt -or $requested -gt $slotAt.AddMinutes(75) -or $requested -gt $Now.AddMinutes(2)) {throw 'Whale request is outside its slot.'}
+  if (@($Request.targets).Count -lt 1) {throw 'Empty Whale noon request.'}
+  Assert-ScanCatalog -Catalog $Catalog -Results @($Request.targets)
+}
+function Get-SavedPrimaryResultPath([string]$Folder,[string]$Slot,[string]$RepoPath,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if ((Get-PrimaryScanBrowser $Slot) -ne 'whale') {return Get-SavedChromeResultPath $Folder $Slot}
+  $request=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')
+  if (-not $request -or $request.scanSlot -cne $Slot) {return $null}
+  $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+  Assert-WhalePrimaryRequest $request $Slot $catalog $Now
+  foreach($file in @(Get-ChildItem -LiteralPath $Folder -Filter 'whale-scan-*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending)) {
+    if ($file.Name -cnotmatch '^whale-scan-[a-f0-9]{32}(?:-saved)?\.json$') {continue}
+    $data=Read-ScanRecoveryJson $file.FullName
+    if (-not $data -or $data.browser -ne 'whale' -or $data.scanSlot -cne $Slot -or $data.primaryRequestId -cne $request.requestId) {continue}
+    if ($data.complete -ne $true -or $data.runId -notmatch '^[a-f0-9]{32}$' -or $file.Name -cnotmatch "^whale-scan-$($data.runId)(?:-saved)?\.json$" -or [version]$data.extensionVersion -lt [version]'1.9.44' -or
+        [int]$data.targetCount -ne @($data.results).Count -or [int]$data.resultCount -ne @($data.results).Count -or
+        [DateTimeOffset]::Parse($data.startedAt) -lt [DateTimeOffset]::Parse($request.requestedAt) -or
+        [DateTimeOffset]::Parse($data.completedAt) -lt [DateTimeOffset]::Parse($data.startedAt) -or
+        [DateTimeOffset]::Parse($data.completedAt) -gt $Now.AddMinutes(2) -or
+        [DateTimeOffset]::Parse($data.completedAt) -ge [DateTimeOffset]::Parse($Slot).AddHours(4)) {throw 'Invalid Whale production result.'}
+    Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($request.targets)}) -Results @($data.results)
+    Assert-ScanCatalog -Catalog $catalog -Results @($data.results)
+    return $file.FullName
+  }
+  return $null
+}
+function Assert-PrimaryScanSource($Payload,[string]$Slot,[string]$Folder,[string]$RepoPath) {
+  $expected=Get-PrimaryScanBrowser $Slot
+  if ($Payload.browser -eq 'edge') {
+    $r=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+    if($expected -eq 'whale') {
+      $q=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')
+      Assert-WhalePrimaryRequest $q $Slot (Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json'))
+      if($r.primaryBrowser -ne 'whale' -or $r.primaryRequestId -cne $q.requestId -or $Payload.recovery.primaryBrowser -ne 'whale' -or
+         $Payload.recovery.primaryRequestId -cne $q.requestId) {throw 'Edge receipt does not belong to this Whale noon request.'}
+    } elseif($r.primaryBrowser -eq 'whale' -or $Payload.recovery.primaryBrowser -eq 'whale') {throw 'Whale recovery is not allowed in a Chrome slot.'}
+    return
+  }
+  if($Payload.browser -cne $expected) {throw 'Unexpected production browser for this slot.'}
+  if($expected -eq 'whale') {
+    $selected=Read-ScanRecoveryJson (Get-SavedPrimaryResultPath $Folder $Slot $RepoPath)
+    if(-not $selected -or $Payload.runId -cne $selected.runId -or $Payload.primaryRequestId -cne $selected.primaryRequestId){throw 'Whale result is not backed by the scheduled request.'}
+  }
 }

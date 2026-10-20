@@ -94,7 +94,36 @@ async function withTabEditRetry(operation) {
   }
 }
 
+// Whale can initialize a newly created tab at 0x0 inside a minimized window.
+// These windows/tabs belong to this collection; never resize unrelated user windows.
+async function prepareWhaleScanWindow(windowState) {
+  if(!/Whale\//.test(navigator.userAgent))return;
+  if(!Number.isInteger(windowState.windowId)) {
+    const w=await withScanTimeout(withTabEditRetry(()=>chrome.windows.create({url:'about:blank',type:'normal',width:1280,height:900,focused:true})),15000,'whale-scan-window');
+    if(!Number.isInteger(w?.id))throw Error('whale-scan-window-id-missing');
+    windowState.windowId=w.id;
+    const anchor=w.tabs?.[0]?.id;
+    if(Number.isInteger(anchor))windowState.anchorTabIds.push(anchor);
+  }
+  const w=await withScanTimeout(chrome.windows.get(windowState.windowId),10000,'whale-window-state');
+  if(w.state==='minimized')await withScanTimeout(withTabEditRetry(()=>chrome.windows.update(w.id,{state:'normal',focused:true})),10000,'whale-window-restore');
+}
+async function ensureWhaleTabViewport(tabId) {
+  if(!/Whale\//.test(navigator.userAgent))return null;
+  const tab=await withScanTimeout(chrome.tabs.get(tabId),10000,'whale-viewport-tab');
+  const w=await withScanTimeout(chrome.windows.get(tab.windowId),10000,'whale-viewport-window');
+  if(w.state==='minimized')await withScanTimeout(withTabEditRetry(()=>chrome.windows.update(w.id,{state:'normal',focused:true})),10000,'whale-viewport-restore');
+  for(let attempt=0;attempt<5;attempt++) {
+    const frames=await withScanTimeout(chrome.scripting.executeScript({target:{tabId},func:()=>({width:innerWidth,height:innerHeight})}),10000,'whale-viewport-read');
+    const viewport=frames?.[0]?.result;
+    if(viewport?.width>0&&viewport?.height>0)return viewport;
+    if(attempt<4)await wait(250);
+  }
+  throw Error('whale-viewport-unavailable');
+}
+
 async function openScanTab(url,stage,windowState) {
+  if(/Whale\//.test(globalThis.navigator?.userAgent||''))await prepareWhaleScanWindow(windowState);
   const create=async()=>{
     const tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({
     url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})
@@ -196,7 +225,7 @@ async function saveAccessDiagnosticArchive(payload) {
   if(!relevant)return 'not-needed';
   const archive={version:1,browser:payload.browser,extensionVersion:payload.extensionVersion,runId:payload.runId,
     scanSlot:payload.scanSlot,startedAt:payload.startedAt,completedAt:payload.completedAt,
-    chromeRunId:payload.recovery?.chromeRunId||null,
+    chromeRunId:payload.recovery?.chromeRunId||null,primaryBrowser:payload.recovery?.primaryBrowser||null,primaryRequestId:payload.primaryRequestId||null,
     results:payload.results.map(row=>({mtm:row.mtm,ok:row.ok===true,attempts:row.accessDiagnostics||[]}))};
   try {
     const filename=`MarketPulse/${payload.browser==='whale'?'whale-access-diagnostic':'access-diagnostic'}-${payload.runId}.json`;
@@ -243,24 +272,24 @@ async function saveCompletedScan(payload) {
   // Persist the complete source before attempting any filesystem write.
   const retained=(await chrome.storage.local.get('pendingScanResults')).pendingScanResults||[];
   await chrome.storage.local.set({pendingScanResult:payload,pendingScanResults:[...retained.filter(row=>row.scanSlot===payload.scanSlot),payload].slice(-2)});
-  const filename=payload.browser==='whale'?`MarketPulse/whale-validation-${payload.runId}.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';
+  const filename=payload.browser==='whale'?`MarketPulse/${payload.primaryRequestId?'whale-scan':'whale-validation'}-${payload.runId}.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';
   let originalError;
   let savedFilename=filename;
   try {await downloadScanPayload(payload,filename);}
   catch(error) {
     if(!String(error).includes('FILE_ACCESS_DENIED'))throw error;
     originalError=error;
-    const unique=payload.browser==='whale'?`MarketPulse/whale-validation-${payload.runId}-saved.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}-saved.json`:`MarketPulse/latest-coupang-scan-${payload.runId}.json`;
+    const unique=payload.browser==='whale'?`MarketPulse/${payload.primaryRequestId?'whale-scan':'whale-validation'}-${payload.runId}-saved.json`:payload.recovery?`MarketPulse/edge-recovery-${payload.runId}-saved.json`:`MarketPulse/latest-coupang-scan-${payload.runId}.json`;
     try {await downloadScanPayload(payload,unique);savedFilename=unique;}
     catch {
-      if(payload.browser!=='chrome'||payload.recovery||!payload.scanSlot)throw originalError;
+      if((payload.browser!=='chrome'&&!(payload.browser==='whale'&&payload.primaryRequestId))||payload.recovery||!payload.scanSlot)throw originalError;
       const old=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
       const same=old?.scanSlot===payload.scanSlot;
       const firstStartedAt=same?old.firstStartedAt:payload.startedAt;
       const deadlineAt=new Date(scanSaveDeadline(firstStartedAt,payload.scanSlot)).toISOString();
       const chromeRetries=same?old.chromeRetries:0;
       const canRetry=chromeRetries<1&&Date.now()<Date.parse(deadlineAt);
-      const proof={version:1,browser:'chrome',reason:'file-save-error',error:'FILE_ACCESS_DENIED',saveAttempts:2,
+      const proof={version:1,browser:payload.browser,primaryRequestId:payload.primaryRequestId,reason:'file-save-error',error:'FILE_ACCESS_DENIED',saveAttempts:2,
         stage:canRetry?'chrome-retry-queued':Date.now()<Date.parse(deadlineAt)?'edge-ready':'deadline-exhausted',
         chromeRetries:canRetry?1:chromeRetries,scanSlot:payload.scanSlot,runId:payload.runId,
         firstStartedAt,startedAt:payload.startedAt,completedAt:payload.completedAt,
@@ -269,7 +298,7 @@ async function saveCompletedScan(payload) {
       // A unique proof avoids overwriting another recovery signal. Failure to
       // save this evidence never authorizes Windows to guess the cause.
       await downloadScanPayload(proof,`MarketPulse/scan-save-recovery-${payload.runId}.json`).catch(()=>{});
-      if(canRetry)queuedSaveRetry={slot:payload.scanSlot,deadlineAt};
+      if(canRetry)queuedSaveRetry={slot:payload.scanSlot,deadlineAt,primaryRequestId:payload.primaryRequestId};
       throw originalError;
     }
   }
@@ -939,11 +968,13 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
 }
 
 async function scanCoupangTab(tabId,target) {
+  const viewport=/Whale\//.test(globalThis.navigator?.userAgent||'')?await ensureWhaleTabViewport(tabId):null;
   const injected=await chrome.scripting.executeScript({
     target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp]
   });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
+  if(viewport)scan.viewport=viewport;
   if(accessDiagnosticTabs.has(tabId))scan.accessDiagnostic=await captureAccessDiagnostic(tabId);
   classifyAccessFailure(scan);
   if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
@@ -1095,7 +1126,7 @@ function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
   return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
 }
 
-async function scanAll(scanSlot, recovery=null) {
+async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
   const lock = await chrome.storage.local.get('running');
   // An active scan in this worker is guarded synchronously by requestScan.
   // A persisted lock without an active promise belongs to a terminated worker.
@@ -1127,13 +1158,13 @@ async function scanAll(scanSlot, recovery=null) {
     // A start witness contains the pinned catalogue, never partial prices or SKUIDs.
     // Download completion precedes the first product so the Windows watchdog can
     // distinguish a started collection from an absent/disabled extension.
-    if(!isEdgeBrowser&&!/Whale\//.test(globalThis.navigator?.userAgent||'')&&scanSlot) {
-      const witness={version:1,browser:'chrome',extensionVersion:chrome.runtime.getManifest().version,
+    if((!isEdgeBrowser&&!/Whale\//.test(globalThis.navigator?.userAgent||'')&&scanSlot)||primaryRequestId) {
+      const witness={version:1,browser:primaryRequestId?'whale':'chrome',primaryRequestId,extensionVersion:chrome.runtime.getManifest().version,
         runId,scanSlot,startedAt:scanStartedAt,targetCount:targets.length,targets};
       const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
       const witnessDownload=await withScanTimeout(chrome.downloads.download({url:witnessUrl,
-        filename:'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
-      await waitForScanDownload(witnessDownload,'MarketPulse/scan-start.json');
+        filename:primaryRequestId?'MarketPulse/whale-scan-start.json':'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
+      await waitForScanDownload(witnessDownload,primaryRequestId?'MarketPulse/whale-scan-start.json':'MarketPulse/scan-start.json');
     }
     for (const target of targets) {
       checkRecoveryBudget();
@@ -1150,7 +1181,7 @@ async function scanAll(scanSlot, recovery=null) {
         if(priceScan?.ok) {
           try {
             await progress(target.mtm,'checkout',targets.length);
-            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target),90000,`checkout:${target.mtm}`));
+            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,scanWindowState),90000,`checkout:${target.mtm}`));
           } catch(error) {
             Object.assign(result,{checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null});
           }
@@ -1217,7 +1248,7 @@ async function scanAll(scanSlot, recovery=null) {
          if(attempts.length)result.accessDiagnostics=attempts.slice(-2);
          delete result.accessDiagnostic;
          if (retryScan?.ok) {
-           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result),90000,`retry-checkout:${result.mtm}`));
+           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,scanWindowState),90000,`retry-checkout:${result.mtm}`));
          }
        } catch (error) {
          if(retryTab?.id&&accessDiagnosticTabs.has(retryTab.id))result.accessDiagnostics=[...(result.accessDiagnostics||[]),{phase:'retry',reason:'browser-error',diagnostic:await captureAccessDiagnostic(retryTab.id)}].slice(-2);
@@ -1240,6 +1271,7 @@ async function scanAll(scanSlot, recovery=null) {
       scanSlot,
       runId,
       recovery,
+      primaryRequestId,
       startedAt:scanStartedAt,
       scannedAt:completedAt,
       completedAt,
@@ -1276,11 +1308,14 @@ const SCHEDULED_SCAN_TIMES = [
 ];
 const isEdgeBrowser=/Edg\//.test(navigator.userAgent);
 
+// First production noon is 2026-10-21. Whale is launched by Windows with a pinned catalog.
 function kstDateTimeParts(date=new Date()) {
   return Object.fromEntries(new Intl.DateTimeFormat('en-US',{
     timeZone:'Asia/Seoul',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'
   }).formatToParts(date).map(part=>[part.type,part.value]));
 }
+
+function chromeOwnsSlot(slot) {return !(slot?.slice(0,10)>='2026-10-21'&&slot.endsWith('T12:00+09:00'));}
 
 function currentScheduledScanSlot(date=new Date()) {
   const p=kstDateTimeParts(date);
@@ -1295,6 +1330,7 @@ async function scheduleEntry(entry) {
   await chrome.alarms.clear(entry.alarm);
   let next=Date.parse(`${p.year}-${p.month}-${p.day}T${String(entry.hour).padStart(2,'0')}:${String(entry.minute).padStart(2,'0')}:00+09:00`);
   if(next<=now.getTime()) next+=86400000;
+  if(!chromeOwnsSlot(new Date(next).toISOString().slice(0,10)+'T'+entry.slot+'+09:00'))return;
   await chrome.alarms.create(entry.alarm,{when:next});
 }
 
@@ -1509,8 +1545,10 @@ function reconcileCheckoutDiscounts(regular,instant,coupon) {
   };
 }
 
-async function collectCheckoutDiscountsForTarget(target) {
-  let tab,checkoutTab,entryButtonEvidence=null,childTabCount=0;
+async function collectCheckoutDiscountsForTarget(target,windowState=null) {
+  const ownsWindow=!windowState&&/Whale\//.test(navigator.userAgent);
+  windowState=windowState||{windowId:null,anchorTabIds:[]};
+  let tab,checkoutTab,entryButtonEvidence=null,childTabCount=0,checkoutViewport=null;
   const route=source=>{
     try { const url=new URL(source||''); return {host:url.hostname,path:url.pathname.slice(0,120)}; }
     catch (_) { return {host:null,path:null}; }
@@ -1520,15 +1558,17 @@ async function collectCheckoutDiscountsForTarget(target) {
     checkoutPagePath:page?.path||route(checkoutTab?.url).path,
     checkoutTabKind:checkoutTab?.id!==tab?.id?'opened-child':'original',
     checkoutChildTabCount:childTabCount,
-    checkoutEntryButtonEvidence:entryButtonEvidence
+    checkoutEntryButtonEvidence:entryButtonEvidence,checkoutViewport
   });
   try {
     // Coupang's buy-now flow can depend on a foreground tab and can open a
     // child tab. The product and checkout pages are both read in Chrome.
-    tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:target.url,active:true})),15000,`checkout-open:${target.mtm}`);
+    if(/Whale\//.test(globalThis.navigator?.userAgent||''))await prepareWhaleScanWindow(windowState);
+    tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:target.url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})})),15000,`checkout-open:${target.mtm}`);
     checkoutTab=tab;
     await withScanTimeout(waitForComplete(tab.id),60000,`checkout-load:${target.mtm}`);
     await wait(7000);
+    if(/Whale\//.test(globalThis.navigator?.userAgent||''))await ensureWhaleTabViewport(tab.id);
     const entered=await withScanTimeout(chrome.scripting.executeScript({
       target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId]
     }),30000,`checkout-entry:${target.mtm}`);
@@ -1566,6 +1606,7 @@ async function collectCheckoutDiscountsForTarget(target) {
     let regular=null,instant=null,coupon=null,wowMemberTotal=null;
     let regularStatus='missing',instantStatus='missing',couponStatus='missing';
     for(let attempt=0;attempt<4;attempt++){
+      if(/Whale\//.test(globalThis.navigator?.userAgent||''))checkoutViewport=await ensureWhaleTabViewport(checkoutTab.id);
       const read=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:checkoutTab.id},func:readCheckoutDiscounts}),15000,`checkout-read:${target.mtm}`);
       page=read?.[0]?.result;
       if(page?.ok) confirmedPage=page;
@@ -1627,7 +1668,7 @@ async function collectCheckoutDiscountsForTarget(target) {
       checkoutDiscountTotal:reconciled.regular+reconciled.wowTotal,
       checkoutWowMemberTotal:wowMemberTotal,
       checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroFields:reconciled.inferredZeroFields,
-      checkoutDiscountEvidence:page.discountEvidence||[]
+      checkoutDiscountEvidence:page.discountEvidence||[],checkoutViewport
     };
   } catch(error) {
     return {
@@ -1637,6 +1678,7 @@ async function collectCheckoutDiscountsForTarget(target) {
       ...checkoutTabEvidence()
     };
   } finally {
+    if(ownsWindow)for(const id of windowState.anchorTabIds)await chrome.tabs.remove(id).catch(()=>{});
     if(checkoutTab?.id&&checkoutTab.id!==tab?.id) await withScanTimeout(chrome.tabs.remove(checkoutTab.id),15000,`checkout-child-close:${target.mtm}`).catch(()=>{});
     if(tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`checkout-close:${target.mtm}`).catch(()=>{});
   }
@@ -1682,13 +1724,13 @@ let activeScanSlot=null;
 let pendingScanSlot=null;
 let queuedSaveRetry=null;
 
-function requestScan(slot=currentScheduledScanSlot(), recovery=null) {
+function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequestId=null) {
   if(activeScanPromise) {
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
   activeScanSlot=slot;
-  activeScanPromise=scanAll(slot,recovery);
+  activeScanPromise=scanAll(slot,recovery,primaryRequestId);
   activeScanPromise.then(finishScan,finishScan);
   return true;
 }
@@ -1701,7 +1743,7 @@ function finishScan() {
   const saveRetry=queuedSaveRetry;
   queuedSaveRetry=null;
   if(recentScanSlot(pending)&&pending===currentScheduledScanSlot()) requestScan(pending);
-  else if(saveRetry?.slot===currentScheduledScanSlot()&&Date.now()<Date.parse(saveRetry.deadlineAt))requestScan(saveRetry.slot);
+  else if(saveRetry?.slot===currentScheduledScanSlot()&&Date.now()<Date.parse(saveRetry.deadlineAt))requestScan(saveRetry.slot,null,saveRetry.primaryRequestId);
 }
 
 const SUPPLIER_EXTENSION_ID='djmlkkflbncanonpjhkdhghjmcompjnp';
@@ -1752,6 +1794,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   }
   await schedule();
   const dueSlot=currentScheduledScanSlot();
+  if(!chromeOwnsSlot(dueSlot))return;
   await waitForSupplierResume(dueSlot);
   const state=await chrome.storage.local.get(['lastRunSlot','scanSaveRecovery']);
   const retry=state.scanSaveRecovery;
@@ -1768,13 +1811,13 @@ chrome.alarms.onAlarm.addListener(async alarm=>{
   scheduleEntry(entry).catch(()=>{});
   const p=kstDateTimeParts(new Date(alarm.scheduledTime));
   const slot=`${p.year}-${p.month}-${p.day}T${entry.slot}+09:00`;
-  if(!recentScanSlot(slot)||slot!==currentScheduledScanSlot()) return;
+  if(!chromeOwnsSlot(slot)||!recentScanSlot(slot)||slot!==currentScheduledScanSlot()) return;
   await waitForSupplierResume(slot);
   chrome.storage.local.get('lastRunSlot').then(state=>{
     if(state.lastRunSlot!==slot) requestScan(slot);
   }).catch(()=>{});
 });
-chrome.action.onClicked.addListener(()=>requestScan());
+chrome.action.onClicked.addListener(()=>requestScan(/Whale\//.test(navigator.userAgent)?null:undefined));
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
@@ -1791,6 +1834,23 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
     return true;
   }
+  if(message?.type==='RUN_PRIMARY_SCAN') {
+    const slot=message.scanSlot,requestId=message.requestId;
+    if(!/Whale\//.test(navigator.userAgent)||_sender.url?.split('?')[0]!==chrome.runtime.getURL('primary.html')||
+      !/^[a-f0-9]{32}$/.test(requestId||'')||!/^\d{4}-\d{2}-\d{2}T12:00\+09:00$/.test(slot||'')||
+      slot.slice(0,10)<'2026-10-21'||slot!==currentScheduledScanSlot()||!recentScanSlot(slot)||
+      !message.products?.length||validateProductCatalog(message.products).length) {
+      sendResponse({ok:false,reason:'invalid-primary-request'});return;
+    }
+    if(activeScanPromise||fallbackCatalogPending){sendResponse({ok:false,reason:'already-running'});return;}
+    fallbackCatalogPending=true;
+    chrome.storage.local.get(['primaryRequest','lastResult']).then(async state=>{
+      if(state.primaryRequest?.scanSlot===slot)return {ok:true,reason:'already-requested'};
+      await chrome.storage.local.set({products:message.products,primaryRequest:{scanSlot:slot,requestId}});
+      return requestScan(slot,null,requestId)?{ok:true}:{ok:false,reason:'already-running'};
+    }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
+    return true;
+  }
   if (message?.type==='RUN_FALLBACK') {
     const errors=validateProductCatalog(message.products);
     if(!isEdgeBrowser||errors.length||!message.products?.length) { sendResponse({ok:false,reason:'invalid-fallback-catalog'});return; }
@@ -1798,7 +1858,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     fallbackCatalogPending=true;
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
-      !['chrome-process-exit','access-check','file-save-error'].includes(recovery.reason)||
+      !['chrome-process-exit','whale-process-exit','access-check','file-save-error'].includes(recovery.reason)||
       !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;
@@ -1808,7 +1868,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='RUN_SCAN') {
-    sendResponse(requestScan()?{ok:true}:{ok:false,reason:'already-running'});
+    sendResponse(requestScan(/Whale\//.test(navigator.userAgent)?null:undefined)?{ok:true}:{ok:false,reason:'already-running'});
     return;
   }
   if (message?.type==='GET_SCAN_STATUS') {

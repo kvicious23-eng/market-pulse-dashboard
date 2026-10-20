@@ -14,6 +14,7 @@ async function scan({child,confirmed,busyFailures=0,createError}) {
   const original={id:10,status:'complete',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'};
   const checkout={id:11,status:'complete',openerTabId:10,url:'https://order.coupang.com/order/orderSheet.pang'};
   const context={
+    navigator:{userAgent:'Chrome/150'},
     URL,
     wait:async()=>{},
     waitForComplete:async()=>{},

@@ -21,7 +21,7 @@ const seconds = (start, end) => validTime(start) && validTime(end) && Date.parse
   ? Math.round((Date.parse(end) - Date.parse(start)) / 1000) : null;
 
 export function summarizeRun(input) {
-  if (!input || !['chrome', 'edge'].includes(input.browser) || !/^[a-f0-9]{32}$/.test(input.runId || '')
+  if (!input || !['chrome', 'edge', 'whale'].includes(input.browser) || !/^[a-f0-9]{32}$/.test(input.runId || '')
       || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\+09:00$/.test(input.scanSlot || '')
       || !validTime(input.startedAt) || !validTime(input.completedAt)
       || Date.parse(input.completedAt) < Date.parse(input.startedAt) || !Array.isArray(input.results)) {
@@ -58,7 +58,8 @@ export function summarizeRun(input) {
   const missing = models.filter(m => m.initialBlocked === null).length;
   return {
     browser: input.browser, extensionVersion: /^\d+\.\d+\.\d+$/.test(input.extensionVersion || '') ? input.extensionVersion : null,
-    runId: input.runId, chromeRunId: /^[a-f0-9]{32}$/.test(input.chromeRunId || input.recovery?.chromeRunId || '')
+    runId: input.runId, primaryBrowser: input.primaryBrowser || input.recovery?.primaryBrowser || (input.browser==='whale'?'whale':'chrome'),
+    chromeRunId: /^[a-f0-9]{32}$/.test(input.chromeRunId || input.recovery?.chromeRunId || '')
       ? input.chromeRunId || input.recovery.chromeRunId : null,
     scanSlot: input.scanSlot, startedAt: input.startedAt, completedAt: input.completedAt,
     resultCount: models.length, traceCoverage: missing ? 'incomplete' : 'observed-all-listed-models',
@@ -76,12 +77,13 @@ export function analyzeFolder(folder, {slot = null, uploadLog = ''} = {}) {
   const errors = [], byRun = new Map();
   // Archives retain anomalous runs; absence is not evidence of zero denials.
   // The current complete Chrome payload also supplies the latest normal run.
-  const files = fs.readdirSync(folder).filter(n => /^access-diagnostic-[a-f0-9]{32}\.json$/.test(n));
+  const files = fs.readdirSync(folder).filter(n => /^(?:access-diagnostic|whale-access-diagnostic|whale-scan)-[a-f0-9]{32}(?:-saved)?\.json$/.test(n));
   if (fs.existsSync(path.join(folder, 'latest-coupang-scan.json'))) files.push('latest-coupang-scan.json');
   for (const name of files.sort()) {
     try {
       const data = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8').replace(/^\uFEFF/, ''));
       if (slot && data.scanSlot !== slot) continue;
+      if(data.browser==='whale'&&(!data.primaryRequestId||!data.scanSlot?.endsWith('T12:00+09:00')||data.scanSlot.slice(0,10)<'2026-10-21'))continue;
       const run = summarizeRun(data), key = `${run.browser}:${run.runId}`;
       const prior = byRun.get(key);
       if (prior && JSON.stringify(prior) !== JSON.stringify(run)) {
@@ -94,12 +96,12 @@ export function analyzeFolder(folder, {slot = null, uploadLog = ''} = {}) {
   const runs = [...byRun.values()].filter(Boolean).sort((a,b) => a.scanSlot.localeCompare(b.scanSlot) || a.startedAt.localeCompare(b.startedAt));
   const slots = new Set(runs.map(r => r.scanSlot));
   const loggedSlots = [...uploadLog.matchAll(/-ExpectedSlotStart\s+(\d{4}-\d{2}-\d{2}T\d{2}):00:00\+09:00/g)].map(m => `${m[1]}:00+09:00`);
-  const missingChromeSlots = [...new Set(loggedSlots)].filter(s => (!slot || s === slot) && !runs.some(r => r.browser === 'chrome' && r.scanSlot === s));
+  const missingChromeSlots = [...new Set(loggedSlots)].filter(s => (!slot || s === slot) && !runs.some(r => r.browser === (s.slice(0,10)>='2026-10-21'&&s.endsWith('T12:00+09:00')?'whale':'chrome') && r.scanSlot === s));
   const pairs = [];
   for (const scanSlot of slots) {
     for (const edge of runs.filter(r => r.scanSlot === scanSlot && r.browser === 'edge')) {
-      const chrome = runs.find(r => r.browser === 'chrome' && r.scanSlot === scanSlot && r.runId === edge.chromeRunId);
-      if (chrome) pairs.push({scanSlot, chromeRunId: chrome.runId, edgeRunId: edge.runId,
+      const chrome = runs.find(r => r.browser === edge.primaryBrowser && r.scanSlot === scanSlot && r.runId === edge.chromeRunId);
+      if (chrome) pairs.push({scanSlot, primaryBrowser:chrome.browser, chromeRunId: chrome.runId, edgeRunId: edge.runId,
         edgeStartDelaySeconds: seconds(chrome.completedAt, edge.startedAt),
         chromeFinalBlocked: chrome.finalBlocked, edgeFinalBlocked: edge.finalBlocked,
         interpretation: 'browser-and-time-both-changed-not-a-controlled-comparison'});
@@ -122,14 +124,14 @@ export function runCli(args) {
     uploadLog: options['--upload-log'] ? fs.readFileSync(options['--upload-log'], 'utf8') : ''});
   if (options['--output']) {
     const output = path.resolve(options['--output']);
-    if (path.dirname(output) === path.resolve(options['--folder']) && /^(?:latest-coupang-scan|access-diagnostic-[a-f0-9]{32})\.json$/.test(path.basename(output))) throw Error('output-cannot-replace-source');
+    if (path.dirname(output) === path.resolve(options['--folder']) && /^(?:latest-coupang-scan|(?:access-diagnostic|whale-access-diagnostic|whale-scan)-[a-f0-9]{32}(?:-saved)?)\.json$/.test(path.basename(output))) throw Error('output-cannot-replace-source');
     fs.mkdirSync(path.dirname(output), {recursive:true});
     const temp = `${output}.tmp-${process.pid}`;
     fs.writeFileSync(temp, JSON.stringify(report, null, 2), 'utf8');
     fs.renameSync(temp, output);
   }
-  for (const r of report.runs.filter(r => r.browser === 'chrome')) {
-    console.log(`Access summary: slot=${r.scanSlot}; run=${r.runId}; initial=${r.initialBlocked}; recovered=${r.recoveredOnRetry}; final=${r.finalBlocked}; other-unresolved=${r.unresolvedOther}; missing-evidence=${r.missingInitialEvidence}; listed=${r.resultCount}`);
+  for (const r of report.runs.filter(r => ['chrome','whale'].includes(r.browser))) {
+    console.log(`Access summary: browser=${r.browser}; slot=${r.scanSlot}; run=${r.runId}; initial=${r.initialBlocked}; recovered=${r.recoveredOnRetry}; final=${r.finalBlocked}; other-unresolved=${r.unresolvedOther}; missing-evidence=${r.missingInitialEvidence}; listed=${r.resultCount}`);
   }
   console.log(`Access evidence: runs=${report.runs.length}; missing-chrome-slots=${report.missingChromeSlots.length}; invalid-files=${report.errors.length}. Missing evidence is not zero denials.`);
   return report;
