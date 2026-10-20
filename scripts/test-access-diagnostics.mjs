@@ -15,6 +15,9 @@ async function check(url,body){
 const product='https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534';
 assert.equal((await check(product,'Access Denied')).reason,'access-check');
 assert.equal((await check(product,'Access Denied')).accessCheckDetail,'access-denied-message');
+assert.equal((await check(product,'요청하신 페이지의 사용권한이 없습니다.')).accessCheckDetail,'access-denied-message');
+assert.equal((await check(product,'사용권한이 제한된 페이지입니다.')).reason,'access-check');
+assert.equal((await check(product.replace('95415897534','123'),'사용권한이 없습니다')).reason,'product-identifiers-mismatch');
 assert.equal((await check(product,'로봇이 아닙니다')).accessCheckDetail,'verification-message');
 assert.equal((await check(product,'잠시 후 다시 시도')).accessCheckDetail,'temporary-message');
 assert.equal((await check('https://www.coupang.com/error','정상 페이지')).reason,'product-identifiers-mismatch');
@@ -52,6 +55,18 @@ assert.equal(d.accessDiagnosticTabs.get(7).responses.length,6);
 let evidence=await d.captureAccessDiagnostic(7);
 assert.equal(evidence.page.reference,'18.abcdef.1234567890.abcdef');assert.equal(evidence.page.navigationStatus,403);
 assert.equal(evidence.observerStatus,'registered');assert.equal(evidence.networkObservation,'observed');
+// Execute the actual fallback classifier; a previous 403 must not taint a later 200.
+const failed=(statuses,reason='price-not-found',ok=false)=>({ok,reason,accessDiagnostic:{responses:statuses.map(status=>({route:'product',event:'complete',status}))}});
+assert.equal(d.classifyAccessFailure(failed([403])).accessCheckDetail,'http-403');
+assert.equal(d.classifyAccessFailure(failed([429])).accessCheckDetail,'http-429');
+assert.equal(d.classifyAccessFailure(failed([403,200])).reason,'price-not-found');
+assert.equal(d.classifyAccessFailure(failed([403],'product-identifiers-mismatch')).reason,'product-identifiers-mismatch');
+assert.equal(d.classifyAccessFailure(failed([403],'ok',true)).reason,'ok');
+assert.equal(d.classifyAccessFailure({ok:false,reason:'price-not-found',accessDiagnostic:{page:{navigationStatus:403}}}).reason,'access-check');
+assert.equal(d.classifyAccessFailure(failed([])).reason,'price-not-found');
+d.document.body.innerText='사용권한이 없습니다 Ref: ABCDEF12_1234ABCD_'+ '1'.repeat(13);
+let permissionEvidence=d.readAccessPageDiagnostic();assert.equal(permissionEvidence.marker,'사용권한이 없습니다');assert.ok(permissionEvidence.reference);
+d.document.body.innerText='normal product '+ 'x'.repeat(2000)+' 사용권한이 없습니다';assert.equal(d.readAccessPageDiagnostic().marker,'');
 const serialized=JSON.stringify(evidence);for(const secret of ['secret','private','itemId','vendorItemId','https:'])assert.equal(serialized.includes(secret),false);
 d.document.body.innerText='ordinary page Reference #18.abcdef.1234567890.abcdef';d.performance.getEntriesByType=()=>[{responseStatus:0}];
 assert.equal(d.readAccessPageDiagnostic().reference,null);assert.equal(d.readAccessPageDiagnostic().navigationStatus,null);

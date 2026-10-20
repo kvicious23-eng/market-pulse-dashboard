@@ -72,7 +72,24 @@ while($true){Start-Sleep -Seconds 1}
   . (Join-Path $scripts 'supplier-daily.ps1')
   $mutex=Enter-MarketPulseRepositoryLock $fixture 1
   $mutex.ReleaseMutex();$mutex.Dispose()
-  Write-Host 'Git timeout/child cleanup, whole upload timeout, exhausted retry, next-slot reset and lock release passed.'
+  # Run the real worker/importer against an empty isolated download folder.
+  # While it waits for a result, independent inventory must acquire the repo lock.
+  $waitFolder=Join-Path $root 'empty-downloads';New-Item -ItemType Directory $waitFolder | Out-Null
+  $waitMarker=Join-Path $root 'price-waiting.txt'
+  $actual=Get-Content (Join-Path $repo 'scripts\import-extension-results.ps1') -Raw -Encoding UTF8
+  $actual=$actual.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'","`$resultFolder = '"+$waitFolder.Replace("'","''")+"'")
+  $actual=$actual.Replace('  Start-Sleep -Seconds 30',"  [IO.File]::WriteAllText('"+$waitMarker.Replace("'","''")+"','waiting');Start-Sleep -Seconds 30")
+  [IO.File]::WriteAllText($importer,$actual,(New-Object Text.UTF8Encoding($true)))
+  $arguments=@('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$runner,'-RepoPath',$fixture,'-Worker','-ExpectedSlotStart',$slot)
+  $waiter=$null
+  try {
+    $waiter=Start-Process powershell.exe -ArgumentList (($arguments | ForEach-Object {ConvertTo-MarketPulseArgument $_}) -join ' ') -WindowStyle Hidden -PassThru
+    for($i=0;$i -lt 50 -and -not (Test-Path $waitMarker);$i++){Start-Sleep -Milliseconds 100}
+    if(-not (Test-Path $waitMarker) -or $waiter.HasExited){throw 'Actual price worker did not reach the isolated collection wait.'}
+    $inventoryLock=Enter-MarketPulseRepositoryLock $fixture 1
+    $inventoryLock.ReleaseMutex();$inventoryLock.Dispose()
+  } finally {if($waiter){Stop-MarketPulseProcessTree $waiter;$waiter.Dispose()}}
+  Write-Host 'Git timeout/child cleanup, whole upload timeout, exhausted retry, next-slot reset and independent inventory lock access during actual price wait passed.'
 } finally {
   $env:MARKET_PULSE_UPLOAD_DEADLINE=$originalDeadline
   Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue

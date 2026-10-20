@@ -23,9 +23,8 @@ function Invoke-Git {
   return $result.Code
 }
 
-# Keep the C:\MarketPulse checkout and brand-generation template current before
-# importing a scan. This makes future shared-dashboard changes self-updating.
-Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
+. (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+# Collection/recovery waits do not own the shared repository publication lock.
 
 function Get-LatestResultPath {
   $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
@@ -106,6 +105,11 @@ if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
     throw 'Edge fallback did not produce a newer Edge scan; the blocked Chrome scan cannot be published.'
   }
 }
+
+# Serialize only the repository read/modify/push phase with inventory publication.
+$repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
+try {
+Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 
 # Payload v5 and scanner 1.9.18 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
@@ -909,3 +913,5 @@ if ($diffExit -eq 1) {
 }
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 Invoke-Git -Arguments @('push','origin','main') | Out-Null
+
+} finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }

@@ -162,8 +162,10 @@ if(typeof chrome!=='undefined'&&chrome.webRequest) {
 if(typeof chrome!=='undefined')chrome.tabs.onRemoved?.addListener(tabId=>accessDiagnosticTabs.delete(tabId));
 function readAccessPageDiagnostic() {
   const text=document.body?.innerText||'';
-  const marker=text.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i)?.[0]||'';
-  const reference=text.match(/Reference\s*#?\s*(\d{1,3}\.[a-f0-9]{1,32}\.\d{1,16}\.[a-f0-9]{1,32})(?![a-z0-9.])/i)?.[1]||null;
+  const marker=(text.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i)
+    ||(text.length<2000?text.match(/사용권한이 없습니다|사용권한이 제한된 페이지/):null))?.[0]||'';
+  const reference=text.match(/Reference\s*#?\s*(\d{1,3}\.[a-f0-9]{1,32}\.\d{1,16}\.[a-f0-9]{1,32})(?![a-z0-9.])/i)?.[1]
+    ||text.match(/Ref:\s*([a-z0-9]{8}_[a-z0-9]{8}_\d{13})(?![a-z0-9_])/i)?.[1]||null;
   const nav=typeof performance!=='undefined'?performance.getEntriesByType('navigation')[0]:null;
   return {marker:marker.toLowerCase(),reference:marker?reference:null,
     navigationStatus:Number.isInteger(nav?.responseStatus)&&nav.responseStatus>=100&&nav.responseStatus<=599?nav.responseStatus:null,
@@ -175,6 +177,18 @@ async function captureAccessDiagnostic(tabId) {
   try {page=(await withScanTimeout(chrome.scripting.executeScript({target:{tabId},func:readAccessPageDiagnostic}),5000,'access-diagnostic'))[0]?.result||null;}catch{}
   return {version:1,observedAt:new Date().toISOString(),openedAt:state?.openedAt||null,
     observerStatus:accessObserverStatus,networkObservation:state?.responses.length?'observed':'not-observed',responses:state?.responses.slice()||[],page};
+}
+function classifyAccessFailure(scan) {
+  // Identity mismatches and a verified price are never overridden by network history.
+  if(scan?.ok||scan?.reason!=='price-not-found')return scan;
+  const diagnostic=scan.accessDiagnostic;
+  const response=(diagnostic?.responses||[]).filter(r=>r.route==='product'&&r.event==='complete').at(-1);
+  const status=response?.status??diagnostic?.page?.navigationStatus;
+  if(status===403||status===429) {
+    scan.reason='access-check';
+    scan.accessCheckDetail=status===403?'http-403':'http-429';
+  }
+  return scan;
 }
 async function saveAccessDiagnosticArchive(payload) {
   const relevant=payload.results.some(row=>row.accessDiagnostics?.some(attempt=>attempt.reason==='access-check'||attempt.diagnostic?.page?.marker||attempt.diagnostic?.responses?.some(response=>response.event==='error'||response.status===403||response.status===429||response.status>=500)))
@@ -290,7 +304,8 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   if (actualProductId!==String(expectedProductId)||actualItemId!==String(expectedItemId)||actualVendorItemId!==String(expectedVendorItemId)) {
     return {ok:false,reason:'product-identifiers-mismatch',actualProductId,actualItemId,actualVendorItemId};
   }
-  const accessMarker=bodyText.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i);
+  const accessMarker=bodyText.match(/Access Denied|비정상적인 접근|잠시 후 다시 시도|로봇이 아닙니다|captcha/i)
+    ||(bodyText.length<2000?bodyText.match(/사용권한이 없습니다|사용권한이 제한된 페이지/):null);
   if (accessMarker) {
     const marker=accessMarker[0].toLowerCase();
     const accessCheckDetail=/잠시 후 다시 시도/.test(marker)?'temporary-message':
@@ -930,6 +945,7 @@ async function scanCoupangTab(tabId,target) {
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
   if(accessDiagnosticTabs.has(tabId))scan.accessDiagnostic=await captureAccessDiagnostic(tabId);
+  classifyAccessFailure(scan);
   if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
   if (!scan.cardClickPoint) {
     scan.cardInteractionStatus='card-click-target-not-found';

@@ -3,7 +3,13 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const validTime = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
-const accessBlocked = attempt => attempt?.reason === 'access-check';
+const accessBlocked = attempt => {
+  if(attempt?.reason==='access-check')return true;
+  // Older scanners mislabeled short permission pages as price-not-found.
+  const responses=(attempt?.diagnostic?.responses||[]).filter(r=>!r.event||r.event==='complete');
+  const status=responses.at(-1)?.status??attempt?.diagnostic?.page?.navigationStatus;
+  return status===403||status===429;
+};
 const safeMtm = value => String(value || '').replace(/[\r\n\t]/g, ' ').slice(0, 100);
 const eventTime = attempt => {
   const responses = (attempt?.diagnostic?.responses || []).filter(r => validTime(r.at));

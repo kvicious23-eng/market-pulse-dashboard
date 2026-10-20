@@ -18,9 +18,7 @@ function Write-UploadLog([string]$Message) {
   Add-Content $logPath -Encoding UTF8 -Value ("[$([DateTimeOffset]::Now.ToString('o'))] $Message")
 }
 if ($Worker) {
-  $repositoryMutex=$null
   try {
-    $repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
     Write-UploadLog 'Scheduled upload worker started.'
     Start-Transcript -Path $logPath -Append | Out-Null
     try { & (Join-Path $RepoPath 'scripts\import-extension-results.ps1') -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $ExpectedSlotStart }
@@ -30,7 +28,7 @@ if ($Worker) {
   } catch {
     Write-UploadLog ("Scheduled upload failed: "+$_.ToString())
     exit 1
-  } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }
+  }
 }
 if (-not $ExpectedSlotStart) { Write-UploadLog 'No current upload slot; skipped.';exit 0 }
 # A delayed start must also finish before the next collection slot.
