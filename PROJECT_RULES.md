@@ -748,3 +748,12 @@ Excel 내보내기 형식은 `.xlsx`이다. 상단의 가격 히스토리 다운
 - 저장오류로이미예약된1회재시도는남은작업이정리된후에만한번실행한다. 잔여작업이끝나지않으면기존중단미확인/시간예산정책으로실패를보존하며브라우저전체를강제종료하지않는다. 일반Chrome및슬롯없는Whale수동수집의가격/주문서/카드로직은변경하지않는다. 새격리검사를포함한LF/CRLF각27개JS와WindowsPS검사를배포기준으로삼는다. 전체수동실측의실행버전과최종보호버전의활성화/격리검증을별도로기록한다.
 
 - 버전혼용차단: primary페이지는코드의최소실행버전1.9.47과실제manifest/worker일치를확인한뒤에만수집을요청하고감시응답의버전도대조한다. 잔여작업추적이없는1.9.46워커의비실행영수증은새워커실패Edge전환근거로받지않는다. 소스수신후수집중재로드금지와세브라우저별도verify를유지한다.
+
+
+### 2026-10-21 적용·실측 증거와 남은 운영 검증
+
+- 사용자 전체 공개/적용 승인 후1.9.46 구현26687fbb의[Actions39548556004](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/39548556004)는update/windows_history/deploy성공,Pages완료14:16:59KST였다. PC의Chrome·Edge·Whale별도verify에서14:17에manifest/worker1.9.46을확인했다.
+- 실제Whale1.9.46서비스워커의전체15종수동검증은14:19:26~14:34:33KST에실행ID65e073e158e248c29fc7d939f7dec88a로통과했다. 정상12·품절3(PHN16S-71-99SN/PHN16-73-9581/83N30046KR),상품실패0·구매가능12종주문서미확인0·카드미확인0이었다. ANV16주문서captured와카드1%·최대1500원을확인했다. scanSlot=null인private validation이며운영가격으로가져오지않았다. 이결과를최종1.9.47전체실수집이나12시예약성공으로표현하지않는다.
+- 최종1.9.47의남은비동기작업보호·버전혼용차단과격리검사수정은56dc03e6에포함됐다. [Actions39550946869](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/39550946869)의update/windows_history/deploy모두성공,Pages완료14:42:49KST다. LF/CRLF각27개JS와WindowsPS12개검사를통과했다. 중간CI에서고정DateTimeOffset과실제DateTime을섞던테스트시계결함을수정했으며운영수집실패와구분한다.
+- PC수신후수집비실행을확인하는공식maintenance로세브라우저를각각재로드하고14:45:42KST별도verify에서manifest/worker1.9.47·관측registered·webRequest권한을확인했다. Chrome가격알람08/16/20세개,Edge/Whale0개다. 14:46:03에는실제Whale primary와Edge fallback의짧은URL→PC요청파일→전체15종전달→별도영수증transport-verified를각각worker1.9.47로확인했다. verify=1전용으로수집/실행잠금/운영가격을변경하지않았으며이미지난12시요청의읽기검증이지늦은예약시작이아니다.
+- 기존Chrome12시JSON불변과Whale운영완료JSON0개를확인하고Windows다음수집16:00·게시16:30을유지했다. 공용복구분기·중복방지·시간예산은격리검사통과이며자연오류발생후실제복구성공과다르다. 다음12시Windows자연예약→Whale전체완료JSON→업로드→Pages와자연워커/탭/저장오류복구는아직별도운영검증대상이다. Chrome접근차단원인이나브라우저분산가설의효과를이번성공만으로확정하지않는다. 원시진단/세션정보/검증가격은PC에만보관한다.
