@@ -106,6 +106,7 @@ try {
    $s=Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot $name)
    $s=$s.Replace("(Join-Path `$PSScriptRoot 'edge-fallback.ps1')","(Join-Path `$global:WhaleFlowScripts 'edge-fallback.ps1')")
    $s=$s.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('2026-10-21T12:30:00+09:00'))")
+   $s=$s.Replace('[DateTime]::UtcNow',"([DateTimeOffset]::Parse('2026-10-21T12:30:00+09:00').UtcDateTime)")
    $s=$s.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:WhaleFlowFolder')
    $s=$s.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$resultFolder=$global:WhaleFlowFolder')
    $s|Set-Content (Join-Path $scripts $name) -Encoding UTF8
