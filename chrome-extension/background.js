@@ -98,6 +98,13 @@ async function withTabEditRetry(operation) {
 // These windows/tabs belong to this collection; never resize unrelated user windows.
 async function prepareWhaleScanWindow(windowState) {
   if(!/Whale\//.test(navigator.userAgent))return;
+  if(Number.isInteger(windowState.windowId)) {
+    try {await withScanTimeout(chrome.windows.get(windowState.windowId),10000,'whale-window-check');}
+    catch(error) {
+      if(!/No window with id|No window/i.test(String(error))||(windowState.recreated||0)>=1)throw error;
+      windowState.windowId=null;windowState.recreated=(windowState.recreated||0)+1;
+    }
+  }
   if(!Number.isInteger(windowState.windowId)) {
     const w=await withScanTimeout(withTabEditRetry(()=>chrome.windows.create({url:'about:blank',type:'normal',width:1280,height:900,focused:true})),15000,'whale-scan-window');
     if(!Number.isInteger(w?.id))throw Error('whale-scan-window-id-missing');
@@ -286,25 +293,29 @@ async function saveCompletedScan(payload) {
       const old=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
       const same=old?.scanSlot===payload.scanSlot;
       const firstStartedAt=same?old.firstStartedAt:payload.startedAt;
-      const deadlineAt=new Date(scanSaveDeadline(firstStartedAt,payload.scanSlot)).toISOString();
+      let deadlineAt=new Date(scanSaveDeadline(firstStartedAt,payload.scanSlot)).toISOString();
       const chromeRetries=same?old.chromeRetries:0;
-      const canRetry=chromeRetries<1&&Date.now()<Date.parse(deadlineAt);
+      const primary=(await chrome.storage.local.get('primaryRequest')).primaryRequest;
+      if(payload.browser==='whale'&&primary?.requestId===payload.primaryRequestId&&primary.deadlineAt)deadlineAt=new Date(Math.min(Date.parse(deadlineAt),Date.parse(primary.deadlineAt))).toISOString();
+      const primaryUsed=payload.browser==='whale'&&payload.primaryRequestId===primary?.requestId?(primary.retryCount||0):0;
+      const canRetry=Math.max(chromeRetries,primaryUsed)<1&&Date.now()<Date.parse(deadlineAt);
       const proof={version:1,browser:payload.browser,primaryRequestId:payload.primaryRequestId,reason:'file-save-error',error:'FILE_ACCESS_DENIED',saveAttempts:2,
         stage:canRetry?'chrome-retry-queued':Date.now()<Date.parse(deadlineAt)?'edge-ready':'deadline-exhausted',
-        chromeRetries:canRetry?1:chromeRetries,scanSlot:payload.scanSlot,runId:payload.runId,
+        chromeRetries:canRetry?1:Math.max(chromeRetries,primaryUsed),scanSlot:payload.scanSlot,runId:payload.runId,
         firstStartedAt,startedAt:payload.startedAt,completedAt:payload.completedAt,
         deadlineAt,extensionVersion:payload.extensionVersion,targetCount:payload.targetCount,targets:scanSaveTargets(payload.results)};
       await chrome.storage.local.set({scanSaveRecovery:proof});
       // A unique proof avoids overwriting another recovery signal. Failure to
       // save this evidence never authorizes Windows to guess the cause.
       await downloadScanPayload(proof,`MarketPulse/scan-save-recovery-${payload.runId}.json`).catch(()=>{});
+      if(canRetry&&primaryUsed===0&&payload.browser==='whale'&&primary?.requestId===payload.primaryRequestId)await chrome.storage.local.set({primaryRequest:{...primary,retryCount:1}});
       if(canRetry)queuedSaveRetry={slot:payload.scanSlot,deadlineAt,primaryRequestId:payload.primaryRequestId};
       throw originalError;
     }
   }
   const prior=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
   await chrome.storage.local.set({pendingScanResult:null,pendingScanResults:[],
-    lastScanSave:{scanSlot:payload.scanSlot,runId:payload.runId,filename:savedFilename,method:originalError?'unique-file':'canonical',originalError:originalError?'FILE_ACCESS_DENIED':null},
+    lastScanSave:{scanSlot:payload.scanSlot,primaryRequestId:payload.primaryRequestId||null,runId:payload.runId,filename:savedFilename,method:originalError?'unique-file':'canonical',originalError:originalError?'FILE_ACCESS_DENIED':null},
     scanSaveRecovery:prior?.scanSlot===payload.scanSlot?{...prior,stage:'complete'}:null});
 }
 
@@ -1133,14 +1144,17 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
   if(lock.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-worker-restart',lastScanErrorAt:new Date().toISOString()});
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const saveRecovery=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
-  const recoveryDeadline=!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running'].includes(saveRecovery.stage)?Date.parse(saveRecovery.deadlineAt):Infinity;
-  const checkRecoveryBudget=()=>{if(Date.now()>=recoveryDeadline)throw Error('scan-save-recovery-budget-exhausted');};
+  const primaryState=primaryRequestId?(await chrome.storage.local.get('primaryRequest')).primaryRequest:null;
+  const primaryDeadline=primaryRequestId?Date.parse(primaryState?.deadlineAt||new Date(Date.parse(scanSlot)+120*60000).toISOString()):Infinity;
+  const recoveryDeadline=Math.min(primaryDeadline,!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running'].includes(saveRecovery.stage)?Date.parse(saveRecovery.deadlineAt):Infinity);
+  const checkRecoveryBudget=()=>{if(primaryRequestId&&primaryStopRequestId===primaryRequestId)throw Error('primary-supervisor-stop');if(Date.now()>=recoveryDeadline)throw Error('scan-save-recovery-budget-exhausted');};
   if(!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.stage==='chrome-retry-queued')await chrome.storage.local.set({scanSaveRecovery:{...saveRecovery,stage:'chrome-retry-running'}});
   const scanStartedAt = new Date().toISOString();
   const runId=recovery?.runId||crypto.randomUUID().replaceAll('-','');
   const results = [];
   const scanWindowState={windowId:null,anchorTabIds:[]};
   const progress=async (mtm,stage,total)=>{
+    checkRecoveryBudget();
     await withScanTimeout(chrome.storage.local.set({scanProgress:{mtm,stage,completed:results.length,total,startedAt:scanStartedAt,updatedAt:new Date().toISOString()}}),10000,'scan-progress').catch(()=>{});
   };
   const closeChildTabs = async (openerTabId) => {
@@ -1721,6 +1735,8 @@ async function diagnoseCheckoutDiscounts() {
 
 let activeScanPromise=null;
 let activeScanSlot=null;
+let activeScanRequestId=null;
+let primaryStopRequestId=null;
 let pendingScanSlot=null;
 let queuedSaveRetry=null;
 
@@ -1729,7 +1745,7 @@ function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequ
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
-  activeScanSlot=slot;
+  activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;
   activeScanPromise=scanAll(slot,recovery,primaryRequestId);
   activeScanPromise.then(finishScan,finishScan);
   return true;
@@ -1737,7 +1753,7 @@ function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequ
 
 function finishScan() {
   activeScanPromise=null;
-  activeScanSlot=null;
+  activeScanSlot=null;activeScanRequestId=null;
   const pending=pendingScanSlot;
   pendingScanSlot=null;
   const saveRetry=queuedSaveRetry;
@@ -1818,6 +1834,21 @@ chrome.alarms.onAlarm.addListener(async alarm=>{
   }).catch(()=>{});
 });
 chrome.action.onClicked.addListener(()=>requestScan(/Whale\//.test(navigator.userAgent)?null:undefined));
+function isPrimarySender(sender) {return /Whale\//.test(navigator.userAgent)&&sender?.url?.split('?')[0]===chrome.runtime.getURL('primary.html');}
+function validPrimaryIdentity(message) {return /^[a-f0-9]{32}$/.test(message.requestId||'')&&/^\d{4}-\d{2}-\d{2}T12:00\+09:00$/.test(message.scanSlot||'')&&message.scanSlot.slice(0,10)>='2026-10-21';}
+function primarySavedForRequest(state,message) {
+  const saved=state.lastScanSave;
+  return Boolean(saved?.scanSlot===message.scanSlot&&saved?.primaryRequestId===message.requestId&&/^[a-f0-9]{32}$/.test(saved?.runId||''));
+}
+async function primaryRecoveryState(message) {
+  const state=await chrome.storage.local.get(['primaryRequest','lastResult','lastScanSave','scanProgress','lastScanError']);
+  const q=state.primaryRequest,exists=q?.scanSlot===message.scanSlot&&q.requestId===message.requestId;
+  return {ok:true,browser:'whale',scanSlot:message.scanSlot,requestId:message.requestId,workerVersion:chrome.runtime.getManifest().version,
+    running:Boolean(activeScanPromise||fallbackCatalogPending),requestRunning:Boolean(activeScanPromise&&exists&&activeScanSlot===message.scanSlot&&activeScanRequestId===message.requestId),
+    requestExists:Boolean(exists),completed:primarySavedForRequest(state,message),retryCount:exists?(q.retryCount||0):0,handoff:Boolean(exists&&q.handoff),
+    deadlineAt:exists?(q.deadlineAt||new Date(Date.parse(q.scanSlot)+120*60000).toISOString()):null,firstRequestedAt:exists?(q.firstRequestedAt||q.scanSlot):null,
+    progress:exists?state.scanProgress:null,lastError:exists?state.lastScanError:null};
+}
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
@@ -1834,24 +1865,49 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
     return true;
   }
+  if(['GET_PRIMARY_STATE','STOP_PRIMARY_SCAN','PREPARE_PRIMARY_HANDOFF'].includes(message?.type)) {
+    if(!isPrimarySender(_sender)||!validPrimaryIdentity(message)){sendResponse({ok:false,reason:'invalid-primary-request'});return;}
+    primaryRecoveryState(message).then(async state=>{
+      if(message.type==='STOP_PRIMARY_SCAN'&&state.requestRunning)primaryStopRequestId=message.requestId;
+      if(message.type==='PREPARE_PRIMARY_HANDOFF') {
+        if(state.running||state.completed||!state.requestExists||state.retryCount!==1||Date.now()>=Date.parse(state.deadlineAt))return {ok:false,reason:'unsafe-handoff'};
+        const data=await chrome.storage.local.get('primaryRequest');
+        await chrome.storage.local.set({primaryRequest:{...data.primaryRequest,handoff:true}});
+        return {...state,handoff:true,status:'edge-ready'};
+      }
+      return state;
+    }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));return true;
+  }
   if(['RUN_PRIMARY_SCAN','CHECK_PRIMARY_TRANSPORT'].includes(message?.type)) {
     const slot=message.scanSlot,requestId=message.requestId;
-    if(!/Whale\//.test(navigator.userAgent)||_sender.url?.split('?')[0]!==chrome.runtime.getURL('primary.html')||
-      !/^[a-f0-9]{32}$/.test(requestId||'')||!/^\d{4}-\d{2}-\d{2}T12:00\+09:00$/.test(slot||'')||
-      slot.slice(0,10)<'2026-10-21'||
-      !message.products?.length||validateProductCatalog(message.products).length) {
+    if(!isPrimarySender(_sender)||!validPrimaryIdentity(message)||!Array.isArray(message.products)||validateProductCatalog(message.products).length) {
       sendResponse({ok:false,reason:'invalid-primary-request'});return;
     }
     if(message.type==='CHECK_PRIMARY_TRANSPORT'){sendResponse({ok:true,version:chrome.runtime.getManifest().version,targetCount:message.products.length});return;}
-    if(slot!==currentScheduledScanSlot()||!recentScanSlot(slot)){sendResponse({ok:false,reason:'outside-start-window'});return;}
-    if(activeScanPromise||fallbackCatalogPending){sendResponse({ok:false,reason:'already-running'});return;}
+    if(fallbackCatalogPending){sendResponse({ok:false,reason:'request-pending'});return;}
     fallbackCatalogPending=true;
-    chrome.storage.local.get(['primaryRequest','lastResult']).then(async state=>{
-      if(state.primaryRequest?.scanSlot===slot)return {ok:true,reason:'already-requested'};
-      await chrome.storage.local.set({products:message.products,primaryRequest:{scanSlot:slot,requestId}});
-      return requestScan(slot,null,requestId)?{ok:true}:{ok:false,reason:'already-running'};
+    chrome.storage.local.get(['primaryRequest','lastResult','lastScanSave']).then(async state=>{
+      const prior=state.primaryRequest?.scanSlot===slot?state.primaryRequest:null;
+      if(prior&&prior.requestId!==requestId)return {ok:false,reason:'request-id-mismatch'};
+      if(prior?.handoff)return {ok:false,reason:'edge-handoff-started'};
+      if(primarySavedForRequest(state,message))return {ok:true,reason:'already-complete'};
+      if(activeScanPromise)return activeScanSlot===slot&&activeScanRequestId===requestId?{ok:true,reason:'already-running'}:{ok:false,reason:'busy-unrelated'};
+      if(prior) {
+        if(!message.retry)return {ok:false,reason:'interrupted-retry-required'};
+        if((prior.retryCount||0)>=1)return {ok:false,reason:'retry-exhausted'};
+        if(Date.now()>=Date.parse(prior.deadlineAt||new Date(Date.parse(slot)+120*60000).toISOString())||slot!==currentScheduledScanSlot())return {ok:false,reason:'outside-recovery-budget'};
+      } else if(slot!==currentScheduledScanSlot()||!recentScanSlot(slot))return {ok:false,reason:'outside-start-window'};
+      const firstAt=prior?.firstRequestedAt||message.requestedAt||slot;
+      if(!Number.isFinite(Date.parse(firstAt))||Date.parse(firstAt)<Date.parse(slot)||Date.parse(firstAt)>Date.parse(slot)+75*60000||Date.parse(firstAt)>Date.now()+120000)return {ok:false,reason:'invalid-request-time'};
+      const deadlineAt=prior?.deadlineAt||new Date(Math.min(Date.parse(firstAt)+120*60000,Date.parse(slot)+4*3600000)).toISOString();
+      await chrome.storage.local.set({products:message.products,primaryRequest:{scanSlot:slot,requestId,firstRequestedAt:firstAt,deadlineAt,retryCount:prior?1:0,handoff:false}});
+      return requestScan(slot,null,requestId)?{ok:true,reason:prior?'retry-started':'started'}:{ok:false,reason:'already-running'};
     }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
+  }
+  if(message?.type==='CHECK_FALLBACK_TRANSPORT') {
+    const valid=isEdgeBrowser&&_sender?.url?.split('?')[0]===chrome.runtime.getURL('fallback.html')&&Array.isArray(message.products)&&!validateProductCatalog(message.products).length;
+    sendResponse(valid?{ok:true,version:chrome.runtime.getManifest().version,targetCount:message.products.length}:{ok:false,reason:'invalid-fallback-transport'});return;
   }
   if (message?.type==='RUN_FALLBACK') {
     const errors=validateProductCatalog(message.products);
@@ -1860,7 +1916,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     fallbackCatalogPending=true;
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
-      !['chrome-process-exit','whale-process-exit','access-check','file-save-error'].includes(recovery.reason)||
+      !['chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error'].includes(recovery.reason)||
       !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;

@@ -31,10 +31,16 @@ try {
       Write-ScanRecoveryJson $requestPath $request
     } else {Assert-WhalePrimaryRequest $request $slot $catalog}
     if(Get-SavedPrimaryResultPath $folder $slot $RepoPath){Write-WatchLog "Slot=$slot; Whale already completed; duplicate skipped.";exit 0}
-    # Keep the command URL short: Whale silently drops the full-catalog URL.
-    Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\noon-request.json') $request
-    $url="chrome-extension://$($profiles[0].Id)/primary.html?slot=$([uri]::EscapeDataString($slot))&requestId=$($request.requestId)"
-    Start-Process $chrome -ArgumentList @("--profile-directory=`"$($profiles[0].Profile)`"",'--new-window',$url)
+    function Start-WhalePrimaryPage {
+      if([int]$request.launchAttempts -ge 2){throw 'Whale primary transport launch budget exhausted.'}
+      $request|Add-Member -NotePropertyName launchAttempts -NotePropertyValue ([int]$request.launchAttempts+1) -Force
+      Write-ScanRecoveryJson $requestPath $request
+      Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\noon-request.json') $request
+      $url="chrome-extension://$($profiles[0].Id)/primary.html?slot=$([uri]::EscapeDataString($slot))&requestId=$($request.requestId)&launch=$($request.launchAttempts)"
+      Start-Process $chrome -ArgumentList @("--profile-directory=`"$($profiles[0].Profile)`"",'--new-window',$url)
+    }
+    if([int]$request.launchAttempts -lt 2){Start-WhalePrimaryPage}
+
   } else {
     if (-not $chrome) { throw 'Google Chrome is not installed.' }
     Start-Process $chrome -ArgumentList '--no-first-run --new-window "chrome://newtab/"'
@@ -43,7 +49,7 @@ try {
   $seen=$false;$absent=0
   $launchAt=[DateTime]::UtcNow
   $session=(Get-Process -Id $PID).SessionId
-  $deadline=[DateTime]::UtcNow.AddMinutes($MonitorMinutes)
+  $deadline=if($primaryBrowser -eq 'whale'){([DateTimeOffset]::Parse($request.requestedAt).AddHours(2)).UtcDateTime}else{[DateTime]::UtcNow.AddMinutes($MonitorMinutes)}
   while ([DateTime]::UtcNow -lt $deadline) {
     $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
     if ($receipt -and $receipt.scanSlot -ceq $slot) { Write-WatchLog "Slot=$slot; existing recovery state=$($receipt.state); no second handoff.";exit 0 }
@@ -70,7 +76,19 @@ try {
     }
     if($primaryBrowser -eq 'whale') {
       $accepted=Read-ScanRecoveryJson (Join-Path $folder 'whale-primary-acceptance.json')
-      Assert-WhalePrimaryStarted $accepted $witness $request $launchAt
+      $action=Get-WhalePrimaryAction $accepted $witness $request $launchAt
+      if($action -eq 'relaunch') {
+        Write-WatchLog "Slot=$slot; primary transport/liveness retry; same request ID; no Chrome substitution."
+        Start-WhalePrimaryPage;$launchAt=[DateTime]::UtcNow
+      } elseif($action -eq 'edge') {
+        $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
+        Assert-WhalePrimaryFailure $accepted $slot $catalog $request
+        $minutes=[math]::Min(40,[math]::Floor(([DateTimeOffset]::Parse($accepted.deadlineAt)-[DateTimeOffset]::UtcNow).TotalMinutes))
+        if($minutes -lt 1){throw 'No primary recovery budget remains for Edge.'}
+        Write-WatchLog "Slot=$slot; Whale worker explicitly inactive after one retry; handoff frozen; requesting full Edge recollection."
+        & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -PrimaryFailure $accepted -PrimaryBrowser whale -TimeoutMinutes $minutes
+        exit 0
+      } elseif($action -eq 'fail') {throw 'Whale primary start/liveness failed; no confirmed safe handoff. Inspect whale-primary-acceptance.json.'}
     }
     Start-Sleep -Seconds 10
   }

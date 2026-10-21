@@ -79,7 +79,7 @@ function Start-Process {
   foreach ($pair in ([uri]$url).Query.TrimStart('?').Split('&')) {
     $fields=$pair.Split('=',2);$query[$fields[0]]=[uri]::UnescapeDataString($fields[1])
   }
-  $sent=$query.catalog | ConvertFrom-Json;$sent=@($sent);$context=$query.recovery | ConvertFrom-Json
+  $transport=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\edge-request.json');$sent=@($transport.products);$context=$transport.recovery
   if ($query.slot -cne $slot -or $sent.Count -ne 2 -or $context.reason -ne $global:RecoveryExpectedReason) {throw 'Wrong handoff context.'}
   foreach ($product in $sent) {$product | Add-Member ok $true -Force}
   $edgePayload=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$query.slot;runId=$context.runId;recovery=$context;

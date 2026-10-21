@@ -154,6 +154,32 @@ function Assert-WhalePrimaryStarted($Accepted,$Witness,$Request,[DateTimeOffset]
   $matching=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
   if(-not $matching -and ($Now-$LaunchAt).TotalSeconds -ge 120) {throw 'Whale did not save a matching start witness within 120 seconds; transport/start failed; no inferred Edge handoff.'}
 }
+function Get-WhalePrimaryAction($Health,$Witness,$Request,[DateTimeOffset]$LaunchAt,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  $same=$Health -and $Health.scanSlot -ceq $Request.scanSlot -and $Health.requestId -ceq $Request.requestId -and [int]$Health.launchAttempt -eq [int]$Request.launchAttempts
+  $started=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
+  if($same) {
+    if($Health.status -eq 'edge-ready'){return 'edge'}
+    if($Health.status -in @('stalled-unconfirmed','deadline-exhausted')){return 'fail'}
+    if($Health.status -eq 'rejected') {
+      if($Health.reason -in @('primary-api-timeout','state-response-missing') -and [int]$Request.launchAttempts -lt 2){return 'relaunch'}
+      return 'fail'
+    }
+  }
+  if(-not $started -and ($Now-$LaunchAt).TotalSeconds -ge 120){if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'fail'}
+  if($started -and ($Now-$LaunchAt).TotalSeconds -ge 180 -and (-not $same -or ($Now-[DateTimeOffset]::Parse([string]$Health.at)).TotalSeconds -gt 180)) {
+    if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'fail'
+  }
+  return 'wait'
+}
+function Assert-WhalePrimaryFailure($Failure,[string]$Slot,$Catalog,$Request,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  Assert-WhalePrimaryRequest $Request $Slot $Catalog $Now
+  if(-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -cne 'whale' -or $Failure.scanSlot -cne $Slot -or $Failure.requestId -cne $Request.requestId -or
+    $Failure.status -cne 'edge-ready' -or $Failure.handoff -ne $true -or $Failure.running -ne $false -or $Failure.completed -ne $false -or $Failure.requestExists -ne $true -or
+    [int]$Failure.retryCount -ne 1 -or [int]$Failure.targetCount -ne @($Request.targets).Count -or [version]$Failure.workerVersion -lt [version]'1.9.46'){throw 'Unconfirmed Whale worker failure; no Edge handoff.'}
+  $at=[DateTimeOffset]::Parse([string]$Failure.at);$end=[DateTimeOffset]::Parse([string]$Failure.deadlineAt)
+  $requestAt=[DateTimeOffset]::Parse([string]$Request.requestedAt)
+  if($at -lt $requestAt -or $at -gt $Now.AddSeconds(2) -or ($Now-$at).TotalSeconds -gt 180 -or $end -le $Now -or $end -gt $requestAt.AddHours(2) -or $end -gt [DateTimeOffset]::Parse($Slot).AddHours(4)) {throw 'Whale failure evidence is stale or outside the recovery budget.'}
+}
 function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   if ((Get-PrimaryScanBrowser $Slot) -ne 'whale' -or -not $Request -or $Request.version -ne 1 -or $Request.browser -ne 'whale' -or
       $Request.scanSlot -cne $Slot -or $Request.requestId -notmatch '^[a-f0-9]{32}$') {throw 'Invalid Whale noon request.'}
@@ -168,7 +194,6 @@ function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOff
   }
   $slotAt=[DateTimeOffset]::Parse($Slot);$requested=[DateTimeOffset]::Parse([string]$Request.requestedAt)
   if ($requested -lt $slotAt -or $requested -gt $slotAt.AddMinutes(75) -or $requested -gt $Now.AddMinutes(2)) {throw 'Whale request is outside its slot.'}
-  if (@($Request.targets).Count -lt 1) {throw 'Empty Whale noon request.'}
   Assert-ScanCatalog -Catalog $Catalog -Results @($Request.targets)
 }
 function Get-SavedPrimaryResultPath([string]$Folder,[string]$Slot,[string]$RepoPath,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {

@@ -49,6 +49,19 @@ try {
  Assert-EdgeRecoveryResult $edge $receipt @($row)
  $edge.recovery.primaryRequestId='e'*32;Reject {Assert-EdgeRecoveryResult $edge $receipt @($row)}
  $edge.recovery.primaryRequestId=$request.requestId;$edge.results=@();Reject {Assert-EdgeRecoveryResult $edge $receipt @($row)}
+ $request|Add-Member launchAttempts 1 -Force
+ $qHealth=[pscustomobject]@{scanSlot=$slot;requestId=$request.requestId;launchAttempt=1;status='running';at=$now.ToString('o')}
+ if((Get-WhalePrimaryAction $null $null $request $now.AddMinutes(-3) $now) -ne 'relaunch'){throw 'Missing startup did not get one bounded transport retry.'}
+ $request.launchAttempts=2
+ if((Get-WhalePrimaryAction $null $null $request $now.AddMinutes(-3) $now) -ne 'fail'){throw 'Missing startup allowed an unbounded retry.'}
+ $request.launchAttempts=1
+ $proof=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.46';at=$now.ToString('o');deadlineAt=$now.AddMinutes(60).ToString('o')}
+ Assert-WhalePrimaryFailure $proof $slot $catalog $request $now
+ $proof.running=$true;Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now};$proof.running=$false
+ $proof.retryCount=0;Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now};$proof.retryCount=1
+ $proof.at=$now.AddMinutes(-4).ToString('o');Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now}
+ $empty=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=('e'*32);requestedAt=$request.requestedAt;targets=@()}
+ Assert-WhalePrimaryRequest $empty $slot ([pscustomobject]@{products=@()}) $now
  Write-Host 'Whale noon routing, manual isolation, request/catalog/count/version/time admission, save proof and full Edge correlation passed.'
 } finally {Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue}
 
@@ -72,7 +85,7 @@ function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
    $request=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\noon-request.json')
    if($request.requestId -cne $q.requestId -or $request.scanSlot -cne $q.slot){throw 'Runtime request transport mismatch.'}
    $products=@($request.targets)
- }else{$products=$q.catalog|ConvertFrom-Json;$products=@($products)}
+ }else{$transport=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\edge-request.json');$products=@($transport.products);$q.recovery=($transport.recovery|ConvertTo-Json -Compress)}
  if($products.Count -ne 1){throw 'Wrong full catalog transport.'}
  if($FilePath -match 'whale.exe$'){
    $global:WhaleFlowLaunches++
@@ -127,6 +140,13 @@ try {
  if($global:WhaleEdgeLaunches -ne 3 -or $receipt.state -ne 'result-ready' -or $receipt.reason -ne 'file-save-error'){throw 'Whale save recovery flow failed.'}
  Invoke-ScanSaveRecovery $temp $global:WhaleFlowFolder $request.scanSlot
  if($global:WhaleEdgeLaunches -ne 3){throw 'Whale save handoff duplicated.'}
+ Remove-Item (Join-Path $temp 'reports\edge-recovery.json') -Force
+ $failed=[pscustomobject]@{version=1;browser='whale';scanSlot=$request.scanSlot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.46';at='2026-10-21T12:30:00+09:00';deadlineAt='2026-10-21T14:30:00+09:00'}
+ & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
+ $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+ if($global:WhaleEdgeLaunches -ne 4 -or $receipt.reason -ne 'whale-primary-failed' -or $receipt.state -ne 'result-ready'){throw 'Explicit inactive worker failure did not recover through Edge.'}
+ & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
+ if($global:WhaleEdgeLaunches -ne 4){throw 'Worker-failure Edge handoff duplicated.'}
  Write-Host 'Isolated Whale launch/catalog/witness, exit/access/save-error -> full Edge receipt -> importer admission and handoff deduplication passed; no live browser touched.'
 } finally {
  $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocalAppData

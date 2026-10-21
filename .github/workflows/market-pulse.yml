@@ -118,6 +118,8 @@ jobs:
           node --check dist/xlsx-export.js
           node --check chrome-extension/background.js
           node --check chrome-extension/fallback.js
+          node --check chrome-extension/primary.js
+          node --check chrome-extension/primary-supervisor.js
           node --check chrome-extension/options.js
           node --check chrome-extension/popup.js
           node --input-type=module --check < supplier-hub-extension/daily-resume.js
