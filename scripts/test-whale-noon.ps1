@@ -55,7 +55,7 @@ try {
  $request.launchAttempts=2
  if((Get-WhalePrimaryAction $null $null $request $now.AddMinutes(-3) $now) -ne 'fail'){throw 'Missing startup allowed an unbounded retry.'}
  $request.launchAttempts=1
- $proof=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.46';at=$now.ToString('o');deadlineAt=$now.AddMinutes(60).ToString('o')}
+ $proof=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.47';at=$now.ToString('o');deadlineAt=$now.AddMinutes(60).ToString('o')}
  Assert-WhalePrimaryFailure $proof $slot $catalog $request $now
  $proof.running=$true;Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now};$proof.running=$false
  $proof.retryCount=0;Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now};$proof.retryCount=1
@@ -141,7 +141,7 @@ try {
  Invoke-ScanSaveRecovery $temp $global:WhaleFlowFolder $request.scanSlot
  if($global:WhaleEdgeLaunches -ne 3){throw 'Whale save handoff duplicated.'}
  Remove-Item (Join-Path $temp 'reports\edge-recovery.json') -Force
- $failed=[pscustomobject]@{version=1;browser='whale';scanSlot=$request.scanSlot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.46';at='2026-10-21T12:30:00+09:00';deadlineAt='2026-10-21T14:30:00+09:00'}
+ $failed=[pscustomobject]@{version=1;browser='whale';scanSlot=$request.scanSlot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.47';at='2026-10-21T12:30:00+09:00';deadlineAt='2026-10-21T14:30:00+09:00'}
  & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
  $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
  if($global:WhaleEdgeLaunches -ne 4 -or $receipt.reason -ne 'whale-primary-failed' -or $receipt.state -ne 'result-ready'){throw 'Explicit inactive worker failure did not recover through Edge.'}

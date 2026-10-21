@@ -175,7 +175,7 @@ function Assert-WhalePrimaryFailure($Failure,[string]$Slot,$Catalog,$Request,[Da
   Assert-WhalePrimaryRequest $Request $Slot $Catalog $Now
   if(-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -cne 'whale' -or $Failure.scanSlot -cne $Slot -or $Failure.requestId -cne $Request.requestId -or
     $Failure.status -cne 'edge-ready' -or $Failure.handoff -ne $true -or $Failure.running -ne $false -or $Failure.completed -ne $false -or $Failure.requestExists -ne $true -or
-    [int]$Failure.retryCount -ne 1 -or [int]$Failure.targetCount -ne @($Request.targets).Count -or [version]$Failure.workerVersion -lt [version]'1.9.46'){throw 'Unconfirmed Whale worker failure; no Edge handoff.'}
+    [int]$Failure.retryCount -ne 1 -or [int]$Failure.targetCount -ne @($Request.targets).Count -or [version]$Failure.workerVersion -lt [version]'1.9.47'){throw 'Unconfirmed Whale worker failure; no Edge handoff.'}
   $at=[DateTimeOffset]::Parse([string]$Failure.at);$end=[DateTimeOffset]::Parse([string]$Failure.deadlineAt)
   $requestAt=[DateTimeOffset]::Parse([string]$Request.requestedAt)
   if($at -lt $requestAt -or $at -gt $Now.AddSeconds(2) -or ($Now-$at).TotalSeconds -gt 180 -or $end -le $Now -or $end -gt $requestAt.AddHours(2) -or $end -gt [DateTimeOffset]::Parse($Slot).AddHours(4)) {throw 'Whale failure evidence is stale or outside the recovery budget.'}

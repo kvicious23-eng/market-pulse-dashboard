@@ -7,7 +7,7 @@ async function runPrimarySupervisor(api,request,{verify=false}={}) {
   const emit=(status,state={},reason=null)=>api.emit({version:1,browser:'whale',...identity,status,at:new Date(api.now()).toISOString(),deadlineAt:new Date(deadline).toISOString(),targetCount:request.targets.length,launchAttempt:request.launchAttempts||0,...state,reason});
   if(verify) {
     const result=await send('CHECK_PRIMARY_TRANSPORT',{products:request.targets});
-    await emit(result?.ok?'transport-verified':'rejected',{workerVersion:result?.version||null},result?.reason||null);return;
+    await emit(result?.ok&&result.version==='1.9.47'?'transport-verified':'rejected',{workerVersion:result?.version||null},result?.reason||null);return;
   }
   if(api.now()>=deadline){await emit('deadline-exhausted',{},'primary-recovery-budget-exhausted');return;}
   let result=await start(false),stopAt=null,lastState=null;
@@ -17,7 +17,7 @@ async function runPrimarySupervisor(api,request,{verify=false}={}) {
   while(api.now()<deadline) {
     const state=await send('GET_PRIMARY_STATE');
     lastState=state;
-    if(!state?.ok){await emit('state-unavailable',{},state?.reason||'state-response-missing');return;}
+    if(!state?.ok||state.workerVersion!=='1.9.47'){await emit('state-unavailable',{},state?.reason||'state-response-missing');return;}
     if(state.completed){await emit('complete',state);return;}
     if(state.handoff){await emit('edge-ready',state);return;}
     if(state.running) {

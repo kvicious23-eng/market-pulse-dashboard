@@ -1,3 +1,4 @@
+const PRIMARY_RELEASE='1.9.47';
 // Only the internal noon transport can admit a scheduled Whale result.
 async function primaryTimeout(promise,ms=10000) {
   let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}
@@ -24,6 +25,8 @@ async function savePrimaryReceipt(receipt,verify) {
     if(!response.ok)throw Error('request-file-unavailable');
     const request=await primaryTimeout(response.json());
     if(request.version!==1||request.browser!=='whale'||request.scanSlot!==identity.scanSlot||request.requestId!==identity.requestId||!Array.isArray(request.targets))throw Error('request-file-mismatch');
+    const health=await primaryTimeout(chrome.runtime.sendMessage({type:'GET_EXTENSION_HEALTH'}));
+    if(health?.version!==PRIMARY_RELEASE||chrome.runtime.getManifest().version!==PRIMARY_RELEASE)throw Error('primary-worker-version-mismatch');
     await runPrimarySupervisor({now:()=>Date.now(),wait:ms=>new Promise(resolve=>setTimeout(resolve,ms)),send:message=>primaryTimeout(chrome.runtime.sendMessage(message)),emit:async receipt=>{
       document.getElementById('status').textContent=receipt.status+(receipt.reason?': '+receipt.reason:'');
       await savePrimaryReceipt(receipt,verify);
