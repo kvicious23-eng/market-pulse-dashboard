@@ -7,7 +7,7 @@ class Clock extends Date {constructor(...a){super(...(a.length?a:[fixed]));}stat
 const created=[],cleared=[],state={},starts=[];
 const slot='2026-10-21T12:00+09:00',requestId='a'.repeat(32);
 let handler;
-const ctx={Date:Clock,Intl,navigator:{userAgent:'Chrome/150 Whale/5'},isEdgeBrowser:false,activeScanPromise:null,activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
+const ctx={Date:Clock,Intl,navigator:{userAgent:'Chrome/150 Whale/5'},isEdgeBrowser:false,activeScanPromise:null,primaryPendingOperations:new Set(),activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
  validateProductCatalog:p=>p?.[0]?.invalid?['invalid']:[],requestScan:(...args)=>{starts.push(args);return true;},
  chrome:{runtime:{getManifest:()=>({version:'1.9.46'}),getURL:p=>'chrome-extension://scanner/'+p,onMessage:{addListener:f=>handler=f}},
  storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},alarms:{clear:async n=>cleared.push(n),create:async(n,c)=>created.push(n)}}};

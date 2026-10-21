@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.46");
+assert.equal(manifest.version,"1.9.47");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -74,7 +74,7 @@ assert.match(importer,/\$visualBasisValid=/);
 const timeoutStart=source.indexOf("async function withScanTimeout(");
 const timeoutEnd=source.indexOf("\n\nfunction localDay",timeoutStart);
 assert.ok(timeoutStart>=0&&timeoutEnd>timeoutStart,"scan timeout helper was not found");
-const timeoutContext={Promise,setTimeout,clearTimeout,Error};
+const timeoutContext={Promise,setTimeout,clearTimeout,Error,primaryOperationOwner:null};
 vm.runInNewContext(`${source.slice(timeoutStart,timeoutEnd)};this.withScanTimeout=withScanTimeout;`,timeoutContext);
 assert.equal(await timeoutContext.withScanTimeout(Promise.resolve('completed'),50,'fast-step'),'completed');
 await assert.rejects(timeoutContext.withScanTimeout(new Promise(()=>{}),10,'stalled-step'),/scan-timeout:stalled-step/);

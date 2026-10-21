@@ -68,6 +68,14 @@ function validateProductCatalog(products) {
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function withScanTimeout(promise,ms,stage) {
+  if(primaryOperationOwner) {
+    const operation={requestId:primaryOperationOwner,stage};primaryPendingOperations.add(operation);
+    const release=()=>{
+      primaryPendingOperations.delete(operation);
+      if(!primaryPendingOperations.size&&!activeScanPromise){primaryOperationOwner=null;resumePendingScans();}
+    };
+    Promise.resolve(promise).then(release,release);
+  }
   let timer;
   try {
     return await Promise.race([
@@ -1734,6 +1742,8 @@ async function diagnoseCheckoutDiscounts() {
 }
 
 let activeScanPromise=null;
+let primaryOperationOwner=null;
+const primaryPendingOperations=new Set();
 let activeScanSlot=null;
 let activeScanRequestId=null;
 let primaryStopRequestId=null;
@@ -1741,11 +1751,11 @@ let pendingScanSlot=null;
 let queuedSaveRetry=null;
 
 function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequestId=null) {
-  if(activeScanPromise) {
+  if(activeScanPromise||primaryPendingOperations.size) {
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
-  activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;
+  activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;primaryOperationOwner=primaryRequestId;
   activeScanPromise=scanAll(slot,recovery,primaryRequestId);
   activeScanPromise.then(finishScan,finishScan);
   return true;
@@ -1754,6 +1764,10 @@ function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequ
 function finishScan() {
   activeScanPromise=null;
   activeScanSlot=null;activeScanRequestId=null;
+  if(primaryPendingOperations.size)return;
+  primaryOperationOwner=null;resumePendingScans();
+}
+function resumePendingScans() {
   const pending=pendingScanSlot;
   pendingScanSlot=null;
   const saveRetry=queuedSaveRetry;
@@ -1844,7 +1858,7 @@ async function primaryRecoveryState(message) {
   const state=await chrome.storage.local.get(['primaryRequest','lastResult','lastScanSave','scanProgress','lastScanError']);
   const q=state.primaryRequest,exists=q?.scanSlot===message.scanSlot&&q.requestId===message.requestId;
   return {ok:true,browser:'whale',scanSlot:message.scanSlot,requestId:message.requestId,workerVersion:chrome.runtime.getManifest().version,
-    running:Boolean(activeScanPromise||fallbackCatalogPending),requestRunning:Boolean(activeScanPromise&&exists&&activeScanSlot===message.scanSlot&&activeScanRequestId===message.requestId),
+    running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size),requestRunning:Boolean(exists&&((activeScanPromise&&activeScanSlot===message.scanSlot&&activeScanRequestId===message.requestId)||[...primaryPendingOperations].some(row=>row.requestId===message.requestId))),
     requestExists:Boolean(exists),completed:primarySavedForRequest(state,message),retryCount:exists?(q.retryCount||0):0,handoff:Boolean(exists&&q.handoff),
     deadlineAt:exists?(q.deadlineAt||new Date(Date.parse(q.scanSlot)+120*60000).toISOString()):null,firstRequestedAt:exists?(q.firstRequestedAt||q.scanSlot):null,
     progress:exists?state.scanProgress:null,lastError:exists?state.lastScanError:null};
@@ -1891,7 +1905,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
       if(prior&&prior.requestId!==requestId)return {ok:false,reason:'request-id-mismatch'};
       if(prior?.handoff)return {ok:false,reason:'edge-handoff-started'};
       if(primarySavedForRequest(state,message))return {ok:true,reason:'already-complete'};
-      if(activeScanPromise)return activeScanSlot===slot&&activeScanRequestId===requestId?{ok:true,reason:'already-running'}:{ok:false,reason:'busy-unrelated'};
+      if(activeScanPromise||primaryPendingOperations.size)return (activeScanSlot===slot&&activeScanRequestId===requestId)||[...primaryPendingOperations].some(row=>row.requestId===requestId)?{ok:true,reason:'already-running'}:{ok:false,reason:'busy-unrelated'};
       if(prior) {
         if(!message.retry)return {ok:false,reason:'interrupted-retry-required'};
         if((prior.retryCount||0)>=1)return {ok:false,reason:'retry-exhausted'};
@@ -1931,13 +1945,13 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   }
   if (message?.type==='GET_SCAN_STATUS') {
     chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(async state=>{
-      if(state.running&&!activeScanPromise) {
+      if(state.running&&!activeScanPromise&&!primaryPendingOperations.size) {
         state.running=false;
         state.lastScanError='scan-interrupted-by-worker-restart';
         state.lastScanErrorAt=new Date().toISOString();
         await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:state.lastScanError,lastScanErrorAt:state.lastScanErrorAt});
       }
-      sendResponse({...state,running:Boolean(activeScanPromise)});
+      sendResponse({...state,running:Boolean(activeScanPromise||primaryPendingOperations.size)});
     }).catch(error=>sendResponse({lastScanError:String(error)}));
     return true;
   }

@@ -27,7 +27,7 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 
 ## 운영 문서와 검사
 
-현재 가격 확장은 Chrome·Edge·Whale1.9.46, Supplier Connector0.1.20이다. PC 자동 종료는23:00이며20:30 업로드 최대22:30 종료 후30분 여유가 있다. PROJECT_RULES.md를 기준으로 WINDOWS_LOCAL_SCANNER.md, CHROME_RECOVERY.md, SUPPLIER_HUB_STARTUP.md를 함께 따른다. `node scripts/test-line-endings.mjs`는 임시 LF/CRLF 소스 각각에서 JavaScript 검사를 실행한다. CI는 Ubuntu와 Windows에서 같은 검사를 수행하고 Windows PowerShell5.1 검사도 별도로 통과해야 Pages에 배포한다.
+현재 가격 확장은 Chrome·Edge·Whale1.9.47, Supplier Connector0.1.20이다. PC 자동 종료는23:00이며20:30 업로드 최대22:30 종료 후30분 여유가 있다. PROJECT_RULES.md를 기준으로 WINDOWS_LOCAL_SCANNER.md, CHROME_RECOVERY.md, SUPPLIER_HUB_STARTUP.md를 함께 따른다. `node scripts/test-line-endings.mjs`는 임시 LF/CRLF 소스 각각에서 JavaScript 검사를 실행한다. CI는 Ubuntu와 Windows에서 같은 검사를 수행하고 Windows PowerShell5.1 검사도 별도로 통과해야 Pages에 배포한다.
 
 
 ## Whale을 포함한 업데이트 완료 기준
@@ -46,3 +46,5 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 가격1.9.45의12시 Whale 실행은 짧은 내부 URL과 `chrome-extension/runtime/noon-request.json`의 요청ID·회차·전체 목록을 대조한다. runtime은 PC 전용이며Git에서 제외한다. 접수/거부 영수증과120초 시작 증거 한도를 사용하며 `verify=1`은 전달만 검사하고 가격을 수집/게시하지 않는다.
 
 가격1.9.46: 12시Whale운영은Chrome의동일시각반복접근가설에대해브라우저를분산하는사용자운영방침이며차단원인확정이아니다. 기본08/16/20Chrome·12Whale와독립Supplier를유지하고12시Chrome자동대체는추가하지않는다. Whale은접수페이지가진행을감시하고중단된같은요청을1회만재시도한다. 6분진행정지에는협조중단을요청하고실제비실행확인전에는재수집/Edge를시작하지않는다. 2분내중단미확인은자동복구를중단한다. 1회재시도후에도실패하면handoff를고정하고증거를검증해전체Edge로전환한다. Windows전달페이지재실행은별도최대1회이며기존요청/실행잠금으로동시수집을막는다. 처음요청부터2시간/다음슬롯예산을유지한다. 수집전용창소실시1회재생성,빈활성카탈로그정리,Edge짧은파일전달/모든전환사유공통잠금도적용한다. Whale/Edge의verify=1은전달검증만하고가격수집·게시를하지않는다. 자연예약과자연복구성공은합성/수동검증과구분한다.
+
+가격1.9.47은Whale예약수집에서타임아웃후남은비동기작업이실제로끝날때까지실행중으로추적해중복수집/조기Edge전환/재로드를차단한다. 가격계산과수동수집정책은유지한다.
