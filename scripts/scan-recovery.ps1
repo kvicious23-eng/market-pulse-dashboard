@@ -149,6 +149,11 @@ function Get-PrimaryScanBrowser([string]$Slot) {
   if ($Slot -cmatch '^\d{4}-\d{2}-\d{2}T12:00\+09:00$' -and $Slot.Substring(0,10) -cge '2026-10-21') {return 'whale'}
   return 'chrome'
 }
+function Assert-WhalePrimaryStarted($Accepted,$Witness,$Request,[DateTimeOffset]$LaunchAt,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if($Accepted -and $Accepted.scanSlot -ceq $Request.scanSlot -and $Accepted.requestId -ceq $Request.requestId -and $Accepted.status -eq 'rejected') {throw "Whale primary request rejected: $($Accepted.reason)"}
+  $matching=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
+  if(-not $matching -and ($Now-$LaunchAt).TotalSeconds -ge 120) {throw 'Whale did not save a matching start witness within 120 seconds; transport/start failed; no inferred Edge handoff.'}
+}
 function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   if ((Get-PrimaryScanBrowser $Slot) -ne 'whale' -or -not $Request -or $Request.version -ne 1 -or $Request.browser -ne 'whale' -or
       $Request.scanSlot -cne $Slot -or $Request.requestId -notmatch '^[a-f0-9]{32}$') {throw 'Invalid Whale noon request.'}

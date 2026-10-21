@@ -1834,14 +1834,16 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
     return true;
   }
-  if(message?.type==='RUN_PRIMARY_SCAN') {
+  if(['RUN_PRIMARY_SCAN','CHECK_PRIMARY_TRANSPORT'].includes(message?.type)) {
     const slot=message.scanSlot,requestId=message.requestId;
     if(!/Whale\//.test(navigator.userAgent)||_sender.url?.split('?')[0]!==chrome.runtime.getURL('primary.html')||
       !/^[a-f0-9]{32}$/.test(requestId||'')||!/^\d{4}-\d{2}-\d{2}T12:00\+09:00$/.test(slot||'')||
-      slot.slice(0,10)<'2026-10-21'||slot!==currentScheduledScanSlot()||!recentScanSlot(slot)||
+      slot.slice(0,10)<'2026-10-21'||
       !message.products?.length||validateProductCatalog(message.products).length) {
       sendResponse({ok:false,reason:'invalid-primary-request'});return;
     }
+    if(message.type==='CHECK_PRIMARY_TRANSPORT'){sendResponse({ok:true,version:chrome.runtime.getManifest().version,targetCount:message.products.length});return;}
+    if(slot!==currentScheduledScanSlot()||!recentScanSlot(slot)){sendResponse({ok:false,reason:'outside-start-window'});return;}
     if(activeScanPromise||fallbackCatalogPending){sendResponse({ok:false,reason:'already-running'});return;}
     fallbackCatalogPending=true;
     chrome.storage.local.get(['primaryRequest','lastResult']).then(async state=>{

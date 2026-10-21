@@ -31,8 +31,9 @@ try {
       Write-ScanRecoveryJson $requestPath $request
     } else {Assert-WhalePrimaryRequest $request $slot $catalog}
     if(Get-SavedPrimaryResultPath $folder $slot $RepoPath){Write-WatchLog "Slot=$slot; Whale already completed; duplicate skipped.";exit 0}
-    $json='['+(@($request.targets | ForEach-Object {ConvertTo-Json -InputObject $_ -Depth 5 -Compress}) -join ',')+']'
-    $url="chrome-extension://$($profiles[0].Id)/primary.html?slot=$([uri]::EscapeDataString($slot))&requestId=$($request.requestId)&catalog=$([uri]::EscapeDataString($json))"
+    # Keep the command URL short: Whale silently drops the full-catalog URL.
+    Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\noon-request.json') $request
+    $url="chrome-extension://$($profiles[0].Id)/primary.html?slot=$([uri]::EscapeDataString($slot))&requestId=$($request.requestId)"
     Start-Process $chrome -ArgumentList @("--profile-directory=`"$($profiles[0].Profile)`"",'--new-window',$url)
   } else {
     if (-not $chrome) { throw 'Google Chrome is not installed.' }
@@ -40,6 +41,7 @@ try {
   }
   Write-WatchLog "Slot=$slot; $primaryBrowser launched; waiting for the extension start witness."
   $seen=$false;$absent=0
+  $launchAt=[DateTime]::UtcNow
   $session=(Get-Process -Id $PID).SessionId
   $deadline=[DateTime]::UtcNow.AddMinutes($MonitorMinutes)
   while ([DateTime]::UtcNow -lt $deadline) {
@@ -65,6 +67,10 @@ try {
         & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -StartWitness $witness -ExitProof $proof -PrimaryBrowser $primaryBrowser
         exit 0
       }
+    }
+    if($primaryBrowser -eq 'whale') {
+      $accepted=Read-ScanRecoveryJson (Join-Path $folder 'whale-primary-acceptance.json')
+      Assert-WhalePrimaryStarted $accepted $witness $request $launchAt
     }
     Start-Sleep -Seconds 10
   }

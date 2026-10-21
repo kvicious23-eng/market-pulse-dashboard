@@ -15,6 +15,14 @@ try {
  Write-ScanRecoveryJson (Join-Path $temp 'reports\whale-primary-request.json') $request
  Write-ScanRecoveryJson (Join-Path $folder 'product-catalog.json') $catalog
  Assert-WhalePrimaryRequest $request $slot $catalog $now
+ $launch=$now.AddMinutes(-3)
+ Reject {Assert-WhalePrimaryStarted $null $null $request $launch $now}
+ $start=[pscustomobject]@{scanSlot=$slot;primaryRequestId=$request.requestId}
+ Assert-WhalePrimaryStarted $null $start $request $launch $now
+ $start.primaryRequestId='z'*32;Reject {Assert-WhalePrimaryStarted $null $start $request $launch $now}
+ $ack=[pscustomobject]@{scanSlot=$slot;requestId=$request.requestId;status='rejected';reason='request-file-mismatch'}
+ Reject {Assert-WhalePrimaryStarted $ack $null $request $now $now}
+ Assert-WhalePrimaryStarted $null $null $request $now $now
  Reject {Assert-WhalePrimaryRequest $request $slot $null $now}
  $payload=[pscustomobject]@{browser='whale';extensionVersion='1.9.44';complete=$true;scanSlot=$slot;primaryRequestId=$request.requestId;runId=('b'*32);startedAt='2026-10-21T12:00:02+09:00';completedAt='2026-10-21T12:20:00+09:00';targetCount=1;resultCount=1;results=@($row)}
  $manual=Join-Path $folder ('whale-validation-'+$payload.runId+'.json');Write-ScanRecoveryJson $manual $payload
@@ -58,8 +66,14 @@ function Start-Sleep {param([int]$Seconds)}
 function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
  $url=@($ArgumentList|Where-Object {$_ -match '^chrome-extension://'})[0];if(-not $url){throw 'Missing internal transport.'}
  $q=@{};foreach($pair in ([uri]$url).Query.TrimStart('?').Split('&')){$v=$pair.Split('=',2);$q[$v[0]]=[uri]::UnescapeDataString($v[1])}
- $products=$q.catalog|ConvertFrom-Json;$products=@($products)
- if($products.Count -ne 1 -or $q.slot -cne '2026-10-21T12:00+09:00'){throw 'Wrong full catalog/slot transport.'}
+ if($q.slot -cne '2026-10-21T12:00+09:00'){throw 'Wrong slot transport.'}
+ if($FilePath -match 'whale.exe$'){
+   if($q.ContainsKey('catalog') -or $url.Length -gt 256){throw 'Whale command URL must stay short.'}
+   $request=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\noon-request.json')
+   if($request.requestId -cne $q.requestId -or $request.scanSlot -cne $q.slot){throw 'Runtime request transport mismatch.'}
+   $products=@($request.targets)
+ }else{$products=$q.catalog|ConvertFrom-Json;$products=@($products)}
+ if($products.Count -ne 1){throw 'Wrong full catalog transport.'}
  if($FilePath -match 'whale.exe$'){
    $global:WhaleFlowLaunches++
    if($url -notmatch '/primary.html\?' -or $q.requestId -notmatch '^[a-f0-9]{32}$'){throw 'Wrong Whale transport.'}

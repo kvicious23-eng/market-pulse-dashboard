@@ -9,7 +9,7 @@ const slot='2026-10-21T12:00+09:00',requestId='a'.repeat(32);
 let handler;
 const ctx={Date:Clock,Intl,navigator:{userAgent:'Chrome/150 Whale/5'},isEdgeBrowser:false,activeScanPromise:null,
  validateProductCatalog:p=>p?.[0]?.invalid?['invalid']:[],requestScan:(...args)=>{starts.push(args);return true;},
- chrome:{runtime:{getURL:p=>'chrome-extension://scanner/'+p,onMessage:{addListener:f=>handler=f}},
+ chrome:{runtime:{getManifest:()=>({version:'1.9.45'}),getURL:p=>'chrome-extension://scanner/'+p,onMessage:{addListener:f=>handler=f}},
  storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},alarms:{clear:async n=>cleared.push(n),create:async(n,c)=>created.push(n)}}};
 vm.runInNewContext(source.slice(source.indexOf('const SCHEDULED_SCAN_TIMES ='),source.indexOf('\n\nfunction enterCheckoutDiagnostic'))+';this.schedule=schedule;this.owns=chromeOwnsSlot;',ctx);
 await ctx.schedule();assert.deepEqual(created,['daily-scan-0800','daily-scan-1600','daily-scan-2000']);assert.ok(cleared.includes('daily-scan-1200'));
@@ -23,6 +23,7 @@ assert.equal((await send({requestId:'invalid'})).ok,false);
 assert.equal((await send({products:[{invalid:true}]})).ok,false);
 ctx.navigator.userAgent='Chrome/150';assert.equal((await send()).ok,false);ctx.navigator.userAgent='Whale/5';
 ctx.activeScanPromise={};assert.equal((await send()).reason,'already-running');ctx.activeScanPromise=null;
+assert.equal((await send({type:'CHECK_PRIMARY_TRANSPORT'})).ok,true);assert.equal(starts.length,0);
 assert.equal((await send()).ok,true);await new Promise(r=>setTimeout(r,0));
 assert.deepEqual(starts,[[slot,null,requestId]]);assert.equal(state.products.length,1);
 assert.equal((await send()).reason,'already-requested');await new Promise(r=>setTimeout(r,0));assert.equal(starts.length,1);
@@ -36,3 +37,21 @@ io.waitForScanDownload=async()=>{throw Error('FILE_ACCESS_DENIED');};await asser
 assert.equal(saved.scanSaveRecovery.browser,'whale');assert.equal(saved.scanSaveRecovery.primaryRequestId,requestId);assert.equal(io.retry().primaryRequestId,requestId);
 assert.ok(files.some(n=>n.includes('scan-save-recovery-')));assert.ok(!files.some(n=>n.includes('latest-coupang-scan')));
 console.log('Noon owner/date routing, retired Chrome noon alarm, internal transport, pinned request/catalog, duplicates/busy/invalid guards and Whale save-retry identity passed.');
+
+// Exercise the real internal page: a local request file, bounded acknowledgements,
+// no collection in verify mode, and no collection from stale/mismatched files.
+const page=readTestFile('chrome-extension/primary.js','utf8');
+async function pageRun({verify=false,mismatch=false,unavailable=false}={}){
+ const calls=[],receipts=[];
+ const request={version:1,browser:'whale',scanSlot:slot,requestId:mismatch?'c'.repeat(32):requestId,targets:[{mtm:'A'}]};
+ const browser={runtime:{getURL:p=>'chrome-extension://scanner/'+p,sendMessage:async m=>{calls.push(m);return {ok:true,version:'1.9.45'};}},
+ downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));return 1;},search:async()=>[{state:'complete'}]},
+ tabs:{getCurrent:async()=>({id:1}),remove:async()=>{}}};
+ await vm.runInNewContext(page,{URL,Date,JSON,Error,encodeURIComponent,location:{href:`chrome-extension://scanner/primary.html?slot=${encodeURIComponent(slot)}&requestId=${requestId}${verify?'&verify=1':''}`},
+ fetch:async(u,o)=>{assert.equal(o.cache,'no-store');assert.equal(u,'chrome-extension://scanner/runtime/noon-request.json');return {ok:!unavailable,json:async()=>request};},chrome:browser,document:{getElementById:()=>({textContent:''})},setTimeout});
+ return {calls,receipts};
+}
+let transport=await pageRun();assert.equal(transport.calls[0].type,'RUN_PRIMARY_SCAN');assert.equal(transport.receipts[0].status,'accepted');
+transport=await pageRun({verify:true});assert.equal(transport.calls[0].type,'CHECK_PRIMARY_TRANSPORT');assert.equal(transport.receipts[0].status,'transport-verified');
+for(const args of [{mismatch:true},{unavailable:true}]){transport=await pageRun(args);assert.equal(transport.calls.length,0);assert.equal(transport.receipts[0].status,'rejected');}
+console.log('Short-URL local-file transport, request identity, verify-only mode and saved rejection acknowledgements passed.');
