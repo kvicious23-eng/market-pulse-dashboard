@@ -767,3 +767,7 @@ Excel 내보내기 형식은 `.xlsx`이다. 상단의 가격 히스토리 다운
 - Supplier maintenance는 내부 페이지 전용 상태 검사·재로드·별도verify 영수증으로 manifest/worker 버전을 대조한다. 연결/CSV 작업 실행 중에는 재로드를 보류하며 새 로그인·CSV 요청·가격 수집을 직접 시작하지 않는다. 가격1.9.47과Chrome08/16/20·Whale12 운영은 변경하지 않는다. Supplier 소스만 바뀌므로 Chrome Supplier를 적용/verify하고 Edge·Whale 가격 확장은 영향 검토만 한다.
 - 2026-10-24 자연 오류에서08:01 로그인 제출 뒤 권고 화면으로 이동하고08:05 성공 미확인으로 중단된 기록을 확인했다. 사용자 요청으로13:10에나중에변경하기를처리한뒤`/dashboard/KR`의네구역을확인하고새로고침후connected를검증했다. 이 수동 복구는 새0.1.21 무인 권고 처리 성공과 구분한다. 자연 권고를 다시 띄우거나 로그아웃하여 실측을 만들지 않는다.
 - 이후 기존 독립 자동작업이13:11에10/1~10/23 CSV953행을수령했고검증을통과했다. 첫게시실패후기존검증과저장소잠금을유지한재시도에서13:14:36 GitHub 게시가성공했다(커밋f03f0da1048bbefbe7c0dde02026c35a7ddae2a5). 공개15모델합계는원본재계산과전부일치했고9모델확인·6모델SKU미존재를구분했다. SKU미존재는0으로바꾸지않았다. 재고게시가가격/상품데이터·가격/경쟁이력을변경하지않았음을확인했다. 코드CI/PC적용/다음자연권고처리와Pages성공은각각별도로기록한다.
+
+
+- 0.1.21 적용 확인: 코드f26e08c5의[Actions40061919291](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40061919291)는update/windows_history/deploy모두성공했고Pages완료2026-10-24KST13:21:12다. 선택된인증/CSV/프리미엄검사와LF/CRLF각27개JS·WindowsPS5.1검사를통과했다. PC에서기존CSV작업complete·연결connected·pendingAttempt=false를확인하고구버전을재로드한뒤공식maintenance의별도verify(13:24:54KST)에서manifest/worker0.1.21과두Supplier알람을대조했다.13:25에는연결정상·당일CSV요청시각13:11:04보존·완료다운로드1개를확인했다. 가격확장소스가바뀌지않아Chrome/Edge/Whale가격1.9.47재로드·중복실수집은하지않았다. 임시적용파일을정리하고깨끗한PC저장소를확인했다.
+- 재고배포확인: f03f0da1의[Actions40061566269](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40061566269)는3개job모두성공,Pages완료2026-10-24KST13:15:51이다. 세브랜드공개데이터의15모델모두10/23기준CSV재계산과일치한다. 다음자연권고화면의자동클릭·대시보드확인·CSV·게시완료는아직별도검증대상이다.
