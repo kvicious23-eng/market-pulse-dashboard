@@ -5,7 +5,7 @@ export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId
 
 // Allow only fixed labels, boolean observations and bounded counts into saved diagnostics.
 export function safeDiagnostic(raw={}) {
-  const out={extensionVersion:/^\d+\.\d+\.\d+$/.test(raw.extensionVersion||'')?raw.extensionVersion:'',probe:['inspected','loading','tab_missing','unsupported_page','script_error','unavailable'].includes(raw.probe)?raw.probe:'unavailable',host:['supplier','seller_auth','other'].includes(raw.host)?raw.host:'other',view:['dashboard','login','other'].includes(raw.view)?raw.view:'other'};
+  const out={extensionVersion:/^\d+\.\d+\.\d+$/.test(raw.extensionVersion||'')?raw.extensionVersion:'',probe:['inspected','loading','tab_missing','unsupported_page','script_error','unavailable'].includes(raw.probe)?raw.probe:'unavailable',host:['supplier','seller_auth','other'].includes(raw.host)?raw.host:'other',view:['dashboard','login','password-reminder','other'].includes(raw.view)?raw.view:'other'};
   for(const key of ['visiblePassword','logoutPresent','logoutVisible','requiredTasks','deliveryRate','receivingIssues','myshop']) out[key]=raw[key]===true;
   out.scheme=['https','http','about','chrome','chrome-error','chrome-extension','none','other'].includes(raw.scheme)?raw.scheme:'none';
   out.tabStatus=['loading','complete','unknown'].includes(raw.tabStatus)?raw.tabStatus:'unknown';
@@ -80,8 +80,25 @@ export class SupplierConnector {
       // Verify a fresh Supplier response, rather than an old authenticated DOM.
       // Only the connector's own tab is refreshed; xauth challenge/login pages are left in place.
       if(!opened && !tab.pendingUrl && tab.status!=='loading' && permittedUrl(tab.url) && new URL(tab.url).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
-      let p=await this.io.probe(tab.id);
+      // One optional reminder action per check, including the post-login loop.
+      // Dismissal is never positive authentication evidence by itself.
+      let reminderAttempted=false;
+      const probe=async()=>{
+        let result=await this.io.probe(tab.id);
+        if(result.state!=='password_reminder')return result;
+        await this.noteProbe(result);
+        if(reminderAttempted)return {...result,state:'password_reminder_unresolved'};
+        reminderAttempted=true;
+        const action=await this.io.postponePassword?.(tab.id);
+        if(action?.clicked!==true)return {...result,state:'password_reminder_unresolved'};
+        await this.state('checking','password_reminder_postponed');
+        await this.io.sleep(750);
+        result=await this.io.probe(tab.id);
+        return result.state==='password_reminder'?{...result,state:'password_reminder_unresolved'}:result;
+      };
+      let p=await probe();
       await this.noteProbe(p);
+      if(p.state==='password_reminder_unresolved')return this.state('unverified','password_reminder_not_confirmed');
       if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
       if(p.state==='verification') return this.state('verification_required','additional_verification');
       if(p.state==='access_blocked') return this.state('access_blocked','access_message');
@@ -104,8 +121,9 @@ export class SupplierConnector {
         if(!result?.submitted) return this.state('login_failed','login_form_changed',{pendingAttempt:false});
       } finally { if(credential) { credential.password=''; credential.username=''; } credential=null; }
       for(let i=0;i<15;i++) {
-        await this.io.sleep(2000); p=await this.io.probe(tab.id);
+        await this.io.sleep(2000); p=await probe();
         await this.noteProbe(p);
+        if(p.state==='password_reminder_unresolved')return this.state('unverified','password_reminder_not_confirmed',{pendingAttempt:false});
         if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'relogin_dashboard_confirmed':'relogin_confirmed',{blockedVersion:'',pendingAttempt:false});
         if(p.state==='verification') return this.state('verification_required','additional_verification',{pendingAttempt:false});
         if(p.state==='access_blocked') return this.state('access_blocked','access_message',{pendingAttempt:false});
@@ -133,6 +151,11 @@ export function inspectSupplierPage() {
   if(/접근이 제한|접근이 차단|Access Denied|접속이 차단/i.test(text)) return finish('access_blocked');
   if(/자동.?입력.?방지|로봇이 아닙|보안.?문자|인증번호.{0,20}(입력|전송)|본인.?인증|Verify you are human/i.test(text) || [...document.querySelectorAll('iframe')].some(e=>visible(e)&&/captcha|challenge/i.test(e.src))) return finish('verification');
   if(/아이디.{0,20}비밀번호.{0,30}(일치하지|확인해|잘못)|Invalid username or password|비밀번호가.{0,15}(올바르지|틀렸|잘못)/i.test(text)) return finish('credential_error');
+  if(u.origin==='https://supplier.coupang.com' && u.pathname==='/password-expiring' && !password &&
+      compact.includes('90일간격으로비밀번호를변경하실것을권장합니다')) {
+    diagnostic.view='password-reminder';
+    return finish('password_reminder');
+  }
   if(u.hostname==='xauth.coupang.com' && u.pathname.startsWith('/auth/realms/seller/') && password) {
     const form=password.form;
     const action=form?new URL(form.action||location.href):null;
@@ -148,6 +171,22 @@ export function inspectSupplierPage() {
     if(dashboard && diagnostic.requiredTasks && diagnostic.deliveryRate && diagnostic.receivingIssues && diagnostic.myshop) return finish('authenticated','supplier_dashboard_widgets');
   }
   return finish('unverified');
+}
+
+// Serialized into the exact optional reminder page. Do not change passwords or
+// follow arbitrary links, and do not dismiss mandatory verification screens.
+export function postponeSupplierPasswordReminder() {
+  const u=new URL(location.href);
+  const visible=e=>e && e.getClientRects().length && getComputedStyle(e).visibility!=='hidden' && getComputedStyle(e).display!=='none';
+  const text=(document.body?.innerText||'').replace(/\s+/g,' '),compact=text.replace(/[\s\u200b-\u200d\ufeff]/g,'');
+  if(u.origin!=='https://supplier.coupang.com'||u.username||u.password||u.pathname!=='/password-expiring'||
+      !compact.includes('90일간격으로비밀번호를변경하실것을권장합니다')||
+      [...document.querySelectorAll('input[type="password"]')].some(visible)||
+      /접근이 제한|접근이 차단|Access Denied|접속이 차단|자동.?입력.?방지|로봇이 아닙|보안.?문자|인증번호.{0,20}(입력|전송)|본인.?인증|Verify you are human/i.test(text)||
+      [...document.querySelectorAll('iframe')].some(e=>visible(e)&&/captcha|challenge/i.test(e.src)))return {clicked:false,reason:'reminder_not_verified'};
+  const buttons=[...document.querySelectorAll('button')].filter(e=>visible(e)&&(e.innerText||'').trim()==='나중에 변경하기');
+  if(buttons.length!==1||buttons[0].disabled||buttons[0].getAttribute?.('aria-disabled')==='true')return {clicked:false,reason:'reminder_button_unconfirmed'};
+  buttons[0].click();return {clicked:true,reason:'password_reminder_postponed'};
 }
 
 export function submitSupplierLogin(username,password) {

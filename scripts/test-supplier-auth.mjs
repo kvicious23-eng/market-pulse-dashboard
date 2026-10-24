@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readTestFile as readFileSync} from './test-source.mjs';
 import {createHash} from 'node:crypto';
-import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,safeDiagnostic,probeSupplierTab,officialOrPending} from '../supplier-hub-extension/auth-core.mjs';
+import vm from 'node:vm';
+import {SupplierConnector,DEFAULT_STATE,permittedUrl,RETRY_INTERVAL,inspectSupplierPage,submitSupplierLogin,postponeSupplierPasswordReminder,safeDiagnostic,probeSupplierTab,officialOrPending} from '../supplier-hub-extension/auth-core.mjs';
 const official='https://xauth.coupang.com/auth/realms/seller/login-actions/authenticate?client_id=supplier-hub';
 function fixture(states,extra={}) {
   let saved={...DEFAULT_STATE,enabled:true,tabId:7,...extra};let clock=RETRY_INTERVAL*2;let submits=0,reads=0,opens=0;
@@ -54,6 +55,17 @@ f=fixture(['authenticated']);f.io.tab=async()=>({id:7,url:'https://evil.test/'})
 // Concurrent manual/alarm invocations cannot submit a second password.
 f=fixture(['login_form','authenticated']);await Promise.all([f.connector.check(),f.connector.check()]);assert.equal(f.get().submits,1);
 
+// Optional reminder is handled once, without granting authentication by itself.
+f=fixture(['password_reminder','authenticated']);let postpones=0;f.io.postponePassword=async()=>{postpones++;return {clicked:true};};
+assert.equal((await f.connector.check()).status,'connected');assert.equal(postpones,1);assert.equal(f.get().submits,0);assert.equal(f.get().reads,0);
+f=fixture(['login_form','password_reminder','authenticated']);postpones=0;f.io.postponePassword=async()=>{postpones++;return {clicked:true};};
+assert.equal((await f.connector.check()).reason,'relogin_confirmed');assert.equal(postpones,1);assert.equal(f.get().submits,1);
+f=fixture(['password_reminder']);postpones=0;f.io.postponePassword=async()=>{postpones++;return {clicked:true};};
+assert.equal((await f.connector.check()).reason,'password_reminder_not_confirmed');assert.equal(postpones,1);assert.equal(f.get().reads,0);
+f=fixture(['password_reminder']);f.io.postponePassword=async()=>({clicked:false});assert.equal((await f.connector.check()).reason,'password_reminder_not_confirmed');assert.equal(f.get().submits,0);
+f=fixture(['password_reminder','verification']);f.io.postponePassword=async()=>({clicked:true});assert.equal((await f.connector.check()).status,'verification_required');assert.equal(f.get().reads,0);
+f=fixture(['password_reminder','unverified']);f.io.postponePassword=async()=>({clicked:true});assert.equal((await f.connector.check()).status,'unverified','Click is not proof of login');
+
 // Exercise actual injected functions using a minimal official login DOM.
 const original={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle,HTMLInputElement:global.HTMLInputElement};
 try {
@@ -86,7 +98,41 @@ try {
   f=fixture(['authenticated'],{pendingAttempt:true,blockedVersion:'v1'});f.io.probe=async()=>({state:'authenticated',evidence:'supplier_dashboard_widgets'});assert.equal((await f.connector.check()).reason,'supplier_dashboard_confirmed');assert.equal(f.get().submits,0);assert.equal(f.get().saved.blockedVersion,'');
   f=fixture(['unverified']);f.io.probe=async()=>({state:'unverified',diagnostic:unsafeDiagnostic});await f.connector.check();assert.equal(JSON.stringify(f.get().saved).includes('test-secret'),false);assert.equal(JSON.stringify(f.get().saved).includes('test-user'),false);
 } finally {Object.assign(global,original);}
+// Exercise the real injected reminder classifier/action on exact observed UI.
+try {
+  let clicks=0,body='계정 보호를 위하여 90일 간격으로 비밀번호를 변경하실 것을 권장합니다.',passwords=[],frames=[];
+  const later={innerText:'나중에 변경하기',getClientRects:()=>[{}],getAttribute:()=>null,click:()=>{clicks++;}};
+  let buttons=[later];global.location={href:'https://supplier.coupang.com/password-expiring'};
+  global.getComputedStyle=()=>({visibility:'visible',display:'block'});
+  global.document={body:{get innerText(){return body;}},querySelectorAll:s=>s==='button'?buttons:s==='input[type="password"]'?passwords:s==='iframe'?frames:[]};
+  assert.equal(inspectSupplierPage().state,'password_reminder');assert.equal(postponeSupplierPasswordReminder().clicked,true);assert.equal(clicks,1);
+  for(const url of ['https://evil.test/password-expiring','http://supplier.coupang.com/password-expiring','https://supplier.coupang.com:444/password-expiring','https://supplier.coupang.com/dashboard/KR','https://user:secret@supplier.coupang.com/password-expiring']){global.location.href=url;assert.equal(postponeSupplierPasswordReminder().clicked,false);assert.notEqual(inspectSupplierPage().state,'password_reminder');}
+  global.location.href='https://supplier.coupang.com/password-expiring';
+  for(const extra of [' 보안 문자',' Access Denied',' 인증번호 입력']){body+=' '+extra;assert.equal(postponeSupplierPasswordReminder().clicked,false);assert.notEqual(inspectSupplierPage().state,'password_reminder');body=body.slice(0,-extra.length-1);}
+  buttons=[];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[later,later];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[{...later,disabled:true}];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[{...later,getAttribute:()=> 'true'}];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[{...later,getClientRects:()=>[]}];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[{...later,innerText:'지금 변경하기'}];assert.equal(postponeSupplierPasswordReminder().clicked,false);
+  buttons=[later];passwords=[later];assert.equal(postponeSupplierPasswordReminder().clicked,false);passwords=[];
+  frames=[{...later,src:'https://example.test/captcha'}];assert.equal(postponeSupplierPasswordReminder().clicked,false);frames=[];
+  body='비밀번호를 반드시 변경하세요';assert.notEqual(inspectSupplierPage().state,'password_reminder');assert.equal(postponeSupplierPasswordReminder().clicked,false);assert.equal(clicks,1);
+} finally {Object.assign(global,original);}
 const manifest=JSON.parse(readFileSync(new URL('../supplier-hub-extension/manifest.json',import.meta.url)));
 const id=[...createHash('sha256').update(Buffer.from(manifest.key,'base64')).digest().subarray(0,16)].map(b=>String.fromCharCode(97+(b>>4),97+(b&15))).join('');
 assert.equal(manifest.permissions.includes('cookies'),false);assert.equal(manifest.permissions.includes('debugger'),false);assert.equal(manifest.permissions.includes('nativeMessaging'),true);
+// Maintenance must reject unavailable/busy workers and distinguish reload from verification.
+const maintenance=readFileSync(new URL('../supplier-hub-extension/maintenance.js',import.meta.url),'utf8');
+async function maintain(mode,health,worker='0.1.21') {
+  let reloads=0,closes=0,receipt=null;const status={textContent:''};
+  const chrome={runtime:{sendMessage:async m=>{assert.equal(m.type,'SUPPLIER_MAINTENANCE_HEALTH');return health;},getManifest:()=>({version:worker}),reload:()=>{reloads++;}},alarms:{getAll:async()=>[{name:'supplier-daily-csv'}]},downloads:{download:async spec=>{receipt=JSON.parse(decodeURIComponent(spec.url.split(',').slice(1).join(',')));return 1;},search:async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/supplier-maintenance-'+mode+'.json'}]},tabs:{getCurrent:async()=>({id:3}),remove:async()=>{closes++;}}};
+  await vm.runInNewContext(maintenance,{chrome,URLSearchParams,location:{search:'?mode='+mode+'&nonce='+'a'.repeat(32)+'&version=0.1.21'},document:{querySelector:()=>status},setTimeout,clearTimeout,Promise});
+  return {reloads,closes,receipt};
+}
+let m=await maintain('reload',{version:'0.1.21',busy:true});assert.equal(m.reloads,0);assert.equal(m.receipt.status,'busy');
+m=await maintain('reload',null);assert.equal(m.reloads,0);assert.equal(m.receipt,null);
+m=await maintain('verify',{version:'0.1.20',busy:false});assert.equal(m.receipt.status,'verification-failed');assert.equal(m.closes,0);
+m=await maintain('reload',{version:'0.1.21',busy:false});assert.equal(m.reloads,1);assert.equal(m.receipt.status,'reload-requested');
+m=await maintain('verify',{version:'0.1.21',busy:false});assert.equal(m.receipt.status,'verified');assert.equal(m.closes,1);
 console.log('Supplier auth checks passed. Separate extension ID: '+id);

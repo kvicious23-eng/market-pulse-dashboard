@@ -1,4 +1,4 @@
-import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin} from './auth-core.mjs';
+import {SupplierConnector, CHECK_ALARM, permittedUrl, officialOrPending, probeSupplierTab, inspectSupplierPage, submitSupplierLogin, postponeSupplierPasswordReminder} from './auth-core.mjs';
 import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
 import {clickSupplierCsvDownload,supplierExportForm,supplierExportFile} from './csv-core.mjs';
 import {resumeAfterEdge} from './edge-resume-core.mjs';
@@ -28,6 +28,11 @@ const connector=new SupplierConnector({
   now:()=>Date.now(),sleep:delay,native,tab,probe,
   refresh:async id=>{await chrome.tabs.reload(id,{bypassCache:true});await delay(750);},
   open:url=>chrome.tabs.create({url,active:false}),
+  postponePassword:async id=>{
+    const t=await tab(id);
+    if(!t||!permittedUrl(t.url)||new URL(t.url).origin!=='https://supplier.coupang.com'||new URL(t.url).pathname!=='/password-expiring')return {clicked:false};
+    return (await chrome.scripting.executeScript({target:{tabId:id},func:postponeSupplierPasswordReminder}))[0]?.result;
+  },
   submit:async(id,username,password)=>{
     const t=await tab(id); if(!t || !permittedUrl(t.url)) return {submitted:false};
     if((await probe(id)).state!=='login_form') return {submitted:false};
@@ -110,6 +115,9 @@ chrome.downloads.onChanged.addListener(async delta=>{
 // Recreate alarms after extension reloads and recover a persisted, in-flight job.
 schedule().then(()=>daily.tick()).catch(()=>{});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if(sender.id===chrome.runtime.id&&sender.url?.split('?')[0]===chrome.runtime.getURL('maintenance.html')&&message?.type==='SUPPLIER_MAINTENANCE_HEALTH') {
+    (async()=>{const job=await daily.read();return {version:chrome.runtime.getManifest().version,busy:daily.running||connector.running||csvClickRunning||['download','validating'].includes(job.stage),dailyDay:job.day||null,dailyStage:job.stage||null};})().then(reply).catch(()=>reply({error:'health-unavailable'}));return true;
+  }
   if(sender.id===chrome.runtime.id&&sender.url?.startsWith(chrome.runtime.getURL('daily-resume.html')+'?')&&message?.type==='RESUME_AFTER_EDGE') {
     resumeAfterEdge(message,{signal:()=>native('morning_status'),acknowledge:(id,signal)=>chrome.runtime.sendMessage(id,{type:'MARK_MORNING_RECOVERED',...signal}),tick:()=>daily.tick()})
       .then(reply).catch(()=>reply({ok:false,reason:'local_connection_error'}));return true;
