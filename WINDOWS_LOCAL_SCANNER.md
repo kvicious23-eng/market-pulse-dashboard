@@ -8,7 +8,7 @@ GitHub의 해외 서버에서 차단되는 쿠팡 상품 페이지를 국내 Win
 2. C드라이브 설치용 압축파일을 풀고 `INSTALL_WINDOWS_SCANNER.cmd`를 실행합니다.
 3. 첫 실행 중 GitHub 로그인 창이 뜨면 `kvicious23-eng` 계정으로 로그인합니다.
 
-설치가 끝나면 Windows 작업 스케줄러의 `Market Pulse Chrome Start`가 PC 현지시각 08·12·16·20시에 Chrome을 시작하고, 확장프로그램이 가격·할인 수집을 실행합니다. `Market Pulse Result Upload`는 08:30·12:30·16:30·20:30에 각 수집 결과를 GitHub로 전송합니다. 한국 운영 PC의 Windows 표준 시간대는 `(UTC+09:00) 서울`이어야 합니다.
+설치가 끝나면 Windows 작업 스케줄러의 `Market Pulse Chrome Start`가 PC 현지시각 08·12·16·20시에 수집을 시작합니다. 2026-10-26 20시부터08/16시는Chrome,12/20시는Whale을공유정책에따라실행하고확장프로그램이가격·할인을수집합니다. `Market Pulse Result Upload`는 08:30·12:30·16:30·20:30에 각 수집 결과를 GitHub로 전송합니다. 한국 운영 PC의 Windows 표준 시간대는 `(UTC+09:00) 서울`이어야 합니다.
 
 기존 설치 PC의 예약만 갱신하려면 저장소의 `UPDATE_LOCAL_SCHEDULE.cmd`를 내려받아 한 번 실행합니다. 실행 결과에 `Automatic scan ... 08:00, 12:00, 16:00, 20:00`과 `Result upload ... 08:30, 12:30, 16:30, 20:30`이 표시되면 적용된 것입니다.
 
@@ -43,7 +43,7 @@ Chrome 도구 모음의 Market Pulse 확장 아이콘을 열고 `지금 수집`�
 
 ## 현재 적용 및 복구 기준 (2026-10-08)
 
-현재 가격 확장은 Chrome·Edge·Whale 1.9.49, Chrome Supplier Connector는 0.1.21이다. 확장 소스 변경이 있을 때만 해당 브라우저 확장을 새로고침한다. 가격1.9.48은 수집 비실행 확인 후 세 브라우저 각각 재로드하고 별도verify로 manifest/worker 버전을 확인한다. Supplier0.1.21은 이번 가격 업데이트에서 변경하지 않는다. 예약 변경은 없다.
+현재 가격 확장은 Chrome·Edge·Whale 1.9.49, Chrome Supplier Connector는 0.1.21이다. 확장 소스 변경이 있을 때만 해당 브라우저 확장을 새로고침한다. 가격1.9.49는 수집 비실행 확인 후 세 브라우저 각각 재로드하고 별도verify로 manifest/worker 버전을 확인한다. Supplier0.1.21은 이번 가격 업데이트에서 변경하지 않는다. 예약 변경은 없다.
 
 수집 감시와 업로드는 숨김 PowerShell로 실행하고 로그는 reports/scan-watchdog.log와 reports/scheduled-upload.log에 남긴다. 상품 화면은 일반 브라우저 창이다. 수집 예약은 PT2H/IgnoreNew, 업로드는 PT2H/IgnoreNew 및 같은 슬롯 첫 시도 기준 합산2시간 예산이다. Git 명령은 최대10분 또는 남은 전체 시간 중 짧은 한도를 적용한다. 재시도는15분 간격 최대3회이지만 예산을 초기화하지 않는다.
 
@@ -63,9 +63,9 @@ PC 자동 부팅07:30 및 바탕화면 로그인은 사용자 설정이다. 현�
 확장 외 변경에는 필요한 영향 검토만 수행하며 불필요한 재로드·중복 수집은 하지 않는다. Supplier는 Chrome에서만 운영한다. Whale은 예비 수동 검증용이며 자동 복구/운영 가격 게시에는 추가하지 않는다. 세부 완료 조건은 PROJECT_RULES.md의 ‘모든 업데이트의 Whale 동시 반영’을 따른다.
 
 
-## 2026-10-21부터12시 Whale 기본 수집
+## Whale 운영 변경 이력 — 현재 정책은 아래1.9.49 기준
 
-가격1.9.44는08/16/20 Chrome,12시 Whale, 실패 증거가 확인된 경우 전체 목록 Edge 복구로 운영한다. 기존 Windows 작업 이름은 유지하되12시 실행 대상은 Whale이다. Chrome 확장12시 알람/따라잡기를 제거하며 Chrome 알람3개, Edge·Whale 확장 알람0개를 확인한다. Whale은 Windows가 최신 공용 목록과 고유 요청ID를 전달하는 내부 primary 페이지에서만12시 예약 수집을 시작한다.
+1.9.44 도입 당시에는08/16/20 Chrome,12시 Whale, 실패 증거가 확인된 경우 전체 목록 Edge 복구로 운영한다. 기존 Windows 작업 이름은 유지하되12시 실행 대상은 Whale이다. Chrome 확장12시 알람/따라잡기를 제거하며 Chrome 알람3개, Edge·Whale 확장 알람0개를 확인한다. Whale은 Windows가 최신 공용 목록과 고유 요청ID를 전달하는 내부 primary 페이지에서만12시 예약 수집을 시작한다.
 
 운영 업로더는 Whale의12시 예약 파일과Windows 요청 기록·슬롯·시각·버전·전체 목록을 대조한다. Whale 수동 검증 파일은 운영 게시에서 제외한다. 접근 제한 재시도 후 Edge, 증거 있는 프로세스 종료/저장 오류 복구와 모델별 파란 오류 표시는 PROJECT_RULES.md의 최신 ‘12시 Whale 기본 수집 전환’을 따른다. Supplier는 Chrome에서 독립적으로 유지한다. 이전 절의Chrome 네 예약/Whale 예비 전용 정책은 이 절로 대체하며 첫 무인12시와 자연 복구의 성공은 따로 확인한다.
 
