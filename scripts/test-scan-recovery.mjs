@@ -14,7 +14,7 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>{const denied=blocked&&scanCount++===0;return {ok:!denied,...(denied?{reason:'access-check',accessCheckDetail:'access-denied-message'}:{}),accessDiagnostic:{responses:[],page:{marker:denied?'access denied':''}}};},collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
   chrome:{runtime:{getManifest:()=>({version:'1.9.38'})},storage:{local:{get:async()=>({}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
    downloads:{download:async o=>{files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
- vm.runInNewContext(scan+';this.run=scanAll;',context);
+ vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+scan+';this.run=scanAll;',context);
  if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else await context.run(slot,recovery);
  return {files,events,state};
 }
@@ -33,3 +33,5 @@ f=await run(false,null,false,null,true);
 const recovered=f.files[0].data.results[0];assert.equal(recovered.ok,true);assert.equal(recovered.reason,undefined);assert.equal(recovered.retryStatus,'recovered');assert.deepEqual(recovered.accessDiagnostics.map(x=>x.phase),['initial','retry']);assert.equal(recovered.accessDiagnostics[0].reason,'access-check');assert.equal(recovered.accessDiagnostics[1].reason,'ok');
 const settings=readTestFile('scripts/set-local-schedule.ps1','utf8');assert.match(settings,/run-scheduled-scan\.ps1/);assert.match(settings,/-ExecutionTimeLimit \(New-TimeSpan -Minutes 120\)/);
 console.log('Start witness ordering, no partial prices/SKUID, interrupted witness, manual isolation, full Edge recollection and unique recovery file passed.');
+await assert.rejects(run(true,{runId:'b'.repeat(32),reason:'access-check',deadlineAt:'2000-01-01T00:00:00Z'}),/scan-save-recovery-budget-exhausted/);
+console.log('Actual Edge collector stops before product work when the inherited recovery budget has expired.');

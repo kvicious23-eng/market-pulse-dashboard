@@ -69,7 +69,7 @@ assert.equal(editorValidate({...product,skuId:''},0).includes('SKUID는 숫자�
 const worker=readFileSync(new URL('../chrome-extension/background.js',import.meta.url),'utf8');
 const validateWorker=vm.runInNewContext('('+worker.slice(worker.indexOf('function validateProductCatalog('),worker.indexOf('\nconst wait ='))+')',{URL});
 assert.equal(validateWorker([product]).length,0);assert.equal(validateWorker([{...product,SKUID:'unresolved legacy code'}]).length,0,'CSV metadata must not block price scans');
-const getTargets=vm.runInNewContext(worker.slice(0,worker.indexOf('function validateProductCatalog('))+'\ngetTargets;', {chrome:{storage:{local:{get:async()=>({products:[product]})}}}});
+const getTargets=vm.runInNewContext(worker.slice(worker.indexOf('const TARGETS ='),worker.indexOf('function validateProductCatalog('))+'\ngetTargets;', {chrome:{storage:{local:{get:async()=>({products:[product]})}}}});
 assert.equal((await getTargets())[0].SKUID,'00080556250');
 const priceTargets=vm.runInNewContext(worker.match(/const targets=configuredTargets[^\n]+/)[0]+'\ntargets;', {configuredTargets:[{...product,skuId:'00080556250','상품코드':'00080556250'}]});
 assert.equal(priceTargets[0].itemId,product.itemId);assert.equal(priceTargets[0].mtm,'C100');

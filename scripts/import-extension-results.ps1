@@ -27,7 +27,7 @@ function Invoke-Git {
 # Collection/recovery waits do not own the shared repository publication lock.
 
 function Get-LatestResultPath {
-  $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+  $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
   if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
     return Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
   }
@@ -824,7 +824,7 @@ foreach ($spec in $specs) {
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
   if ($payload.recovery -and $payload.recovery.reason -in @('chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error')) {
-    $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+    $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
     $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';primaryBrowser=$receipt.primaryBrowser;scanSlot=$payload.scanSlot;
       chromeRunId=$receipt.chromeRunId;edgeRunId=$payload.runId;chromeStartedAt=$receipt.chromeStartedAt;

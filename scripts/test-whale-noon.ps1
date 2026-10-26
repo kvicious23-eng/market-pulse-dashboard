@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([string]$FlowSlot='2026-10-21T12:00+09:00')
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 function Reject([scriptblock]$Action) {$failed=$false;try{& $Action}catch{$failed=$true};if(-not $failed){throw 'Expected rejection.'}}
@@ -92,12 +93,35 @@ try {
  $proof.at=$now.AddMinutes(-4).ToString('o');Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now}
  $empty=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=('e'*32);requestedAt=$request.requestedAt;targets=@()}
  Assert-WhalePrimaryRequest $empty $slot ([pscustomobject]@{products=@()}) $now
+ # Two scheduled Whale slots must remain independently readable after either runs.
+ $n='2026-10-27T12:00+09:00';$e='2026-10-27T20:00+09:00';$later=[DateTimeOffset]::Parse('2026-10-27T20:35+09:00')
+ if((Get-PrimaryScanBrowser '2026-10-25T20:00+09:00') -ne 'chrome' -or (Get-PrimaryScanBrowser '2026-10-26T20:00+09:00') -ne 'whale'){throw 'Activation changed historical routing.'}
+ if((Get-NextScanTime $e) -ne [DateTimeOffset]::Parse('2026-10-28T08:00+09:00')){throw 'Evening next slot must be next-day 08.'}
+ foreach($which in @($n,$e)) {
+  $q=[pscustomobject]@{version=1;browser='whale';policyId=(Get-ScanSlotPolicy $which).id;scanSlot=$which;requestId=$(if($which -eq $n){'1'*32}else{'2'*32});requestedAt=$which;targets=@($row);launchAttempts=1}
+  Write-ScanRecoveryJson (Get-WhaleRequestPath $temp $which) $q
+  Assert-WhalePrimaryRequest $q $which $catalog $later
+  $done=[pscustomobject]@{browser='whale';policyId=$q.policyId;extensionVersion='1.9.49';complete=$true;scanSlot=$which;primaryRequestId=$q.requestId;runId=$q.requestId;startedAt=$which;completedAt=([DateTimeOffset]::Parse($which).AddMinutes(16).ToString('o'));targetCount=1;resultCount=1;results=@($row)}
+  Write-ScanRecoveryJson (Join-Path $folder ('whale-scan-'+$done.runId+'.json')) $done
+ }
+ if((Read-WhalePrimaryRequest $temp $n).requestId -ne ('1'*32) -or (Read-WhalePrimaryRequest $temp $e).requestId -ne ('2'*32)){throw 'Evening overwrote noon request.'}
+ if(-not (Get-SavedPrimaryResultPath $folder $n $temp $later) -or -not (Get-SavedPrimaryResultPath $folder $e $temp $later)){throw 'Noon/evening saved result selection conflicted.'}
+ $q=Read-WhalePrimaryRequest $temp $e;$q.policyId='whale-noon-v1';Reject {Assert-WhalePrimaryRequest $q $e $catalog $later}
+ $q.policyId=(Get-ScanSlotPolicy $e).id;$q.requestedAt='2026-10-27T21:15+09:00'
+ if((Get-WhaleDeadline $q) -ne [DateTimeOffset]::Parse('2026-10-27T22:20+09:00')){throw 'Night deadline was extended past budget.'}
+ if((Get-EdgeReceiptPath $temp $n) -eq (Get-EdgeReceiptPath $temp $e)){throw 'Edge receipts share a Whale slot pointer.'}
+ # A legacy pointer or another slot can never admit a post-activation request.
+ Remove-Item (Get-WhaleRequestPath $temp $e) -Force
+ Write-ScanRecoveryJson (Join-Path $temp 'reports\whale-primary-request.json') $q
+ if(Read-WhalePrimaryRequest $temp $e){throw 'New evening admitted legacy request pointer.'}
+ Write-Host 'Evening activation/history, next-day08, nighttime cap, dual-slot archives/results and policy/legacy isolation passed.'
  Write-Host 'Whale noon routing, manual isolation, request/catalog/count/version/time admission, save proof and full Edge correlation passed.'
 } finally {Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue}
 
 # Real Windows watchdog/Edge transport with a fixed clock and fake browser processes.
 # All files live in a disposable clone; no real browser, download or public data is touched.
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('MPWhaleFlow-'+[guid]::NewGuid().ToString('N'))
+$global:WhaleFlowSlot=$FlowSlot;$global:WhaleFlowStart=([DateTimeOffset]::Parse($FlowSlot).AddMinutes(30)).ToString('yyyy-MM-ddTHH:mm:sszzz');$global:WhaleFlowDeadline=([DateTimeOffset]::Parse($FlowSlot).AddHours(2)).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $oldProgramFiles=$env:ProgramFiles;$oldLocalAppData=$env:LOCALAPPDATA
 $global:WhaleFlowFolder=Join-Path $temp 'Downloads';$global:WhaleFlowChecks=0;$global:WhaleFlowLaunches=0;$global:WhaleEdgeLaunches=0
 function Get-Process {param($Id,[string]$ErrorAction)
@@ -110,8 +134,8 @@ function Start-Sleep {param([int]$Seconds)
  if($global:WhaleFlowReceiptMode){
   $global:WhaleFlowSleeps++
   if($global:WhaleFlowSleeps -ge 3){
-   $w=Read-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-scan-start.json')
-   $done=[pscustomobject]@{browser='whale';extensionVersion='1.9.48';complete=$true;scanSlot=$w.scanSlot;primaryRequestId=$w.primaryRequestId;runId=$w.runId;startedAt=$w.startedAt;completedAt=$w.startedAt;targetCount=$w.targetCount;resultCount=$w.targetCount;results=@($w.targets)}
+   $current=Read-WhalePrimaryRequest $env:ProgramFiles $global:WhaleFlowSlot;$w=Get-WhaleStartWitness $global:WhaleFlowFolder $current
+   $done=[pscustomobject]@{browser='whale';policyId=$current.policyId;extensionVersion='1.9.49';complete=$true;scanSlot=$w.scanSlot;primaryRequestId=$w.primaryRequestId;runId=$w.runId;startedAt=$w.startedAt;completedAt=$w.startedAt;targetCount=$w.targetCount;resultCount=$w.targetCount;results=@($w.targets)}
    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('whale-scan-'+$w.runId+'.json')) $done
   }
  }
@@ -119,10 +143,10 @@ function Start-Sleep {param([int]$Seconds)
 function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
  $url=@($ArgumentList|Where-Object {$_ -match '^chrome-extension://'})[0];if(-not $url){throw 'Missing internal transport.'}
  $q=@{};foreach($pair in ([uri]$url).Query.TrimStart('?').Split('&')){$v=$pair.Split('=',2);$q[$v[0]]=[uri]::UnescapeDataString($v[1])}
- if($q.slot -cne '2026-10-21T12:00+09:00'){throw 'Wrong slot transport.'}
+ if($q.slot -cne $global:WhaleFlowSlot){throw 'Wrong slot transport.'}
  if($FilePath -match 'whale.exe$'){
    if($q.ContainsKey('catalog') -or $url.Length -gt 256){throw 'Whale command URL must stay short.'}
-   $request=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\noon-request.json')
+   $request=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles ('chrome-extension\runtime\primary-request-'+$q.requestId+'.json'))
    if($request.requestId -cne $q.requestId -or $request.scanSlot -cne $q.slot){throw 'Runtime request transport mismatch.'}
    $products=@($request.targets)
  }else{$transport=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\edge-request.json');$products=@($transport.products);$q.recovery=($transport.recovery|ConvertTo-Json -Compress)}
@@ -130,27 +154,29 @@ function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
  if($FilePath -match 'whale.exe$'){
    $global:WhaleFlowLaunches++
    if($url -notmatch '/primary.html\?' -or $q.requestId -notmatch '^[a-f0-9]{32}$'){throw 'Wrong Whale transport.'}
-   $w=[pscustomobject]@{version=1;browser='whale';primaryRequestId=$q.requestId;scanSlot=$q.slot;runId=('b'*32);startedAt='2026-10-21T12:30:00+09:00';targetCount=1;targets=$products}
-   Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-scan-start.json') $w
+   $w=[pscustomobject]@{version=1;browser='whale';policyId=$request.policyId;extensionVersion='1.9.49';primaryRequestId=$q.requestId;scanSlot=$q.slot;runId=('b'*32);startedAt=$global:WhaleFlowStart;targetCount=1;targets=$products}
+   Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('whale-scan-start-'+(Get-ScanSlotKey $global:WhaleFlowSlot)+'-'+$request.requestId+'.json')) $w
    if($global:WhaleFlowReceiptMode){
-    $bad=[pscustomobject]@{version=1;browser='whale';scanSlot=$q.slot;requestId=$q.requestId;launchAttempt=$request.launchAttempts;status='rejected';reason='primary-receipt-save-failed';at='2026-10-21T12:30:00+09:00'}
-    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-primary-acceptance.json') $bad
+    $bad=[pscustomobject]@{version=1;receiptVersion=2;receiptProducerVersion='1.9.49';pageId=('e'*32);sequence=1;receiptDelivery='canonical';browser='whale';policyId=$request.policyId;scanSlot=$q.slot;requestId=$q.requestId;launchAttempt=$request.launchAttempts;status='rejected';reason='primary-receipt-save-failed';at=$global:WhaleFlowStart}
+    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('whale-primary-acceptance-'+(Get-ScanSlotKey $global:WhaleFlowSlot)+'-'+$request.requestId+'.json')) $bad
    }
  }elseif($FilePath -match 'msedge.exe$'){
    $global:WhaleEdgeLaunches++;$c=$q.recovery|ConvertFrom-Json
    if($c.primaryBrowser -ne 'whale' -or $c.primaryRequestId -notmatch '^[a-f0-9]{32}$'){throw 'Missing Whale Edge correlation.'}
-   $e=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$q.slot;runId=$c.runId;recovery=$c;startedAt='2026-10-21T12:30:01+09:00';targetCount=1;resultCount=1;results=$products}
+   $e=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$q.slot;runId=$c.runId;recovery=$c;completedAt=([DateTimeOffset]::Parse($global:WhaleFlowStart).AddSeconds(2).ToString('o'));startedAt=([DateTimeOffset]::Parse($global:WhaleFlowStart).AddSeconds(1).ToString('o'));targetCount=1;resultCount=1;results=$products}
    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('edge-recovery-'+$c.runId+'.json')) $e
  }else{throw 'No Chrome launch is allowed at noon.'}
 }
 try {
  $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp
+  New-Item -ItemType Directory (Join-Path $temp 'chrome-extension') -Force|Out-Null
+  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
  $scripts=Join-Path $temp 'scripts';$global:WhaleFlowScripts=$scripts;New-Item -ItemType Directory $scripts -Force|Out-Null
  foreach($name in @('scan-recovery.ps1','brand-lifecycle.ps1','browser-profile.ps1','run-scheduled-scan.ps1','edge-fallback.ps1')) {
    $s=Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot $name)
    $s=$s.Replace("(Join-Path `$PSScriptRoot 'edge-fallback.ps1')","(Join-Path `$global:WhaleFlowScripts 'edge-fallback.ps1')")
-   $s=$s.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('2026-10-21T12:30:00+09:00'))")
-   $s=$s.Replace('[DateTime]::UtcNow',"([DateTimeOffset]::Parse('2026-10-21T12:30:00+09:00').UtcDateTime)")
+   $s=$s.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('$global:WhaleFlowStart'))")
+   $s=$s.Replace('[DateTime]::UtcNow',"([DateTimeOffset]::Parse('$global:WhaleFlowStart').UtcDateTime)")
    $s=$s.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:WhaleFlowFolder')
    $s=$s.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$resultFolder=$global:WhaleFlowFolder')
    $s|Set-Content (Join-Path $scripts $name) -Encoding UTF8
@@ -165,35 +191,35 @@ try {
  Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'product-catalog.json') $catalog
  & (Join-Path $scripts 'run-scheduled-scan.ps1') -RepoPath $temp
  . (Join-Path $scripts 'scan-recovery.ps1')
- $request=Read-ScanRecoveryJson (Join-Path $temp 'reports\whale-primary-request.json')
- $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+ $request=Read-WhalePrimaryRequest $temp $global:WhaleFlowSlot
+ $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot)
  if($global:WhaleFlowLaunches -ne 1 -or $global:WhaleEdgeLaunches -ne 1 -or $receipt.state -ne 'result-ready' -or $receipt.reason -ne 'whale-process-exit'){throw 'Whale exit recovery flow failed.'}
  $selected=Get-EdgeRecoveryResultPath $temp $global:WhaleFlowFolder $request.scanSlot
  $result=Read-ScanRecoveryJson $selected;Assert-PrimaryScanSource $result $request.scanSlot $global:WhaleFlowFolder $temp
- Remove-Item (Join-Path $temp 'reports\edge-recovery.json')
+ Remove-Item (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot)
  $row|Add-Member ok $false -Force;$row|Add-Member reason 'access-check' -Force
- $payload=[pscustomobject]@{browser='whale';extensionVersion='1.9.44';complete=$true;scanSlot=$request.scanSlot;primaryRequestId=$request.requestId;runId=('b'*32);startedAt='2026-10-21T12:30:00+09:00';completedAt='2026-10-21T12:30:00+09:00';targetCount=1;resultCount=1;results=@($row)}
+ $payload=[pscustomobject]@{browser='whale';policyId=$request.policyId;extensionVersion='1.9.49';complete=$true;scanSlot=$request.scanSlot;primaryRequestId=$request.requestId;runId=('b'*32);startedAt=$global:WhaleFlowStart;completedAt=$global:WhaleFlowStart;targetCount=1;resultCount=1;results=@($row)}
  $file=Join-Path $global:WhaleFlowFolder ('whale-scan-'+$payload.runId+'.json');Write-ScanRecoveryJson $file $payload
  & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale
- $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+ $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot)
  if($global:WhaleEdgeLaunches -ne 2 -or $receipt.state -ne 'result-ready' -or $receipt.reason -ne 'access-check'){throw 'Whale access recovery flow failed.'}
- Remove-Item (Join-Path $temp 'reports\edge-recovery.json'),$file -Force
- $proof=[pscustomobject]@{version=1;browser='whale';primaryRequestId=$request.requestId;reason='file-save-error';error='FILE_ACCESS_DENIED';saveAttempts=2;stage='edge-ready';chromeRetries=1;scanSlot=$request.scanSlot;runId=('c'*32);firstStartedAt='2026-10-21T12:30:00+09:00';startedAt='2026-10-21T12:30:00+09:00';completedAt='2026-10-21T12:30:00+09:00';deadlineAt='2026-10-21T14:30:00+09:00';targetCount=1;targets=@($row)}
+ Remove-Item (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot),$file -Force
+ $proof=[pscustomobject]@{version=1;browser='whale';primaryRequestId=$request.requestId;reason='file-save-error';error='FILE_ACCESS_DENIED';saveAttempts=2;stage='edge-ready';chromeRetries=1;scanSlot=$request.scanSlot;runId=('c'*32);firstStartedAt=$global:WhaleFlowStart;startedAt=$global:WhaleFlowStart;completedAt=$global:WhaleFlowStart;deadlineAt=$global:WhaleFlowDeadline;targetCount=1;targets=@($row)}
  Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('scan-save-recovery-'+$proof.runId+'.json')) $proof
  Invoke-ScanSaveRecovery $temp $global:WhaleFlowFolder $request.scanSlot
- $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+ $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot)
  if($global:WhaleEdgeLaunches -ne 3 -or $receipt.state -ne 'result-ready' -or $receipt.reason -ne 'file-save-error'){throw 'Whale save recovery flow failed.'}
  Invoke-ScanSaveRecovery $temp $global:WhaleFlowFolder $request.scanSlot
  if($global:WhaleEdgeLaunches -ne 3){throw 'Whale save handoff duplicated.'}
- Remove-Item (Join-Path $temp 'reports\edge-recovery.json') -Force
- $failed=[pscustomobject]@{version=1;browser='whale';scanSlot=$request.scanSlot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.47';at='2026-10-21T12:30:00+09:00';deadlineAt='2026-10-21T14:30:00+09:00'}
+ Remove-Item (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot) -Force
+ $failed=[pscustomobject]@{version=1;browser='whale';policyId=$request.policyId;scanSlot=$request.scanSlot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.49';at=$global:WhaleFlowStart;deadlineAt=$global:WhaleFlowDeadline}
  & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
- $receipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
+ $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot)
  if($global:WhaleEdgeLaunches -ne 4 -or $receipt.reason -ne 'whale-primary-failed' -or $receipt.state -ne 'result-ready'){throw 'Explicit inactive worker failure did not recover through Edge.'}
  & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
  if($global:WhaleEdgeLaunches -ne 4){throw 'Worker-failure Edge handoff duplicated.'}
- Remove-Item (Join-Path $temp 'reports\edge-recovery.json'),(Join-Path $global:WhaleFlowFolder 'scan-save-recovery-*.json') -Force
- Remove-Item (Join-Path $temp 'reports\whale-primary-request.json') -Force
+ Remove-Item (Get-EdgeReceiptPath $temp $global:WhaleFlowSlot),(Join-Path $global:WhaleFlowFolder 'scan-save-recovery-*.json') -Force
+ Remove-Item (Get-WhaleRequestPath $temp $global:WhaleFlowSlot) -Force
  $global:WhaleFlowReceiptMode=$true;$global:WhaleFlowSleeps=0
  $beforeWhale=$global:WhaleFlowLaunches;$beforeEdge=$global:WhaleEdgeLaunches
  & (Join-Path $scripts 'run-scheduled-scan.ps1') -RepoPath $temp
@@ -205,6 +231,6 @@ try {
 } finally {
  $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocalAppData
  Remove-Item Function:\Get-Process,Function:\Start-Process,Function:\Start-Sleep -ErrorAction SilentlyContinue
- Remove-Variable WhaleFlowFolder,WhaleFlowChecks,WhaleFlowLaunches,WhaleEdgeLaunches,WhaleFlowScripts,WhaleFlowReceiptMode,WhaleFlowSleeps -Scope Global -ErrorAction SilentlyContinue
+ Remove-Variable WhaleFlowFolder,WhaleFlowChecks,WhaleFlowLaunches,WhaleEdgeLaunches,WhaleFlowScripts,WhaleFlowReceiptMode,WhaleFlowSleeps,WhaleFlowSlot,WhaleFlowStart,WhaleFlowDeadline -Scope Global -ErrorAction SilentlyContinue
  Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

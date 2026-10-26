@@ -16,6 +16,8 @@ async function maintainExtension() {
     const health=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_EXTENSION_HEALTH'}));
     const permission=await maintenanceTimeout(chrome.permissions.contains({permissions:['webRequest']}));
     receipt.workerVersion=health?.version||null;
+    receipt.policyId=health?.policyId||null;
+    receipt.slotOwners=health?.slotOwners||null;
     receipt.observerStatus=health?.observerStatus||null;
     receipt.webRequestGranted=permission;
     receipt.scheduledAlarms=(await maintenanceTimeout(chrome.alarms.getAll())).map(alarm=>alarm.name).filter(name=>/^daily-scan-\d{4}$/.test(name)).sort();

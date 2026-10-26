@@ -197,6 +197,7 @@ jobs:
           }
           ./scripts/test-local-schedule.ps1
           ./scripts/test-whale-noon.ps1
+          ./scripts/test-whale-noon.ps1 -FlowSlot "2026-10-26T20:00+09:00"
           ./scripts/test-upload-timeout.ps1
           ./scripts/test-edge-profile.ps1
           ./scripts/test-scan-recovery.ps1

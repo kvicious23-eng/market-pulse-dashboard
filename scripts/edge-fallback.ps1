@@ -34,22 +34,23 @@ function Get-EdgeScannerInstallations {
   Get-BrowserExtensionInstallations $UserDataPath $ExtensionPath
 }
 
+$slot=Get-ScanRecoverySlot
 $scan = Get-LatestScan
 $handoffMutex=New-Object Threading.Mutex($false,('Local\MarketPulseEdgeHandoff.'+((Get-ScanRecoverySlot) -replace '[^0-9]','')))
 $handoffHeld=$false
 try {
   try {$handoffHeld=$handoffMutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$handoffHeld=$true}
   if(-not $handoffHeld){return}
-  $existing=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+  $existing=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath (Get-ScanRecoverySlot))
   if($existing -and $existing.scanSlot -ceq (Get-ScanRecoverySlot)){return}
 if((Get-PrimaryScanBrowser (Get-ScanRecoverySlot)) -cne $PrimaryBrowser){throw 'Wrong primary browser for the recovery slot.'}
 $processExit=$null -ne $StartWitness
-$receipt=$null;$receiptPath=Join-Path $RepoPath 'reports\edge-recovery.json'
+$receipt=$null;$receiptPath=Get-EdgeReceiptPath $RepoPath (Get-ScanRecoverySlot)
 if ($PrimaryFailure) {
   if($PrimaryBrowser -ne 'whale'){throw 'Primary worker failure is only valid for Whale.'}
   $slot=$PrimaryFailure.scanSlot
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
-  $q=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')
+  $q=Read-WhalePrimaryRequest $RepoPath $slot
   Assert-WhalePrimaryFailure $PrimaryFailure $slot $catalog $q
   $targets=@($q.targets)
   $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
@@ -106,13 +107,19 @@ if ($PrimaryFailure) {
   Write-Host "$PrimaryBrowser access-check on $($blocked.Count) product(s); starting Edge fallback."
 }
 
+if($receipt.scanSlot -cne (Get-ScanRecoverySlot)){throw 'Recovery must belong to the current slot.'}
 if($PrimaryBrowser -eq 'whale') {
-  $request=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')
+  $request=Read-WhalePrimaryRequest $RepoPath $slot
   Assert-WhalePrimaryRequest $request $receipt.scanSlot $catalog
   $sourceId=if($PrimaryFailure){$PrimaryFailure.requestId}elseif($StartWitness){$StartWitness.primaryRequestId}elseif($SaveFailure){$SaveFailure.primaryRequestId}else{$scan.Data.primaryRequestId}
   if($sourceId -cne $request.requestId){throw 'Whale handoff request mismatch.'}
   $receipt|Add-Member primaryBrowser 'whale'
   $receipt|Add-Member primaryRequestId $request.requestId
+  $receipt|Add-Member policyId $request.policyId
+  $receipt|Add-Member deadlineAt (Get-WhaleDeadline $request).ToString('o')
+  $remaining=[math]::Floor(((Get-WhaleDeadline $request)-[DateTimeOffset]::UtcNow).TotalMinutes)
+  if($remaining -lt 1){throw 'No Whale request budget remains for Edge.'}
+  $TimeoutMinutes=[math]::Min($TimeoutMinutes,$remaining)
 }
 $edgeCandidates = @(
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
@@ -128,7 +135,7 @@ if ($installedExtensions.Count -ne 1) {
 }
 $selected = $installedExtensions[0]
 $recovery=[pscustomobject]@{runId=$receipt.runId;reason=$receipt.reason;chromeRunId=$receipt.chromeRunId;
-  chromeStartedAt=$receipt.chromeStartedAt;triggeredAt=$receipt.triggeredAt;primaryBrowser=$receipt.primaryBrowser;primaryRequestId=$receipt.primaryRequestId}
+  chromeStartedAt=$receipt.chromeStartedAt;triggeredAt=$receipt.triggeredAt;primaryBrowser=$receipt.primaryBrowser;primaryRequestId=$receipt.primaryRequestId;policyId=$receipt.policyId;deadlineAt=$receipt.deadlineAt}
 $edgeRequest=[pscustomobject]@{version=1;browser='edge';scanSlot=$receipt.scanSlot;runId=$receipt.runId;products=$targets;recovery=$recovery}
 Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\edge-request.json') $edgeRequest
 $triggerUrl="chrome-extension://$($selected.Id)/fallback.html?slot=$([uri]::EscapeDataString($receipt.scanSlot))&runId=$($receipt.runId)"

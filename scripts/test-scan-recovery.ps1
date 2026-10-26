@@ -90,6 +90,8 @@ function Start-Process {
 }
 try {
   $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp
+  New-Item -ItemType Directory (Join-Path $temp 'chrome-extension') -Force|Out-Null
+  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
   $scripts=Join-Path $temp 'scripts'
   New-Item -ItemType Directory $scripts,$global:RecoveryTestFolder -Force | Out-Null
   foreach ($name in @('scan-recovery.ps1','brand-lifecycle.ps1','browser-profile.ps1')) {Copy-Item (Join-Path $PSScriptRoot $name) $scripts}

@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import {readTestFile} from './test-source.mjs';
 const source=readTestFile('chrome-extension/primary.js','utf8');
 const ctx={};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),ctx);
 vm.runInNewContext(source.slice(0,source.indexOf('const savePrimaryReceipt='))+';this.factory=createPrimaryReceiptWriter;',ctx);
 const receipt={version:1,browser:'whale',requestId:'a'.repeat(32),scanSlot:'2026-10-26T12:00+09:00',at:'2026-10-26T03:00:01Z',status:'running',launchAttempt:1};
 async function exercise(mode,verify=false) {
@@ -24,7 +25,7 @@ const parse=o=>JSON.parse(decodeURIComponent(o.url.split(',')[1]));
 const [a,b]=run.files.map(parse);
 assert.deepEqual({...a,receiptDelivery:null},{...b,receiptDelivery:null});
 assert.equal(b.status,'running');assert.equal(b.at,receipt.at);
-assert.match(run.files[1].filename,/acceptance-a{32}-b{32}-000001\.json$/);
+assert.match(run.files[1].filename,/acceptance-202610261200-a{32}-b{32}-000001\.json$/);
 await run.writer({...receipt,status:'complete'},false);
 assert.equal(parse(run.files[2]).sequence,2);
 for(const mode of ['interrupted','reject','wrong-path','pending']) {

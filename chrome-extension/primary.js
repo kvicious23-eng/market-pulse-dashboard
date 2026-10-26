@@ -1,4 +1,4 @@
-const PRIMARY_RELEASE='1.9.48';
+const PRIMARY_RELEASE='1.9.49';
 // Only the internal noon transport can admit a scheduled Whale result.
 async function primaryTimeout(promise,ms=10000) {
   let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}
@@ -9,9 +9,9 @@ function createPrimaryReceiptWriter({download,search,now,wait,timeout,pageId}) {
   let sequence=0;
   return async(receipt,verify)=>{
     const event={...receipt,receiptVersion:2,receiptProducerVersion:PRIMARY_RELEASE,pageId,sequence:++sequence};
-    const base=verify?'whale-primary-transport-check':'whale-primary-acceptance';
+    const base=primaryReceiptBase(receipt,verify);
     const names=[`MarketPulse/${base}.json`];
-    if(/^[a-f0-9]{32}$/.test(receipt.requestId)&&/^[a-f0-9]{32}$/.test(pageId))names.push(`MarketPulse/${base}-${receipt.requestId}-${pageId}-${String(sequence).padStart(6,'0')}.json`);
+    if(/^[a-f0-9]{32}$/.test(receipt.requestId)&&/^[a-f0-9]{32}$/.test(pageId))names.push(`MarketPulse/${base}-${pageId}-${String(sequence).padStart(6,'0')}.json`);
     for(const [attempt,filename] of names.entries()) {
       const end=now()+15000;
       const call=promise=>timeout(promise,Math.max(1,end-now()));
@@ -38,10 +38,11 @@ const savePrimaryReceipt=createPrimaryReceiptWriter({download:options=>chrome.do
   const p=new URL(location.href).searchParams,verify=p.get('verify')==='1';
   const identity={browser:'whale',scanSlot:p.get('slot'),requestId:p.get('requestId'),launchAttempt:Number(p.get('launch')||0)};
   try {
-    const response=await primaryTimeout(fetch(chrome.runtime.getURL('runtime/noon-request.json'),{cache:'no-store'}));
+    if(!/^[a-f0-9]{32}$/.test(identity.requestId||''))throw Error('invalid-primary-id');
+    const response=await primaryTimeout(fetch(chrome.runtime.getURL(`runtime/primary-request-${identity.requestId}.json`),{cache:'no-store'}));
     if(!response.ok)throw Error('request-file-unavailable');
     const request=await primaryTimeout(response.json());
-    if(request.version!==1||request.browser!=='whale'||request.scanSlot!==identity.scanSlot||request.requestId!==identity.requestId||!Array.isArray(request.targets))throw Error('request-file-mismatch');
+    if(request.version!==1||request.browser!=='whale'||request.scanSlot!==identity.scanSlot||request.requestId!==identity.requestId||!Array.isArray(request.targets)||scanPolicyForSlot(identity.scanSlot).browser!=='whale'||(request.policyId!==scanPolicyForSlot(identity.scanSlot).id&&identity.scanSlot>='2026-10-26T20:00+09:00'))throw Error('request-file-mismatch');
     const health=await primaryTimeout(chrome.runtime.sendMessage({type:'GET_EXTENSION_HEALTH'}));
     if(health?.version!==PRIMARY_RELEASE||chrome.runtime.getManifest().version!==PRIMARY_RELEASE)throw Error('primary-worker-version-mismatch');
     await runPrimarySupervisor({now:()=>Date.now(),wait:ms=>new Promise(resolve=>setTimeout(resolve,ms)),send:message=>primaryTimeout(chrome.runtime.sendMessage(message)),emit:async receipt=>{

@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.48");
+assert.equal(manifest.version,"1.9.49");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -142,6 +142,7 @@ class FixedDate extends Date {
 const scheduleContext={Date:FixedDate,Intl,Object,String,Number,
   SCHEDULED_SCAN_TIMES:[{alarm:'daily-scan-1600',hour:16,minute:0,slot:'16:00'}],
   chrome:{alarms:{clear:async()=>{},create:async(_name,config)=>scheduledAt.push(config.when)}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),scheduleContext);
 vm.runInNewContext(`${source.slice(scheduleStart,scheduleEnd)};this.scheduleEntry=scheduleEntry;this.recentScanSlot=recentScanSlot;`,scheduleContext);
 await scheduleContext.scheduleEntry(scheduleContext.SCHEDULED_SCAN_TIMES[0]);
 assert.equal(scheduledAt[0],Date.parse(slot14),"the next alarm must fire at exactly 16:00 KST");

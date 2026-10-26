@@ -10,6 +10,7 @@ const fixed=Date.parse('2026-10-06T06:13:38Z');
 class FixedDate extends Date {constructor(...args){super(...(args.length?args:[fixed]));}static now(){return fixed;}}
 const created=[],cleared=[];
 const context={Date:FixedDate,Intl,navigator:{userAgent:'Chrome'},chrome:{alarms:{clear:async name=>cleared.push(name),create:async(name,config)=>created.push({name,...config})}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),context);
 vm.runInNewContext(`${source.slice(start,end)};this.slot=currentScheduledScanSlot;this.schedule=schedule;this.times=SCHEDULED_SCAN_TIMES;`,context);
 assert.deepEqual(Array.from(context.times,e=>e.hour),[8,12,16,20]);
 for(const [time,want] of [['07:59',null],['08:00','08:00'],['11:59','08:00'],['12:00','12:00'],['15:59','12:00'],['16:00','16:00'],['19:59','16:00'],['20:00','20:00'],['23:59','20:00']]){

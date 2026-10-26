@@ -8,7 +8,8 @@ const helpers=source.slice(source.indexOf('function isPrimarySender('),source.in
 let resolveRoot,resolveTail,calls=0;
 const slot='2026-10-22T12:00+09:00',requestId='a'.repeat(32),state={primaryRequest:{scanSlot:slot,requestId,retryCount:0}};
 const ctx={Promise,Set,Date,Error,setTimeout,clearTimeout,fallbackCatalogPending:false,currentScheduledScanSlot:()=>slot,recentScanSlot:()=>true,
- scanAll:()=>{calls++;return new Promise(resolve=>resolveRoot=resolve);},chrome:{storage:{local:{get:async()=>state}},runtime:{getManifest:()=>({version:'1.9.48'})}}};
+ scanAll:()=>{calls++;return new Promise(resolve=>resolveRoot=resolve);},chrome:{storage:{local:{get:async()=>state}},runtime:{getManifest:()=>({version:'1.9.49'})}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),ctx);
 vm.runInNewContext(timer+dispatch+helpers+';this.start=requestScan;this.timeout=withScanTimeout;this.health=primaryRecoveryState;this.pending=()=>primaryPendingOperations.size;this.queue=()=>{queuedSaveRetry={slot:currentScheduledScanSlot(),primaryRequestId:"'+requestId+'",deadlineAt:"2099-01-01T00:00:00Z"};};',ctx);
 assert.equal(ctx.start(slot,null,requestId),true);
 const tail=new Promise(resolve=>resolveTail=resolve);

@@ -9,8 +9,9 @@ const slot='2026-10-21T12:00+09:00',requestId='a'.repeat(32);
 let handler;
 const ctx={Date:Clock,Intl,navigator:{userAgent:'Chrome/150 Whale/5'},isEdgeBrowser:false,activeScanPromise:null,primaryPendingOperations:new Set(),activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
  validateProductCatalog:p=>p?.[0]?.invalid?['invalid']:[],requestScan:(...args)=>{starts.push(args);return true;},
- chrome:{runtime:{getManifest:()=>({version:'1.9.48'}),getURL:p=>'chrome-extension://scanner/'+p,onMessage:{addListener:f=>handler=f}},
+ chrome:{runtime:{getManifest:()=>({version:'1.9.49'}),getURL:p=>'chrome-extension://scanner/'+p,onMessage:{addListener:f=>handler=f}},
  storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},alarms:{clear:async n=>cleared.push(n),create:async(n,c)=>created.push(n)}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),ctx);
 vm.runInNewContext(source.slice(source.indexOf('const SCHEDULED_SCAN_TIMES ='),source.indexOf('\n\nfunction enterCheckoutDiagnostic'))+';this.schedule=schedule;this.owns=chromeOwnsSlot;',ctx);
 await ctx.schedule();assert.deepEqual(created,['daily-scan-0800','daily-scan-1600','daily-scan-2000']);assert.ok(cleared.includes('daily-scan-1200'));
 assert.equal(ctx.owns(slot),false);assert.equal(ctx.owns('2026-10-20T12:00+09:00'),true);assert.equal(ctx.owns('2026-10-21T16:00+09:00'),true);
@@ -55,11 +56,11 @@ const page=readTestFile('chrome-extension/primary.js','utf8');
 async function pageRun({verify=false,mismatch=false,unavailable=false,ioFailure=null}={}){
  const calls=[],receipts=[],names=[];
  const request={version:1,browser:'whale',scanSlot:slot,requestId:mismatch?'c'.repeat(32):requestId,requestedAt:slot,targets:[{mtm:'A'}]};
- const browser={runtime:{getManifest:()=>({version:'1.9.48'}),getURL:p=>'chrome-extension://scanner/'+p,sendMessage:async m=>{calls.push(m);return m.type==='GET_PRIMARY_STATE'?{ok:true,completed:true,workerVersion:'1.9.48'}:{ok:true,version:'1.9.48'};}},
- downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));names.push(o.filename);return names.length;},search:async({id})=>ioFailure==='all'||(ioFailure==='canonical'&&names[id-1]==='MarketPulse/whale-primary-acceptance.json')?[{state:'interrupted'}]:[{state:'complete',filename:ioFailure?'C:/Downloads/'+names[id-1]:'C:/Downloads/MarketPulse/'+(verify?'whale-primary-transport-check.json':'whale-primary-acceptance.json')}]},
+ const browser={runtime:{getManifest:()=>({version:'1.9.49'}),getURL:p=>'chrome-extension://scanner/'+p,sendMessage:async m=>{calls.push(m);return m.type==='GET_PRIMARY_STATE'?{ok:true,completed:true,workerVersion:'1.9.49'}:{ok:true,version:'1.9.49'};}},
+ downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));names.push(o.filename);return names.length;},search:async({id})=>ioFailure==='all'||(ioFailure==='canonical'&&!/-[0-9]{6}\.json$/.test(names[id-1]))?[{state:'interrupted'}]:[{state:'complete',filename:'C:/Downloads/'+names[id-1]}]},
  tabs:{getCurrent:async()=>({id:1}),remove:async()=>{}}};
- await vm.runInNewContext(readTestFile('chrome-extension/primary-supervisor.js','utf8')+';'+page,{crypto:{randomUUID:()=> 'd'.repeat(32)},URL,Date:Clock,JSON,Error,encodeURIComponent,location:{href:`chrome-extension://scanner/primary.html?slot=${encodeURIComponent(slot)}&requestId=${requestId}${verify?'&verify=1':''}`},
- fetch:async(u,o)=>{assert.equal(o.cache,'no-store');assert.equal(u,'chrome-extension://scanner/runtime/noon-request.json');return {ok:!unavailable,json:async()=>request};},chrome:browser,document:{getElementById:()=>({textContent:''})},setTimeout,clearTimeout});
+ await vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+readTestFile('chrome-extension/primary-supervisor.js','utf8')+';'+page,{crypto:{randomUUID:()=> 'd'.repeat(32)},URL,Date:Clock,JSON,Error,encodeURIComponent,location:{href:`chrome-extension://scanner/primary.html?slot=${encodeURIComponent(slot)}&requestId=${requestId}${verify?'&verify=1':''}`},
+ fetch:async(u,o)=>{assert.equal(o.cache,'no-store');assert.equal(u,'chrome-extension://scanner/runtime/primary-request-'+requestId+'.json');return {ok:!unavailable,json:async()=>request};},chrome:browser,document:{getElementById:()=>({textContent:''})},setTimeout,clearTimeout});
  return {calls,receipts,names};
 }
 let transport=await pageRun();assert.equal(transport.calls[1].type,'RUN_PRIMARY_SCAN');assert.equal(transport.receipts[0].status,'accepted');
@@ -73,6 +74,6 @@ for(const ioFailure of ['canonical','all']) {
  assert.ok(transport.calls.some(m=>m.type==='GET_PRIMARY_STATE'));
  assert.ok(transport.receipts.some(r=>r.status==='complete'));
  assert.ok(!transport.receipts.some(r=>r.status==='rejected'),'Receipt failure must not reject the real scan');
- assert.ok(transport.names.some(n=>/^MarketPulse\/whale-primary-acceptance-[a-f0-9]{32}-[a-f0-9]{32}-[0-9]{6}\.json$/.test(n)));
+ assert.ok(transport.names.some(n=>/^MarketPulse\/whale-primary-acceptance-[0-9]{12}-[a-f0-9]{32}-[a-f0-9]{32}-[0-9]{6}\.json$/.test(n)));
 }
 console.log('Production primary page continues real worker supervision after canonical or all receipt downloads fail, without a duplicate start.');

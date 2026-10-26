@@ -23,10 +23,11 @@ try {
     if($profiles.Count -ne 1){throw 'Exactly one eligible Whale scanner profile is required.'}
     $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
     $targets=@($catalog.products|Where-Object {$_.enabled -ne $false}|Select-Object brand,mtm,category,srp,enabled,productId,itemId,vendorItemId,url,danawaUrl,enuriUrl)
-    $requestPath=Join-Path $RepoPath 'reports\whale-primary-request.json'
-    $request=Read-ScanRecoveryJson $requestPath
+    $requestPath=Get-WhaleRequestPath $RepoPath $slot
+    $request=Read-WhalePrimaryRequest $RepoPath $slot
+    if((Test-Path -LiteralPath $requestPath) -and -not $request){throw 'Existing Whale request is corrupt or mismatched; do not create another request.'}
     if(-not $request -or $request.scanSlot -cne $slot) {
-      $request=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=[guid]::NewGuid().ToString('N');requestedAt=[DateTimeOffset]::UtcNow.ToString('o');targets=$targets}
+      $request=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;policyId=(Get-ScanSlotPolicy $slot).id;requestId=[guid]::NewGuid().ToString('N');requestedAt=[DateTimeOffset]::UtcNow.ToString('o');targets=$targets}
       Assert-WhalePrimaryRequest $request $slot $catalog
       Write-ScanRecoveryJson $requestPath $request
     } else {Assert-WhalePrimaryRequest $request $slot $catalog}
@@ -35,7 +36,7 @@ try {
       if([int]$request.launchAttempts -ge 2){throw 'Whale primary transport launch budget exhausted.'}
       $request|Add-Member -NotePropertyName launchAttempts -NotePropertyValue ([int]$request.launchAttempts+1) -Force
       Write-ScanRecoveryJson $requestPath $request
-      Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\noon-request.json') $request
+      Write-ScanRecoveryJson (Join-Path $RepoPath ('chrome-extension\runtime\primary-request-'+$request.requestId+'.json')) $request
       $url="chrome-extension://$($profiles[0].Id)/primary.html?slot=$([uri]::EscapeDataString($slot))&requestId=$($request.requestId)&launch=$($request.launchAttempts)"
       Start-Process $chrome -ArgumentList @("--profile-directory=`"$($profiles[0].Profile)`"",'--new-window',$url)
     }
@@ -49,15 +50,14 @@ try {
   $seen=$false;$absent=0;$monitorDegraded=$false
   $launchAt=[DateTime]::UtcNow
   $session=(Get-Process -Id $PID).SessionId
-  $deadline=if($primaryBrowser -eq 'whale'){([DateTimeOffset]::Parse($request.requestedAt).AddHours(2)).UtcDateTime}else{[DateTime]::UtcNow.AddMinutes($MonitorMinutes)}
+  $deadline=if($primaryBrowser -eq 'whale'){(Get-WhaleDeadline $request).UtcDateTime}else{[DateTime]::UtcNow.AddMinutes($MonitorMinutes)}
   while ([DateTime]::UtcNow -lt $deadline) {
-    $receipt=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')
+    $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $slot)
     if ($receipt -and $receipt.scanSlot -ceq $slot) { Write-WatchLog "Slot=$slot; existing recovery state=$($receipt.state); no second handoff.";exit 0 }
     $alive=@(Get-Process -ErrorAction Stop | Where-Object {$_.ProcessName -eq $primaryBrowser -and $_.SessionId -eq $session}).Count -gt 0
     if ($alive) {$seen=$true;$absent=0} elseif($seen) {$absent++}
     Invoke-ScanSaveRecovery $RepoPath $folder $slot
-    $witnessName=if($primaryBrowser -eq 'whale'){'whale-scan-start.json'}else{'scan-start.json'}
-    $witness=Read-ScanRecoveryJson (Join-Path $folder $witnessName)
+    $witness=if($primaryBrowser -eq 'whale'){Get-WhaleStartWitness $folder $request}else{Read-ScanRecoveryJson (Join-Path $folder 'scan-start.json')}
     if ($witness -and $witness.scanSlot -ceq $slot) {
       $completedPath=Get-SavedPrimaryResultPath $folder $slot $RepoPath
       $completed=Read-ScanRecoveryJson $completedPath
