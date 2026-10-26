@@ -34,8 +34,8 @@ function Get-EdgeScannerInstallations {
   Get-BrowserExtensionInstallations $UserDataPath $ExtensionPath
 }
 
-$slot=Get-ScanRecoverySlot
 $scan = Get-LatestScan
+$slot=Get-ScanRecoverySlot
 $handoffMutex=New-Object Threading.Mutex($false,('Local\MarketPulseEdgeHandoff.'+((Get-ScanRecoverySlot) -replace '[^0-9]','')))
 $handoffHeld=$false
 try {
