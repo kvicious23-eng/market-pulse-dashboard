@@ -109,6 +109,8 @@ try {
  $q=Read-WhalePrimaryRequest $temp $e;$q.policyId='whale-noon-v1';Reject {Assert-WhalePrimaryRequest $q $e $catalog $later}
  $q.policyId=(Get-ScanSlotPolicy $e).id;$q.requestedAt='2026-10-27T21:15+09:00'
  if((Get-WhaleDeadline $q) -ne [DateTimeOffset]::Parse('2026-10-27T22:20+09:00')){throw 'Night deadline was extended past budget.'}
+ $lateNoon=[pscustomobject]@{scanSlot=$n;requestedAt=([DateTimeOffset]::Parse($n).AddMinutes(75).ToString('o'))}
+ if((Get-WhaleDeadline $lateNoon) -ne [DateTimeOffset]::Parse('2026-10-27T14:20+09:00')){throw 'Delayed noon exceeded collection cutoff.'}
  if((Get-EdgeReceiptPath $temp $n) -eq (Get-EdgeReceiptPath $temp $e)){throw 'Edge receipts share a Whale slot pointer.'}
  # A legacy pointer or another slot can never admit a post-activation request.
  Remove-Item (Get-WhaleRequestPath $temp $e) -Force

@@ -28,7 +28,7 @@ function nextScheduledScanTime(slot) {scanPolicyForSlot(slot);return Date.parse(
 function primaryScanDeadline(requestedAt,slot) {
   const start=Date.parse(requestedAt);
   if(!Number.isFinite(start))throw Error('invalid-request-time');
-  const nightEnd=slot.slice(11,13)==='20'?Date.parse(slot.slice(0,10)+'T22:20+09:00'):Infinity;
+  const nightEnd=Date.parse(slot)+140*60000; // Leave 10 minutes before the absolute upload cutoff.
   return Math.min(start+120*60000,nextScheduledScanTime(slot),nightEnd);
 }
 function primaryReceiptBase(receipt,verify=false) {

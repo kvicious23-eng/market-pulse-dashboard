@@ -52,7 +52,7 @@ Register-ScheduledTask `
   -Action $scanAction `
   -Trigger $scanTriggers `
   -Settings $scanTaskSettings `
-  -Description "Start Chrome at 08/16/20 and Whale at 12 from 2026-10-21 KST" `
+  -Description "Start policy-selected browser; Chrome08/16 and Whale12/20 from 2026-10-26 20:00 KST" `
   -Force | Out-Null
 
 $uploadTaskSettings = New-ScheduledTaskSettingsSet `
@@ -87,7 +87,7 @@ $uploadTime = @($uploadTask.Triggers | ForEach-Object { $_.StartBoundary }) -joi
 
 Write-Host "Market Pulse local schedule updated."
 Write-Host "  Automatic scan (slot routing): $scanTime"
-Write-Host "  Browser routing:               Chrome 08/16/20; Whale 12 from 2026-10-21; Edge recovery only"
+Write-Host "  Browser routing:               Chrome 08/16; Whale 12/20 from 2026-10-26 20:00; Edge full recovery only"
 Write-Host "  Result upload:                 $uploadTime"
 Write-Host "  Upload console:                Hidden (logs remain in reports\scheduled-upload.log)"
 Write-Host "  Upload retry:                  3 retries, every 15 minutes within the slot budget"

@@ -52,6 +52,7 @@ function Assert-EdgeRecoveryResult($Payload,$Receipt,$Targets) {
     if($Payload.recovery.policyId -cne $Receipt.policyId -or $Payload.recovery.deadlineAt -cne $Receipt.deadlineAt -or
       [DateTimeOffset]::Parse([string]$Payload.completedAt) -gt [DateTimeOffset]::Parse([string]$Receipt.deadlineAt)){throw 'Edge routing policy/budget mismatch.'}
   }
+  if($Receipt.deadlineAt -and ($Payload.recovery.deadlineAt -cne $Receipt.deadlineAt -or [DateTimeOffset]::Parse([string]$Payload.completedAt) -gt [DateTimeOffset]::Parse([string]$Receipt.deadlineAt))){throw 'Edge completed outside its original collection budget.'}
   $rows=@($Payload.results)
   if ($rows.Count -ne @($Targets).Count -or [int]$Payload.targetCount -ne $rows.Count -or [int]$Payload.resultCount -ne $rows.Count) { throw 'Edge recovery collection is incomplete.' }
   Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($Targets)}) -Results $rows
@@ -171,7 +172,7 @@ function Get-NextScanTime([string]$Slot) {Get-ScanSlotPolicy $Slot|Out-Null;([Da
 function Get-WhaleDeadline($Request) {
   $deadline=[DateTimeOffset]::Parse($Request.requestedAt).AddHours(2)
   $next=Get-NextScanTime $Request.scanSlot;if($deadline -gt $next){$deadline=$next}
-  if($Request.scanSlot.Substring(11,2) -eq '20'){$night=[DateTimeOffset]::Parse($Request.scanSlot.Substring(0,10)+'T22:20+09:00');if($deadline -gt $night){$deadline=$night}}
+  $cap=[DateTimeOffset]::Parse($Request.scanSlot).AddMinutes(140);if($deadline -gt $cap){$deadline=$cap}
   return $deadline
 }
 function Get-WhaleRequestPath([string]$RepoPath,[string]$Slot) {Join-Path $RepoPath ('reports\whale-primary-request-'+(Get-ScanSlotKey $Slot)+'.json')}

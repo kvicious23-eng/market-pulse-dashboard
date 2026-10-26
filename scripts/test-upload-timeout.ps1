@@ -1,6 +1,17 @@
 $ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'git-timeout.ps1')
+foreach($case in @(
+ @('2026-10-26T20:00+09:00','2026-10-26T20:30+09:00','2026-10-26T22:30+09:00'),
+ @('2026-10-26T20:00+09:00','2026-10-26T21:15+09:00','2026-10-26T22:30+09:00'),
+ @('2026-10-26T20:00+09:00','2026-10-26T23:00+09:00','2026-10-26T22:30+09:00'),
+ @('2026-10-27T08:00+09:00','2026-10-27T09:15+09:00','2026-10-27T10:30+09:00'),
+ @('2026-10-27T12:00+09:00','2026-10-27T12:30+09:00','2026-10-27T14:30+09:00'),
+ @('2026-10-27T16:00+09:00','2026-10-27T17:15+09:00','2026-10-27T18:30+09:00')
+)) {
+ if((Get-MarketPulseUploadDeadline $case[0] ([DateTimeOffset]::Parse($case[1]))) -ne [DateTimeOffset]::Parse($case[2])){throw 'Delayed upload moved its absolute slot cutoff.'}
+}
+Write-Host 'All four absolute upload cutoffs, delayed20 start and after22:30 exhausted budget passed.'
 $root=Join-Path ([IO.Path]::GetTempPath()) ('market-pulse-upload-timeout-'+[guid]::NewGuid())
 $originalDeadline=$env:MARKET_PULSE_UPLOAD_DEADLINE
 try {

@@ -1,4 +1,4 @@
-const PRIMARY_RELEASE='1.9.49';
+const PRIMARY_RELEASE='1.9.50';
 // Only the internal noon transport can admit a scheduled Whale result.
 async function primaryTimeout(promise,ms=10000) {
   let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}

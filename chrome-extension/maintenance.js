@@ -20,6 +20,9 @@ async function maintainExtension() {
     receipt.slotOwners=health?.slotOwners||null;
     receipt.observerStatus=health?.observerStatus||null;
     receipt.webRequestGranted=permission;
+    const catalog=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_PRODUCTS'}));
+    if(!catalog?.ok||!Array.isArray(catalog.products))throw Error('maintenance-catalog-unavailable');
+    receipt.targetIdentities=catalog.products.filter(row=>row.enabled!==false).map(row=>Object.fromEntries(['brand','mtm','productId','itemId','vendorItemId'].map(key=>[key,String(row[key]||'')])));
     receipt.scheduledAlarms=(await maintenanceTimeout(chrome.alarms.getAll())).map(alarm=>alarm.name).filter(name=>/^daily-scan-\d{4}$/.test(name)).sort();
     if(version===expected&&health?.version===expected&&health?.observerStatus==='registered'&&permission)receipt.status='verified';
   }

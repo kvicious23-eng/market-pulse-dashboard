@@ -1154,8 +1154,16 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
   await chrome.storage.local.set({running:true,runningStartedAt:Date.now(),scanProgress:null,lastScanError:null});
   const saveRecovery=(await chrome.storage.local.get('scanSaveRecovery')).scanSaveRecovery;
   const primaryState=primaryRequestId?(await chrome.storage.local.get('primaryRequest')).primaryRequest:null;
+  let ordinaryDeadline=Infinity;
+  if(scanSlot&&!recovery&&!primaryRequestId) {
+    const state=await chrome.storage.local.get('scheduledScanBudget');
+    const prior=state.scheduledScanBudget?.scanSlot===scanSlot?state.scheduledScanBudget:null;
+    const firstStartedAt=prior?.firstStartedAt||new Date().toISOString();
+    ordinaryDeadline=primaryScanDeadline(firstStartedAt,scanSlot);
+    await chrome.storage.local.set({scheduledScanBudget:{scanSlot,firstStartedAt,deadlineAt:new Date(ordinaryDeadline).toISOString()}});
+  }
   const primaryDeadline=primaryRequestId?Date.parse(primaryState?.deadlineAt||new Date(Date.parse(scanSlot)+120*60000).toISOString()):Infinity;
-  const recoveryDeadline=Math.min(primaryDeadline,recovery?.deadlineAt?Date.parse(recovery.deadlineAt):Infinity,!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running'].includes(saveRecovery.stage)?Date.parse(saveRecovery.deadlineAt):Infinity);
+  const recoveryDeadline=Math.min(ordinaryDeadline,primaryDeadline,recovery?.deadlineAt?Date.parse(recovery.deadlineAt):Infinity,!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.chromeRetries===1&&['chrome-retry-queued','chrome-retry-running'].includes(saveRecovery.stage)?Date.parse(saveRecovery.deadlineAt):Infinity);
   const checkRecoveryBudget=()=>{if(primaryRequestId&&primaryStopRequestId===primaryRequestId)throw Error('primary-supervisor-stop');if(Number.isNaN(recoveryDeadline)||Date.now()>=recoveryDeadline)throw Error('scan-save-recovery-budget-exhausted');};
   if(!recovery&&saveRecovery?.scanSlot===scanSlot&&saveRecovery.stage==='chrome-retry-queued')await chrome.storage.local.set({scanSaveRecovery:{...saveRecovery,stage:'chrome-retry-running'}});
   const scanStartedAt = new Date().toISOString();
@@ -1174,6 +1182,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
     if (childIds.length) await chrome.tabs.remove(childIds).catch(()=>{});
   };
   try {
+    checkRecoveryBudget();
     const configuredTargets=await withScanTimeout(getTargets(),15000,'scan-targets');
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
@@ -1183,7 +1192,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
     // distinguish a started collection from an absent/disabled extension.
     if((!isEdgeBrowser&&!/Whale\//.test(globalThis.navigator?.userAgent||'')&&scanSlot)||primaryRequestId) {
       const witness={version:1,browser:primaryRequestId?'whale':'chrome',primaryRequestId,policyId:scanSlot?scanPolicyForSlot(scanSlot).id:null,extensionVersion:chrome.runtime.getManifest().version,
-        runId,scanSlot,startedAt:scanStartedAt,targetCount:targets.length,targets};
+        runId,scanSlot,deadlineAt:Number.isFinite(recoveryDeadline)?new Date(recoveryDeadline).toISOString():null,startedAt:scanStartedAt,targetCount:targets.length,targets};
       const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
       const witnessDownload=await withScanTimeout(chrome.downloads.download({url:witnessUrl,
         filename:primaryRequestId?primaryWitnessFilename(scanSlot,primaryRequestId):'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
@@ -1296,6 +1305,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
       runId,
       recovery,
       primaryRequestId,
+      deadlineAt:Number.isFinite(recoveryDeadline)?new Date(recoveryDeadline).toISOString():null,
       policyId:scanSlot?scanPolicyForSlot(scanSlot).id:null,
       startedAt:scanStartedAt,
       scannedAt:completedAt,
@@ -1759,7 +1769,7 @@ function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequ
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
-  activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;primaryOperationOwner=primaryRequestId;
+  activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;primaryOperationOwner=primaryRequestId||recovery?.runId||(slot?'scheduled-'+slot:'manual');
   activeScanPromise=scanAll(slot,recovery,primaryRequestId);
   activeScanPromise.then(finishScan,finishScan);
   return true;
@@ -1959,13 +1969,13 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   }
   if (message?.type==='GET_SCAN_STATUS') {
     chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(async state=>{
-      if(state.running&&!activeScanPromise&&!primaryPendingOperations.size) {
+      if(state.running&&!activeScanPromise&&!fallbackCatalogPending&&!primaryPendingOperations.size) {
         state.running=false;
         state.lastScanError='scan-interrupted-by-worker-restart';
         state.lastScanErrorAt=new Date().toISOString();
         await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:state.lastScanError,lastScanErrorAt:state.lastScanErrorAt});
       }
-      sendResponse({...state,running:Boolean(activeScanPromise||primaryPendingOperations.size)});
+      sendResponse({...state,running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size)});
     }).catch(error=>sendResponse({lastScanError:String(error)}));
     return true;
   }

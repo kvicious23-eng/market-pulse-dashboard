@@ -89,7 +89,7 @@ const maintenance=readTestFile('chrome-extension/maintenance.js','utf8');
 async function checkMaintenance(mode,running,workerVersion='1.9.38') {
  const receipts=[],effects=[];
  const context={URLSearchParams,Date,setTimeout,clearTimeout,Promise,navigator:{userAgent:'Chrome/1'},location:{search:`?mode=${mode}&nonce=${'a'.repeat(32)}&version=1.9.38`},document:{querySelector:()=>({})},
- chrome:{runtime:{getManifest:()=>({version:'1.9.38'}),sendMessage:async m=>m.type==='GET_SCAN_STATUS'?{running}:{version:workerVersion,observerStatus:'registered'},reload:()=>effects.push('reload')},
+ chrome:{runtime:{getManifest:()=>({version:'1.9.38'}),sendMessage:async m=>m.type==='GET_SCAN_STATUS'?{running}:m.type==='GET_PRODUCTS'?{ok:true,products:[{brand:'Test',mtm:'A',productId:'1',itemId:'2',vendorItemId:'3'}]}:{version:workerVersion,observerStatus:'registered'},reload:()=>effects.push('reload')},
  permissions:{contains:async()=>true},alarms:{getAll:async()=>[]},tabs:{getCurrent:async()=>({id:9}),remove:async()=>effects.push('close')},
  downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));return 1;},search:async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/extension-maintenance-chrome.json'}]}}};
  vm.runInNewContext(maintenance.slice(0,maintenance.lastIndexOf('\nmaintainExtension().catch')),context);
@@ -98,5 +98,5 @@ async function checkMaintenance(mode,running,workerVersion='1.9.38') {
 let maintenanceResult=await checkMaintenance('reload',true);assert.equal(maintenanceResult.receipt.status,'busy');assert.deepEqual(maintenanceResult.effects,[]);
 maintenanceResult=await checkMaintenance('reload',false);assert.deepEqual(maintenanceResult.effects,['reload']);
 maintenanceResult=await checkMaintenance('verify',false,'1.9.37');assert.equal(maintenanceResult.receipt.status,'verification-failed');assert.deepEqual(maintenanceResult.effects,[]);
-maintenanceResult=await checkMaintenance('verify',false);assert.equal(maintenanceResult.receipt.status,'verified');assert.deepEqual(maintenanceResult.effects,['close']);
+maintenanceResult=await checkMaintenance('verify',false);assert.equal(maintenanceResult.receipt.targetIdentities.length,1);assert.equal(maintenanceResult.receipt.status,'verified');assert.deepEqual(maintenanceResult.effects,['close']);
 console.log('Extension maintenance busy guard, reload request and actual worker-version verification passed.');

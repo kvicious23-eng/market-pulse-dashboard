@@ -44,7 +44,9 @@ try {
 
   } else {
     if (-not $chrome) { throw 'Google Chrome is not installed.' }
-    Start-Process $chrome -ArgumentList '--no-first-run --new-window "chrome://newtab/"'
+    $profiles=@(Get-BrowserExtensionInstallations (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data') (Join-Path $RepoPath 'chrome-extension'))
+    if($profiles.Count -ne 1){throw 'Exactly one eligible Chrome scanner profile is required.'}
+    Start-Process $chrome -ArgumentList @("--profile-directory=`"$($profiles[0].Profile)`"",'--no-first-run','--new-window','chrome://newtab/')
   }
   Write-WatchLog "Slot=$slot; $primaryBrowser launched; waiting for the extension start witness."
   $seen=$false;$absent=0;$monitorDegraded=$false

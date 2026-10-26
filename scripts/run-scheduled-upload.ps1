@@ -47,12 +47,14 @@ try {
   $budget=Read-SupplierLocalState $budgetPath
   if (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart) {
     $now=[DateTimeOffset]::UtcNow
-    $end=$now.AddSeconds($TimeoutSeconds)
+    $end=Get-MarketPulseUploadDeadline $ExpectedSlotStart $now $TimeoutSeconds
     if($end -gt $nextSlotDeadline){$end=$nextSlotDeadline}
     $budget=[pscustomobject]@{scanSlot=$ExpectedSlotStart;startedAt=$now.ToString('o');deadlineAt=$end.ToString('o');exhausted=$false;status='starting'}
     Save-SupplierLocalState $budgetPath $budget
   }
   $deadline=[DateTimeOffset]::Parse($budget.deadlineAt)
+  $bounded=Get-MarketPulseUploadDeadline $ExpectedSlotStart ([DateTimeOffset]::Parse($budget.startedAt)) $TimeoutSeconds
+  if($deadline -gt $bounded){$deadline=$bounded;$budget.deadlineAt=$deadline.ToString('o');Save-SupplierLocalState $budgetPath $budget}
   $remaining=($deadline-[DateTimeOffset]::UtcNow).TotalSeconds
   if ($budget.exhausted -or $remaining -le 0) {
     $budget.status='deadline-exhausted';$budget.exhausted=$true

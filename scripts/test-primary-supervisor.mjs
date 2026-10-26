@@ -9,10 +9,10 @@ async function scenario(states,{verify=false,now=base+60000,step=15000,stopOk=tr
  let index=0;const calls=[],events=[];
  await ctx.runPrimarySupervisor({now:()=>now,wait:async()=>{now+=step;},emit:async e=>events.push(e),send:async m=>{
   calls.push(m);
-  if(m.type==='GET_PRIMARY_STATE')return {workerVersion:'1.9.49',...states[Math.min(index++,states.length-1)]};
+  if(m.type==='GET_PRIMARY_STATE')return {workerVersion:'1.9.50',...states[Math.min(index++,states.length-1)]};
   if(m.type==='PREPARE_PRIMARY_HANDOFF')return {ok:true,handoff:true,running:false,retryCount:1};
   if(m.type==='STOP_PRIMARY_SCAN')return {ok:stopOk};
-  return {ok:true,version:'1.9.49'};
+  return {ok:true,version:'1.9.50'};
  }},request,{verify});return {calls,events};
 }
 const active={ok:true,running:true,requestRunning:true,requestExists:true,progress:{updatedAt:new Date(base+60000).toISOString()}};
@@ -32,7 +32,7 @@ async function edgePage({verify=true,mismatch=false}={}) {
  const calls=[],receipts=[];const runId='b'.repeat(32);
  const request={version:1,browser:'edge',scanSlot:requestSlot(),runId:mismatch?'c'.repeat(32):runId,products:[{mtm:'A'}],recovery:{runId}};
  function requestSlot(){return '2026-10-22T12:00+09:00';}
- await vm.runInNewContext(fallback,{URL,Date,Error,JSON,encodeURIComponent,setTimeout,clearTimeout,location:{href:`chrome-extension://test/fallback.html?slot=${encodeURIComponent(requestSlot())}&runId=${runId}${verify?'&verify=1':''}`},document:{getElementById:()=>({textContent:''})},fetch:async()=>({ok:true,json:async()=>request}),chrome:{runtime:{getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{calls.push(m);return {ok:true,version:'1.9.49'};}},downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));return 1;},search:async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/edge-fallback-transport-check.json'}]},tabs:{getCurrent:async()=>({id:1}),remove:async()=>{}}}});
+ await vm.runInNewContext(fallback,{URL,Date,Error,JSON,encodeURIComponent,setTimeout,clearTimeout,location:{href:`chrome-extension://test/fallback.html?slot=${encodeURIComponent(requestSlot())}&runId=${runId}${verify?'&verify=1':''}`},document:{getElementById:()=>({textContent:''})},fetch:async()=>({ok:true,json:async()=>request}),chrome:{runtime:{getURL:p=>'chrome-extension://test/'+p,sendMessage:async m=>{calls.push(m);return {ok:true,version:'1.9.50'};}},downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));return 1;},search:async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/edge-fallback-transport-check.json'}]},tabs:{getCurrent:async()=>({id:1}),remove:async()=>{}}}});
  return {calls,receipts};
 }
 let edge=await edgePage();assert.deepEqual(edge.calls.map(x=>x.type),['CHECK_FALLBACK_TRANSPORT']);assert.equal(edge.receipts[0].status,'transport-verified');

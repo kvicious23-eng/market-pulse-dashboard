@@ -6,13 +6,14 @@ const source=readTestFile('chrome-extension/background.js','utf8');
 const scan=source.slice(source.indexOf('async function scanAll('),source.indexOf('\nconst SCHEDULED_SCAN_TIMES'));
 const products=[{brand:'Acer',mtm:'A',productId:'1',itemId:'2',vendorItemId:'3',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',skuId:'private'},
  {brand:'Lenovo',mtm:'B',productId:'4',itemId:'5',vendorItemId:'6',url:'https://www.coupang.com/vp/products/4?itemId=5&vendorItemId=6'}];
-async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T20:00+09:00',blocked=false) {
- const files=[],events=[],state={};let scanCount=0;
- const context={Date,URL,Object,Set,crypto:{randomUUID:()=> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},navigator:{userAgent:edge?'Edg/1':'Chrome/1'},isEdgeBrowser:edge,
+async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T20:00+09:00',blocked=false,{firstStartedAt=null,elapsedMs=1000}={}) {
+ const files=[],events=[],state=firstStartedAt?{scheduledScanBudget:{scanSlot:slot,firstStartedAt}}:{};let scanCount=0;
+ class Clock extends Date{constructor(...a){super(...(a.length?a:[Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs]));}static now(){return Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs;}}
+ const context={Date:Clock,URL,Object,Set,crypto:{randomUUID:()=> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},navigator:{userAgent:edge?'Edg/1':'Chrome/1'},isEdgeBrowser:edge,
   accessDiagnosticTabs:new Map(),saveAccessDiagnosticArchive:async()=>'not-needed',saveCompletedScan:async payload=>{const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';const id=await context.chrome.downloads.download({url:'data:application/json,'+encodeURIComponent(JSON.stringify(payload)),filename});await context.waitForScanDownload(id,filename);},withScanTimeout:async p=>p,wait:async()=>{},getTargets:async()=>products,validateProductCatalog:()=>[],
   waitForScanDownload:async id=>{if(failWitness&&id===1)throw Error('interrupted');events.push('complete:'+id);},
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>{const denied=blocked&&scanCount++===0;return {ok:!denied,...(denied?{reason:'access-check',accessCheckDetail:'access-denied-message'}:{}),accessDiagnostic:{responses:[],page:{marker:denied?'access denied':''}}};},collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
-  chrome:{runtime:{getManifest:()=>({version:'1.9.38'})},storage:{local:{get:async()=>({}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
+  chrome:{runtime:{getManifest:()=>({version:'1.9.38'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
    downloads:{download:async o=>{files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
  vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+scan+';this.run=scanAll;',context);
  if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else await context.run(slot,recovery);
@@ -35,3 +36,8 @@ const settings=readTestFile('scripts/set-local-schedule.ps1','utf8');assert.matc
 console.log('Start witness ordering, no partial prices/SKUID, interrupted witness, manual isolation, full Edge recollection and unique recovery file passed.');
 await assert.rejects(run(true,{runId:'b'.repeat(32),reason:'access-check',deadlineAt:'2000-01-01T00:00:00Z'}),/scan-save-recovery-budget-exhausted/);
 console.log('Actual Edge collector stops before product work when the inherited recovery budget has expired.');
+
+await assert.rejects(run(false,null,false,'2026-10-26T16:00+09:00',false,{firstStartedAt:'2026-10-26T16:00+09:00',elapsedMs:121*60000}),/scan-save-recovery-budget-exhausted/);
+const late=await run(false,null,false,'2026-10-26T16:00+09:00',false,{elapsedMs:75*60000});
+assert.equal(Date.parse(late.state.scheduledScanBudget.deadlineAt),Date.parse('2026-10-26T18:20+09:00'));
+console.log('Ordinary Chrome restart preserves the first-start budget; delayed collection is capped before upload.');

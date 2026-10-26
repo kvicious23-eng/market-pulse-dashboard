@@ -68,6 +68,7 @@ function Start-Sleep { param([int]$Seconds) }
 function Start-Process {
   param([string]$FilePath,[string[]]$ArgumentList)
   if ($FilePath -match 'chrome\.exe$') {
+    if(($ArgumentList -join ' ') -notmatch '--profile-directory="Default"'){throw 'Chrome scanner profile is not pinned.'}
     Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder 'scan-start.json') $w
     return
   }
@@ -83,7 +84,7 @@ function Start-Process {
   if ($query.slot -cne $slot -or $sent.Count -ne 2 -or $context.reason -ne $global:RecoveryExpectedReason) {throw 'Wrong handoff context.'}
   foreach ($product in $sent) {$product | Add-Member ok $true -Force}
   $edgePayload=[pscustomobject]@{browser='edge';complete=$true;scanSlot=$query.slot;runId=$context.runId;recovery=$context;
-    startedAt=[DateTimeOffset]::Parse($context.triggeredAt).AddMilliseconds(1).ToString('o');targetCount=$sent.Count;resultCount=$sent.Count;results=$sent}
+    completedAt=[DateTimeOffset]::Parse($context.triggeredAt).AddMilliseconds(2).ToString('o');startedAt=[DateTimeOffset]::Parse($context.triggeredAt).AddMilliseconds(1).ToString('o');targetCount=$sent.Count;resultCount=$sent.Count;results=$sent}
   # Simulate a late Chrome result during Edge work; it must not be selected.
   Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder 'latest-coupang-scan.json') ([pscustomobject]@{browser='chrome';runId=$w.runId;scanSlot=$slot;complete=$true})
   Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder "edge-recovery-$($context.runId).json") $edgePayload
@@ -97,15 +98,19 @@ try {
   foreach ($name in @('scan-recovery.ps1','brand-lifecycle.ps1','browser-profile.ps1')) {Copy-Item (Join-Path $PSScriptRoot $name) $scripts}
   $edgeSource=Get-Content (Join-Path $PSScriptRoot 'edge-fallback.ps1') -Raw -Encoding UTF8
   $edgeSource=$edgeSource.Replace("`$resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",' $resultFolder=$global:RecoveryTestFolder')
+  $edgeSource=$edgeSource.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('$($start.AddMinutes(30).ToString('o'))'))")
   $edgeSource=$edgeSource.Replace('$slot=Get-ScanRecoverySlot','$slot=$global:RecoveryTestSlot').Replace('(Get-ScanRecoverySlot)','($global:RecoveryTestSlot)')
   $edgeSource | Set-Content (Join-Path $scripts 'edge-fallback.ps1') -Encoding UTF8
   $watchSource=Get-Content (Join-Path $PSScriptRoot 'run-scheduled-scan.ps1') -Raw -Encoding UTF8
   $watchSource=$watchSource.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:RecoveryTestFolder')
+  $watchSource=$watchSource.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('$($start.AddMinutes(30).ToString('o'))'))").Replace('[DateTime]::UtcNow',"([DateTimeOffset]::Parse('$($start.AddMinutes(30).ToString('o'))').UtcDateTime)")
   $watchSource=$watchSource.Replace('$slot=Get-ScanRecoverySlot','$slot=$global:RecoveryTestSlot').Replace('if (-not $slot -or ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($slot)).TotalMinutes -gt 75) { exit 0 }','if (-not $slot) { exit 0 }')
   $watchSource | Set-Content (Join-Path $scripts 'run-scheduled-scan.ps1') -Encoding UTF8
   foreach ($exe in @('Google\Chrome\Application\chrome.exe','Microsoft\Edge\Application\msedge.exe')) {
     $path=Join-Path $temp $exe;New-Item -ItemType Directory (Split-Path $path) -Force | Out-Null;New-Item -ItemType File $path | Out-Null
   }
+  $chromeProfile=Join-Path $temp 'Google\Chrome\User Data\Default';New-Item -ItemType Directory $chromeProfile -Force|Out-Null
+  @{extensions=@{settings=@{('a'*32)=@{path=(Join-Path $temp 'chrome-extension')}}}}|ConvertTo-Json -Depth 8|Set-Content (Join-Path $chromeProfile 'Secure Preferences') -Encoding UTF8
   $profile=Join-Path $temp 'Microsoft\Edge\User Data\Default';New-Item -ItemType Directory $profile -Force | Out-Null
   @{extensions=@{settings=@{('a'*32)=@{path=(Join-Path $temp 'chrome-extension')}}}} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $profile 'Secure Preferences') -Encoding UTF8
   Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder 'product-catalog.json') $catalog

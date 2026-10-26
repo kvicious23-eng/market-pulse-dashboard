@@ -121,6 +121,19 @@ if($PrimaryBrowser -eq 'whale') {
   if($remaining -lt 1){throw 'No Whale request budget remains for Edge.'}
   $TimeoutMinutes=[math]::Min($TimeoutMinutes,$remaining)
 }
+# Chrome full recovery shares the originating collector's deadline as well.
+if($PrimaryBrowser -eq 'chrome') {
+  $first=if($SaveFailure){$SaveFailure.firstStartedAt}else{$receipt.chromeStartedAt}
+  $end=[DateTimeOffset]::Parse($first).AddHours(2)
+  $absolute=[DateTimeOffset]::Parse($receipt.scanSlot).AddMinutes(140)
+  if($end -gt $absolute){$end=$absolute}
+  $carried=if($SaveFailure){$SaveFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
+  if($carried -and [DateTimeOffset]::Parse($carried) -lt $end){$end=[DateTimeOffset]::Parse($carried)}
+  $remaining=[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes)
+  if($remaining -lt 1){throw 'No Chrome request budget remains for Edge.'}
+  $TimeoutMinutes=[math]::Min($TimeoutMinutes,$remaining)
+  $receipt|Add-Member deadlineAt $end.ToString('o')
+}
 $edgeCandidates = @(
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
   "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
