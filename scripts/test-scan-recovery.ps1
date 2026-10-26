@@ -1,10 +1,10 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([ValidateSet('2026-10-26T08:00+09:00','2026-10-26T16:00+09:00','2026-10-25T20:00+09:00')][string]$FlowSlot='2026-10-26T16:00+09:00')
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 function Must-Fail([scriptblock]$Action) { $failed=$false;try {& $Action}catch{$failed=$true};if(-not $failed){throw 'Expected validation failure.'} }
-$slot=Get-ScanRecoverySlot
-if (-not $slot) {$slot=[DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(9)).AddDays(-1).ToString('yyyy-MM-dd')+'T20:00+09:00'}
-if((Get-PrimaryScanBrowser $slot) -eq 'whale'){$slot=$slot.Substring(0,10)+'T08:00+09:00'}
+# Fixed historical Chrome slots: never select or skip a branch using the CI clock.
+$slot=$FlowSlot
 $start=[DateTimeOffset]::Parse($slot)
 $row=[pscustomobject]@{brand='Acer';mtm='Current';enabled=$true;productId='1';itemId='2';vendorItemId='3';url='https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'}
 $catalog=[pscustomobject]@{products=@($row)}
@@ -131,14 +131,19 @@ try {
     Write-Host 'Isolated watchdog -> Edge launch -> full collection -> pinned receipt -> upload selection passed; no live browser was touched.'
     # Replay the new save-error branch through the real handoff with the same isolated transport.
     Remove-Item (Join-Path $temp 'reports\edge-recovery.json'),(Join-Path $global:RecoveryTestFolder 'latest-coupang-scan.json') -Force
-    $proofNow=[DateTimeOffset]::UtcNow;$proofEnd=$proofNow.AddHours(2);$nextSlot=$start.AddHours($(if($start.Hour -eq 20){12}else{4}));if($nextSlot -lt $proofEnd){$proofEnd=$nextSlot}
-    if (($proofEnd-$proofNow).TotalMinutes -gt 1) {
+    $proofNow=$start.AddMinutes(30);$proofEnd=$proofNow.AddHours(2)
+    # Advance only the copied module's clock. Real production files are untouched.
+    & {
       $saveProof=[pscustomobject]@{version=1;browser='chrome';reason='file-save-error';error='FILE_ACCESS_DENIED';saveAttempts=2;stage='edge-ready';chromeRetries=1;scanSlot=$slot;runId=('c'*32);firstStartedAt=$proofNow.ToString('o');startedAt=$proofNow.ToString('o');completedAt=$proofNow.ToString('o');deadlineAt=$proofEnd.ToString('o');extensionVersion='1.9.39';targetCount=2;targets=@($w.targets)}
       Write-ScanRecoveryJson (Join-Path $global:RecoveryTestFolder ('scan-save-recovery-'+('c'*32)+'.json')) $saveProof
       $global:RecoveryExpectedReason='file-save-error'
       $handoffSource=Get-Content (Join-Path $scripts 'scan-recovery.ps1') -Raw -Encoding UTF8
-      $handoffSource=$handoffSource.Replace("(Join-Path `$PSScriptRoot 'edge-fallback.ps1')","(Join-Path `$scripts 'edge-fallback.ps1')")
-      . ([ScriptBlock]::Create($handoffSource))
+      $handoffSource=$handoffSource.Replace('[DateTimeOffset]::UtcNow',"([DateTimeOffset]::Parse('$($proofNow.ToString('o'))'))")
+      $handoffPath=Join-Path $scripts 'scan-recovery.ps1'
+      $handoffSource | Set-Content -LiteralPath $handoffPath -Encoding UTF8
+      # File-backed loading preserves PSScriptRoot for policy AND Edge paths.
+      . $handoffPath
+      if ((Get-PrimaryScanBrowser $slot) -cne 'chrome') {throw 'File-backed shared routing policy was not loaded.'}
       Invoke-ScanSaveRecovery $temp $global:RecoveryTestFolder $slot
       $savedReceipt=Read-ScanRecoveryJson (Join-Path $temp 'reports\edge-recovery.json')
       if ($global:RecoveryLaunches -ne 2 -or $savedReceipt.reason -ne 'file-save-error' -or $savedReceipt.state -ne 'result-ready') {throw 'Confirmed save failure did not produce one full Edge recovery.'}
