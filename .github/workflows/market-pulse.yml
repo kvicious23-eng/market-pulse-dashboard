@@ -200,7 +200,9 @@ jobs:
           ./scripts/test-whale-noon.ps1 -FlowSlot "2026-10-26T20:00+09:00"
           ./scripts/test-upload-timeout.ps1
           ./scripts/test-edge-profile.ps1
-          ./scripts/test-scan-recovery.ps1
+          ./scripts/test-scan-recovery.ps1 -FlowSlot "2026-10-26T08:00+09:00"
+          ./scripts/test-scan-recovery.ps1 -FlowSlot "2026-10-26T16:00+09:00"
+          ./scripts/test-scan-recovery.ps1 -FlowSlot "2026-10-25T20:00+09:00"
           ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
