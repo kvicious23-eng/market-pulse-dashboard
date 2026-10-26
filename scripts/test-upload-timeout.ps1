@@ -68,6 +68,14 @@ $child=Start-Process powershell.exe -ArgumentList '-NoProfile -NonInteractive -C
 while($true){Start-Sleep -Seconds 1}
 '@)
   $runner=Join-Path $scripts 'run-scheduled-upload.ps1'
+  # Keep the scenario inside its upload window even when CI runs after 22:30.
+  # Advance from the synthetic slot using real elapsed time so timeout/kill tests stay real.
+  $clockOrigin=[DateTimeOffset]::UtcNow.ToString('o')
+  $scenarioNow=$slotTime.AddMinutes(30).ToString('o')
+  $runnerSource=Get-Content -LiteralPath $runner -Raw -Encoding UTF8
+  $clockExpression="([DateTimeOffset]::Parse('$scenarioNow').Add(([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse('$clockOrigin'))))"
+  $runnerSource=$runnerSource.Replace('[DateTimeOffset]::UtcNow',$clockExpression)
+  [IO.File]::WriteAllText($runner,$runnerSource,(New-Object Text.UTF8Encoding($true)))
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner -RepoPath $fixture -TimeoutSeconds 5 -ExpectedSlotStart $slot
   if($LASTEXITCODE -ne 1){throw 'Whole upload timeout did not fail.'}
   $budget=Get-Content (Join-Path $fixture 'reports\scheduled-upload-budget.json') -Raw | ConvertFrom-Json
