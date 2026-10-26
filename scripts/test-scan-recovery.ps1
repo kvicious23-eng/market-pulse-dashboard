@@ -37,6 +37,14 @@ if ($text.Route -notmatch 'Edge' -or @($text.Values | Where-Object {$_ -match 'C
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('MPRecovery-'+[guid]::NewGuid().ToString('N'))
 try {
   $folder=Join-Path $temp 'Downloads';New-Item -ItemType Directory $folder -Force | Out-Null
+  $zero=[pscustomobject]@{browser='chrome';complete=$true;scanSlot=$slot;runId=('9'*32);targetCount=0;resultCount=0;results=@()}
+  $zeroPath=Join-Path $folder 'latest-coupang-scan-empty.json';Write-ScanRecoveryJson $zeroPath $zero
+  if(Get-SavedChromeResultPath $folder $slot){throw 'Unconfirmed empty Chrome catalog admitted.'}
+  Write-ScanRecoveryJson (Join-Path $folder 'product-catalog.json') ([pscustomobject]@{products=@()})
+  if((Get-SavedChromeResultPath $folder $slot) -cne $zeroPath){throw 'Confirmed empty Chrome production result was excluded.'}
+  Write-ScanRecoveryJson (Join-Path $folder 'product-catalog.json') $catalog
+  if(Get-SavedChromeResultPath $folder $slot){throw 'Empty Chrome result hid a nonempty catalog.'}
+  Remove-Item $zeroPath -Force
   $path=Join-Path $temp 'reports\edge-recovery.json'
   Write-ScanRecoveryJson $path $receipt
   if(Get-EdgeRecoveryResultPath $temp $folder $slot){throw 'Pending recovery selected a late Chrome result.'}
