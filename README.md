@@ -27,7 +27,7 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 
 ## 운영 문서와 검사
 
-현재 가격 확장은 Chrome·Edge·Whale1.9.47, Supplier Connector0.1.20이다. PC 자동 종료는23:00이며20:30 업로드 최대22:30 종료 후30분 여유가 있다. PROJECT_RULES.md를 기준으로 WINDOWS_LOCAL_SCANNER.md, CHROME_RECOVERY.md, SUPPLIER_HUB_STARTUP.md를 함께 따른다. `node scripts/test-line-endings.mjs`는 임시 LF/CRLF 소스 각각에서 JavaScript 검사를 실행한다. CI는 Ubuntu와 Windows에서 같은 검사를 수행하고 Windows PowerShell5.1 검사도 별도로 통과해야 Pages에 배포한다.
+현재 가격 확장은 Chrome·Edge·Whale1.9.48, Supplier Connector0.1.21이다. PC 자동 종료는23:00이며20:30 업로드 최대22:30 종료 후30분 여유가 있다. PROJECT_RULES.md를 기준으로 WINDOWS_LOCAL_SCANNER.md, CHROME_RECOVERY.md, SUPPLIER_HUB_STARTUP.md를 함께 따른다. `node scripts/test-line-endings.mjs`는 임시 LF/CRLF 소스 각각에서 JavaScript 검사를 실행한다. CI는 Ubuntu와 Windows에서 같은 검사를 수행하고 Windows PowerShell5.1 검사도 별도로 통과해야 Pages에 배포한다.
 
 
 ## Whale을 포함한 업데이트 완료 기준
@@ -48,3 +48,5 @@ Lenovo, Acer 및 사용자 등록 브랜드의 가격 모니터링 대시보드�
 가격1.9.46: 12시Whale운영은Chrome의동일시각반복접근가설에대해브라우저를분산하는사용자운영방침이며차단원인확정이아니다. 기본08/16/20Chrome·12Whale와독립Supplier를유지하고12시Chrome자동대체는추가하지않는다. Whale은접수페이지가진행을감시하고중단된같은요청을1회만재시도한다. 6분진행정지에는협조중단을요청하고실제비실행확인전에는재수집/Edge를시작하지않는다. 2분내중단미확인은자동복구를중단한다. 1회재시도후에도실패하면handoff를고정하고증거를검증해전체Edge로전환한다. Windows전달페이지재실행은별도최대1회이며기존요청/실행잠금으로동시수집을막는다. 처음요청부터2시간/다음슬롯예산을유지한다. 수집전용창소실시1회재생성,빈활성카탈로그정리,Edge짧은파일전달/모든전환사유공통잠금도적용한다. Whale/Edge의verify=1은전달검증만하고가격수집·게시를하지않는다. 자연예약과자연복구성공은합성/수동검증과구분한다.
 
 가격1.9.47은Whale예약수집에서타임아웃후남은비동기작업이실제로끝날때까지실행중으로추적해중복수집/조기Edge전환/재로드를차단한다. 가격계산과수동수집정책은유지한다.
+
+가격1.9.48은 Whale 감시 영수증 저장 실패를 수집 거부와 분리한다. 기본 저장 실패 시 요청ID·페이지ID·순번을 포함한 고유 경로로1회 재시도하고, 모두 실패해도 실제 worker 감시를 계속한다. Windows는 같은 회차/요청/페이지 실행의 유효 기록을 사건 시각으로 선택한다. 시작 증거가 있으면 페이지 재호출1회 뒤 감시 저하 상태로 완료 파일/프로세스 확인을 원래 기한까지 유지하며, 영수증 누락만으로 Edge를 시작하지 않는다. 수집 중 재로드 금지와 세 브라우저별 적용/verify는 유지한다.

@@ -46,7 +46,7 @@ try {
     Start-Process $chrome -ArgumentList '--no-first-run --new-window "chrome://newtab/"'
   }
   Write-WatchLog "Slot=$slot; $primaryBrowser launched; waiting for the extension start witness."
-  $seen=$false;$absent=0
+  $seen=$false;$absent=0;$monitorDegraded=$false
   $launchAt=[DateTime]::UtcNow
   $session=(Get-Process -Id $PID).SessionId
   $deadline=if($primaryBrowser -eq 'whale'){([DateTimeOffset]::Parse($request.requestedAt).AddHours(2)).UtcDateTime}else{[DateTime]::UtcNow.AddMinutes($MonitorMinutes)}
@@ -75,9 +75,11 @@ try {
       }
     }
     if($primaryBrowser -eq 'whale') {
-      $accepted=Read-ScanRecoveryJson (Join-Path $folder 'whale-primary-acceptance.json')
+      $accepted=Get-WhalePrimaryReceipt $folder $request
       $action=Get-WhalePrimaryAction $accepted $witness $request $launchAt
-      if($action -eq 'relaunch') {
+      if($action -eq 'monitor-degraded') {
+        if(-not $monitorDegraded){Write-WatchLog "Slot=$slot; primary receipt monitoring degraded; matching start confirmed; continue completion/process checks within original deadline; no inferred Edge handoff.";$monitorDegraded=$true}
+      } elseif($action -eq 'relaunch') {
         Write-WatchLog "Slot=$slot; primary transport/liveness retry; same request ID; no Chrome substitution."
         Start-WhalePrimaryPage;$launchAt=[DateTime]::UtcNow
       } elseif($action -eq 'edge') {
@@ -88,6 +90,7 @@ try {
         Write-WatchLog "Slot=$slot; Whale worker explicitly inactive after one retry; handoff frozen; requesting full Edge recollection."
         & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -PrimaryFailure $accepted -PrimaryBrowser whale -TimeoutMinutes $minutes
         exit 0
+      } elseif($action -eq 'wait' -and $monitorDegraded) {Write-WatchLog "Slot=$slot; primary receipt monitoring restored.";$monitorDegraded=$false
       } elseif($action -eq 'fail') {throw 'Whale primary start/liveness failed; no confirmed safe handoff. Inspect whale-primary-acceptance.json.'}
     }
     Start-Sleep -Seconds 10

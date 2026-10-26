@@ -55,6 +55,36 @@ try {
  $request.launchAttempts=2
  if((Get-WhalePrimaryAction $null $null $request $now.AddMinutes(-3) $now) -ne 'fail'){throw 'Missing startup allowed an unbounded retry.'}
  $request.launchAttempts=1
+ $start.primaryRequestId=$request.requestId
+ $qHealth.status='rejected';$qHealth|Add-Member reason 'primary-receipt-save-failed' -Force
+ if((Get-WhalePrimaryAction $qHealth $start $request $now $now) -ne 'relaunch'){throw 'Legacy receipt I/O did not receive bounded page retry.'}
+ $request.launchAttempts=2;$qHealth.launchAttempt=2
+ if((Get-WhalePrimaryAction $qHealth $start $request $now $now) -ne 'monitor-degraded'){throw 'Receipt I/O ended real completion monitoring.'}
+ if((Get-WhalePrimaryAction $null $start $request $now.AddMinutes(-4) $now) -ne 'monitor-degraded'){throw 'Lost heartbeat ended real completion monitoring.'}
+ $qHealth.reason='request-file-mismatch'
+ if((Get-WhalePrimaryAction $qHealth $start $request $now $now) -ne 'fail'){throw 'Real request rejection was hidden.'}
+ $request.launchAttempts=1
+ $r=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=$request.requestId;launchAttempt=1;status='running';at=$now.AddSeconds(-5).ToString('o');receiptVersion=2;receiptProducerVersion='1.9.48';pageId=('f'*32);sequence=2;receiptDelivery='unique-fallback'}
+ $unique=Join-Path $folder ("whale-primary-acceptance-$($r.requestId)-$($r.pageId)-000002.json")
+ Write-ScanRecoveryJson $unique $r
+ $canonical=Join-Path $folder 'whale-primary-acceptance.json'
+ $old=$r|ConvertTo-Json|ConvertFrom-Json;$old.at=$now.AddSeconds(-30).ToString('o');$old.status='rejected';$old.receiptDelivery='canonical'
+ Write-ScanRecoveryJson $canonical $old
+ (Get-Item $canonical).LastWriteTimeUtc=$now.AddHours(1).UtcDateTime
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'running'){throw 'Late canonical replaced newer unique event.'}
+ $r.sequence=3;Write-ScanRecoveryJson $unique $r
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'rejected'){throw 'Filename sequence mismatch admitted.'}
+ $r.sequence=2;$r.at=$now.AddMinutes(1).ToString('o');Write-ScanRecoveryJson $unique $r
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'rejected'){throw 'Future receipt admitted.'}
+ $r.at=$now.AddSeconds(-5).ToString('o');$r.launchAttempt=2;Write-ScanRecoveryJson $unique $r
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'rejected'){throw 'Other launch admitted.'}
+ $r.launchAttempt=1;$r.requestId='b'*32;Write-ScanRecoveryJson $unique $r
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'rejected'){throw 'Other request admitted.'}
+ Set-Content -LiteralPath $unique -Value '{'
+ if((Get-WhalePrimaryReceipt $folder $request $now).status -ne 'rejected'){throw 'Partial receipt hid valid canonical.'}
+ $old.at='2026-10-21T11:59:59+09:00';Write-ScanRecoveryJson $canonical $old
+ if(Get-WhalePrimaryReceipt $folder $request $now){throw 'Pre-request receipt admitted.'}
+ Write-Host 'Receipt event ordering, namespace/request/launch/time/sequence binding, partial JSON and monitoring degradation guards passed.'
  $proof=[pscustomobject]@{version=1;browser='whale';scanSlot=$slot;requestId=$request.requestId;status='edge-ready';handoff=$true;running=$false;completed=$false;requestExists=$true;retryCount=1;targetCount=1;workerVersion='1.9.47';at=$now.ToString('o');deadlineAt=$now.AddMinutes(60).ToString('o')}
  Assert-WhalePrimaryFailure $proof $slot $catalog $request $now
  $proof.running=$true;Reject {Assert-WhalePrimaryFailure $proof $slot $catalog $request $now};$proof.running=$false
@@ -72,10 +102,20 @@ $oldProgramFiles=$env:ProgramFiles;$oldLocalAppData=$env:LOCALAPPDATA
 $global:WhaleFlowFolder=Join-Path $temp 'Downloads';$global:WhaleFlowChecks=0;$global:WhaleFlowLaunches=0;$global:WhaleEdgeLaunches=0
 function Get-Process {param($Id,[string]$ErrorAction)
  if($Id){return [pscustomobject]@{SessionId=1}}
+ if($global:WhaleFlowReceiptMode){return [pscustomobject]@{SessionId=1;ProcessName='whale'}}
  $global:WhaleFlowChecks++
  if($global:WhaleFlowChecks -eq 1){return [pscustomobject]@{SessionId=1;ProcessName='whale'}}
 }
-function Start-Sleep {param([int]$Seconds)}
+function Start-Sleep {param([int]$Seconds)
+ if($global:WhaleFlowReceiptMode){
+  $global:WhaleFlowSleeps++
+  if($global:WhaleFlowSleeps -ge 3){
+   $w=Read-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-scan-start.json')
+   $done=[pscustomobject]@{browser='whale';extensionVersion='1.9.48';complete=$true;scanSlot=$w.scanSlot;primaryRequestId=$w.primaryRequestId;runId=$w.runId;startedAt=$w.startedAt;completedAt=$w.startedAt;targetCount=$w.targetCount;resultCount=$w.targetCount;results=@($w.targets)}
+   Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder ('whale-scan-'+$w.runId+'.json')) $done
+  }
+ }
+}
 function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
  $url=@($ArgumentList|Where-Object {$_ -match '^chrome-extension://'})[0];if(-not $url){throw 'Missing internal transport.'}
  $q=@{};foreach($pair in ([uri]$url).Query.TrimStart('?').Split('&')){$v=$pair.Split('=',2);$q[$v[0]]=[uri]::UnescapeDataString($v[1])}
@@ -92,6 +132,10 @@ function Start-Process {param([string]$FilePath,[string[]]$ArgumentList)
    if($url -notmatch '/primary.html\?' -or $q.requestId -notmatch '^[a-f0-9]{32}$'){throw 'Wrong Whale transport.'}
    $w=[pscustomobject]@{version=1;browser='whale';primaryRequestId=$q.requestId;scanSlot=$q.slot;runId=('b'*32);startedAt='2026-10-21T12:30:00+09:00';targetCount=1;targets=$products}
    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-scan-start.json') $w
+   if($global:WhaleFlowReceiptMode){
+    $bad=[pscustomobject]@{version=1;browser='whale';scanSlot=$q.slot;requestId=$q.requestId;launchAttempt=$request.launchAttempts;status='rejected';reason='primary-receipt-save-failed';at='2026-10-21T12:30:00+09:00'}
+    Write-ScanRecoveryJson (Join-Path $global:WhaleFlowFolder 'whale-primary-acceptance.json') $bad
+   }
  }elseif($FilePath -match 'msedge.exe$'){
    $global:WhaleEdgeLaunches++;$c=$q.recovery|ConvertFrom-Json
    if($c.primaryBrowser -ne 'whale' -or $c.primaryRequestId -notmatch '^[a-f0-9]{32}$'){throw 'Missing Whale Edge correlation.'}
@@ -148,10 +192,19 @@ try {
  if($global:WhaleEdgeLaunches -ne 4 -or $receipt.reason -ne 'whale-primary-failed' -or $receipt.state -ne 'result-ready'){throw 'Explicit inactive worker failure did not recover through Edge.'}
  & (Join-Path $scripts 'edge-fallback.ps1') -RepoPath $temp -PrimaryBrowser whale -PrimaryFailure $failed
  if($global:WhaleEdgeLaunches -ne 4){throw 'Worker-failure Edge handoff duplicated.'}
+ Remove-Item (Join-Path $temp 'reports\edge-recovery.json'),(Join-Path $global:WhaleFlowFolder 'scan-save-recovery-*.json') -Force
+ Remove-Item (Join-Path $temp 'reports\whale-primary-request.json') -Force
+ $global:WhaleFlowReceiptMode=$true;$global:WhaleFlowSleeps=0
+ $beforeWhale=$global:WhaleFlowLaunches;$beforeEdge=$global:WhaleEdgeLaunches
+ & (Join-Path $scripts 'run-scheduled-scan.ps1') -RepoPath $temp
+ if($global:WhaleFlowLaunches -ne $beforeWhale+2 -or $global:WhaleEdgeLaunches -ne $beforeEdge){throw 'Receipt I/O caused unbounded page retry or inferred Edge.'}
+ $watch=Get-Content (Join-Path $temp 'reports\scan-watchdog.log') -Raw
+ if($watch -notmatch 'monitoring degraded' -or $watch -notmatch 'whale completed and saved JSON'){throw 'Degraded monitoring did not continue to saved completion.'}
+ Write-Host 'Real watchdog isolated I/O flow: bounded same-ID page relaunch, degraded monitoring, eventual saved completion, no inferred Edge passed.'
  Write-Host 'Isolated Whale launch/catalog/witness, exit/access/save-error -> full Edge receipt -> importer admission and handoff deduplication passed; no live browser touched.'
 } finally {
  $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocalAppData
  Remove-Item Function:\Get-Process,Function:\Start-Process,Function:\Start-Sleep -ErrorAction SilentlyContinue
- Remove-Variable WhaleFlowFolder,WhaleFlowChecks,WhaleFlowLaunches,WhaleEdgeLaunches,WhaleFlowScripts -Scope Global -ErrorAction SilentlyContinue
+ Remove-Variable WhaleFlowFolder,WhaleFlowChecks,WhaleFlowLaunches,WhaleEdgeLaunches,WhaleFlowScripts,WhaleFlowReceiptMode,WhaleFlowSleeps -Scope Global -ErrorAction SilentlyContinue
  Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

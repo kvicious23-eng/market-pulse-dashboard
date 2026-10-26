@@ -154,6 +154,33 @@ function Assert-WhalePrimaryStarted($Accepted,$Witness,$Request,[DateTimeOffset]
   $matching=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
   if(-not $matching -and ($Now-$LaunchAt).TotalSeconds -ge 120) {throw 'Whale did not save a matching start witness within 120 seconds; transport/start failed; no inferred Edge handoff.'}
 }
+# Select by event time, never by filesystem write time: a timed-out canonical
+# download may finish after a newer unique receipt. Verify files are excluded.
+function Get-WhalePrimaryReceipt([string]$Folder,$Request,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if(-not $Request -or $Request.requestId -cnotmatch '^[a-f0-9]{32}$'){return $null}
+  $items=@()
+  $files=@(Get-ChildItem -LiteralPath $Folder -Filter 'whale-primary-acceptance*.json' -File -ErrorAction SilentlyContinue)
+  foreach($file in $files) {
+    $unique=$file.Name -cmatch "^whale-primary-acceptance-$($Request.requestId)-([a-f0-9]{32})-([0-9]{6})\.json$"
+    $page=$null;$seq=0
+    if($unique){$page=$Matches[1];$seq=[int]$Matches[2]}
+    elseif($file.Name -cne 'whale-primary-acceptance.json'){continue}
+    $data=Read-ScanRecoveryJson $file.FullName
+    try {
+    if(-not $data -or $data.version -ne 1 -or $data.browser -cne 'whale' -or $data.scanSlot -cne $Request.scanSlot -or
+      $data.requestId -cne $Request.requestId -or [int]$data.launchAttempt -ne [int]$Request.launchAttempts){continue}
+    if($data.status -cnotin @('accepted','checking','running','stopping','retry-started','complete','edge-ready','state-unavailable','stalled-unconfirmed','deadline-exhausted','rejected')){continue}
+      $at=[DateTimeOffset]::Parse([string]$data.at)
+      if($at -lt [DateTimeOffset]::Parse([string]$Request.requestedAt) -or $at -gt $Now.AddSeconds(2)){continue}
+      if($data.receiptVersion -eq 2 -and ($data.pageId -cnotmatch '^[a-f0-9]{32}$' -or [int]$data.sequence -lt 1 -or [int]$data.sequence -gt 999999)){continue}
+      if($unique -and ($data.receiptVersion -ne 2 -or $data.pageId -cne $page -or [int]$data.sequence -ne $seq -or
+        $data.receiptDelivery -cne 'unique-fallback' -or [version]$data.receiptProducerVersion -lt [version]'1.9.48')){continue}
+    } catch {continue}
+    $items+= [pscustomobject]@{at=$at;sequence=if($data.receiptVersion -eq 2){[int]$data.sequence}else{0};data=$data}
+  }
+  $latest=$items|Sort-Object @{Expression='at';Descending=$true},@{Expression='sequence';Descending=$true}|Select-Object -First 1
+  if($latest){return $latest.data};return $null
+}
 function Get-WhalePrimaryAction($Health,$Witness,$Request,[DateTimeOffset]$LaunchAt,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   $same=$Health -and $Health.scanSlot -ceq $Request.scanSlot -and $Health.requestId -ceq $Request.requestId -and [int]$Health.launchAttempt -eq [int]$Request.launchAttempts
   $started=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
@@ -161,13 +188,16 @@ function Get-WhalePrimaryAction($Health,$Witness,$Request,[DateTimeOffset]$Launc
     if($Health.status -eq 'edge-ready'){return 'edge'}
     if($Health.status -in @('stalled-unconfirmed','deadline-exhausted')){return 'fail'}
     if($Health.status -eq 'rejected') {
+      if($started -and $Health.reason -in @('primary-receipt-save-failed','primary-receipt-save-timeout','primary-receipt-path-mismatch')) {
+        if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'monitor-degraded'
+      }
       if($Health.reason -in @('primary-api-timeout','state-response-missing') -and [int]$Request.launchAttempts -lt 2){return 'relaunch'}
       return 'fail'
     }
   }
   if(-not $started -and ($Now-$LaunchAt).TotalSeconds -ge 120){if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'fail'}
   if($started -and ($Now-$LaunchAt).TotalSeconds -ge 180 -and (-not $same -or ($Now-[DateTimeOffset]::Parse([string]$Health.at)).TotalSeconds -gt 180)) {
-    if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'fail'
+    if([int]$Request.launchAttempts -lt 2){return 'relaunch'};return 'monitor-degraded'
   }
   return 'wait'
 }
