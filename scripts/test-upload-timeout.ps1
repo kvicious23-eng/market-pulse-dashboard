@@ -47,6 +47,8 @@ public class FakeGit {
   $fixture=Join-Path $root 'fixture';$scripts=Join-Path $fixture 'scripts'
   New-Item -ItemType Directory $scripts -Force | Out-Null
   Copy-Item (Join-Path $repo 'scripts\*.ps1') $scripts
+  New-Item -ItemType Directory (Join-Path $fixture 'chrome-extension') -Force|Out-Null
+  Copy-Item (Join-Path $repo 'chrome-extension\scan-policy.js') (Join-Path $fixture 'chrome-extension\scan-policy.js')
   $importer=Join-Path $scripts 'import-extension-results.ps1'
   [IO.File]::WriteAllText($importer,@'
 param([string]$RepoPath,[switch]$WaitForToday,[string]$ExpectedSlotStart)
