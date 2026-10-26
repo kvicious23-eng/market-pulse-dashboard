@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-10-26T08:17:09+09:00",
+                 "snapshotAt":  "2026-10-26T12:16:50+09:00",
                  "sourceFile":  "product-catalog.json",
                  "comparisonBasis":  "Exact model and item price comparison",
                  "exclusions":  "Personal rewards and unverified benefits are excluded",
@@ -9,33 +9,33 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
                                     "fullResearch":  "Basic and precision scan",
                                     "dashboardSync":  "GitHub Pages automatic deployment",
-                                    "lastAttemptAt":  "2026-10-26T08:17:09+09:00",
+                                    "lastAttemptAt":  "2026-10-26T12:16:50+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Godox 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
-                                    "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-10-26T08:17:09+09:00",
+                                    "collectionRoute":  "Windows PC · 일반 Whale 확장프로그램",
+                                    "competitionLastAttemptAt":  "2026-10-26T12:16:50+09:00",
                                     "competitionConfigurationStatus":  "configured",
                                     "competitionValidationStatus":  "verified",
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Godox",
                  "collectionEvidence":  {
-                                            "browser":  "chrome",
-                                            "extensionVersion":  "1.9.47",
-                                            "scanSlot":  "2026-10-26T08:00+09:00",
-                                            "runId":  "4ecfd1afe1424dc6b75a260cd5591e1f",
-                                            "startedAt":  "2026-10-25T23:00:01.213Z",
-                                            "completedAt":  "2026-10-25T23:17:09.310Z",
+                                            "browser":  "whale",
+                                            "extensionVersion":  "1.9.48",
+                                            "scanSlot":  "2026-10-26T12:00+09:00",
+                                            "runId":  "783e3583718b47fcaf00d88b4920c37b",
+                                            "startedAt":  "2026-10-26T03:00:09.253Z",
+                                            "completedAt":  "2026-10-26T03:16:50.314Z",
                                             "targetCount":  15,
                                             "resultCount":  15
                                         },
                  "recoveryEvidence":  null,
+                 "publishedAt":  "2026-10-26T12:16:50+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null,
-                 "publishedAt":  "2026-10-26T08:30:07+09:00"
+                 "renamedTo":  null
              },
     "products":  [
                      {
@@ -56,14 +56,14 @@ window.MARKET_DATA = {
                                             "cardDiscount":  0,
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "sourceType":  "관리화면 등록 URL",
-                                            "checkedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
                                             "confidence":  "A",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
                                             "url":  "https://www.coupang.com/vp/products/9738958594?itemId=29147698397\u0026vendorItemId=96070924334",
                                             "checkoutInferredZeroFields":  [
 
                                                                            ],
-                                            "availabilityCheckedAt":  "2026-10-26 08:02",
+                                            "availabilityCheckedAt":  "2026-10-26 12:03",
                                             "srp":  42000,
                                             "observedListPrice":  41000,
                                             "productPagePrice":  41000,
@@ -87,7 +87,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-10-25T23:02:58.781Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-26T03:03:03.873Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -98,10 +98,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-25 20:02",
+                                            "priceComparisonAt":  "2026-10-26 08:02",
                                             "lastVerifiedFinalPrice":  41000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02"
                                         },
                                         {
                                             "role":  "competitor",
@@ -123,10 +123,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[Godox 정품] 고독스 C100 + 32GB 투명 뷰파인더 카메라 올인원 패키지",
                                             "priceLabel":  "[Godox 정품] 고독스 C100 + 32GB 투명 뷰파인더 카메라 올인원 패키지 신고 43,320원 무료배송 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -149,10 +149,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -175,10 +175,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 평일 15:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -201,10 +201,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 평일 15:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -227,10 +227,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송",
                                             "priceLabel":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송 평일 14:00까지 주문 시 130점 적립 에누리 앱에서 구매 시 신고 44,010원 3,000원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-10-26 08:02",
-                                            "priceCheckedAt":  "2026-10-26 08:02",
+                                            "checkedAt":  "2026-10-26 12:02",
+                                            "priceCheckedAt":  "2026-10-26 12:02",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         }
                                     ],
