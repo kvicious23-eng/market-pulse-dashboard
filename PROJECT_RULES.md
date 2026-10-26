@@ -851,3 +851,11 @@ Excel 내보내기 형식은 `.xlsx`이다. 상단의 가격 히스토리 다운
 - 실제 재고 완료:Supplier인증/필요시공식재로그인→CSV요청/실제수령→조회기간/기준일→SKU정확일치/중복/센터합계→게시대기열→업로드커밋/검사→실제Pages의전일재고·전일출고·당월출고값을대조한다.10/27예상기준일은10/26,월범위10/1~10/26이며문서의현재CSV기간규칙을최종기준으로삼는다.
 - 데이터 경계:CSV의SKU미존재는미확인,알려진SKU의기간행없음은확정규칙에따라0이다.갱신지연이면갱신지연/미확인을표시하고전일수량을재사용하지않는다.센터별합계는CSV포함센터범위이며원본의모든센터포함을독립보증하지않는다.
 - 보고 기준:수정준비/CI/실제PC반영/가격자연회차/재고자연회차/최종게시를각각구분한다.추가인증·PC연결실패·CSV지연·오류는관측근거와영향을보고한다.아직실행되지않은내일결과나미발생자연복구의성공을미리확정하지않는다.
+
+
+### 2026-10-27 부팅 후 수정 반영 확인
+
+- PR20 최종준비 e987a454의 Actions40343182369에서 update/windows_history 성공과 저장실패 전체Edge 복구 전용 성공행3회·LF/CRLF각29개·업로드시간초과/자식정리를 재확인했다. 병합main1b7413e5의 [Actions40413027014](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40413027014)는 update/windows_history/deploy 모두성공했다.
+- PC는07:30:19부팅,07:33에기존main b4650ee4/깨끗한작업폴더·수집/업로드비실행을확인한후1b7413e5로fast-forward했다.07:33:36까지현지WindowsPowerShell5.1에서도Chrome08/16/전환전20 세격리검사와각저장실패→전체Edge1회→영수증일치→중복방지를모두통과했다. 운영브라우저수집이아닌임시파일/가짜프로세스검사다. 오전격리검사의Supplier모의재개경고는가짜환경로그이며실제재고인증실패로판정하지않는다.
+- 07:34:38공식maintenance verify에서실제Chrome manifest/worker1.9.50·관측registered·webRequest권한·Chrome08/16및Whale12/20소유권·Chrome08/16알람2개·공용목록과15종전체식별자일치를확인했다. Chrome가격/Supplier의유효설치는각단일Default프로필이다. Supplier manifest/worker0.1.21과supplier-daily-csv/session-check예약도verified였다. 재로드/추가가격수집/CSV요청은하지않았다.
+- Windows네시작/각30분업로드·독립재고08:31예약Ready를확인했다. 오늘재고신호는day10/27·08시이후독립시작대기다. Supplier verify의전일complete상태는오늘인증/CSV수령성공이아니다. 오늘08시가격·재고실제수집과최종게시성공은각회차근거로별도확인한다.
