@@ -32,12 +32,12 @@ window.MARKET_DATA = {
                                             "resultCount":  15
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-27T20:16:14+09:00",
                  "historyBrands":  [
                                        "Lenovo"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-28T08:30:49+09:00"
              },
     "products":  [
                      {
@@ -259,10 +259,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-26",
+                                                 "asOfDate":  "2026-10-27",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-26",
-                                                 "sourceDate":  "2026-10-26",
+                                                 "monthThrough":  "2026-10-27",
+                                                 "sourceDate":  "2026-10-27",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -456,10 +456,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-26",
+                                                 "asOfDate":  "2026-10-27",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-26",
-                                                 "sourceDate":  "2026-10-26",
+                                                 "monthThrough":  "2026-10-27",
+                                                 "sourceDate":  "2026-10-27",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -650,10 +650,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-26",
+                                                 "asOfDate":  "2026-10-27",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-26",
-                                                 "sourceDate":  "2026-10-26",
+                                                 "monthThrough":  "2026-10-27",
+                                                 "sourceDate":  "2026-10-27",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }

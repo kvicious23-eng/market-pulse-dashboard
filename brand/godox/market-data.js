@@ -31,12 +31,12 @@ window.MARKET_DATA = {
                                             "resultCount":  15
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-27T20:16:14+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-28T08:30:49+09:00"
              },
     "products":  [
                      {
@@ -337,16 +337,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  42000,
                          "supplierMetrics":  {
-                                                 "stock":  197,
-                                                 "dailySales":  8,
-                                                 "monthSales":  157,
+                                                 "stock":  195,
+                                                 "dailySales":  5,
+                                                 "monthSales":  162,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-26",
+                                                 "asOfDate":  "2026-10-27",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-26",
-                                                 "sourceDate":  "2026-10-26",
+                                                 "monthThrough":  "2026-10-27",
+                                                 "sourceDate":  "2026-10-27",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
