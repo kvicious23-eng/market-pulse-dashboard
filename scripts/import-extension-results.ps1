@@ -476,6 +476,7 @@ if ($alreadyImported) {
   Invoke-Git -Arguments @('push','origin','main') | Out-Null
   Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
   Save-BlueRecoveryFinalCommit $payload $RepoPath
+  Update-BlueIssueLedger $payload $RepoPath $resultFolder
   return
 }
 foreach ($spec in $specs) {
@@ -538,7 +539,8 @@ foreach ($spec in $specs) {
     } | Select-Object -First 1
     $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
     if (-not $mine) { continue }
-    if($payload.modelRecovery -and $result.collectionSource.runId -ceq $payload.modelRecovery.sourceRunId) {
+    if($payload.modelRecovery -and ($result.collectionSource.runId -ceq $payload.modelRecovery.sourceRunId -or
+      ($mine.collectionEvidence.runId -ceq $result.collectionSource.runId -and $mine.collectionEvidence.checkedAt -ceq $result.checkedAt))) {
       if($mine.collectionStatus -eq 'review-needed' -or $mine.cardBenefitStatus -eq 'review-needed'){$partialCount++}
       elseif($result.checkoutDiscountReason -cin @('buy-now-button-not-found','buy-now-button-sold-out')){$soldOutCount++}
       else{$verified++}
@@ -941,5 +943,7 @@ Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 Invoke-Git -Arguments @('push','origin','main') | Out-Null
 Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
 Save-BlueRecoveryFinalCommit $payload $RepoPath
+  Update-BlueIssueLedger $payload $RepoPath $resultFolder
 
 } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }
+

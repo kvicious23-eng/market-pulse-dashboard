@@ -10,15 +10,17 @@ $log=Join-Path $RepoPath 'reports\blue-recovery.log'
 $mutex=New-Object Threading.Mutex($false,'Local\MarketPulse.BlueRecoveryPoll');$held=$false
 try {
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
+  try {Confirm-BlueIssueLedger $RepoPath $folder}catch{Add-Content $log -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) Issue ledger awaiting a matching public snapshot: $($_.Exception.Message)"}
   foreach($file in @(Get-ChildItem (Join-Path $RepoPath 'reports') -Filter 'blue-recovery-*.json' -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTimeUtc -Descending)) {
     $q=$null
     try {
     $q=Read-ScanRecoveryJson $file.FullName
-    if(-not $q -or $q.state -cin @('complete','partial','unresolved','expired','superseded','integrity-failed')){continue}
+    if(-not $q -or $q.state -cin @('complete','partial','unresolved','deferred','expired','superseded','integrity-failed')){continue}
     $now=[DateTimeOffset]::UtcNow
     if($q.state -ne 'final-uploaded' -and $now -ge [DateTimeOffset]::Parse($q.publicationDeadline)){$q.state='expired';Write-ModelEdgeJson $file.FullName $q;continue}
     if($q.nextCheckAt -and $now -lt [DateTimeOffset]::Parse($q.nextCheckAt)){continue}
-      $paths=Get-ModelEdgePaths $RepoPath ([pscustomobject]@{scanSlot=$q.scanSlot;runId=$q.sourceRunId});$base=Read-ScanRecoveryJson $paths.source
+      $attempt=if($q.activeAttempt -eq 2){2}else{1}
+      $paths=Get-ModelEdgePaths $RepoPath ([pscustomobject]@{scanSlot=$q.scanSlot;runId=$q.sourceRunId}) $attempt;$base=Read-ScanRecoveryJson $paths.source
       if($q.state -eq 'waiting-deployment') {
         $published=Get-BlueDeploymentSuccess $q.initialCommit
         if(-not $published){$q.nextCheckAt=$now.AddMinutes(1).ToString('o');Write-ModelEdgeJson $file.FullName $q;continue}
@@ -31,17 +33,20 @@ try {
         if($final){
           $merged=Read-ScanRecoveryJson $paths.merged
           $visible=Get-BluePublicationState $merged (Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')) $RepoPath -Remote
-          $q.state=if($visible.blueItemIds.Count -eq 0){'complete'}else{'partial'}
-          $q.finalPublishedAt=$final.at;Write-ModelEdgeJson $file.FullName $q
+          $q.finalPublishedAt=$final.at
+          if($visible.blueItemIds.Count -eq 0){$q.state='complete'}else{Set-BlueRecoveryNextStep $q $base $folder $RepoPath}
+          Write-ModelEdgeJson $file.FullName $q
         }
         continue
       }
-      if($now -lt [DateTimeOffset]::Parse($q.notBefore)){continue}
-      if($q.state -eq 'waiting-interval') {
+      $gate=Get-BlueAttemptGate $q $attempt $base $folder $RepoPath
+      if($now -lt $gate.notBefore){continue}
+      if($q.state -cin @('waiting-interval','waiting-second')) {
         if($now -ge [DateTimeOffset]::Parse($base.deadlineAt)){$q.state='expired';Write-ModelEdgeJson $file.FullName $q;continue}
         $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
-        $visible=Get-BluePublicationState $base $catalog $RepoPath -Remote
-        if(@($q.targetItemIds|Where-Object {$_ -cnotin $visible.blueItemIds}).Count){throw 'blue-publication-superseded'}
+        $published=if($attempt -eq 2 -and $q.attemptOneFinalCommit){Read-ScanRecoveryJson ((Get-ModelEdgePaths $RepoPath $base).merged)}else{$base}
+        $visible=Get-BluePublicationState $published $catalog $RepoPath -Remote
+        if(@($gate.targetItemIds|Where-Object {$_ -cnotin $visible.blueItemIds}).Count){throw 'blue-publication-superseded'}
       }
       # Reuse the ORIGINAL uploader supervisor and its persistent slot deadline.
       # This executes one bounded child; no ten-minute blocking sleep is used.

@@ -10,7 +10,7 @@ try {
   New-Item -ItemType Directory (Join-Path $temp 'scripts'),(Join-Path $temp 'chrome-extension'),(Join-Path $temp 'Downloads') -Force|Out-Null
   $global:ModelTestRepo=$temp;$global:ModelTestFolder=Join-Path $temp 'Downloads'
   Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
-  foreach($name in @('scan-recovery.ps1','model-edge-recovery.ps1','blue-recovery-queue.ps1','run-blue-recovery.ps1','git-timeout.ps1','brand-lifecycle.ps1')){
+  foreach($name in @('scan-recovery.ps1','model-edge-recovery.ps1','blue-recovery-queue.ps1','blue-retry-policy.ps1','run-blue-recovery.ps1','git-timeout.ps1','brand-lifecycle.ps1')){
     $s=Get-Content (Join-Path $PSScriptRoot $name) -Raw -Encoding UTF8
     $s=$s.Replace('[DateTimeOffset]::UtcNow','$global:ModelTestNow')
     $s=$s.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:ModelTestFolder')
@@ -39,7 +39,7 @@ try {
     if($global:ModelTestMode -eq 'row-fail'){$row.ok=$false;$row|Add-Member reason 'scan-timeout:product'}
     if($global:ModelTestMode -eq 'card-partial'){$row.cardBenefitStatus='partial'}
     if($global:ModelTestMode -eq 'wrong-id'){$row.itemId='999'}
-    $p=[pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.52';scanSlot=$q.scanSlot;runId=$q.runId;policyId=$q.recovery.policyId;recovery=$q.recovery;
+    $p=[pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.54';scanSlot=$q.scanSlot;runId=$q.runId;policyId=$q.recovery.policyId;recovery=$q.recovery;
       startedAt=$global:ModelTestNow.AddSeconds(1).ToString('o');completedAt=$global:ModelTestNow.AddSeconds(3).ToString('o');scannedAt=$global:ModelTestNow.AddSeconds(3).ToString('o');targetCount=1;resultCount=1;complete=$true;results=@($row)}
     Write-ModelEdgeJson (Join-Path $global:ModelTestFolder ('edge-recovery-'+$q.runId+'.json')) $p
   }
@@ -146,6 +146,102 @@ try {
     $stamp=$m.scannedAt;Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue|Out-Null
     Check ($global:ModelTestLaunches -eq ($before+1) -and (Read-ScanRecoveryJson $p).scannedAt -ceq $stamp) "Failed $mode recovery repeated or moved history key."
   }
+  # The existing 1.9.52 sources keep one attempt. Only a new 1.9.54
+  # source may schedule an independently persisted second bounded attempt.
+  Remove-Item $paths.receipt,$paths.source,$paths.merged -Force -ErrorAction SilentlyContinue
+  $base.extensionVersion='1.9.54';Write-ModelEdgeJson $sourcePath $base
+  $queue.sourceHash=(Get-FileHash $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  $queue|Add-Member maxAttempts 2 -Force;$queue|Add-Member activeAttempt 1 -Force
+  $queue.finalCommit=$null;$queue.state='collecting'
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  $global:ModelTestNow=$slotAt.AddMinutes(60);$global:ModelTestMode='row-fail';$before=$global:ModelTestLaunches
+  $firstPath=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue
+  $first=Read-ScanRecoveryJson $firstPath
+  Check ($first.modelRecovery.recovered -eq 0) 'Failed first attempt claimed a recovery.'
+  Set-BlueRecoveryNextStep $queue $base $global:ModelTestFolder $temp
+  Check ($queue.state -eq 'waiting-second' -and $queue.activeAttempt -eq 2) 'Transient failure was not queued for the second attempt.'
+  $firstReceipt=Read-ScanRecoveryJson $paths.receipt
+  $firstEdge=Read-ScanRecoveryJson (Get-SavedEdgeRunPath $global:ModelTestFolder $firstReceipt.runId)
+  Check (([DateTimeOffset]::Parse($queue.secondNotBefore)-[DateTimeOffset]::Parse($firstEdge.completedAt)).TotalSeconds -eq 600) 'Second cooldown was not ten minutes from first completion.'
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  $global:ModelTestNow=([DateTimeOffset]::Parse($queue.secondNotBefore)).AddSeconds(-1)
+  Must-Fail {Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue}
+  Check ($global:ModelTestLaunches -eq ($before+1)) 'Early second attempt started a browser.'
+  $goodTargets=$queue.secondTargetItemIds;$queue.secondTargetItemIds=@('1','2')
+  Must-Fail {Get-BlueAttemptGate $queue 2 $base $global:ModelTestFolder $temp};$queue.secondTargetItemIds=$goodTargets
+  $global:ModelTestNow=([DateTimeOffset]::Parse($queue.secondNotBefore));$global:ModelTestMode='success'
+  $secondPath=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue
+  $second=Read-ScanRecoveryJson $secondPath
+  Check ($global:ModelTestLaunches -eq ($before+2) -and $second.modelRecovery.attemptCount -eq 2 -and $second.modelRecovery.recovered -eq 1) 'Second completion did not recover exactly one failed model.'
+  Check (($second.results[0]|ConvertTo-Json -Depth 20 -Compress) -ceq ($first.results[0]|ConvertTo-Json -Depth 20 -Compress)) 'Second attempt altered a healthy row or its provenance.'
+  Assert-ModelEdgeComposite $second $FlowSlot $global:ModelTestFolder $temp
+  Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue|Out-Null
+  Check ($global:ModelTestLaunches -eq ($before+2)) 'Resume launched a third collection.'
+  Set-BlueRecoveryNextStep $queue $base $global:ModelTestFolder $temp
+  Check ($queue.state -eq 'deferred') 'The second attempt allowed an unbounded retry.'
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  $beforeReplay=Get-Content (Get-BlueRecoveryQueuePath $temp $base) -Raw
+  Save-BlueRecoveryFinalCommit $first $temp
+  Check ((Get-Content (Get-BlueRecoveryQueuePath $temp $base) -Raw) -ceq $beforeReplay) 'An old first composite reactivated a completed/deferred second attempt.'
+  $queue.activeAttempt=3;Must-Fail {Assert-BlueRecoveryQueue $queue $base};$queue.activeAttempt=2
+  foreach($reason in @('login-required','captcha-required','product-identifiers-mismatch','invalid-catalog')) {
+    Check ((Get-BlueFailureClass ([pscustomobject]@{reason=$reason})) -ne 'transient') "Unsafe automatic retry classification: $reason"
+  }
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessCheckDetail='verification-message'})) -eq 'authentication') 'A generic access error hid a verification challenge.'
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessDiagnostics=@([pscustomobject]@{diagnostic=[pscustomobject]@{page=[pscustomobject]@{marker='captcha'}}})})) -eq 'authentication') 'A diagnostic CAPTCHA marker was ignored.'
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessCheckDetail='http-403'})) -eq 'transient') 'An ordinary HTTP restriction was misclassified.'
+  # Drive the actual poller for the second cooldown as well as the worker gate.
+  $queue.state='waiting-second';$queue.nextCheckAt=$null
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  Remove-Item (Join-Path $temp 'reports\poll-dispatch.txt') -Force -ErrorAction SilentlyContinue
+  $global:ModelTestNow=([DateTimeOffset]::Parse($queue.secondNotBefore)).AddSeconds(-1)
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check (-not(Test-Path (Join-Path $temp 'reports\poll-dispatch.txt'))) 'Poller dispatched before the second ten-minute cooldown.'
+  $global:ModelTestNow=([DateTimeOffset]::Parse($queue.secondNotBefore))
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check (Test-Path (Join-Path $temp 'reports\poll-dispatch.txt')) 'Due second cooldown did not dispatch the guarded worker.'
+  # Cumulative merge preserves a model already fixed by attempt one, including
+  # all per-row provenance, while attempt two replaces only the other model.
+  $previous=$first|ConvertTo-Json -Depth 40|ConvertFrom-Json
+  $previous.results[0].collectionSource.runId='f'*32
+  $previous.modelRecovery.replacedItemIds=@('1');$previous.modelRecovery.recovered=1;$previous.modelRecovery.attempted=2
+  $secondReceipt=Read-ScanRecoveryJson ((Get-ModelEdgePaths $temp $base 2).receipt)
+  $secondEdge=Read-ScanRecoveryJson (Get-SavedEdgeRunPath $global:ModelTestFolder $secondReceipt.runId)
+  $combined=New-ModelEdgeMergedPayload $base $secondReceipt $secondEdge $previous
+  Check ($combined.modelRecovery.recovered -eq 2 -and $combined.results[0].collectionSource.runId -ceq ('f'*32)) 'Previously recovered provenance was rewritten.'
+  # The issue ledger tracks identities, not previous prices. A newer normal
+  # published scan can resolve the issue without replaying an older slot.
+  Update-BlueIssueLedger $base $temp $global:ModelTestFolder
+  $ledgerPath=Join-Path $temp 'reports\recovery-issues.json'
+  $ledger=Read-ScanRecoveryJson $ledgerPath
+  Check ($ledger.models.Count -eq 1 -and $ledger.models[0].state -eq 'unresolved') 'Unresolved identity was not retained.'
+  Check (-not($ledger.models[0].PSObject.Properties.Name -contains 'price')) 'A price was carried across slots.'
+  $newBase=$base|ConvertTo-Json -Depth 30|ConvertFrom-Json;$newBase.runId='f'*32;$newBase.scannedAt=$slotAt.AddHours(4).ToString('o')
+  $pub.meta.collectionEvidence.runId=$newBase.runId;$pub.meta.snapshotAt=$newBase.scannedAt
+  $pub.products[1].offers[0].collectionStatus='verified'
+  ('window.MARKET_DATA = '+($pub|ConvertTo-Json -Depth 20)+';')|Set-Content (Join-Path $brandFolder 'market-data.js') -Encoding UTF8
+  Update-BlueIssueLedger $newBase $temp $global:ModelTestFolder
+  $pendingLedger=Read-ScanRecoveryJson $ledgerPath;$pendingHash=Get-BlueIssueLedgerHash $ledgerPath
+  Confirm-BlueIssueLedger $temp $global:ModelTestFolder
+  Check (-not(Save-BlueIssueLedger $ledgerPath $pendingLedger $pendingHash)) 'A stale monitor overwrote a newer issue ledger.'
+  Check ((Read-ScanRecoveryJson $ledgerPath).models[0].state -eq 'resolved') 'New published normal collection did not clear the carried issue.'
+  $short=$queue|ConvertTo-Json -Depth 30|ConvertFrom-Json;$short.activeAttempt=1
+  $short.publicationDeadline=([DateTimeOffset]::Parse($firstEdge.completedAt)).AddMinutes(9).ToString('o')
+  Set-BlueRecoveryNextStep $short $base $global:ModelTestFolder $temp
+  Check ($short.state -eq 'deferred') 'Cooldown extended the original publication budget.'
+  # Execute the real importer's preservation branch against an already-fixed
+  # first-attempt row and a newly fixed second-attempt row.
+  $importSource=Get-Content (Join-Path $PSScriptRoot 'import-extension-results.ps1') -Raw -Encoding UTF8
+  $preserveStart=$importSource.IndexOf('    if($payload.modelRecovery -and (')
+  $preserveEnd=$importSource.IndexOf('    $rowSource=', $preserveStart)
+  Check ($preserveStart -gt 0 -and $preserveEnd -gt $preserveStart) 'Importer preservation branch missing.'
+  $branch=$importSource.Substring($preserveStart,$preserveEnd-$preserveStart)
+  $payload=$combined;$partialCount=0;$verified=0;$soldOutCount=0;$script:preserveWrites=0
+  $saved=[pscustomobject]@{collectionEvidence=[pscustomobject]@{runId=$combined.results[0].collectionSource.runId;checkedAt=$combined.results[0].checkedAt};priceChange=123;priceCheckedAt='preserved'}
+  $fresh=[pscustomobject]@{collectionEvidence=[pscustomobject]@{runId='older';checkedAt='older'}}
+  & ([ScriptBlock]::Create('param($rows); foreach($entry in $rows){$result=$entry.result;$mine=$entry.mine;'+$branch+'$script:preserveWrites++}')) @([pscustomobject]@{result=$combined.results[0];mine=$saved},[pscustomobject]@{result=$combined.results[1];mine=$fresh})
+  Check ($script:preserveWrites -eq 1 -and $saved.priceChange -eq 123 -and $saved.priceCheckedAt -ceq 'preserved') 'The importer recomputed a previously fixed model.'
+  Write-Host 'Bounded second attempt: exact ten-minute completion cooldown, transient-only subset, replay/third-attempt guards, cumulative provenance and cross-run issue resolution passed.'
   Write-Host "Post-publication $primary/full Edge -> delayed subset: exact failed subset, full-row merge/provenance, pinned original, replay, direct-subset/tamper/identity rejection and failed/partial/launch/timeout preservation passed."
 } finally {
   $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocal

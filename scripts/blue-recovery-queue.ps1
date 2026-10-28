@@ -1,4 +1,5 @@
-﻿# Queue after the FIRST full Edge publication. Git push, Pages deployment and
+﻿. (Join-Path $PSScriptRoot 'blue-retry-policy.ps1')
+# Queue after the FIRST full Edge publication. Git push, Pages deployment and
 # ten-minute delay are distinct gates. This module never starts collection.
 function Get-BlueRecoveryQueuePath([string]$RepoPath,$Base) {
   if($Base.runId -cnotmatch '^[a-f0-9]{32}$'){throw 'Invalid blue recovery source run.'}
@@ -36,6 +37,7 @@ function Get-BluePublicationState($Base,$Catalog,[string]$RepoPath,[switch]$Remo
   [pscustomobject]@{blueItemIds=@($blue|Sort-Object -Unique);total=$all.Count}
 }
 function Assert-BlueRecoveryQueue($Queue,$Base) {
+  if($Queue.activeAttempt -and $Queue.activeAttempt -notin @(1,2)){throw 'Invalid recovery attempt number.'}
   if(-not $Queue -or $Queue.version -ne 1 -or $Queue.sourceRunId -cne $Base.runId -or $Queue.scanSlot -cne $Base.scanSlot -or
     $Queue.initialCommit -cnotmatch '^[a-f0-9]{40}$' -or $Queue.sourceHash -cnotmatch '^[a-f0-9]{64}$' -or
     -not @($Queue.targetItemIds).Count -or @($Queue.targetItemIds|Sort-Object -Unique).Count -ne @($Queue.targetItemIds).Count -or
@@ -64,7 +66,7 @@ function Add-BlueRecoveryQueue($Payload,[string]$SourcePath,[string]$RepoPath,[s
   $tmp=$paths.source+'.tmp';Copy-Item -LiteralPath $SourcePath -Destination $tmp;Move-Item -LiteralPath $tmp -Destination $paths.source -Force
   $queue=[pscustomobject]@{version=1;state='waiting-deployment';scanSlot=$Payload.scanSlot;sourceRunId=$Payload.runId;sourceHash=(Get-FileHash $paths.source -Algorithm SHA256).Hash.ToLowerInvariant();
     initialCommit=$commit;createdAt=[DateTimeOffset]::UtcNow.ToString('o');targetItemIds=@($state.blueItemIds);firstPublishedAt=$null;notBefore=$null;nextCheckAt=$null;
-    publicationDeadline=$budget.deadlineAt;lastError=$null;finalCommit=$null;finalPublishedAt=$null}
+    publicationDeadline=$budget.deadlineAt;lastError=$null;finalCommit=$null;finalPublishedAt=$null;activeAttempt=1;maxAttempts=if([version]$Payload.extensionVersion -ge [version]'1.9.54'){2}else{1}}
   Write-ModelEdgeJson $path $queue
   Write-Host "Blue retry queued AFTER first upload: run=$($Payload.runId); models=$($state.blueItemIds.Count); waiting for Pages success + 10 minutes."
 }
@@ -87,16 +89,23 @@ function Assert-BlueRecoveryCurrentPublication($Payload,[string]$RepoPath) {
   $base=Read-ScanRecoveryJson $paths.source
   $folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
   $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
-  [void](Get-BluePublicationState $base $catalog $RepoPath -AllowedRunIds @($base.runId,$Payload.runId))
+  $allowed=@($base.runId,$Payload.runId)
+  if($Payload.modelRecovery.attemptCount -eq 2){$allowed+= (Read-ScanRecoveryJson $paths.merged).runId}
+  [void](Get-BluePublicationState $base $catalog $RepoPath -AllowedRunIds $allowed)
 }
 
 function Resolve-BluePublicationResult([string]$BasePath,[string]$Slot,[string]$Folder,[string]$RepoPath) {
   $base=Read-ScanRecoveryJson $BasePath
   if(-not(Test-ModelEdgeEnabled $base)){return $BasePath}
   $q=Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $RepoPath $base)
-  if($q -and $q.state -cin @('publishing','final-uploaded','complete','partial')) {
-    $paths=Get-ModelEdgePaths $RepoPath $base;$m=Read-ScanRecoveryJson $paths.merged
-    if($m -and $m.modelRecovery.recovered -gt 0){Assert-ModelEdgeComposite $m $Slot $Folder $RepoPath;return $paths.merged}
+  if($q) {
+    foreach($attempt in @(2,1)) {
+      if($attempt -eq 2 -and $q.activeAttempt -ne 2){continue}
+      $paths=Get-ModelEdgePaths $RepoPath $base $attempt;$m=Read-ScanRecoveryJson $paths.merged
+      if($m -and $m.modelRecovery.recovered -gt 0 -and ($attempt -eq 1 -or @($m.modelRecovery.newlyRecoveredItemIds).Count -gt 0)){
+        Assert-ModelEdgeComposite $m $Slot $Folder $RepoPath;return $paths.merged
+      }
+    }
   }
   return $BasePath
 }
@@ -105,8 +114,14 @@ function Save-BlueRecoveryFinalCommit($Payload,[string]$RepoPath) {
   if(-not $Payload.modelRecovery){return}
   $base=[pscustomobject]@{scanSlot=$Payload.scanSlot;runId=$Payload.modelRecovery.sourceRunId}
   $path=Get-BlueRecoveryQueuePath $RepoPath $base;$q=Read-ScanRecoveryJson $path
+  $payloadAttempt=if($Payload.modelRecovery.attemptCount -eq 2){2}else{1}
+  $activeAttempt=if($q.activeAttempt -eq 2){2}else{1}
+  if($payloadAttempt -lt $activeAttempt){return}
+  if($q.lastFinalRunId -ceq $Payload.runId -and $q.finalCommit -and $q.state -cin @('complete','partial','deferred')){return}
   $git=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments @('rev-parse','HEAD')
   $commit=[string]@($git.Output)[0]
   if($git.Code -ne 0 -or $commit -cnotmatch '^[a-f0-9]{40}$'){throw 'Cannot pin final recovery publication commit.'}
+  $q|Add-Member lastFinalRunId $Payload.runId -Force
   $q.finalCommit=$commit;$q.state='final-uploaded';Write-ModelEdgeJson $path $q
 }
+
