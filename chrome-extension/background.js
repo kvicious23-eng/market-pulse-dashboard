@@ -1,4 +1,4 @@
-importScripts('scan-policy.js');
+importScripts('scan-policy.js','checkout-diagnostics.js');
 const TARGETS = [
   {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534',danawaUrl:'https://prod.danawa.com/info/?pcode=95845739'},
   {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535',danawaUrl:'https://prod.danawa.com/info/?pcode=95845826'},
@@ -1213,7 +1213,8 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
         if(priceScan?.ok) {
           try {
             await progress(target.mtm,'checkout',targets.length);
-            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,scanWindowState),90000,`checkout:${target.mtm}`));
+            const trace=createCheckoutTrace();result.checkoutDiagnostic=trace.data;
+            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,scanWindowState,trace),90000,`checkout:${target.mtm}`));
           } catch(error) {
             Object.assign(result,{checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null});
           }
@@ -1280,7 +1281,8 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
          if(attempts.length)result.accessDiagnostics=attempts.slice(-2);
          delete result.accessDiagnostic;
          if (retryScan?.ok) {
-           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,scanWindowState),90000,`retry-checkout:${result.mtm}`));
+           const trace=createCheckoutTrace();result.checkoutDiagnostic=trace.data;
+           Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,scanWindowState,trace),90000,`retry-checkout:${result.mtm}`));
          }
        } catch (error) {
          if(retryTab?.id&&accessDiagnosticTabs.has(retryTab.id))result.accessDiagnostics=[...(result.accessDiagnostics||[]),{phase:'retry',reason:'browser-error',diagnostic:await captureAccessDiagnostic(retryTab.id)}].slice(-2);
@@ -1316,6 +1318,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
       results
     };
     payload.diagnosticArchiveStatus=await saveAccessDiagnosticArchive(payload);
+    payload.checkoutDiagnosticArchiveStatus=await saveCheckoutDiagnosticArchive(payload);
     await progress(null,'download',targets.length);
     await saveCompletedScan(payload);
     await chrome.storage.local.set({
@@ -1381,7 +1384,12 @@ function recentScanSlot(slot,now=Date.now()) {
   return Number.isFinite(due)&&now>=due&&now-due<=75*60*1000;
 }
 
-function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendorItemId,clickBuyNow=true) {
+function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendorItemId,clickBuyNow=true,attemptId=null) {
+  const checkpoint=value=>{
+    if(!attemptId)return;
+    try {chrome.runtime.sendMessage({type:'CHECKOUT_DIAGNOSTIC_CHECKPOINT',attemptId,checkpoint:value}).catch(()=>{});}catch{}
+  };
+  checkpoint('script-entered');
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
   const currentUrl=new URL(location.href);
   const actualProductId=currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
@@ -1389,6 +1397,7 @@ function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendor
   if(actualProductId!==String(expectedProductId)||params.get('itemId')!==String(expectedItemId)||params.get('vendorItemId')!==String(expectedVendorItemId)) {
     return {ok:false,reason:'product-identifiers-mismatch'};
   }
+  checkpoint('identifiers-verified');
   const visible=element=>{
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
@@ -1412,7 +1421,8 @@ function enterCheckoutDiagnostic(expectedProductId,expectedItemId,expectedVendor
   ].filter(Boolean).join(' '));
   const disabled=button.disabled||button.getAttribute('aria-disabled')==='true'||/disabled/i.test(button.className);
   if(disabled) return {ok:false,reason:'buy-now-button-sold-out',buttonEvidence:buttonEvidence.slice(0,240)};
-  if(clickBuyNow) button.click();
+  checkpoint('button-ready');
+  if(clickBuyNow) {checkpoint('before-click');button.click();checkpoint('click-returned');}
   return {ok:true,buttonEvidence:buttonEvidence.slice(0,240),checkedAt:new Date().toISOString()};
 }
 
@@ -1581,7 +1591,7 @@ function reconcileCheckoutDiscounts(regular,instant,coupon) {
   };
 }
 
-async function collectCheckoutDiscountsForTarget(target,windowState=null) {
+async function collectCheckoutDiscountsForTarget(target,windowState=null,trace=createCheckoutTrace()) {
   const ownsWindow=!windowState&&/Whale\//.test(navigator.userAgent);
   windowState=windowState||{windowId:null,anchorTabIds:[]};
   let tab,checkoutTab,entryButtonEvidence=null,childTabCount=0,checkoutViewport=null;
@@ -1594,20 +1604,20 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
     checkoutPagePath:page?.path||route(checkoutTab?.url).path,
     checkoutTabKind:checkoutTab?.id!==tab?.id?'opened-child':'original',
     checkoutChildTabCount:childTabCount,
-    checkoutEntryButtonEvidence:entryButtonEvidence,checkoutViewport
+    checkoutEntryButtonEvidence:entryButtonEvidence,checkoutViewport,checkoutDiagnostic:trace.data
   });
   try {
     // Coupang's buy-now flow can depend on a foreground tab and can open a
     // child tab. The product and checkout pages are both read in Chrome.
     if(/Whale\//.test(globalThis.navigator?.userAgent||''))await prepareWhaleScanWindow(windowState);
-    tab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:target.url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})})),15000,`checkout-open:${target.mtm}`);
-    checkoutTab=tab;
-    await withScanTimeout(waitForComplete(tab.id),60000,`checkout-load:${target.mtm}`);
+    tab=await checkoutDiagnosticStep(trace,'open',()=>withTabEditRetry(()=>chrome.tabs.create({url:target.url,active:true,...(Number.isInteger(windowState.windowId)?{windowId:windowState.windowId}:{})})),15000);
+    checkoutTab=tab;trace.enroll(tab);
+    await checkoutDiagnosticStep(trace,'load',()=>waitForComplete(tab.id),60000);
     await wait(7000);
     if(/Whale\//.test(globalThis.navigator?.userAgent||''))await ensureWhaleTabViewport(tab.id);
-    const entered=await withScanTimeout(chrome.scripting.executeScript({
-      target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId]
-    }),30000,`checkout-entry:${target.mtm}`);
+    const entered=await checkoutDiagnosticStep(trace,'entry',()=>chrome.scripting.executeScript({
+      target:{tabId:tab.id},func:enterCheckoutDiagnostic,args:[target.productId,target.itemId,target.vendorItemId,true,trace.data.attemptId]
+    }),30000);
     entryButtonEvidence=entered?.[0]?.result?.buttonEvidence||null;
     if(!entered?.[0]?.result?.ok) {
       const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
@@ -1620,13 +1630,14 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
     }
     for(let i=0;i<30;i++){
       await wait(500);
-      const current=await withScanTimeout(chrome.tabs.get(tab.id),15000,`checkout-tab:${target.mtm}`);
+      const current=await checkoutDiagnosticStep(trace,'tab',()=>chrome.tabs.get(tab.id),15000);
       checkoutTab=current;
       // openerTabId belongs to the returned Tab, not the tabs.query filter.
       // Query all tabs and filter locally; tolerate a transient tab query error
       // so the original tab can still be read if it reached checkout.
-      const allTabs=await withScanTimeout(Promise.resolve().then(()=>chrome.tabs.query({})),15000,`checkout-children:${target.mtm}`).catch(()=>[]);
+      const allTabs=await checkoutDiagnosticStep(trace,'children',()=>chrome.tabs.query({}),15000).catch(()=>[]);
       const children=allTabs.filter(candidate=>candidate.openerTabId===tab.id);
+      for(const child of children)if(!trace.tabs.has(child.id))trace.enroll(child);
       childTabCount=Math.max(childTabCount,children.length);
       const child=children.find(candidate=>{
         const {host,path}=route(candidate.url);
@@ -1643,8 +1654,9 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
     let regularStatus='missing',instantStatus='missing',couponStatus='missing';
     for(let attempt=0;attempt<4;attempt++){
       if(/Whale\//.test(globalThis.navigator?.userAgent||''))checkoutViewport=await ensureWhaleTabViewport(checkoutTab.id);
-      const read=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:checkoutTab.id},func:readCheckoutDiscounts}),15000,`checkout-read:${target.mtm}`);
+      const read=await checkoutDiagnosticStep(trace,'read',()=>chrome.scripting.executeScript({target:{tabId:checkoutTab.id},func:readCheckoutDiscounts}),15000);
       page=read?.[0]?.result;
+      trace.event('checkout-read',{attempt,confirmed:page?.ok===true});
       if(page?.ok) confirmedPage=page;
       if(page?.regularCouponDiscount?.status==='captured') { regular=page.regularCouponDiscount.amount; regularStatus='captured'; }
       else if(page?.regularCouponDiscount?.status==='unverified'&&regularStatus!=='captured') regularStatus='unverified';
@@ -1682,7 +1694,7 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
         checkoutWowMemberTotal:wowMemberTotal,checkoutDiscountCapturedAt:page.capturedAt,
         checkoutUnparsedFields:unparsedFields,
         checkoutDiscountFieldStatus:{regular:regularStatus,wowInstant:instantStatus,wowCoupon:couponStatus},
-        checkoutDiscountEvidence:page.discountEvidence||[]
+        checkoutDiscountEvidence:page.discountEvidence||[],...checkoutTabEvidence(page)
       };
     }
     // The displayed Wow member total can include a card benefit. Only the
@@ -1693,7 +1705,7 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
         checkoutDiscountStatus:reconciled?.status||'missing',checkoutDiscountReason:reconciled?.reason||'checkout-discount-label-missing',
         checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null,
         checkoutWowMemberTotal:wowMemberTotal,checkoutDiscountCapturedAt:page.capturedAt,
-        checkoutDiscountEvidence:page.discountEvidence||[]
+        checkoutDiscountEvidence:page.discountEvidence||[],...checkoutTabEvidence(page)
       };
     }
     return {
@@ -1704,9 +1716,11 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
       checkoutDiscountTotal:reconciled.regular+reconciled.wowTotal,
       checkoutWowMemberTotal:wowMemberTotal,
       checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroFields:reconciled.inferredZeroFields,
-      checkoutDiscountEvidence:page.discountEvidence||[],checkoutViewport
+      checkoutDiscountEvidence:page.discountEvidence||[],...checkoutTabEvidence(page)
     };
   } catch(error) {
+    trace.event('collection-failed',{error:checkoutDiagnosticError(error)});
+    await captureCheckoutFailure(trace,tab?.id);
     return {
       checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),
       checkoutCouponDiscount:null,checkoutCouponSource:null,
@@ -1714,9 +1728,11 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null) {
       ...checkoutTabEvidence()
     };
   } finally {
+    for(const childId of trace.tabs)if(childId!==tab?.id&&childId!==checkoutTab?.id)await withScanTimeout(chrome.tabs.remove(childId),2000,'checkout-owned-child-close').catch(()=>{});
     if(ownsWindow)for(const id of windowState.anchorTabIds)await chrome.tabs.remove(id).catch(()=>{});
     if(checkoutTab?.id&&checkoutTab.id!==tab?.id) await withScanTimeout(chrome.tabs.remove(checkoutTab.id),15000,`checkout-child-close:${target.mtm}`).catch(()=>{});
     if(tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`checkout-close:${target.mtm}`).catch(()=>{});
+    trace.finish();
   }
 }
 
@@ -1883,7 +1899,7 @@ async function primaryRecoveryState(message) {
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if (message?.type==='GET_PRODUCTS') {

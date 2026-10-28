@@ -19,6 +19,7 @@ async function maintainExtension() {
     receipt.policyId=health?.policyId||null;
     receipt.slotOwners=health?.slotOwners||null;
     receipt.observerStatus=health?.observerStatus||null;
+    receipt.checkoutObserverStatus=health?.checkoutObserverStatus||null;
     receipt.webRequestGranted=permission;
     const catalog=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_PRODUCTS'}));
     if(!catalog?.ok||!Array.isArray(catalog.products))throw Error('maintenance-catalog-unavailable');

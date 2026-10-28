@@ -117,6 +117,7 @@ jobs:
           node --check dist/app.js
           node --check dist/xlsx-export.js
           node --check chrome-extension/background.js
+          node --check chrome-extension/checkout-diagnostics.js
           node --check chrome-extension/fallback.js
           node --check chrome-extension/primary.js
           node --check chrome-extension/primary-supervisor.js

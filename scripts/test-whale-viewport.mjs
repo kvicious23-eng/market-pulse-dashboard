@@ -27,7 +27,7 @@ closed=true;zero=false;await context.open('https://www.coupang.com/vp/products/3
 closed=true;await assert.rejects(context.open('https://www.coupang.com/vp/products/4','second-close',state),/No window/);assert.equal(creates,2);
 context.navigator.userAgent='Chrome/150';events.length=0;
 assert.equal(await context.ensure(100),null);await context.prepare({windowId:null,anchorTabIds:[]});assert.equal(events.length,0);assert.equal(creates,2,'Chrome must not acquire a Whale window');
-assert.match(source,/collectCheckoutDiscountsForTarget\(target,scanWindowState\)/);
+assert.match(source,/collectCheckoutDiscountsForTarget\(target,scanWindowState,trace\)/);
 assert.match(source,/checkoutViewport=await ensureWhaleTabViewport\(checkoutTab.id\)/);
 assert.match(source,/if\(viewport\)scan.viewport=viewport/);
 console.log('Dedicated Whale window, pinned product/checkout tabs, minimized restore before DOM read, bounded 0x0 failure and Chrome isolation passed.');
