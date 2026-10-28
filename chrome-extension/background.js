@@ -1894,6 +1894,7 @@ async function primaryRecoveryState(message) {
     running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size),requestRunning:Boolean(exists&&((activeScanPromise&&activeScanSlot===message.scanSlot&&activeScanRequestId===message.requestId)||[...primaryPendingOperations].some(row=>row.requestId===message.requestId))),
     requestExists:Boolean(exists),completed:primarySavedForRequest(state,message),retryCount:exists?(q.retryCount||0):0,handoff:Boolean(exists&&q.handoff),
     deadlineAt:exists?(q.deadlineAt||new Date(Date.parse(q.scanSlot)+120*60000).toISOString()):null,firstRequestedAt:exists?(q.firstRequestedAt||q.scanSlot):null,
+    attemptStartedAt:exists?(q.attemptStartedAt||null):null,
     progress:exists?state.scanProgress:null,lastError:exists?state.lastScanError:null};
 }
 let fallbackCatalogPending=false;
@@ -1947,7 +1948,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
       const firstAt=prior?.firstRequestedAt||message.requestedAt||slot;
       if(!Number.isFinite(Date.parse(firstAt))||Date.parse(firstAt)<Date.parse(slot)||Date.parse(firstAt)>Date.parse(slot)+75*60000||Date.parse(firstAt)>Date.now()+120000)return {ok:false,reason:'invalid-request-time'};
       const deadlineAt=prior?.deadlineAt||new Date(primaryScanDeadline(firstAt,slot)).toISOString();
-      await chrome.storage.local.set({products:message.products,primaryRequest:{scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,retryCount:prior?1:0,handoff:false}});
+      await chrome.storage.local.set({products:message.products,primaryRequest:{scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,attemptStartedAt:new Date().toISOString(),retryCount:prior?1:0,handoff:false}});
       return requestScan(slot,null,requestId)?{ok:true,reason:prior?'retry-started':'started'}:{ok:false,reason:'already-running'};
     }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
@@ -2016,3 +2017,4 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
 });
+

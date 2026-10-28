@@ -11,12 +11,13 @@ $mutex=New-Object Threading.Mutex($false,'Local\MarketPulse.BlueRecoveryPoll');$
 try {
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
   foreach($file in @(Get-ChildItem (Join-Path $RepoPath 'reports') -Filter 'blue-recovery-*.json' -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTimeUtc -Descending)) {
+    $q=$null
+    try {
     $q=Read-ScanRecoveryJson $file.FullName
     if(-not $q -or $q.state -cin @('complete','partial','unresolved','expired','superseded','integrity-failed')){continue}
     $now=[DateTimeOffset]::UtcNow
     if($q.state -ne 'final-uploaded' -and $now -ge [DateTimeOffset]::Parse($q.publicationDeadline)){$q.state='expired';Write-ModelEdgeJson $file.FullName $q;continue}
     if($q.nextCheckAt -and $now -lt [DateTimeOffset]::Parse($q.nextCheckAt)){continue}
-    try {
       $paths=Get-ModelEdgePaths $RepoPath ([pscustomobject]@{scanSlot=$q.scanSlot;runId=$q.sourceRunId});$base=Read-ScanRecoveryJson $paths.source
       if($q.state -eq 'waiting-deployment') {
         $published=Get-BlueDeploymentSuccess $q.initialCommit
@@ -48,10 +49,13 @@ try {
       & (Join-Path $PSScriptRoot 'run-scheduled-upload.ps1') -RepoPath $RepoPath -ExpectedSlotStart $normalized -BlueRecoveryQueue $file.FullName
       return
     } catch {
-      $q.lastError=$_.Exception.Message
+      # A malformed date/property in one queue must not stop later queues.
+      if(-not $q){Add-Content $log -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) Queue=$($file.Name); unreadable queue: $($_.Exception.Message)";continue}
+      $q|Add-Member lastError $_.Exception.Message -Force
       if($q.lastError -eq 'blue-publication-superseded'){$q.state='superseded'}
-      $q.nextCheckAt=$now.AddMinutes(1).ToString('o');Write-ModelEdgeJson $file.FullName $q
+      $q|Add-Member nextCheckAt ([DateTimeOffset]::UtcNow.AddMinutes(1).ToString('o')) -Force;Write-ModelEdgeJson $file.FullName $q
       Add-Content $log -Encoding UTF8 -Value "$($now.ToString('o')) Slot=$($q.scanSlot); deferred recovery: $($q.lastError)"
     }
   }
 } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+

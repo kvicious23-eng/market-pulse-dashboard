@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.52");
+assert.equal(manifest.version,"1.9.53");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -581,3 +581,4 @@ assert.equal(cardDisplayContext.effectiveFinalPrice(collectionFailure),null);
 assert.equal(cardDisplayContext.isSoldOut({...collectionFailure,status:'품절'}),false);
 assert.equal(cardDisplayContext.publishedPrice({...collectionFailure,lastVerifiedFinalPrice:null}),null);
 console.log('Mixed successful and blue failed models render with dated reference prices only.');
+
