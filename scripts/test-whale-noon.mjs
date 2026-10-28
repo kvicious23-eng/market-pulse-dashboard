@@ -53,10 +53,10 @@ console.log('Noon owner/date routing, retired Chrome noon alarm, internal transp
 // Exercise the real internal page: a local request file, bounded acknowledgements,
 // no collection in verify mode, and no collection from stale/mismatched files.
 const page=readTestFile('chrome-extension/primary.js','utf8');
-async function pageRun({verify=false,mismatch=false,unavailable=false,ioFailure=null}={}){
+async function pageRun({verify=false,mismatch=false,unavailable=false,ioFailure=null,release=JSON.parse(readTestFile('chrome-extension/manifest.json','utf8')).version,workerRelease=release}={}){
  const calls=[],receipts=[],names=[];
  const request={version:1,browser:'whale',scanSlot:slot,requestId:mismatch?'c'.repeat(32):requestId,requestedAt:slot,targets:[{mtm:'A'}]};
- const browser={runtime:{getManifest:()=>({version:'1.9.50'}),getURL:p=>'chrome-extension://scanner/'+p,sendMessage:async m=>{calls.push(m);return m.type==='GET_PRIMARY_STATE'?{ok:true,completed:true,workerVersion:'1.9.50'}:{ok:true,version:'1.9.50'};}},
+ const browser={runtime:{getManifest:()=>({version:release}),getURL:p=>'chrome-extension://scanner/'+p,sendMessage:async m=>{calls.push(m);return m.type==='GET_PRIMARY_STATE'?{ok:true,completed:true,workerVersion:workerRelease}:{ok:true,version:workerRelease};}},
  downloads:{download:async o=>{receipts.push(JSON.parse(decodeURIComponent(o.url.split(',')[1])));names.push(o.filename);return names.length;},search:async({id})=>ioFailure==='all'||(ioFailure==='canonical'&&!/-[0-9]{6}\.json$/.test(names[id-1]))?[{state:'interrupted'}]:[{state:'complete',filename:'C:/Downloads/'+names[id-1]}]},
  tabs:{getCurrent:async()=>({id:1}),remove:async()=>{}}};
  await vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+readTestFile('chrome-extension/primary-supervisor.js','utf8')+';'+page,{crypto:{randomUUID:()=> 'd'.repeat(32)},URL,Date:Clock,JSON,Error,encodeURIComponent,location:{href:`chrome-extension://scanner/primary.html?slot=${encodeURIComponent(slot)}&requestId=${requestId}${verify?'&verify=1':''}`},
@@ -77,3 +77,10 @@ for(const ioFailure of ['canonical','all']) {
  assert.ok(transport.names.some(n=>/^MarketPulse\/whale-primary-acceptance-[0-9]{12}-[a-f0-9]{32}-[a-f0-9]{32}-[0-9]{6}\.json$/.test(n)));
 }
 console.log('Production primary page continues real worker supervision after canonical or all receipt downloads fail, without a duplicate start.');
+
+for(const release of ['1.9.50','1.9.51',JSON.parse(readTestFile('chrome-extension/manifest.json','utf8')).version,'1.9.99']) {
+ const verified=await pageRun({verify:true,release});assert.equal(verified.receipts[0].status,'transport-verified');
+ const completed=await pageRun({release});assert.ok(completed.receipts.some(r=>r.status==='complete'));assert.equal(completed.calls.filter(m=>m.type==='RUN_PRIMARY_SCAN').length,1);
+}
+const wrongWorker=await pageRun({release:'1.9.52',workerRelease:'1.9.51'});assert.equal(wrongWorker.receipts[0].reason,'primary-worker-version-mismatch');assert.ok(!wrongWorker.calls.some(m=>m.type==='RUN_PRIMARY_SCAN'));
+console.log('Actual primary page/supervisor follow manifest release across patch updates; mismatched worker fails before collection.');

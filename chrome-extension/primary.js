@@ -1,4 +1,5 @@
-const PRIMARY_RELEASE='1.9.50';
+// The installed package is the single release authority; never pin an old patch.
+const PRIMARY_RELEASE=chrome.runtime.getManifest().version;
 // Only the internal noon transport can admit a scheduled Whale result.
 async function primaryTimeout(promise,ms=10000) {
   let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}
@@ -49,7 +50,7 @@ const savePrimaryReceipt=createPrimaryReceiptWriter({download:options=>chrome.do
       document.getElementById('status').textContent=receipt.status+(receipt.reason?': '+receipt.reason:'');
       const saved=await savePrimaryReceipt(receipt,verify);
       if(!saved.ok)document.getElementById('status').textContent=receipt.status+': receipt-save-degraded';
-    }},request,{verify});
+    }},request,{verify,release:PRIMARY_RELEASE});
     const tab=await chrome.tabs.getCurrent();if(tab?.id)await chrome.tabs.remove(tab.id);
   } catch(error) {
     await savePrimaryReceipt({...identity,version:1,status:'rejected',at:new Date().toISOString(),reason:String(error?.message||error)},verify).catch(()=>{});

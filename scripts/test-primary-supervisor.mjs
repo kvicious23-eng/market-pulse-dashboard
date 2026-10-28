@@ -3,17 +3,18 @@ import vm from 'node:vm';
 import {readTestFile} from './test-source.mjs';
 const source=readTestFile('chrome-extension/primary-supervisor.js','utf8');
 const ctx={Date};vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+source,ctx);
+const release=JSON.parse(readTestFile('chrome-extension/manifest.json','utf8')).version;
 const base=Date.parse('2026-10-22T12:00:00+09:00');
 const request={version:1,browser:'whale',scanSlot:'2026-10-22T12:00+09:00',requestId:'a'.repeat(32),requestedAt:new Date(base).toISOString(),targets:[{mtm:'A'}],launchAttempts:1};
 async function scenario(states,{verify=false,now=base+60000,step=15000,stopOk=true}={}) {
  let index=0;const calls=[],events=[];
  await ctx.runPrimarySupervisor({now:()=>now,wait:async()=>{now+=step;},emit:async e=>events.push(e),send:async m=>{
   calls.push(m);
-  if(m.type==='GET_PRIMARY_STATE')return {workerVersion:'1.9.50',...states[Math.min(index++,states.length-1)]};
+  if(m.type==='GET_PRIMARY_STATE')return {workerVersion:release,...states[Math.min(index++,states.length-1)]};
   if(m.type==='PREPARE_PRIMARY_HANDOFF')return {ok:true,handoff:true,running:false,retryCount:1};
   if(m.type==='STOP_PRIMARY_SCAN')return {ok:stopOk};
-  return {ok:true,version:'1.9.50'};
- }},request,{verify});return {calls,events};
+  return {ok:true,version:release};
+ }},request,{verify,release});return {calls,events};
 }
 const active={ok:true,running:true,requestRunning:true,requestExists:true,progress:{updatedAt:new Date(base+60000).toISOString()}};
 const idle={ok:true,running:false,requestExists:true,retryCount:0};

@@ -1,4 +1,10 @@
 ﻿$ErrorActionPreference='Stop'
+# Probe actual CIM trigger types without registering a real task. A daily
+# trigger has no writable nested pattern until one is explicitly assigned.
+$nativeDaily=ScheduledTasks\New-ScheduledTaskTrigger -Daily -At '08:00'
+$nativePattern=ScheduledTasks\New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Hours 15)
+$nativeDaily.Repetition=$nativePattern.Repetition
+if($nativeDaily.Repetition.Interval -ne 'PT1M' -or $nativeDaily.Repetition.Duration -ne 'PT15H'){throw 'Native Windows repetition pattern is invalid.'}
 $repo=Split-Path -Parent $PSScriptRoot
 $tempRoot=Join-Path ([IO.Path]::GetTempPath()) ('market-pulse-schedule-'+[guid]::NewGuid())
 $originalProgramFiles=$env:ProgramFiles
@@ -12,8 +18,8 @@ function New-ScheduledTaskAction {
   [pscustomobject]@{Execute=$Execute;Arguments=$Argument}
 }
 function New-ScheduledTaskTrigger {
-  param([switch]$Daily,[string]$At)
-  [pscustomobject]@{StartBoundary=$At;Repetition=[pscustomobject]@{Interval='';Duration=''}}
+  param([switch]$Daily,[switch]$Once,$At,[TimeSpan]$RepetitionInterval,[TimeSpan]$RepetitionDuration)
+  [pscustomobject]@{StartBoundary=$At;Repetition=if($Once){[pscustomobject]@{Interval='PT1M';Duration='PT15H'}}else{$null}}
 }
 function Register-ScheduledTask {
   param([string]$TaskName,$Action,$Trigger,$Settings,[string]$Description,[switch]$Force)

@@ -85,8 +85,8 @@ $blueRunner=Join-Path $InstallPath 'scripts\run-blue-recovery.ps1'
 if(-not(Test-Path $blueRunner)){throw 'Blue recovery runner is missing.'}
 $blueAction=New-ScheduledTaskAction -Execute $powershell -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$blueRunner+'" -RepoPath "'+$InstallPath+'"')
 $blueTrigger=New-ScheduledTaskTrigger -Daily -At '08:00'
-$blueTrigger.Repetition.Interval='PT1M'
-$blueTrigger.Repetition.Duration='PT15H'
+$bluePattern=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Hours 15)
+$blueTrigger.Repetition=$bluePattern.Repetition
 $blueSettings=New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName 'Market Pulse Blue Model Recovery' -Action $blueAction -Trigger $blueTrigger -Settings $blueSettings -Description 'After full Edge Pages publication +10 minutes, retry only still-blue models once within the original slot budget' -Force|Out-Null
 
