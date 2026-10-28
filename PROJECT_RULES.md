@@ -28,6 +28,8 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 ### 현재 적용·검증 상태 — 2026-10-28
 
+- 10/28 12시 버전검사 거부 회차는 사용자 명시 지시 후1.9.52로 수동 재실행했다. 기존 요청ID·최초요청시각·시간예산·자동 페이지호출2회 기록을 유지하고, 추가 수동호출1회와 원래 거부 영수증은PC의 별도 감사파일에 보존했다. 실행c9ec446f85a74e1a9a6997cf59369a96는12:46:20~13:02:16KST에15개 전체목록 일치·정상13/품절2·상품/구매가능주문서/카드 오류0으로 완료됐다. 워커재시도1회 기록이 있으며 재실행 직후 primary-supervisor-stop 기록 후 진행한 것으로, 무인 정시 실행이나 자연장애복구 성공으로 분류하지 않는다. 13:02:50업로드와 [Actions40630081966](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40630081966)의3개job 성공 및 세브랜드 실제Pages/데이터HTTP200·PC게시본일치를 확인했다. 오전 파란오류 SFG14-75-749N도 새Whale 전체회차에서 정상 확인됐으며, Edge부분추가수집의 성공 증거가 아니다. 재고10/27기준 합계는 유지됐다. 원래12시1.9.51시작실패 기록을 이수동성공으로 소급해 지우지 않는다.
+
 - 1.9.52 운영 적용과 세 브라우저의 버전·목록 일치 검증을 완료했다. Whale의 두 예약 경로와 Edge 부분 대상 전달은 실수집 없는 검증 모드로 확인했다. JavaScript LF/CRLF 각31개 및 Windows 회귀 검사가 통과했고 [코드 검사·배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40626471564)도 성공했다. 상세 운영 증거는 로컬에 보존한다. 설치·전달 검증은 배포 후 추가 수집의 자연 성공 또는 실패했던 회차의 재수집 성공을 뜻하지 않는다.
 
 - 10/28 10:03:01 KST Chrome·Edge·Whale 각각의 실제 manifest/worker1.9.51, 접근/주문서 관측 registered, webRequest 권한, 15개 전체 식별자 일치를 별도 verify로 확인했다. Chrome 알람08/16·Whale/Edge 알람0 및 슬롯 배정08/16Chrome·12/20Whale도 유지됐다. [1.9.51 검사·배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40612393701)의 update/windows_history/deploy 성공 및 Pages10:02:41을 확인했다. LF/CRLF각30개 검사와 PC 주문서 진단/시간초과 재현 검사가 통과했다. 새 가격 수집을 실행하지 않았으며 1.9.51 자연 오류의 원인 규명·자연 복구 성공은 아직 미관측이다.
