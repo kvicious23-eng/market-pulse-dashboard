@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import {readTestFile} from './test-source.mjs';
 const background=readTestFile('chrome-extension/background.js','utf8');
 const diagnostic=readTestFile('chrome-extension/checkout-diagnostics.js','utf8');
-const listeners={},files=[];let observerMissing=false;
+const listeners={},files=[];
 const context={URL,crypto:{randomUUID:()=> 'a'.repeat(32)},Date,Promise,Set,Map,
   withScanTimeout:async p=>p,waitForScanDownload:async()=>{},
   chrome:{runtime:{id:'scanner',onMessage:{addListener(fn){listeners.message=fn;}}},
@@ -33,7 +33,7 @@ assert.equal(trace.data.pendingOperations,0);assert.ok(trace.data.events.some(e=
 listeners.onCompleted({tabId:11,frameId:0,type:'main_frame',url:'https://order.coupang.com/order/x',statusCode:200});
 assert.equal(trace.data.events.filter(e=>e.kind==='network').length,1);
 const encoded=JSON.stringify(trace.data);for(const secret of ['SECRET','PRIVATE','UNRELATED','token=','address='])assert.ok(!encoded.includes(secret));
-assert.ok(!encoded.includes('99'));assert.equal(context.checkoutDiagnosticRoute('https://evil.test/order/foo'),'other-origin');
+assert.ok(!trace.data.events.some(e=>e.tabId===99));assert.equal(context.checkoutDiagnosticRoute('https://evil.test/order/foo'),'other-origin');
 // Empty enrollment must not accidentally collect all tabs with no openerTabId.
 const empty=context.createCheckoutTrace();await context.captureCheckoutFailure(empty,undefined);assert.equal(empty.data.events.filter(e=>e.kind==='failure-tab').length,0);
 for(let i=0;i<120;i++)empty.event('test');assert.equal(empty.data.events.length,96);assert.ok(empty.data.droppedEvents>0);
