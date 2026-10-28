@@ -1146,7 +1146,7 @@ function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
   return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
 }
 
-async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
+async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transientTargets=null) {
   const lock = await chrome.storage.local.get('running');
   // An active scan in this worker is guarded synchronously by requestScan.
   // A persisted lock without an active promise belongs to a terminated worker.
@@ -1183,7 +1183,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null) {
   };
   try {
     checkRecoveryBudget();
-    const configuredTargets=await withScanTimeout(getTargets(),15000,'scan-targets');
+    const configuredTargets=transientTargets||await withScanTimeout(getTargets(),15000,'scan-targets');
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
     const targets=configuredTargets.filter(x=>x.enabled!==false).map(product=>Object.fromEntries(Object.entries(product).filter(([key])=>!['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase()))));
@@ -1780,13 +1780,13 @@ let primaryStopRequestId=null;
 let pendingScanSlot=null;
 let queuedSaveRetry=null;
 
-function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequestId=null) {
+function requestScan(slot=currentScheduledScanSlot(), recovery=null, primaryRequestId=null, transientTargets=null) {
   if(activeScanPromise||primaryPendingOperations.size) {
     if(slot&&slot!==activeScanSlot) pendingScanSlot=slot;
     return false;
   }
   activeScanSlot=slot;activeScanRequestId=primaryRequestId;primaryStopRequestId=null;primaryOperationOwner=primaryRequestId||recovery?.runId||(slot?'scheduled-'+slot:'manual');
-  activeScanPromise=scanAll(slot,recovery,primaryRequestId);
+  activeScanPromise=scanAll(slot,recovery,primaryRequestId,transientTargets);
   activeScanPromise.then(finishScan,finishScan);
   return true;
 }
@@ -1959,15 +1959,31 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='RUN_FALLBACK') {
     const errors=validateProductCatalog(message.products);
     if(!isEdgeBrowser||errors.length||!message.products?.length) { sendResponse({ok:false,reason:'invalid-fallback-catalog'});return; }
-    if(activeScanPromise||fallbackCatalogPending) {sendResponse({ok:false,reason:'already-running'});return;}
+    if(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size) {sendResponse({ok:false,reason:'already-running'});return;}
     fallbackCatalogPending=true;
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
-      !['chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error'].includes(recovery.reason)||
+      !['chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error','model-errors'].includes(recovery.reason)||
       !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;
     }
+    if(recovery?.reason==='model-errors') {
+      const valid=_sender?.url?.split('?')[0]===chrome.runtime.getURL('fallback.html')&&recovery.scope==='models'&&
+        /^[a-f0-9]{32}$/.test(recovery.baseRunId||'')&&/^[a-f0-9]{64}$/.test(recovery.baseHash||'')&&
+        /^[a-f0-9]{32}$/.test(recovery.chromeRunId||'')&&['chrome','whale'].includes(recovery.primaryBrowser)&&
+        scanPolicyForSlot(message.scanSlot).browser===recovery.primaryBrowser&&recovery.policyId===scanPolicyForSlot(message.scanSlot).id&&
+        message.scanSlot>='2026-10-28T16:00+09:00'&&message.scanSlot===currentScheduledScanSlot()&&
+        Number.isFinite(Date.parse(recovery.deadlineAt))&&Date.now()<Date.parse(recovery.deadlineAt)&&
+        Date.parse(recovery.deadlineAt)<=primaryScanDeadline(recovery.chromeStartedAt,message.scanSlot)&&
+        Array.isArray(recovery.targets)&&JSON.stringify(recovery.targets)===JSON.stringify(message.products);
+      if(!valid){fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-model-recovery-context'});return;}
+      // This subset is a transient work list. The Edge saved full catalogue is
+      // never overwritten by a two-model recovery or by transport verification.
+      sendResponse(requestScan(message.scanSlot,recovery,null,message.products)?{ok:true,version:chrome.runtime.getManifest().version}:{ok:false,reason:'already-running'});
+      fallbackCatalogPending=false;return;
+    }
+    if(recovery?.scope==='models'){fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-model-recovery-context'});return;}
     if(recovery?.primaryBrowser==='whale') {
       try {
         const policy=scanPolicyForSlot(message.scanSlot);

@@ -36,6 +36,11 @@ on:
       - "scripts/test-competitor-rows.mjs"
       - "scripts/test-competitor-import.ps1"
       - "scripts/edge-fallback.ps1"
+      - "scripts/model-edge-recovery.ps1"
+      - "scripts/blue-recovery-queue.ps1"
+      - "scripts/blue-recovery-worker.ps1"
+      - "scripts/run-blue-recovery.ps1"
+      - "scripts/test-model-edge.ps1"
       - "scripts/browser-profile.ps1"
       - "scripts/supplier-after-edge.ps1"
       - "scripts/test-morning-recovery.*"
@@ -200,6 +205,8 @@ jobs:
           ./scripts/test-whale-noon.ps1
           ./scripts/test-whale-noon.ps1 -FlowSlot "2026-10-26T20:00+09:00"
           ./scripts/test-upload-timeout.ps1
+          ./scripts/test-model-edge.ps1
+          ./scripts/test-model-edge.ps1 -FlowSlot "2026-10-28T20:00+09:00"
           ./scripts/test-edge-profile.ps1
           ./scripts/test-scan-recovery.ps1 -FlowSlot "2026-10-26T08:00+09:00"
           ./scripts/test-scan-recovery.ps1 -FlowSlot "2026-10-26T16:00+09:00"

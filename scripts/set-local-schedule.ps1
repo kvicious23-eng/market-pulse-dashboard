@@ -80,6 +80,16 @@ Register-ScheduledTask `
   -Description "Upload Market Pulse scans at 08:30, 12:30, 16:30 and 20:30 KST" `
   -Force | Out-Null
 
+# Poll durable post-publication queues; never delay or duplicate the primary scan.
+$blueRunner=Join-Path $InstallPath 'scripts\run-blue-recovery.ps1'
+if(-not(Test-Path $blueRunner)){throw 'Blue recovery runner is missing.'}
+$blueAction=New-ScheduledTaskAction -Execute $powershell -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$blueRunner+'" -RepoPath "'+$InstallPath+'"')
+$blueTrigger=New-ScheduledTaskTrigger -Daily -At '08:00'
+$blueTrigger.Repetition.Interval='PT1M'
+$blueTrigger.Repetition.Duration='PT15H'
+$blueSettings=New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'Market Pulse Blue Model Recovery' -Action $blueAction -Trigger $blueTrigger -Settings $blueSettings -Description 'After full Edge Pages publication +10 minutes, retry only still-blue models once within the original slot budget' -Force|Out-Null
+
 $scanTask = Get-ScheduledTask -TaskName $scanTaskName -ErrorAction Stop
 $uploadTask = Get-ScheduledTask -TaskName $uploadTaskName -ErrorAction Stop
 $scanTime = @($scanTask.Triggers | ForEach-Object { $_.StartBoundary }) -join ', '
@@ -87,7 +97,7 @@ $uploadTime = @($uploadTask.Triggers | ForEach-Object { $_.StartBoundary }) -joi
 
 Write-Host "Market Pulse local schedule updated."
 Write-Host "  Automatic scan (slot routing): $scanTime"
-Write-Host "  Browser routing:               Chrome 08/16; Whale 12/20 from 2026-10-26 20:00; Edge full recovery only"
+Write-Host "  Browser routing:               Chrome 08/16; Whale 12/20 from 2026-10-26 20:00; Edge full recovery, then post-publication blue-model retry"
 Write-Host "  Result upload:                 $uploadTime"
 Write-Host "  Upload console:                Hidden (logs remain in reports\scheduled-upload.log)"
 Write-Host "  Upload retry:                  3 retries, every 15 minutes within the slot budget"

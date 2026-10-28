@@ -2,7 +2,8 @@
   [string]$RepoPath = (Split-Path -Parent $PSScriptRoot),
   [switch]$WaitForToday,
   [string]$ExpectedSlotStart = '',
-  [int]$MaxScanAgeHours = 24
+  [int]$MaxScanAgeHours = 24,
+  [string]$ModelRecoverySource = ''
 )
 $ErrorActionPreference = 'Stop'
 $resultFolder = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
@@ -10,6 +11,8 @@ $catalogPath = Join-Path $resultFolder 'product-catalog.json'
 $kstZone = [TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $minimumStart=if ($ExpectedSlotStart) { [DateTimeOffset]::Parse($ExpectedSlotStart) } else { $null }
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+. (Join-Path $PSScriptRoot 'model-edge-recovery.ps1')
+. (Join-Path $PSScriptRoot 'blue-recovery-queue.ps1')
 . (Join-Path $PSScriptRoot 'git-timeout.ps1')
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 $recoverySlot=if($minimumStart){$minimumStart.ToOffset([TimeSpan]::FromHours(9)).ToString('yyyy-MM-ddTHH:mmzzz')}else{Get-ScanRecoverySlot}
@@ -27,9 +30,12 @@ function Invoke-Git {
 # Collection/recovery waits do not own the shared repository publication lock.
 
 function Get-LatestResultPath {
+  if($ModelRecoverySource){return $ModelRecoverySource}
   $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
   if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
-    return Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
+    $edgePath=Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
+    if($edgePath){return Resolve-BluePublicationResult $edgePath $recoverySlot $resultFolder $RepoPath}
+    return $edgePath
   }
   $normalSlot=if($minimumStart -or (Get-PrimaryScanBrowser $recoverySlot) -eq 'whale'){$recoverySlot}else{''}
   return Get-SavedPrimaryResultPath $resultFolder $normalSlot $RepoPath
@@ -38,7 +44,7 @@ function Get-LatestResultPath {
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
 $candidateError=''
 do {
-  if ($recoverySlot) { Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot }
+  if ($recoverySlot -and -not $ModelRecoverySource) { Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot }
   $resultPath = Get-LatestResultPath
   $payload=$null
   if ($resultPath) {
@@ -72,6 +78,7 @@ do {
 
 # A manual Whale validation is never a production source.
 Assert-PrimaryScanSource $payload $recoverySlot $resultFolder $RepoPath
+if($ModelRecoverySource -and $payload.browser -cne 'mixed'){throw 'Expected a verified post-publication composite.'}
 
 # Derived diagnostics stay on this PC and do not affect price publication.
 # Include recovered first-attempt denials rather than logging only final failures.
@@ -90,7 +97,7 @@ if (Test-Path $accessAnalyzer) {
 # Wait for this slot's completed Chrome JSON before deciding whether Edge is
 # needed. At a scheduled upload the Chrome scan may still be running.
 $blockedChrome=@($payload.results | Where-Object { $_.ok -ne $true -and $_.reason -eq 'access-check' })
-if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
+if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -cin @('chrome','whale')) {
   foreach ($blocked in $blockedChrome) {
     $safeMtm=[regex]::Replace([string]$blocked.mtm,'[\r\n]',' ')
     $safeDetail=[regex]::Replace([string]$blocked.accessCheckDetail,'[\r\n]',' ')
@@ -114,6 +121,7 @@ if ($blockedChrome.Count -gt 0 -and [string]$payload.browser -ne 'edge') {
 $repositoryMutex=Enter-MarketPulseRepositoryLock $RepoPath
 try {
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
+if($payload.modelRecovery){Assert-BlueRecoveryCurrentPublication $payload $RepoPath}
 
 # Payload v5 and scanner 1.9.18 are required for evidence-aware checkout capture of all three
 # discount layers, checkout zero handling, and sold-out product-page fallback.
@@ -293,10 +301,12 @@ $text = @{
   FirstScan = Decode-Utf8 '7LKrIENocm9tZSDsobDsgqwg64yA6riw'
   ManagedProduct = Decode-Utf8 '7IKs7Jqp7J6QIOq0gOumrCDsg4Htkog='
 }
-if ([string]$payload.browser -in @('edge','whale')) {
+if ([string]$payload.browser -in @('edge','whale','mixed')) {
   $label=if($payload.browser -eq 'whale'){'Whale'}else{'Edge'}
   foreach ($key in @($text.Keys)) { $text[$key]=([string]$text[$key]).Replace('Chrome',$label) }
 }
+
+if($payload.browser -eq 'mixed'){$text.Route='Windows PC · Edge 전체 복구 + 배포 후 모델별 추가 복구'}
 
 function Set-ModelCollectionFailure($Mine,$Result,[string]$AttemptedAt) {
   $reason=if ($Result.ok -ne $true) {'product-unavailable'} else {'checkout-unconfirmed'}
@@ -464,6 +474,8 @@ if ($alreadyImported) {
   Write-Host "This price scan was already imported at $scanKst; publishing pending data without repeating price history."
   Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
   Invoke-Git -Arguments @('push','origin','main') | Out-Null
+  Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
+  Save-BlueRecoveryFinalCommit $payload $RepoPath
   return
 }
 foreach ($spec in $specs) {
@@ -526,6 +538,14 @@ foreach ($spec in $specs) {
     } | Select-Object -First 1
     $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
     if (-not $mine) { continue }
+    if($payload.modelRecovery -and $result.collectionSource.runId -ceq $payload.modelRecovery.sourceRunId) {
+      if($mine.collectionStatus -eq 'review-needed' -or $mine.cardBenefitStatus -eq 'review-needed'){$partialCount++}
+      elseif($result.checkoutDiscountReason -cin @('buy-now-button-not-found','buy-now-button-sold-out')){$soldOutCount++}
+      else{$verified++}
+      continue
+    }
+    $rowSource=if($payload.browser -eq 'mixed'){$result.collectionSource}else{$payload}
+    $mine|Add-Member collectionEvidence ([pscustomobject]@{browser=$rowSource.browser;extensionVersion=$rowSource.extensionVersion;runId=$rowSource.runId;checkedAt=$result.checkedAt}) -Force
     foreach ($key in @('collectionStatus','collectionIssue','collectionAttemptedAt')) {$mine.PSObject.Properties.Remove($key)}
     # A fresh scan replaces any operator report attached to an older snapshot.
     $mine.PSObject.Properties.Remove('availabilityReportAt')
@@ -833,6 +853,7 @@ foreach ($spec in $specs) {
       processObservedAt=$receipt.processObservation.observedAt;absentChecks=$receipt.processObservation.absentChecks;
       edgeStartedAt=$payload.startedAt;targetCount=$payload.targetCount;resultCount=$payload.resultCount;listMatched=$true}
   }
+  if($payload.modelRecovery){$recoveryEvidence=[pscustomobject]@{reason='post-publication-blue-retry';scope='models';primaryBrowser=$payload.modelRecovery.primaryBrowser;primaryRunId=$payload.modelRecovery.primaryRunId;sourceRunId=$payload.modelRecovery.sourceRunId;edgeRunId=$payload.modelRecovery.edgeRunId;attempted=$payload.modelRecovery.attempted;recovered=$payload.modelRecovery.recovered;unresolved=$payload.modelRecovery.unresolved;state=$payload.modelRecovery.state}}
   $data.meta | Add-Member -NotePropertyName recoveryEvidence -NotePropertyValue $recoveryEvidence -Force
   $data.meta | Add-Member -NotePropertyName publishedAt -NotePropertyValue $scanKst -Force
   $data.meta.monitoring.lastAttemptAt=$scanKst
@@ -918,5 +939,7 @@ if ($diffExit -eq 1) {
 }
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
 Invoke-Git -Arguments @('push','origin','main') | Out-Null
+Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
+Save-BlueRecoveryFinalCommit $payload $RepoPath
 
 } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }

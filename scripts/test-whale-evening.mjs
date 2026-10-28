@@ -27,7 +27,7 @@ assert.equal(alarms[0].when,Date.parse('2026-10-27T08:00+09:00'),'08 KST date mu
 await handlers.alarm({name:'daily-scan-2000',scheduledTime:now});assert.equal(calls.length,0,'A stale installed 20 alarm cannot start Chrome');
 now=Date.parse('2026-10-26T16:00+09:00');await handlers.startup();assert.equal(calls.at(-1),'2026-10-26T16:00+09:00');
 const state={},starts=[];let listener;
-const worker={Date:Clock,Intl,navigator:{userAgent:'Whale/5'},activeScanPromise:null,primaryPendingOperations:new Set(),activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
+const worker={Date:Clock,Intl,navigator:{userAgent:'Whale/5'},activeScanPromise:null,primaryPendingOperations:new Set(),primaryPendingOperations:new Set(),activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
  validateProductCatalog:()=>[],requestScan:(...a)=>{starts.push(a);return true;},chrome:{runtime:{getURL:x=>'chrome-extension://test/'+x,getManifest:()=>({version:'1.9.50'}),onMessage:{addListener:f=>listener=f}},storage:{local:{get:async()=>({...state}),set:async x=>Object.assign(state,x)}}}};
 vm.runInNewContext(policy+';'+background.slice(background.indexOf('const SCHEDULED_SCAN_TIMES ='),background.indexOf('\n\nfunction enterCheckoutDiagnostic'))+';'+background.slice(background.indexOf('function isPrimarySender(')),worker);
 const sender={url:'chrome-extension://test/primary.html'};
@@ -40,7 +40,7 @@ await new Promise(r=>setImmediate(r));assert.equal((await send({scanSlot:noon,po
 console.log('Shared policy, historical/activation/weekend/KST boundaries, nighttime deadline, separated names, actual Chrome startup/stale alarm and Whale evening request/retry guards passed.');
 // The original Whale deadline follows the full Edge handoff into its worker.
 let edgeListener;const edgeStarts=[];
-const edgeWorker={Date:Clock,Intl,navigator:{userAgent:'Edg/150'},activeScanPromise:null,validateProductCatalog:()=>[],requestScan:(...a)=>{edgeStarts.push(a);return true;},
+const edgeWorker={Date:Clock,Intl,navigator:{userAgent:'Edg/150'},activeScanPromise:null,primaryPendingOperations:new Set(),validateProductCatalog:()=>[],requestScan:(...a)=>{edgeStarts.push(a);return true;},
  chrome:{runtime:{getURL:x=>'chrome-extension://test/'+x,getManifest:()=>({version:'1.9.50'}),onMessage:{addListener:f=>edgeListener=f}},storage:{local:{set:async()=>{}}}}};
 vm.runInNewContext(policy+';'+background.slice(background.indexOf('const SCHEDULED_SCAN_TIMES ='),background.indexOf('\n\nfunction enterCheckoutDiagnostic'))+';'+background.slice(background.indexOf('function isPrimarySender(')),edgeWorker);
 const edgeRecovery={runId:'b'.repeat(32),reason:'access-check',primaryBrowser:'whale',primaryRequestId:id,policyId:p.owner(evening).id,triggeredAt:evening,deadlineAt:'2026-10-26T22:00+09:00'};

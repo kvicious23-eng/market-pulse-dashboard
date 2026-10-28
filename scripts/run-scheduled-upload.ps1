@@ -2,7 +2,8 @@ param(
   [string]$RepoPath = "C:\MarketPulse",
   [ValidateRange(1,7200)][int]$TimeoutSeconds=7200,
   [switch]$Worker,
-  [string]$ExpectedSlotStart=''
+  [string]$ExpectedSlotStart='',
+  [string]$BlueRecoveryQueue=''
 )
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
@@ -21,7 +22,10 @@ if ($Worker) {
   try {
     Write-UploadLog 'Scheduled upload worker started.'
     Start-Transcript -Path $logPath -Append | Out-Null
-    try { & (Join-Path $RepoPath 'scripts\import-extension-results.ps1') -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $ExpectedSlotStart }
+    try {
+      if($BlueRecoveryQueue){& (Join-Path $RepoPath 'scripts\blue-recovery-worker.ps1') -RepoPath $RepoPath -QueuePath $BlueRecoveryQueue}
+      else{& (Join-Path $RepoPath 'scripts\import-extension-results.ps1') -RepoPath $RepoPath -WaitForToday -ExpectedSlotStart $ExpectedSlotStart}
+    }
     finally { Stop-Transcript | Out-Null }
     Write-UploadLog 'Scheduled upload completed.'
     exit 0
@@ -45,6 +49,7 @@ try {
   try {$held=$supervisor.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
   if(-not $held){Write-UploadLog 'Upload supervisor already running; skipped duplicate.';exit 1}
   $budget=Read-SupplierLocalState $budgetPath
+  if($BlueRecoveryQueue -and (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart)){throw 'Deferred recovery cannot create a new upload budget.'}
   if (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart) {
     $now=[DateTimeOffset]::UtcNow
     $end=Get-MarketPulseUploadDeadline $ExpectedSlotStart $now $TimeoutSeconds
@@ -69,6 +74,7 @@ try {
   try {
     $env:MARKET_PULSE_UPLOAD_DEADLINE=$cutoff.ToString('o')
     $arguments=@('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$PSCommandPath,'-RepoPath',$RepoPath,'-Worker','-ExpectedSlotStart',$ExpectedSlotStart)
+    if($BlueRecoveryQueue){$arguments+=@('-BlueRecoveryQueue',$BlueRecoveryQueue)}
     $child=Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList (($arguments | ForEach-Object {ConvertTo-MarketPulseArgument $_}) -join ' ') -WindowStyle Hidden -PassThru
   } finally { $env:MARKET_PULSE_UPLOAD_DEADLINE=$oldDeadline }
   $budget.status='running';Save-SupplierLocalState $budgetPath $budget

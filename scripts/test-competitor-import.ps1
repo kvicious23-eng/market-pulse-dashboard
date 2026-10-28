@@ -96,3 +96,13 @@ $historyRows=@();$verified=0;$soldOutCount=0;$partialCount=0
 $recovered=$data.products[1].offers[0]
 if($recovered.collectionStatus -or -not $recovered.alertEligible -or $recovered.finalPrice -ne 800000 -or $recovered.priceChange -ne 50000){throw 'Recovered model retained an error or compared against an unverified price.'}
 Write-Host 'Mixed model publication, failure history, no prior price and next-success recovery passed.'
+
+# A second publication must not recheck or append history for retained healthy rows.
+$payload|Add-Member modelRecovery ([pscustomobject]@{sourceRunId='original'}) -Force
+foreach($result in $brandResults){$result|Add-Member collectionSource ([pscustomobject]@{browser='edge';runId='original'}) -Force}
+$before=@($data.products|ForEach-Object {$_|ConvertTo-Json -Depth 20 -Compress})
+$historyRows=@();$competitorHistoryRows=@();$verified=0;$soldOutCount=0;$partialCount=0;$validatedCompetitorCount=0
+. $loop
+$after=@($data.products|ForEach-Object {$_|ConvertTo-Json -Depth 20 -Compress})
+if(($before -join '') -cne ($after -join '') -or $historyRows.Count -ne 0 -or $competitorHistoryRows.Count -ne 0){throw 'Post-publication retry rewrote retained rows or appended duplicate history.'}
+Write-Host 'Post-publication retained prices, timestamps, trends, comparison eligibility and both histories remain unchanged.'

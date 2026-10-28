@@ -299,6 +299,8 @@ function Get-SavedPrimaryResultPath([string]$Folder,[string]$Slot,[string]$RepoP
   return $null
 }
 function Assert-PrimaryScanSource($Payload,[string]$Slot,[string]$Folder,[string]$RepoPath) {
+  if($Payload.browser -eq 'mixed'){Assert-ModelEdgeComposite $Payload $Slot $Folder $RepoPath;return}
+  if($Payload.recovery.scope -eq 'models'){throw 'A subset Edge result cannot be published directly.'}
   $expected=Get-PrimaryScanBrowser $Slot
   if ($Payload.browser -eq 'edge') {
     $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)

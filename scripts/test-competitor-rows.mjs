@@ -87,7 +87,7 @@ const migrationCtx={TARGETS:defaults,chrome:{storage:{local:{get:async()=>({prod
 vm.runInNewContext(getTargetsCode+';this.getTargets=getTargets;',migrationCtx);
 assert.match((await migrationCtx.getTargets())[0].danawaUrl,/pcode=95845739/);
 let listener,saved,started=0;
-const edgeCtx={isEdgeBrowser:true,activeScanPromise:null,validateProductCatalog:()=>[],requestScan:()=>{started++;return true;},
+const edgeCtx={isEdgeBrowser:true,activeScanPromise:null,primaryPendingOperations:new Set(),validateProductCatalog:()=>[],requestScan:()=>{started++;return true;},
   chrome:{runtime:{onMessage:{addListener:fn=>{listener=fn;}}},storage:{local:{set:async value=>{saved=value.products;}}}}};
 vm.runInNewContext(source.slice(source.indexOf('let fallbackCatalogPending=false;')),edgeCtx);
 const result=await new Promise(resolve=>listener({type:'RUN_FALLBACK',products:defaults},null,resolve));

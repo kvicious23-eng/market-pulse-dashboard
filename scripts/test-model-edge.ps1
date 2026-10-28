@@ -1,0 +1,144 @@
+﻿param([ValidateSet('2026-10-28T16:00+09:00','2026-10-28T20:00+09:00')][string]$FlowSlot='2026-10-28T16:00+09:00')
+$ErrorActionPreference='Stop'
+function Check($Value,[string]$Message){if(-not $Value){throw $Message}}
+function Must-Fail([scriptblock]$Block){$bad=$false;try{& $Block|Out-Null}catch{$bad=$true};Check $bad 'Expected integrity rejection.'}
+$temp=Join-Path ([IO.Path]::GetTempPath()) ('MPModel-'+[guid]::NewGuid().ToString('N'))
+$oldProgramFiles=$env:ProgramFiles;$oldLocal=$env:LOCALAPPDATA
+$global:ModelTestNow=([DateTimeOffset]::Parse($FlowSlot)).AddMinutes(60)
+$global:ModelTestLaunches=0;$global:ModelTestMode='success'
+try {
+  New-Item -ItemType Directory (Join-Path $temp 'scripts'),(Join-Path $temp 'chrome-extension'),(Join-Path $temp 'Downloads') -Force|Out-Null
+  $global:ModelTestRepo=$temp;$global:ModelTestFolder=Join-Path $temp 'Downloads'
+  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
+  foreach($name in @('scan-recovery.ps1','model-edge-recovery.ps1','blue-recovery-queue.ps1','run-blue-recovery.ps1','git-timeout.ps1','brand-lifecycle.ps1')){
+    $s=Get-Content (Join-Path $PSScriptRoot $name) -Raw -Encoding UTF8
+    $s=$s.Replace('[DateTimeOffset]::UtcNow','$global:ModelTestNow')
+    $s=$s.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:ModelTestFolder')
+    $s|Set-Content (Join-Path $temp ('scripts\'+$name)) -Encoding UTF8
+  }
+  'function Get-BrowserExtensionInstallations {param($UserDataPath,$ExtensionPath);[pscustomobject]@{Id=("a"*32);Profile="Default"}}'|Set-Content (Join-Path $temp 'scripts\browser-profile.ps1') -Encoding UTF8
+  . (Join-Path $temp 'scripts\scan-recovery.ps1')
+  . (Join-Path $temp 'scripts\brand-lifecycle.ps1')
+  . (Join-Path $temp 'scripts\model-edge-recovery.ps1')
+  . (Join-Path $temp 'scripts\blue-recovery-queue.ps1')
+  $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp
+  $exe=Join-Path $temp 'Microsoft\Edge\Application\msedge.exe';New-Item -ItemType Directory (Split-Path $exe) -Force|Out-Null;New-Item -ItemType File $exe|Out-Null
+  function Start-Sleep {param([int]$Seconds);$global:ModelTestNow=$global:ModelTestNow.AddMinutes(10)}
+  function Start-Process {
+    param($FilePath,$ArgumentList)
+    $global:ModelTestLaunches++
+    Check ($FilePath -match 'msedge.exe$') 'Wrong recovery browser.'
+    Check (($ArgumentList -join ' ') -match 'scope=models') 'Subset scope lost.'
+    if($global:ModelTestMode -eq 'launch-fail'){throw 'launch-rejected'}
+    if($global:ModelTestMode -eq 'timeout'){return}
+    $requestFile=Get-ChildItem (Join-Path $global:ModelTestRepo 'chrome-extension\runtime') -Filter 'model-edge-*.json'|Sort-Object LastWriteTimeUtc -Descending|Select-Object -First 1
+    $q=Read-ScanRecoveryJson $requestFile.FullName
+    Check (@($q.products).Count -eq 1) 'A healthy model was recollected.'
+    $row=$q.products[0]|ConvertTo-Json -Depth 10|ConvertFrom-Json
+    foreach($pair in @{ok=$true;price=810000;priceBasisSource='visible-product-price';basisEvidence=@{top=10};priceBasisType='top-visible';checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=0;wowInstantDiscount=0;wowCouponDiscount=0;cardBenefitStatus='none';checkedAt=$global:ModelTestNow.AddSeconds(2).ToString('o');checkoutDiscountCapturedAt=$global:ModelTestNow.AddSeconds(2).ToString('o')}.GetEnumerator()){$row|Add-Member $pair.Key $pair.Value -Force}
+    if($global:ModelTestMode -eq 'row-fail'){$row.ok=$false;$row|Add-Member reason 'scan-timeout:product'}
+    if($global:ModelTestMode -eq 'card-partial'){$row.cardBenefitStatus='partial'}
+    if($global:ModelTestMode -eq 'wrong-id'){$row.itemId='999'}
+    $p=[pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.52';scanSlot=$q.scanSlot;runId=$q.runId;policyId=$q.recovery.policyId;recovery=$q.recovery;
+      startedAt=$global:ModelTestNow.AddSeconds(1).ToString('o');completedAt=$global:ModelTestNow.AddSeconds(3).ToString('o');scannedAt=$global:ModelTestNow.AddSeconds(3).ToString('o');targetCount=1;resultCount=1;complete=$true;results=@($row)}
+    Write-ModelEdgeJson (Join-Path $global:ModelTestFolder ('edge-recovery-'+$q.runId+'.json')) $p
+  }
+  $slotAt=[DateTimeOffset]::Parse($FlowSlot);$primary=Get-PrimaryScanBrowser $FlowSlot
+  $rows=@(foreach($i in 1..2){[pscustomobject]@{brand='Test';mtm="MODEL$i";productId="$i";itemId="$i";vendorItemId="$i";enabled=$true;srp=1000000;url="https://www.coupang.com/vp/products/$i`?itemId=$i&vendorItemId=$i";
+    ok=$true;price=800000;priceBasisSource='visible-product-price';basisEvidence=@{top=10};priceBasisType='top-visible';checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=0;wowInstantDiscount=0;wowCouponDiscount=0;cardBenefitStatus='none';checkedAt=$slotAt.AddMinutes(35).ToString('o');checkoutDiscountCapturedAt=$slotAt.AddMinutes(36).ToString('o')}})
+  $rows[1].ok=$false;$rows[1]|Add-Member reason 'access-check'
+  $catalog=[pscustomobject]@{products=$rows}
+  Write-ModelEdgeJson (Join-Path $global:ModelTestFolder 'product-catalog.json') $catalog
+  $base=[pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.52';scanSlot=$FlowSlot;runId=('b'*32);policyId=(Get-ScanSlotPolicy $FlowSlot).id;primaryRequestId=$null;
+    startedAt=$slotAt.AddMinutes(30).ToString('o');completedAt=$slotAt.AddMinutes(45).ToString('o');scannedAt=$slotAt.AddMinutes(45).ToString('o');deadlineAt=$slotAt.AddHours(2).ToString('o');complete=$true;targetCount=2;resultCount=2;results=$rows}
+  $sourcePath=Join-Path $global:ModelTestFolder 'latest-coupang-scan.json'
+  if($primary -eq 'whale') {
+    $base.primaryRequestId='d'*32;$sourcePath=Join-Path $global:ModelTestFolder ('whale-scan-'+$base.runId+'.json')
+    $q=[pscustomobject]@{version=1;browser='whale';scanSlot=$FlowSlot;requestId=$base.primaryRequestId;requestedAt=$slotAt.ToString('o');policyId=$base.policyId;targets=$rows;launchAttempts=1}
+    Write-ModelEdgeJson (Get-WhaleRequestPath $temp $FlowSlot) $q
+  }
+  $recovery=[pscustomobject]@{reason='access-check';chromeRunId=('a'*32);chromeStartedAt=$slotAt.AddSeconds(1).ToString('o');chromeCompletedAt=$slotAt.AddMinutes(15).ToString('o');primaryBrowser=$primary;primaryRequestId=$base.primaryRequestId;policyId=$base.policyId;deadlineAt=$base.deadlineAt}
+  $base.primaryRequestId=$null;$base|Add-Member recovery $recovery
+  $full=[pscustomobject]@{state='result-ready';scanSlot=$FlowSlot;runId=$base.runId;chromeRunId=('a'*32);reason='access-check';triggeredAt=$slotAt.AddMinutes(29).ToString('o');targets=$rows;primaryBrowser=$primary;primaryRequestId=$recovery.primaryRequestId;policyId=$base.policyId;deadlineAt=$base.deadlineAt}
+  Write-ModelEdgeJson (Get-EdgeReceiptPath $temp $FlowSlot) $full
+  Write-ModelEdgeJson $sourcePath $base
+  $queue=[pscustomobject]@{version=1;state='collecting';sourceRunId=$base.runId;scanSlot=$FlowSlot;sourceHash=(Get-FileHash $sourcePath -Algorithm SHA256).Hash.ToLowerInvariant();targetItemIds=@('2');initialCommit=('e'*40);firstPublishedAt=$slotAt.AddMinutes(47).ToString('o');notBefore=$slotAt.AddMinutes(57).ToString('o')}
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  $global:ModelTestNow=$slotAt.AddMinutes(56);Must-Fail {Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue};$global:ModelTestNow=$slotAt.AddMinutes(60)
+  Check ($global:ModelTestLaunches -eq 0) 'Collected before deployment plus ten minutes.'
+  $hash=(Get-FileHash $sourcePath).Hash
+  $pubRows=@($rows|ConvertTo-Json -Depth 12|ConvertFrom-Json|ForEach-Object {$_})
+  foreach($row in $pubRows){$row.PSObject.Properties.Remove('brand');$offer=[pscustomobject]@{role='mine';collectionStatus=if($row.itemId -eq '2'){'review-needed'}else{'verified'};cardBenefitStatus='none'};$row|Add-Member offers @($offer)}
+  $pub=[pscustomobject]@{meta=[pscustomobject]@{snapshotAt=$base.scannedAt;collectionEvidence=[pscustomobject]@{runId=$base.runId;scanSlot=$FlowSlot}};products=$pubRows}
+  $brandFolder=Join-Path $temp 'brand\test';New-Item -ItemType Directory $brandFolder -Force|Out-Null
+  ('window.MARKET_DATA = '+($pub|ConvertTo-Json -Depth 15)+';')|Set-Content (Join-Path $brandFolder 'market-data.js') -Encoding UTF8
+  $visible=Get-BluePublicationState $base $catalog $temp
+  Check ($visible.blueItemIds.Count -eq 1 -and $visible.blueItemIds[0] -eq '2') 'Published blue-only selection failed.'
+  # Queue creation cannot collect or start its timer at Git push alone.
+  Remove-Item (Get-BlueRecoveryQueuePath $temp $base) -Force
+  function Invoke-MarketPulseGit {param($RepoPath,$Arguments);[pscustomobject]@{Code=0;Output=@(('e'*40))}}
+  Write-ModelEdgeJson (Join-Path $temp 'reports\scheduled-upload-budget.json') ([pscustomobject]@{scanSlot=$FlowSlot;deadlineAt=$slotAt.AddMinutes(150).ToString('o')})
+  Add-BlueRecoveryQueue $base $sourcePath $temp $global:ModelTestFolder
+  $pending=Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $temp $base)
+  Check ($pending.state -eq 'waiting-deployment' -and -not $pending.firstPublishedAt -and -not $pending.notBefore -and $global:ModelTestLaunches -eq 0) 'Git push alone started the wait/collection.'
+  $pending.firstPublishedAt=$queue.firstPublishedAt;$pending.notBefore=$queue.notBefore;$pending.state='collecting';$queue=$pending
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  function Invoke-RestMethod {
+    param($Uri,$Headers,$TimeoutSec)
+    if($Uri -match '/jobs'){return [pscustomobject]@{jobs=@([pscustomobject]@{name='deploy';conclusion='success';completed_at=([DateTimeOffset]::Parse($global:ModelTestSlot)).AddMinutes(47).ToUniversalTime().ToString('o')},[pscustomobject]@{name='update';conclusion='success'},[pscustomobject]@{name='windows_history';conclusion=if($global:ModelDeployBad){'failure'}else{'success'}})}}
+    if($global:ModelDeployPending){return [pscustomobject]@{workflow_runs=@()}}
+    [pscustomobject]@{workflow_runs=@([pscustomobject]@{id=123;head_sha=('e'*40);name='Market Pulse Update';conclusion='success'})}
+  }
+  $global:ModelTestSlot=$FlowSlot
+  Check ($null -ne (Get-BlueDeploymentSuccess ('e'*40))) 'Pinned successful deployment was not detected.'
+  $global:ModelDeployBad=$true;Check ($null -eq (Get-BlueDeploymentSuccess ('e'*40))) 'Incomplete CI counted as publication.';$global:ModelDeployBad=$false
+  # Drive the actual queue poller with synthetic API/Pages replies. Its uploader
+  # is a recording stub: no live process, price collection or Git operation.
+  function Invoke-WebRequest {param($Uri,[switch]$UseBasicParsing,$TimeoutSec);[pscustomobject]@{Content=(Get-Content (Join-Path $global:ModelTestRepo 'brand\test\market-data.js') -Raw -Encoding UTF8)}}
+  'param($RepoPath,$ExpectedSlotStart,$BlueRecoveryQueue);[IO.File]::WriteAllText((Join-Path $RepoPath "reports\poll-dispatch.txt"),$ExpectedSlotStart)'|Set-Content (Join-Path $temp 'scripts\run-scheduled-upload.ps1') -Encoding UTF8
+  $pending.state='waiting-deployment';$pending.firstPublishedAt=$null;$pending.notBefore=$null
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $pending
+  $global:ModelTestNow=$slotAt.AddMinutes(48);$global:ModelDeployPending=$true
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check (-not(Test-Path (Join-Path $temp 'reports\poll-dispatch.txt'))) 'No deployment triggered dispatch.'
+  $global:ModelTestNow=$slotAt.AddMinutes(50);$global:ModelDeployPending=$false
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check (-not(Test-Path (Join-Path $temp 'reports\poll-dispatch.txt'))) 'Dispatch occurred before the ten-minute interval.'
+  $global:ModelTestNow=$slotAt.AddMinutes(57)
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check (Test-Path (Join-Path $temp 'reports\poll-dispatch.txt')) 'Due verified first publication did not dispatch.'
+  $queue=Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $temp $base)
+  Check (([DateTimeOffset]::Parse($queue.notBefore)-[DateTimeOffset]::Parse($queue.firstPublishedAt)).TotalSeconds -eq 600) 'Timer was not based on actual deploy completion.'
+  $global:ModelTestNow=$slotAt.AddMinutes(60)
+  $mergedPath=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue
+  $merged=Read-ScanRecoveryJson $mergedPath
+  Check ($global:ModelTestLaunches -eq 1 -and $merged.browser -eq 'mixed' -and $merged.results.Count -eq 2) 'Not one complete merged publication.'
+  Check ($merged.results[0].price -eq 800000 -and $merged.results[0].collectionSource.runId -eq $base.runId) 'Healthy source changed.'
+  Check ($merged.results[1].price -eq 810000 -and $merged.results[1].collectionSource.browser -eq 'edge') 'Whole recovered row not replaced.'
+  Check ($merged.modelRecovery.recovered -eq 1 -and $merged.modelRecovery.unresolved -eq 0) 'Recovery counts wrong.'
+  Check ((Get-FileHash $sourcePath).Hash -ceq $hash) 'Primary source overwritten.'
+  $replay=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue
+  Check ($replay -ceq $mergedPath -and $global:ModelTestLaunches -eq 1) 'Replay repeated collection.'
+  Assert-PrimaryScanSource $merged $FlowSlot $global:ModelTestFolder $temp
+  $paths=Get-ModelEdgePaths $temp $base;$receipt=Read-ScanRecoveryJson $paths.receipt
+  $subset=Read-ScanRecoveryJson (Get-SavedEdgeRunPath $global:ModelTestFolder $receipt.runId)
+  Must-Fail {Assert-PrimaryScanSource $subset $FlowSlot $global:ModelTestFolder $temp}
+  $merged.results[0].price=123456;Must-Fail {Assert-PrimaryScanSource $merged $FlowSlot $global:ModelTestFolder $temp}
+  $old=$base.results[1].reason;$base.results[1].reason='product-identifiers-mismatch';Must-Fail {Assert-ModelEdgeBase $base $catalog $FlowSlot};$base.results[1].reason=$old
+  foreach($mode in @('row-fail','card-partial','launch-fail','timeout','wrong-id')) {
+    Remove-Item $paths.receipt,$paths.source,$paths.merged -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $temp 'chrome-extension\runtime\model-edge-*.json') -Force -ErrorAction SilentlyContinue
+    $global:ModelTestNow=$slotAt.AddMinutes(60);$global:ModelTestMode=$mode;$before=$global:ModelTestLaunches
+    if($mode -eq 'wrong-id'){Must-Fail {Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue};Check ($global:ModelTestLaunches -eq ($before+1)) 'Bad IDs restarted recovery.';continue}
+    $p=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue;$m=Read-ScanRecoveryJson $p
+    Check ($m.modelRecovery.recovered -eq 0 -and $m.results[1].ok -eq $false -and $m.results[0].price -eq 800000) "Failed $mode recovery damaged primary rows."
+    $stamp=$m.scannedAt;Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue|Out-Null
+    Check ($global:ModelTestLaunches -eq ($before+1) -and (Read-ScanRecoveryJson $p).scannedAt -ceq $stamp) "Failed $mode recovery repeated or moved history key."
+  }
+  Write-Host "Post-publication $primary/full Edge -> delayed subset: exact failed subset, full-row merge/provenance, pinned original, replay, direct-subset/tamper/identity rejection and failed/partial/launch/timeout preservation passed."
+} finally {
+  $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocal
+  Remove-Item Function:\Start-Process,Function:\Start-Sleep,Function:\Invoke-MarketPulseGit,Function:\Invoke-RestMethod,Function:\Invoke-WebRequest -ErrorAction SilentlyContinue
+  Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Variable ModelTestNow,ModelTestLaunches,ModelTestMode,ModelTestRepo,ModelTestFolder,ModelDeployBad,ModelTestSlot,ModelDeployPending -Scope Global -ErrorAction SilentlyContinue
+}

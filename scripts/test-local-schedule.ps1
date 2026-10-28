@@ -13,7 +13,7 @@ function New-ScheduledTaskAction {
 }
 function New-ScheduledTaskTrigger {
   param([switch]$Daily,[string]$At)
-  [pscustomobject]@{StartBoundary=$At}
+  [pscustomobject]@{StartBoundary=$At;Repetition=[pscustomobject]@{Interval='';Duration=''}}
 }
 function Register-ScheduledTask {
   param([string]$TaskName,$Action,$Trigger,$Settings,[string]$Description,[switch]$Force)
@@ -29,6 +29,8 @@ try {
   New-Item -ItemType Directory -Path (Split-Path $chrome) -Force | Out-Null
   New-Item -ItemType File -Path $chrome -Force | Out-Null
   & (Join-Path $repo 'scripts\set-local-schedule.ps1') -InstallPath $repo
+  $blue=$global:MarketPulseScheduleTestTasks['Market Pulse Blue Model Recovery']
+  if($blue.Triggers.Repetition.Interval -ne 'PT1M' -or $blue.Triggers.Repetition.Duration -ne 'PT15H' -or $blue.Settings.MultipleInstances -ne 'IgnoreNew' -or $blue.Actions.Arguments -notmatch 'run-blue-recovery.ps1'){throw 'Deferred blue retry task is not safely registered.'}
   $scan=$global:MarketPulseScheduleTestTasks['Market Pulse Chrome Start']
   $upload=$global:MarketPulseScheduleTestTasks['Market Pulse Result Upload']
   if ((@($scan.Triggers.StartBoundary)-join ',') -ne '08:00,12:00,16:00,20:00') {throw 'Wrong scan triggers.'}
