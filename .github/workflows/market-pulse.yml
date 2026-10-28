@@ -38,6 +38,7 @@ on:
       - "scripts/edge-fallback.ps1"
       - "scripts/model-edge-recovery.ps1"
       - "scripts/blue-recovery-queue.ps1"
+      - "scripts/blue-retry-policy.ps1"
       - "scripts/blue-recovery-worker.ps1"
       - "scripts/run-blue-recovery.ps1"
       - "scripts/test-model-edge.ps1"
@@ -239,3 +240,4 @@ jobs:
       - name: Deploy dashboard
         id: deployment
         uses: actions/deploy-pages@v5
+

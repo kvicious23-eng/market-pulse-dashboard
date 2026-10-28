@@ -13,10 +13,12 @@ function Write-ModelEdgeJson([string]$Path,$Data) {
   try {$Data|ConvertTo-Json -Depth 40|Set-Content -LiteralPath $tmp -Encoding UTF8;Move-Item -LiteralPath $tmp -Destination $Path -Force}
   finally {Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue}
 }
-function Get-ModelEdgePaths([string]$RepoPath,$Base) {
+function Get-ModelEdgePaths([string]$RepoPath,$Base,[int]$Attempt=1) {
+  if($Attempt -notin @(1,2)){throw "Invalid bounded model attempt."}
   if($Base.runId -cnotmatch '^[a-f0-9]{32}$'){throw 'Invalid model recovery base run.'}
   $stem='model-edge-'+(Get-ScanSlotKey $Base.scanSlot)+'-'+$Base.runId
-  @{receipt=Join-Path $RepoPath ('reports\'+$stem+'.json');source=Join-Path $RepoPath ('reports\'+$stem+'-source.json');merged=Join-Path $RepoPath ('reports\'+$stem+'-merged.json')}
+  $attemptStem=if($Attempt -eq 2){$stem+'-attempt2'}else{$stem}
+  @{receipt=Join-Path $RepoPath ('reports\'+$attemptStem+'.json');source=Join-Path $RepoPath ('reports\'+$stem+'-source.json');merged=Join-Path $RepoPath ('reports\'+$attemptStem+'-merged.json')}
 }
 function Assert-ModelEdgeBase($Base,$Catalog,[string]$Slot,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   if(-not(Test-ModelEdgeEnabled $Base) -or $Base.version -ne 5 -or $Base.complete -ne $true -or $Base.scanSlot -cne $Slot -or
@@ -70,6 +72,7 @@ function Test-ModelEdgeVerifiedRow($Row) {
   return $true
 }
 function Assert-ModelEdgeResult($Edge,$Receipt,$Base) {
+  if($Receipt.attempt -eq 2 -and ([version]$Edge.extensionVersion -lt [version]'1.9.54' -or $Edge.recovery.attempt -ne 2)){throw 'Second result requires the matching new worker attempt.'}
   Assert-EdgeRecoveryResult $Edge $Receipt @($Receipt.targets)
   if($Edge.recovery.scope -cne 'models' -or $Edge.recovery.baseHash -cne $Receipt.baseHash -or
     $Edge.recovery.baseRunId -cne $Base.runId -or [version]$Edge.extensionVersion -lt [version]'1.9.52' -or
@@ -85,30 +88,32 @@ function Assert-ModelEdgeResult($Edge,$Receipt,$Base) {
     if($row.checkoutDiscountCapturedAt){$at=[DateTimeOffset]::Parse([string]$row.checkoutDiscountCapturedAt);if($at -lt $start -or $at -gt $end){throw 'Subset Edge checkout time mismatch.'}}
   }
 }
-function New-ModelEdgeMergedPayload($Base,$Receipt,$Edge) {
-  $merged=$Base|ConvertTo-Json -Depth 40|ConvertFrom-Json
-  $replaced=@();$origins=@()
+function New-ModelEdgeMergedPayload($Base,$Receipt,$Edge,$Prior=$null) {
+  $merged=$(if($Prior){$Prior}else{$Base})|ConvertTo-Json -Depth 40|ConvertFrom-Json
+  $previous=@(if($Prior){$Prior.modelRecovery.replacedItemIds});$new=@();$origins=@()
   foreach($row in @($merged.results)) {
     $replacement=@($Edge.results|Where-Object {$_.itemId -ceq $row.itemId})
     $source=$Base
     if($replacement.Count -eq 1 -and (Test-ModelEdgeVerifiedRow $replacement[0])) {
       $index=[array]::IndexOf($merged.results,$row);$merged.results[$index]=$replacement[0]|ConvertTo-Json -Depth 40|ConvertFrom-Json
-      $row=$merged.results[$index];$source=$Edge;$replaced+= [string]$row.itemId
+      $row=$merged.results[$index];$source=$Edge;$new+= [string]$row.itemId
     }
-    $origin=[pscustomobject]@{browser=$source.browser;extensionVersion=$source.extensionVersion;runId=$source.runId;checkedAt=$row.checkedAt;startedAt=$source.startedAt;completedAt=$source.completedAt}
+    $origin=if($Prior -and [string]$row.itemId -cnotin $new){$row.collectionSource}else{[pscustomobject]@{browser=$source.browser;extensionVersion=$source.extensionVersion;runId=$source.runId;checkedAt=$row.checkedAt;startedAt=$source.startedAt;completedAt=$source.completedAt}}
     $row|Add-Member collectionSource $origin -Force
     $origins+= [pscustomobject]@{itemId=$row.itemId;browser=$origin.browser;runId=$origin.runId;checkedAt=$row.checkedAt}
   }
   $merged.browser='mixed';$merged.runId=$Receipt.mergedRunId
-  $merged.completedAt=if($Edge){$Edge.completedAt}else{$Base.completedAt};$merged.scannedAt=$merged.completedAt
+  $merged.completedAt=if($Edge){$Edge.completedAt}elseif($Prior){$Prior.completedAt}else{$Base.completedAt};$merged.scannedAt=$merged.completedAt
+  $replaced=@(@($previous)+@($new)|Sort-Object -Unique);$attempted=if($Prior){$Prior.modelRecovery.attempted}else{@($Receipt.targets).Count}
   $merged|Add-Member modelRecovery ([pscustomobject]@{version=1;scope='models';sourceBrowser=$Base.browser;sourceRunId=$Base.runId;sourceHash=$Receipt.baseHash;primaryBrowser=(Get-PrimaryScanBrowser $Base.scanSlot);primaryRunId=$Base.recovery.chromeRunId;edgeRunId=$Receipt.runId;
-    attempted=@($Receipt.targets).Count;recovered=$replaced.Count;unresolved=(@($Receipt.targets).Count-$replaced.Count);state=$Receipt.state;replacedItemIds=$replaced;origins=$origins}) -Force
+    attempted=$attempted;recovered=$replaced.Count;unresolved=($attempted-$replaced.Count);attemptCount=if($Prior){2}else{1};newlyRecoveredItemIds=@($new);state=$Receipt.state;replacedItemIds=$replaced;origins=$origins}) -Force
   return $merged
 }
 function Assert-ModelEdgeComposite($Payload,[string]$Slot,[string]$Folder,[string]$RepoPath) {
   if($Payload.browser -cne 'mixed' -or $Payload.modelRecovery.scope -cne 'models'){throw 'Invalid model recovery composite.'}
   $id=[string]$Payload.modelRecovery.sourceRunId
-  $paths=Get-ModelEdgePaths $RepoPath ([pscustomobject]@{scanSlot=$Slot;runId=$id})
+  $attempt=if($Payload.modelRecovery.attemptCount -eq 2){2}else{1}
+  $paths=Get-ModelEdgePaths $RepoPath ([pscustomobject]@{scanSlot=$Slot;runId=$id}) $attempt
   $receipt=Read-ScanRecoveryJson $paths.receipt;$base=Read-ScanRecoveryJson $paths.source
   $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
   Assert-ModelEdgeBase $base $catalog $Slot
@@ -118,15 +123,18 @@ function Assert-ModelEdgeComposite($Payload,[string]$Slot,[string]$Folder,[strin
     $receipt.baseHash -cne (Get-FileHash -LiteralPath $paths.source -Algorithm SHA256).Hash.ToLowerInvariant()) {throw 'Composite immutable source/receipt mismatch.'}
   $queue=Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $RepoPath $base)
   Assert-BlueRecoveryQueue $queue $base
-  if($queue.sourceHash -cne $receipt.baseHash -or [DateTimeOffset]::Parse($receipt.triggeredAt) -lt [DateTimeOffset]::Parse($queue.notBefore)){throw 'Recovery precedes the first deployment ten-minute interval.'}
-  $eligible=@(Get-ModelEdgeEligibleRows $base @($queue.targetItemIds))
+  $gate=Get-BlueAttemptGate $queue $attempt $base $Folder $RepoPath
+  if($queue.sourceHash -cne $receipt.baseHash -or [DateTimeOffset]::Parse($receipt.triggeredAt) -lt $gate.notBefore){throw 'Recovery precedes its verified ten-minute interval.'}
+  $eligible=@(Get-ModelEdgeEligibleRows $base @($gate.targetItemIds))
   Assert-ScanCatalog ([pscustomobject]@{products=$eligible}) @($receipt.targets)
   $edge=$null
   if($receipt.state -eq 'result-ready') {
     $edge=Read-ScanRecoveryJson (Get-SavedEdgeRunPath $Folder $receipt.runId)
     Assert-ModelEdgeResult $edge $receipt $base
   }
-  $expected=New-ModelEdgeMergedPayload $base $receipt $edge
+  $prior=$null
+  if($attempt -eq 2){$prior=Read-ScanRecoveryJson ((Get-ModelEdgePaths $RepoPath $base).merged);Assert-ModelEdgeComposite $prior $Slot $Folder $RepoPath}
+  $expected=New-ModelEdgeMergedPayload $base $receipt $edge $prior
   if(($Payload|ConvertTo-Json -Depth 40 -Compress) -cne ($expected|ConvertTo-Json -Depth 40 -Compress)){throw 'Composite contains unproven or modified rows.'}
   Assert-ScanCatalog $catalog @($Payload.results)
 }
@@ -137,10 +145,12 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
   Assert-ModelEdgeBase $base $catalog $Slot
   Assert-PrimaryScanSource $base $Slot $Folder $RepoPath
   Assert-BlueRecoveryQueue $Queue $base
-  if([DateTimeOffset]::UtcNow -lt [DateTimeOffset]::Parse($Queue.notBefore)){throw 'The first deployment ten-minute interval has not elapsed.'}
-  $eligible=@(Get-ModelEdgeEligibleRows $base @($Queue.targetItemIds))
+  $attempt=if($Queue.activeAttempt -eq 2){2}else{1}
+  $gate=Get-BlueAttemptGate $Queue $attempt $base $Folder $RepoPath
+  if([DateTimeOffset]::UtcNow -lt $gate.notBefore){throw 'The verified ten-minute interval has not elapsed.'}
+  $eligible=@(Get-ModelEdgeEligibleRows $base @($gate.targetItemIds))
   if(-not $eligible.Count){return $SourcePath}
-  $paths=Get-ModelEdgePaths $RepoPath $base
+  $paths=Get-ModelEdgePaths $RepoPath $base $attempt
   $mutex=New-Object Threading.Mutex($false,('Local\MarketPulseEdgeHandoff.'+($Slot -replace '[^0-9]','')));$held=$false
   try {
     try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
@@ -163,7 +173,7 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
       $targets=@(foreach($row in $eligible){$t=[ordered]@{};foreach($key in @('brand','mtm','category','srp','enabled','productId','itemId','vendorItemId','url','danawaUrl','enuriUrl')){$t[$key]=$row.PSObject.Properties[$key].Value};[pscustomobject]$t})
       $now=[DateTimeOffset]::UtcNow;$deadline=[DateTimeOffset]::Parse($base.startedAt).AddHours(2)
       foreach($limit in @([DateTimeOffset]::Parse($Slot).AddMinutes(140),$now.AddMinutes(40),[DateTimeOffset]::Parse($base.deadlineAt))){if($limit -lt $deadline){$deadline=$limit}}
-      $receipt=[pscustomobject]@{version=1;state='started';scope='models';reason='model-errors';scanSlot=$Slot;runId=[guid]::NewGuid().ToString('N');mergedRunId=[guid]::NewGuid().ToString('N');
+      $receipt=[pscustomobject]@{version=1;state='started';attempt=$attempt;scope='models';reason='model-errors';scanSlot=$Slot;runId=[guid]::NewGuid().ToString('N');mergedRunId=[guid]::NewGuid().ToString('N');
         baseRunId=$base.runId;baseHash=$hash;chromeRunId=$base.recovery.chromeRunId;chromeStartedAt=$base.recovery.chromeStartedAt;chromeCompletedAt=$base.recovery.chromeCompletedAt;
         primaryBrowser=(Get-PrimaryScanBrowser $Slot);primaryRequestId=$base.recovery.primaryRequestId;policyId=$base.policyId;triggeredAt=$now.ToString('o');deadlineAt=$deadline.ToString('o');targets=$targets}
       # Persist before launch. An interrupted process never assumes launch failed.
@@ -201,7 +211,9 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
     }
     $edge=$null
     if($receipt.state -eq 'result-ready'){$edge=Read-ScanRecoveryJson (Get-SavedEdgeRunPath $Folder $receipt.runId);Assert-ModelEdgeResult $edge $receipt $base}
-    $merged=New-ModelEdgeMergedPayload $base $receipt $edge
+    $prior=$null
+    if($attempt -eq 2){$prior=Read-ScanRecoveryJson ((Get-ModelEdgePaths $RepoPath $base).merged);Assert-ModelEdgeComposite $prior $Slot $Folder $RepoPath}
+    $merged=New-ModelEdgeMergedPayload $base $receipt $edge $prior
     Write-ModelEdgeJson $paths.merged $merged
     Assert-ModelEdgeComposite $merged $Slot $Folder $RepoPath
     Write-Host "Model Edge merge: attempted=$($merged.modelRecovery.attempted); recovered=$($merged.modelRecovery.recovered); unresolved=$($merged.modelRecovery.unresolved); state=$($receipt.state)."
