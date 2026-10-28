@@ -187,6 +187,9 @@ try {
   foreach($reason in @('login-required','captcha-required','product-identifiers-mismatch','invalid-catalog')) {
     Check ((Get-BlueFailureClass ([pscustomobject]@{reason=$reason})) -ne 'transient') "Unsafe automatic retry classification: $reason"
   }
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessCheckDetail='verification-message'})) -eq 'authentication') 'A generic access error hid a verification challenge.'
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessDiagnostics=@([pscustomobject]@{diagnostic=[pscustomobject]@{page=[pscustomobject]@{marker='captcha'}}})})) -eq 'authentication') 'A diagnostic CAPTCHA marker was ignored.'
+  Check ((Get-BlueFailureClass ([pscustomobject]@{reason='access-check';accessCheckDetail='http-403'})) -eq 'transient') 'An ordinary HTTP restriction was misclassified.'
   # Drive the actual poller for the second cooldown as well as the worker gate.
   $queue.state='waiting-second';$queue.nextCheckAt=$null
   Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue

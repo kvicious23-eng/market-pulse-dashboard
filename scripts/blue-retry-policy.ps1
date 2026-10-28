@@ -1,8 +1,9 @@
 ﻿# Bounded follow-up policy. The second attempt never extends the original slot.
 function Get-BlueFailureClass($Row) {
-  $reason=([string]$Row.reason+' '+[string]$Row.error+' '+[string]$Row.checkoutDiscountReason)
+  $markers=@($Row.accessDiagnostics|ForEach-Object {$_.diagnostic.page.marker}) -join ' '
+  $reason=([string]$Row.reason+' '+[string]$Row.error+' '+[string]$Row.checkoutDiscountReason+' '+[string]$Row.accessCheckDetail+' '+$markers)
   if($reason -match 'identif|mismatch|catalog|corrupt|invalid'){return 'integrity'}
-  if($reason -match 'login|auth|captcha|verification'){return 'authentication'}
+  if($reason -match 'login|auth|captcha|verification|로봇이 아닙니다'){return 'authentication'}
   if($reason -match 'scan-timeout|timeout|access-check|network|net::|ERR_|tab.*(closed|lost|removed)|No tab|temporary'){return 'transient'}
   return 'needs-diagnosis'
 }
