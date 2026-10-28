@@ -28,6 +28,8 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 ### 현재 적용·검증 상태 — 2026-10-28
 
+- 10/28 10:03:01 KST Chrome·Edge·Whale 각각의 실제 manifest/worker1.9.51, 접근/주문서 관측 registered, webRequest 권한, 15개 전체 식별자 일치를 별도 verify로 확인했다. Chrome 알람08/16·Whale/Edge 알람0 및 슬롯 배정08/16Chrome·12/20Whale도 유지됐다. [1.9.51 검사·배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40612393701)의 update/windows_history/deploy 성공 및 Pages10:02:41을 확인했다. LF/CRLF각30개 검사와 PC 주문서 진단/시간초과 재현 검사가 통과했다. 새 가격 수집을 실행하지 않았으며 1.9.51 자연 오류의 원인 규명·자연 복구 성공은 아직 미관측이다.
+
 - 가격 확장 Chrome·Edge·Whale의 새 소스 기준은1.9.51, Chrome Supplier는0.1.21이다. 1.9.51은 주문서 단계별 진단과 수집 소유 자식 탭 정리를 보강한다. 소스 배포·PC 적용·각 브라우저 실제 워커 verify·자연 회차 성공은 구분하며, 아래 적용 증거가 없으면 새 버전의 자연 수집 성공을 선언하지 않는다. 10/27 PR #20/main1b7413e5의 검사·워크플로 수정과 고정 Chrome3슬롯 Windows 회귀 검사는 유지한다.
 - 수정 적용 후 08시 Chrome 및 12시 Whale 자연 예약 수집은 각각15개 전체 식별자 일치·정상13/품절2·수집오류/구매가능상품 주문서미확인/카드재확인0으로 저장·업로드·Pages까지 성공했다. [08시 검사/배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40420225137), [12시 검사/배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40444549430)를 근거로 하며, 12시 PC 게시본과 세 브랜드 공개 데이터가 일치했다. 코드 수정 시각을 가격 수집 시각으로 바꾸지 않는다.
 - 재고는 가격 성공과 독립적으로 하루1회 수집한다. 10/27 확인 기준 CSV 기간은10/1~10/26, 기준일10/26이다. 활성15개 중9개 상품의 세 합계 확인·6개 SKU미존재/미확인이며, 12시에는 같은 오전 합계를 유지했다. SKU미존재를0·전일수량으로 대체하지 않는다. CSV 포함 센터의 합계이며 원본 내보내기의 모든 센터 포함을 독립 보증하지 않는다.
