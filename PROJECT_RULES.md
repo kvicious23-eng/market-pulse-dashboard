@@ -28,6 +28,8 @@ Git 커밋 이력은 언제 무엇을 변경했는지 보존하고, 이 문서�
 
 ### 현재 적용·검증 상태 — 2026-10-28
 
+- 1.9.52 운영 적용과 세 브라우저의 버전·목록 일치 검증을 완료했다. Whale의 두 예약 경로와 Edge 부분 대상 전달은 실수집 없는 검증 모드로 확인했다. JavaScript LF/CRLF 각31개 및 Windows 회귀 검사가 통과했고 [코드 검사·배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40626471564)도 성공했다. 상세 운영 증거는 로컬에 보존한다. 설치·전달 검증은 배포 후 추가 수집의 자연 성공 또는 실패했던 회차의 재수집 성공을 뜻하지 않는다.
+
 - 10/28 10:03:01 KST Chrome·Edge·Whale 각각의 실제 manifest/worker1.9.51, 접근/주문서 관측 registered, webRequest 권한, 15개 전체 식별자 일치를 별도 verify로 확인했다. Chrome 알람08/16·Whale/Edge 알람0 및 슬롯 배정08/16Chrome·12/20Whale도 유지됐다. [1.9.51 검사·배포](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/40612393701)의 update/windows_history/deploy 성공 및 Pages10:02:41을 확인했다. LF/CRLF각30개 검사와 PC 주문서 진단/시간초과 재현 검사가 통과했다. 새 가격 수집을 실행하지 않았으며 1.9.51 자연 오류의 원인 규명·자연 복구 성공은 아직 미관측이다.
 
 - 가격 확장 Chrome·Edge·Whale의 새 소스 기준은1.9.52, Chrome Supplier는0.1.21이다. 1.9.51의 주문서 진단을 유지하고1.9.52에서 전체Edge 우선 게시 후10분 간격의 파란 모델 추가 수집을 도입한다. 소스 배포·PC 적용·각 브라우저 실제 워커 verify·자연 회차 성공은 구분하며, 아래 적용 증거가 없으면 새 버전의 자연 수집 성공을 선언하지 않는다. 10/27 PR #20/main1b7413e5의 검사·워크플로 수정과 고정 Chrome3슬롯 Windows 회귀 검사는 유지한다.
