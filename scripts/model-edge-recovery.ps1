@@ -47,14 +47,20 @@ function Test-ModelEdgeVerifiedRow($Row) {
   $minimum=if($Row.srp -and [long]$Row.srp -lt 250000){10000}else{250000}
   if($Row.ok -ne $true -or $null -eq $Row.price -or [double]$Row.price -lt $minimum -or [double]$Row.price -gt 7000000){return $false}
   if($Row.priceBasisSource -ne 'visible-product-price' -or -not $Row.basisEvidence){return $false}
-  if($Row.priceBasisType -eq 'crossed-out' -and ($Row.strikeReliable -ne $true -or $Row.strikeAnchorVerified -ne $true)){return $false}
+  # Match the main importer: coupons apply to the anchored top visible basis,
+  # not the product page's already-discounted current price.
+  if($Row.priceBasisType -cnotin @('crossed-out','top-visible') -or
+    $Row.strikeReliable -ne $true -or $Row.strikeAnchorVerified -ne $true -or
+    $null -eq $Row.basisPrice -or $null -eq $Row.strikePrice -or
+    [double]$Row.basisPrice -ne [double]$Row.strikePrice -or
+    [double]$Row.basisPrice -lt $minimum -or [double]$Row.basisPrice -gt 7000000){return $false}
   if($Row.checkoutDiscountReason -cin @('buy-now-button-not-found','buy-now-button-sold-out')){return $true}
   if($Row.checkoutDiscountStatus -cne 'captured' -or $Row.checkoutCouponSource -cne 'checkout'){return $false}
   foreach($key in @('checkoutCouponDiscount','wowInstantDiscount','wowCouponDiscount')){
     $value=$Row.PSObject.Properties[$key].Value
     if($null -eq $value -or $value -is [string] -or [double]$value -lt 0 -or [math]::Floor([double]$value) -ne [double]$value){return $false}
   }
-  if(([double]$Row.checkoutCouponDiscount+[double]$Row.wowInstantDiscount+[double]$Row.wowCouponDiscount) -gt [double]$Row.price){return $false}
+  if(([double]$Row.checkoutCouponDiscount+[double]$Row.wowInstantDiscount+[double]$Row.wowCouponDiscount) -gt [double]$Row.basisPrice){return $false}
   if($Row.cardBenefitStatus -eq 'none'){return $true}
   if($Row.cardBenefitStatus -ne 'captured' -or -not @($Row.cardTerms).Count){return $false}
   foreach($term in @($Row.cardTerms)){if($null -eq $term.rate -or [double]$term.rate -le 0 -or [double]$term.rate -gt 100 -or ($null -ne $term.maxDiscount -and [double]$term.maxDiscount -lt 0) -or -not @($term.providers|Where-Object {$_ -is [string] -and $_.Trim()}).Count){return $false}}
@@ -202,3 +208,4 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
     return $paths.merged
   } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }
+

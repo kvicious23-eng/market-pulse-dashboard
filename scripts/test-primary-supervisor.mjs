@@ -18,6 +18,16 @@ async function scenario(states,{verify=false,now=base+60000,step=15000,stopOk=tr
 }
 const active={ok:true,running:true,requestRunning:true,requestExists:true,progress:{updatedAt:new Date(base+60000).toISOString()}};
 const idle={ok:true,running:false,requestExists:true,retryCount:0};
+const delayed={...active,firstRequestedAt:new Date(base).toISOString(),attemptStartedAt:new Date(base+46*60000).toISOString(),progress:null};
+for(const progress of [null,{updatedAt:new Date(base+60000).toISOString()}]) {
+ const replay=await scenario([{...delayed,progress},{ok:true,completed:true}],{now:base+46*60000});
+ assert.ok(!replay.calls.some(x=>x.type==='STOP_PRIMARY_SCAN'),'Delayed fresh attempt must not consume its retry before its first progress update');
+}
+const stalled=await scenario([{...delayed,progress:null}],{now:base+53*60000,step:60000});
+assert.ok(stalled.calls.some(x=>x.type==='STOP_PRIMARY_SCAN'),'Missing progress still times out from the real attempt start');
+assert.equal(stalled.events.at(-1).status,'stalled-unconfirmed');
+const unknownAttempt=await scenario([{...delayed,attemptStartedAt:null},{ok:true,completed:true}],{now:base+46*60000});
+assert.ok(!unknownAttempt.calls.some(x=>x.type==='STOP_PRIMARY_SCAN'),'An old request timestamp is not evidence that a newly observed running worker stalled');
 let r=await scenario([active,{ok:true,completed:true}]);assert.equal(r.events.at(-1).status,'complete');assert.equal(r.calls.filter(x=>x.type==='RUN_PRIMARY_SCAN').length,1);
 r=await scenario([idle,{...idle,retryCount:1}]);assert.equal(r.events.at(-1).status,'edge-ready');assert.deepEqual(r.calls.filter(x=>x.type==='RUN_PRIMARY_SCAN').map(x=>x.retry),[false,true]);
 r=await scenario([active,idle,{ok:true,completed:true}],{now:base+7*60000});assert.ok(r.calls.some(x=>x.type==='STOP_PRIMARY_SCAN'));assert.equal(r.events.at(-1).status,'complete');
@@ -40,3 +50,4 @@ let edge=await edgePage();assert.deepEqual(edge.calls.map(x=>x.type),['CHECK_FAL
 edge=await edgePage({verify:false});assert.deepEqual(edge.calls.map(x=>x.type),['RUN_FALLBACK']);
 edge=await edgePage({mismatch:true});assert.equal(edge.calls.length,0);
 console.log('Edge short-file transport, verify-only isolation and mismatched-run rejection passed.');
+

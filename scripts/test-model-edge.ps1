@@ -35,7 +35,7 @@ try {
     $q=Read-ScanRecoveryJson $requestFile.FullName
     Check (@($q.products).Count -eq 1) 'A healthy model was recollected.'
     $row=$q.products[0]|ConvertTo-Json -Depth 10|ConvertFrom-Json
-    foreach($pair in @{ok=$true;price=810000;priceBasisSource='visible-product-price';basisEvidence=@{top=10};priceBasisType='top-visible';checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=0;wowInstantDiscount=0;wowCouponDiscount=0;cardBenefitStatus='none';checkedAt=$global:ModelTestNow.AddSeconds(2).ToString('o');checkoutDiscountCapturedAt=$global:ModelTestNow.AddSeconds(2).ToString('o')}.GetEnumerator()){$row|Add-Member $pair.Key $pair.Value -Force}
+    foreach($pair in @{ok=$true;price=810000;basisPrice=810000;strikePrice=810000;strikeReliable=$true;strikeAnchorVerified=$true;priceBasisSource='visible-product-price';basisEvidence=@{top=10};priceBasisType='top-visible';checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=0;wowInstantDiscount=0;wowCouponDiscount=0;cardBenefitStatus='none';checkedAt=$global:ModelTestNow.AddSeconds(2).ToString('o');checkoutDiscountCapturedAt=$global:ModelTestNow.AddSeconds(2).ToString('o')}.GetEnumerator()){$row|Add-Member $pair.Key $pair.Value -Force}
     if($global:ModelTestMode -eq 'row-fail'){$row.ok=$false;$row|Add-Member reason 'scan-timeout:product'}
     if($global:ModelTestMode -eq 'card-partial'){$row.cardBenefitStatus='partial'}
     if($global:ModelTestMode -eq 'wrong-id'){$row.itemId='999'}
@@ -104,9 +104,13 @@ try {
   $global:ModelTestNow=$slotAt.AddMinutes(50);$global:ModelDeployPending=$false
   & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
   Check (-not(Test-Path (Join-Path $temp 'reports\poll-dispatch.txt'))) 'Dispatch occurred before the ten-minute interval.'
+  $broken=$pending|ConvertTo-Json -Depth 20|ConvertFrom-Json
+  $broken.publicationDeadline='invalid-date'
+  Write-ModelEdgeJson (Join-Path $temp 'reports\blue-recovery-corrupt.json') $broken
   $global:ModelTestNow=$slotAt.AddMinutes(57)
   & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
   Check (Test-Path (Join-Path $temp 'reports\poll-dispatch.txt')) 'Due verified first publication did not dispatch.'
+  Check ((Read-ScanRecoveryJson (Join-Path $temp 'reports\blue-recovery-corrupt.json')).lastError) 'Malformed queue was not isolated and recorded.'
   $queue=Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $temp $base)
   Check (([DateTimeOffset]::Parse($queue.notBefore)-[DateTimeOffset]::Parse($queue.firstPublishedAt)).TotalSeconds -eq 600) 'Timer was not based on actual deploy completion.'
   $global:ModelTestNow=$slotAt.AddMinutes(60)
@@ -116,6 +120,13 @@ try {
   Check ($merged.results[0].price -eq 800000 -and $merged.results[0].collectionSource.runId -eq $base.runId) 'Healthy source changed.'
   Check ($merged.results[1].price -eq 810000 -and $merged.results[1].collectionSource.browser -eq 'edge') 'Whole recovered row not replaced.'
   Check ($merged.modelRecovery.recovered -eq 1 -and $merged.modelRecovery.unresolved -eq 0) 'Recovery counts wrong.'
+  $discounted=$merged.results[1]|ConvertTo-Json -Depth 20|ConvertFrom-Json
+  $discounted.price=300000;$discounted.basisPrice=1000000;$discounted.strikePrice=1000000;$discounted.wowCouponDiscount=700000
+  Check (Test-ModelEdgeVerifiedRow $discounted) 'Valid large coupon was compared to the already-discounted price.'
+  $discounted.wowCouponDiscount=1000001
+  Check (-not(Test-ModelEdgeVerifiedRow $discounted)) 'Coupon larger than the true basis was accepted.'
+  $discounted.wowCouponDiscount=0;$discounted.basisPrice=$null
+  Check (-not(Test-ModelEdgeVerifiedRow $discounted)) 'Missing anchored basis was counted as a recovered model.'
   Check ((Get-FileHash $sourcePath).Hash -ceq $hash) 'Primary source overwritten.'
   $replay=Invoke-ModelEdgeRecovery $sourcePath $FlowSlot $global:ModelTestFolder $temp $queue
   Check ($replay -ceq $mergedPath -and $global:ModelTestLaunches -eq 1) 'Replay repeated collection.'
@@ -142,3 +153,4 @@ try {
   Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
   Remove-Variable ModelTestNow,ModelTestLaunches,ModelTestMode,ModelTestRepo,ModelTestFolder,ModelDeployBad,ModelTestSlot,ModelDeployPending -Scope Global -ErrorAction SilentlyContinue
 }
+
