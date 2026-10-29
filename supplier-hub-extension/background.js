@@ -131,6 +131,7 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
       return {state:await connector.read(),vault,premium:(await chrome.storage.local.get('premium')).premium?.report,daily:await daily.read(),publication};
     }
     if(message.type==='CHECK') {const result=await connector.check();await daily.tick();return result;}
+    if(message.type==='RETRY_LOGIN') {const result=await connector.check({manualRetry:true});if(result.status==='connected')await daily.tick();return result;}
     if(message.type==='OPEN_PREMIUM') return premium.check(true);
     if(message.type==='CHECK_PREMIUM') return premium.check();
     if(message.type==='DOWNLOAD_CSV') {

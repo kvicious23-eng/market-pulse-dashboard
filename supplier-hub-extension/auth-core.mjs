@@ -64,9 +64,10 @@ export class SupplierConnector {
     next.events=[...(old.events||[]),{at,status,reason}].slice(-50);
     await this.io.save(next); return next;
   }
-  async check() {
+  async check({manualRetry=false}={}) {
     if(this.running) return this.read();
     this.running=true;
+    let attemptArmed=false,submissionPossible=false;
     try {
       let s=await this.read();
       let tab=await this.io.tab(s.tabId);
@@ -109,16 +110,23 @@ export class SupplierConnector {
       if(info?.ok===false) return this.state('connection_error','local_host_or_browser_error');
       if(!info?.configured) return this.state('credentials_required','local_credentials_missing');
       if(!s.enabled) return this.state('login_required','automatic_login_disabled');
-      if(s.blockedVersion===info.version) return this.state('login_failed','retry_blocked_until_credentials_updated');
-      if(s.lastAutoAt && this.io.now()-s.lastAutoAt<RETRY_INTERVAL) return this.state('login_required','retry_cooldown');
+      // Only an explicit options-page action can authorize one more submission.
+      // Current challenge/error evidence above and an interrupted attempt still stop it.
+      if(s.blockedVersion===info.version && !manualRetry) return this.state('login_failed','retry_blocked_until_credentials_updated');
+      if(s.lastAutoAt && this.io.now()-s.lastAutoAt<RETRY_INTERVAL && !manualRetry) return this.state('login_required','retry_cooldown');
       // Block before requesting the secret. An interrupted worker cannot resubmit it.
-      await this.state('logging_in','attempt_started',{lastAutoAt:this.io.now(),blockedVersion:info.version,pendingAttempt:true});
+      await this.state('logging_in',manualRetry?'manual_attempt_started':'attempt_started',{lastAutoAt:this.io.now(),blockedVersion:info.version,pendingAttempt:true,submission:null});
+      attemptArmed=true;
       let credential=null;
       try {
         credential=await this.io.native('read');
-        if(!credential?.configured || credential.version!==info.version) return this.state('credentials_required','credentials_changed_during_attempt',{pendingAttempt:false});
+        if(!credential?.configured || credential.version!==info.version) return this.state('credentials_required','credentials_changed_during_attempt',{pendingAttempt:false,blockedVersion:''});
+        submissionPossible=true;
         const result=await this.io.submit(tab.id,credential.username,credential.password);
-        if(!result?.submitted) return this.state('login_failed','login_form_changed',{pendingAttempt:false});
+        const reason=['login_input_changed','login_form_invalid','login_submit_not_observed'].includes(result?.reason)?result.reason:'login_form_changed';
+        const submission={accountMatched:result?.accountMatched===true,submitObserved:result?.submitObserved===true};
+        if(!result?.submitted) return this.state('login_failed',reason,{pendingAttempt:false,submission});
+        await this.io.save({...await this.read(),submission});
       } finally { if(credential) { credential.password=''; credential.username=''; } credential=null; }
       for(let i=0;i<15;i++) {
         await this.io.sleep(2000); p=await probe();
@@ -131,7 +139,7 @@ export class SupplierConnector {
       }
       return this.state('login_failed','login_not_confirmed',{pendingAttempt:false});
     } catch {
-      return this.state('connection_error','local_host_or_browser_error',{pendingAttempt:false});
+      return this.state('connection_error','local_host_or_browser_error',{pendingAttempt:false,...attemptArmed&&!submissionPossible?{blockedVersion:''}:{}});
     } finally { this.running=false; }
   }
 }
@@ -189,7 +197,7 @@ export function postponeSupplierPasswordReminder() {
   buttons[0].click();return {clicked:true,reason:'password_reminder_postponed'};
 }
 
-export function submitSupplierLogin(username,password) {
+export async function submitSupplierLogin(username,password) {
   const u=new URL(location.href);
   if(u.protocol!=='https:' || u.hostname!=='xauth.coupang.com' || u.port || !u.pathname.startsWith('/auth/realms/seller/')) return {submitted:false};
   const visible=e=>e && e.getClientRects().length && getComputedStyle(e).visibility!=='hidden' && getComputedStyle(e).display!=='none';
@@ -200,12 +208,35 @@ export function submitSupplierLogin(username,password) {
   const action=new URL(form.action||location.href);
   if(action.origin!==u.origin || !action.pathname.startsWith('/auth/realms/seller/')) return {submitted:false};
   if((u.searchParams.get('client_id')||action.searchParams.get('client_id'))!=='supplier-hub') return {submitted:false};
-  const account=[...form.querySelectorAll('input')].find(e=>visible(e)&&e!==pw&&(/username|email|login/i.test(e.name||e.id)||e.autocomplete==='username'));
-  const button=[...form.querySelectorAll('button,input[type="submit"]')].find(e=>visible(e)&&!e.disabled&&/로그인|sign.?in|log.?in/i.test(e.innerText||e.value||e.id||''));
-  if(!account || !button || !username || !password) return {submitted:false};
+  const accounts=[...form.querySelectorAll('input')].filter(e=>visible(e)&&e!==pw&&/username|email|login/i.test([e.name,e.id,e.autocomplete].join(' ')));
+  const buttons=[...form.querySelectorAll('button,input[type="submit"]')].filter(e=>visible(e)&&!e.disabled&&e.type==='submit'&&/^(로그인|sign\s?in|log\s?in)$/i.test((e.innerText||e.value||'').trim()));
+  if(accounts.length!==1 || buttons.length!==1 || !username || !password) return {submitted:false};
+  const account=accounts[0],button=buttons[0];
   const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;
   for(const [element,value] of [[account,username],[pw,password]]) {
     setter.call(element,value); element.dispatchEvent(new Event('input',{bubbles:true})); element.dispatchEvent(new Event('change',{bubbles:true}));
   }
-  username=''; password=''; button.click(); return {submitted:true};
+  // Allow framework input handlers and autofill to settle before trusting the DOM.
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const accountMatched=account.value===username;
+  const valuesMatched=accountMatched&&pw.value===password;
+  username='';password='';
+  if(!valuesMatched) return {submitted:false,reason:'login_input_changed',accountMatched,submitObserved:false};
+  const currentAction=new URL(form.action||location.href);
+  if(currentAction.origin!==action.origin||!currentAction.pathname.startsWith('/auth/realms/seller/')||(u.searchParams.get('client_id')||currentAction.searchParams.get('client_id'))!=='supplier-hub')return {submitted:false,reason:'login_form_invalid',accountMatched,submitObserved:false};
+  // Observed official handlers use exactly one blank as the empty-input error.
+  // A stale empty marker can survive synthetic events. Mirror only that rule,
+  // after value equality, and preserve every other browser/custom constraint.
+  for(const element of [account,pw]) {
+    if(element.value.trim()&&element.validity?.customError&&element.validationMessage===' ')element.setCustomValidity('');
+  }
+  if(account.form!==form||pw.form!==form||button.form!==form||!visible(account)||!visible(pw)||!visible(button)||button.disabled||!form.checkValidity()) return {submitted:false,reason:'login_form_invalid',accountMatched,submitObserved:false};
+  let submitObserved=false;
+  const observe=()=>{submitObserved=true;};
+  form.addEventListener('submit',observe,true);
+  try {
+    // Use the validated native form submission; a button click alone is not evidence.
+    HTMLFormElement.prototype.requestSubmit.call(form,button);
+  } finally {form.removeEventListener('submit',observe,true);}
+  return {submitted:submitObserved,reason:submitObserved?'login_submit_dispatched':'login_submit_not_observed',accountMatched,submitObserved};
 }

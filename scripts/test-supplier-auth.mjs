@@ -55,6 +55,15 @@ f=fixture(['authenticated']);f.io.tab=async()=>({id:7,url:'https://evil.test/'})
 // Concurrent manual/alarm invocations cannot submit a second password.
 f=fixture(['login_form','authenticated']);await Promise.all([f.connector.check(),f.connector.check()]);assert.equal(f.get().submits,1);
 
+// Explicit retry, cooldown and pending-operation barriers are independent.
+f=fixture(['login_form','authenticated'],{blockedVersion:'v1',reason:'retry_blocked_until_credentials_updated',lastAutoAt:RETRY_INTERVAL*2-100});
+assert.equal((await f.connector.check({manualRetry:true})).status,'connected');assert.equal(f.get().submits,1);
+f=fixture(['verification'],{blockedVersion:'v1'});await f.connector.check({manualRetry:true});assert.equal(f.get().submits,0);
+f=fixture(['login_form'],{pendingAttempt:true,blockedVersion:'v1'});await f.connector.check({manualRetry:true});assert.equal(f.get().submits,0);
+f=fixture(['login_form']);const native=f.io.native;f.io.native=async op=>{if(op==='read')throw Error('native unavailable');return native(op);};
+await f.connector.check();assert.equal(f.get().saved.blockedVersion,'');assert.equal(f.get().submits,0);
+f=fixture(['login_form']);f.io.submit=async()=>{throw Error('uncertain submission');};await f.connector.check();assert.equal(f.get().saved.blockedVersion,'v1');
+
 // Optional reminder is handled once, without granting authentication by itself.
 f=fixture(['password_reminder','authenticated']);let postpones=0;f.io.postponePassword=async()=>{postpones++;return {clicked:true};};
 assert.equal((await f.connector.check()).status,'connected');assert.equal(postpones,1);assert.equal(f.get().submits,0);assert.equal(f.get().reads,0);
@@ -67,20 +76,37 @@ f=fixture(['password_reminder','verification']);f.io.postponePassword=async()=>(
 f=fixture(['password_reminder','unverified']);f.io.postponePassword=async()=>({clicked:true});assert.equal((await f.connector.check()).status,'unverified','Click is not proof of login');
 
 // Exercise actual injected functions using a minimal official login DOM.
-const original={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle,HTMLInputElement:global.HTMLInputElement};
+const original={location:global.location,document:global.document,getComputedStyle:global.getComputedStyle,HTMLInputElement:global.HTMLInputElement,HTMLFormElement:global.HTMLFormElement};
 try {
   const input=extra=>({getClientRects:()=>[{}],dispatchEvent:()=>{},...extra});
-  const account=input({name:'username'}),password=input({type:'password'});let clicks=0;
-  const button={getClientRects:()=>[{}],disabled:false,innerText:'로그인',click:()=>{clicks++;}};
-  const form={action:official,querySelectorAll:s=>s==='input'?[account,password]:[button]};password.form=form;
+  const account=input({name:'username'}),password=input({type:'password'});let clicks=0;let submitListener=null,valid=true,emitSubmit=true;let onWrite=()=>{};
+  const button={getClientRects:()=>[{}],type:'submit',disabled:false,innerText:'로그인',click:()=>{throw Error('A click is not submission evidence');}};
+  const form={action:official,checkValidity:()=>valid,addEventListener:(type,fn)=>{submitListener=fn;},removeEventListener:()=>{submitListener=null;},querySelectorAll:s=>s==='input'?[account,password]:[button]};password.form=form;account.form=form;button.form=form;global.HTMLFormElement=function(){};global.HTMLFormElement.prototype.requestSubmit=function(b){assert.equal(this,form);assert.equal(b,button);clicks++;if(emitSubmit)submitListener();};
   global.location={href:official};global.getComputedStyle=()=>({display:'block',visibility:'visible'});
-  global.HTMLInputElement=function(){};Object.defineProperty(global.HTMLInputElement.prototype,'value',{set(value){this.valueWritten=value;}});
+  global.HTMLInputElement=function(){};Object.defineProperty(global.HTMLInputElement.prototype,'value',{get(){return this.valueWritten;},set(value){this.valueWritten=value;onWrite(this);}});
+  Object.setPrototypeOf(account,global.HTMLInputElement.prototype);Object.setPrototypeOf(password,global.HTMLInputElement.prototype);
   let body='';global.document={body:{get innerText(){return body;}},querySelectorAll:s=>s==='input[type="password"]'?[password]:[]};
-  assert.equal(inspectSupplierPage().state,'login_form');assert.equal(submitSupplierLogin('test-user','test-secret').submitted,true);assert.equal(clicks,1);
-  body='보안 문자';assert.equal(inspectSupplierPage().state,'verification');assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
-  body='';form.action='https://evil.test/';assert.equal(inspectSupplierPage().state,'unverified');assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
-  form.action=official.replace('supplier-hub','other-client');global.location.href=form.action;assert.equal(inspectSupplierPage().state,'unverified');assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
-  form.action=official;global.location.href='https://evil.test/';assert.equal(submitSupplierLogin('test-user','test-secret').submitted,false);
+  assert.equal(inspectSupplierPage().state,'login_form');assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,true);assert.equal(clicks,1);
+  // Official empty-only custom validity may survive injected input events.
+  let customMessage=' ';account.validity={get customError(){return !!customMessage;}};
+  Object.defineProperty(account,'validationMessage',{get:()=>customMessage});account.setCustomValidity=v=>{customMessage=v;};
+  const plainCheck=form.checkValidity;form.checkValidity=()=>valid&&!customMessage;
+  assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,true);assert.equal(customMessage,'');
+  customMessage='server-specific validation';assert.equal((await submitSupplierLogin('test-user','test-secret')).reason,'login_form_invalid');assert.equal(customMessage,'server-specific validation');
+  customMessage='';form.checkValidity=plainCheck;clicks=1;
+  // Input overwritten after framework events: never submit the other account.
+  onWrite=e=>{if(e===password)account.valueWritten='other-account';};
+  assert.equal((await submitSupplierLogin('test-user','test-secret')).reason,'login_input_changed');assert.equal(clicks,1);
+  onWrite=()=>{};valid=false;assert.equal((await submitSupplierLogin('test-user','test-secret')).reason,'login_form_invalid');assert.equal(clicks,1);
+  valid=true;emitSubmit=false;assert.equal((await submitSupplierLogin('test-user','test-secret')).reason,'login_submit_not_observed');
+  emitSubmit=true;
+  // A delayed form-action change cannot send credentials to another origin.
+  onWrite=e=>{if(e===password)form.action='https://evil.test/';};
+  assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,false);form.action=official;onWrite=()=>{};
+  body='보안 문자';assert.equal(inspectSupplierPage().state,'verification');assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,false);
+  body='';form.action='https://evil.test/';assert.equal(inspectSupplierPage().state,'unverified');assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,false);
+  form.action=official.replace('supplier-hub','other-client');global.location.href=form.action;assert.equal(inspectSupplierPage().state,'unverified');assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,false);
+  form.action=official;global.location.href='https://evil.test/';assert.equal((await submitSupplierLogin('test-user','test-secret')).submitted,false);
   global.location.href='https://supplier.coupang.com/dashboard/KR';global.document.querySelectorAll=s=>s==='a,button,[role="button"]'?[{getClientRects:()=>[{}],innerText:'로그아웃'}]:[];assert.equal(inspectSupplierPage().state,'authenticated');
   global.document.querySelectorAll=()=>[];
   body='';assert.equal(inspectSupplierPage().state,'unverified','Dashboard URL alone is insufficient');
