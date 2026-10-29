@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-10-29T20:16:42+09:00",
+                 "snapshotAt":  "2026-10-30T08:18:18+09:00",
                  "sourceFile":  "아쎄르_수정.xlsx",
                  "comparisonBasis":  "정확한 MTM·용량이 일치하는 개별 상품 페이지의 공개 판매가와 배송비 기준",
                  "exclusions":  "개인화 쿠폰, 카드사별 혜택, 적립금, 로그인 전용 와우 최대혜택은 기본 비교가에서 제외",
@@ -9,34 +9,34 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-10-29T20:16:42+09:00",
+                                    "lastAttemptAt":  "2026-10-30T08:18:18+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Acer 수집 결과: 검증 10, 품절 1, 일부 0 / 전체 11",
-                                    "collectionRoute":  "Windows PC · 일반 Whale 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-10-29T20:16:42+09:00",
+                                    "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
+                                    "competitionLastAttemptAt":  "2026-10-30T08:18:18+09:00",
                                     "competitionConfigurationStatus":  "configured",
                                     "competitionValidationStatus":  "no-verified-listings",
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Acer",
                  "collectionEvidence":  {
-                                            "browser":  "whale",
+                                            "browser":  "chrome",
                                             "extensionVersion":  "1.9.54",
-                                            "scanSlot":  "2026-10-29T20:00+09:00",
+                                            "scanSlot":  "2026-10-30T08:00+09:00",
                                             "policyId":  "whale-noon-evening-v1",
-                                            "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                            "startedAt":  "2026-10-29T11:00:12.042Z",
-                                            "completedAt":  "2026-10-29T11:16:42.260Z",
+                                            "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                            "startedAt":  "2026-10-29T23:00:01.304Z",
+                                            "completedAt":  "2026-10-29T23:18:18.854Z",
                                             "targetCount":  17,
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-29T20:16:42+09:00",
                  "historyBrands":  [
                                        "Acer"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-30T08:30:10+09:00"
              },
     "products":  [
                      {
@@ -52,7 +52,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28575928128\u0026vendorItemId=95520178041",
-                                            "checkedAt":  "2026-10-29 20:08",
+                                            "checkedAt":  "2026-10-30 08:08",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  null,
                                             "finalPrice":  2264640,
@@ -60,14 +60,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:08:25.514Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:08:43.022Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:08",
+                                            "availabilityCheckedAt":  "2026-10-30 08:09",
                                             "srp":  1558000,
                                             "observedListPrice":  2359000,
                                             "productPagePrice":  2264640,
@@ -91,7 +91,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:08:48.757Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:09:08.759Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -102,12 +102,12 @@ window.MARKET_DATA = {
                                                                              "쿠폰할인 변경 -94,360원"
                                                                          ],
                                             "alertEligible":  true,
-                                            "priceChange":  -14360,
-                                            "priceTrend":  "down",
-                                            "priceComparisonAt":  "2026-10-29 16:08",
+                                            "priceChange":  0,
+                                            "priceTrend":  "same",
+                                            "priceComparisonAt":  "2026-10-29 20:08",
                                             "lastVerifiedFinalPrice":  2264640,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:08",
-                                            "priceCheckedAt":  "2026-10-29 20:08"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:08",
+                                            "priceCheckedAt":  "2026-10-30 08:08"
                                         },
                                         {
                                             "role":  "competitor",
@@ -275,10 +275,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -296,7 +296,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318769\u0026vendorItemId=95881909514",
-                                            "checkedAt":  "2026-10-29 20:09",
+                                            "checkedAt":  "2026-10-30 08:09",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  1309000,
@@ -304,14 +304,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:09:28.172Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:09:49.258Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:09",
+                                            "availabilityCheckedAt":  "2026-10-30 08:10",
                                             "srp":  1429000,
                                             "observedListPrice":  1429000,
                                             "productPagePrice":  1309000,
@@ -335,7 +335,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  120000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:09:51.424Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:10:16.593Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -350,10 +350,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:09",
+                                            "priceComparisonAt":  "2026-10-29 20:09",
                                             "lastVerifiedFinalPrice":  1309000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:09",
-                                            "priceCheckedAt":  "2026-10-29 20:09"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:09",
+                                            "priceCheckedAt":  "2026-10-30 08:09"
                                         },
                                         {
                                             "role":  "competitor",
@@ -521,10 +521,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -542,7 +542,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318771\u0026vendorItemId=95881909515",
-                                            "checkedAt":  "2026-10-29 20:10",
+                                            "checkedAt":  "2026-10-30 08:11",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  1439000,
@@ -550,14 +550,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:10:31.852Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:11:39.564Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:10",
+                                            "availabilityCheckedAt":  "2026-10-30 08:12",
                                             "srp":  1569000,
                                             "observedListPrice":  1569000,
                                             "productPagePrice":  1439000,
@@ -581,7 +581,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  130000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:10:57.140Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:12:05.818Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -596,10 +596,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:10",
+                                            "priceComparisonAt":  "2026-10-29 20:10",
                                             "lastVerifiedFinalPrice":  1439000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:10",
-                                            "priceCheckedAt":  "2026-10-29 20:10"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:11",
+                                            "priceCheckedAt":  "2026-10-30 08:11"
                                         },
                                         {
                                             "role":  "competitor",
@@ -767,10 +767,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -788,7 +788,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=26004597899\u0026vendorItemId=92986675922",
-                                            "checkedAt":  "2026-10-29 20:11",
+                                            "checkedAt":  "2026-10-30 08:12",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  350000,
                                             "finalPrice":  3319000,
@@ -796,14 +796,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:11:36.585Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:12:47.328Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:12",
+                                            "availabilityCheckedAt":  "2026-10-30 08:13",
                                             "srp":  4099000,
                                             "observedListPrice":  3749000,
                                             "productPagePrice":  3319000,
@@ -827,7 +827,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  170000,
                                             "wowCouponDiscount":  260000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:12:01.842Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:13:12.606Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -844,10 +844,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:11",
+                                            "priceComparisonAt":  "2026-10-29 20:11",
                                             "lastVerifiedFinalPrice":  3319000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:11",
-                                            "priceCheckedAt":  "2026-10-29 20:11"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:12",
+                                            "priceCheckedAt":  "2026-10-30 08:12"
                                         },
                                         {
                                             "role":  "competitor",
@@ -937,16 +937,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  4099000,
                          "supplierMetrics":  {
-                                                 "stock":  4,
-                                                 "dailySales":  0,
-                                                 "monthSales":  6,
+                                                 "stock":  3,
+                                                 "dailySales":  1,
+                                                 "monthSales":  7,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -964,7 +964,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9616664363?itemId=28714706385\u0026vendorItemId=95655361667",
-                                            "checkedAt":  "2026-10-29 20:12",
+                                            "checkedAt":  "2026-10-30 08:13",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  1529000,
@@ -972,14 +972,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:12:42.304Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:13:58.532Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:13",
+                                            "availabilityCheckedAt":  "2026-10-30 08:14",
                                             "srp":  1689000,
                                             "observedListPrice":  1689000,
                                             "productPagePrice":  1529000,
@@ -1003,7 +1003,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  30000,
                                             "wowCouponDiscount":  130000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:13:06.534Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:14:24.645Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -1020,10 +1020,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:12",
+                                            "priceComparisonAt":  "2026-10-29 20:12",
                                             "lastVerifiedFinalPrice":  1529000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:12",
-                                            "priceCheckedAt":  "2026-10-29 20:12"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:13",
+                                            "priceCheckedAt":  "2026-10-30 08:13"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1209,16 +1209,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  1689000,
                          "supplierMetrics":  {
-                                                 "stock":  16,
-                                                 "dailySales":  1,
-                                                 "monthSales":  23,
+                                                 "stock":  14,
+                                                 "dailySales":  2,
+                                                 "monthSales":  25,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1236,7 +1236,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9428079675?itemId=28287192873\u0026vendorItemId=95240133006",
-                                            "checkedAt":  "2026-10-29 20:13",
+                                            "checkedAt":  "2026-10-30 08:15",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  null,
                                             "finalPrice":  1289000,
@@ -1244,14 +1244,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:13:44.929Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:15:05.171Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:14",
+                                            "availabilityCheckedAt":  "2026-10-30 08:15",
                                             "srp":  1229000,
                                             "observedListPrice":  1399000,
                                             "productPagePrice":  1289000,
@@ -1275,7 +1275,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  10000,
                                             "wowCouponDiscount":  100000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:14:08.128Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:15:30.989Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -1292,10 +1292,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:13",
+                                            "priceComparisonAt":  "2026-10-29 20:13",
                                             "lastVerifiedFinalPrice":  1289000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:13",
-                                            "priceCheckedAt":  "2026-10-29 20:13"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:15",
+                                            "priceCheckedAt":  "2026-10-30 08:15"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1434,15 +1434,15 @@ window.MARKET_DATA = {
                          "srp":  1229000,
                          "supplierMetrics":  {
                                                  "stock":  13,
-                                                 "dailySales":  2,
+                                                 "dailySales":  0,
                                                  "monthSales":  156,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1460,7 +1460,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28714706401\u0026vendorItemId=95655361668",
-                                            "checkedAt":  "2026-10-29 20:14",
+                                            "checkedAt":  "2026-10-30 08:16",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  1259000,
@@ -1468,14 +1468,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:14:46.531Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:16:11.471Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:15",
+                                            "availabilityCheckedAt":  "2026-10-30 08:16",
                                             "srp":  1439000,
                                             "observedListPrice":  1439000,
                                             "productPagePrice":  1259000,
@@ -1499,7 +1499,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  30000,
                                             "wowCouponDiscount":  150000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:15:11.298Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:16:38.320Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -1516,10 +1516,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:14",
+                                            "priceComparisonAt":  "2026-10-29 20:14",
                                             "lastVerifiedFinalPrice":  1259000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:14",
-                                            "priceCheckedAt":  "2026-10-29 20:14"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:16",
+                                            "priceCheckedAt":  "2026-10-30 08:16"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1681,16 +1681,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  1439000,
                          "supplierMetrics":  {
-                                                 "stock":  134,
-                                                 "dailySales":  3,
-                                                 "monthSales":  136,
+                                                 "stock":  132,
+                                                 "dailySales":  2,
+                                                 "monthSales":  138,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1708,7 +1708,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9437677217?itemId=28067081535\u0026vendorItemId=95023756227",
-                                            "checkedAt":  "2026-10-29 20:15",
+                                            "checkedAt":  "2026-10-30 08:17",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  2369000,
@@ -1716,14 +1716,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:15:48.725Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:17:23.406Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:16",
+                                            "availabilityCheckedAt":  "2026-10-30 08:17",
                                             "srp":  2369000,
                                             "observedListPrice":  2369000,
                                             "productPagePrice":  2369000,
@@ -1747,7 +1747,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:16:12.972Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:17:49.377Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -1758,10 +1758,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:16",
+                                            "priceComparisonAt":  "2026-10-29 20:15",
                                             "lastVerifiedFinalPrice":  2369000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:15",
-                                            "priceCheckedAt":  "2026-10-29 20:15"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:17",
+                                            "priceCheckedAt":  "2026-10-30 08:17"
                                         },
                                         {
                                             "role":  "competitor",
@@ -1833,10 +1833,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1854,7 +1854,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9738841025?itemId=29147260106\u0026vendorItemId=96070559959",
-                                            "checkedAt":  "2026-10-29 20:03",
+                                            "checkedAt":  "2026-10-30 08:03",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  150000,
                                             "finalPrice":  1909000,
@@ -1862,14 +1862,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:03:19.653Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:03:12.383Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:03",
+                                            "availabilityCheckedAt":  "2026-10-30 08:03",
                                             "srp":  2299000,
                                             "observedListPrice":  2149000,
                                             "productPagePrice":  1909000,
@@ -1893,7 +1893,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  90000,
                                             "wowCouponDiscount":  150000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:03:43.924Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:03:37.625Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -1910,10 +1910,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:03",
+                                            "priceComparisonAt":  "2026-10-29 20:03",
                                             "lastVerifiedFinalPrice":  1909000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:03",
-                                            "priceCheckedAt":  "2026-10-29 20:03"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:03",
+                                            "priceCheckedAt":  "2026-10-30 08:03"
                                         }
                                     ],
                          "references":  [
@@ -1932,10 +1932,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1953,7 +1953,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/8880549624?itemId=25917327376\u0026vendorItemId=92902882925",
-                                            "checkedAt":  "2026-10-29 20:02",
+                                            "checkedAt":  "2026-10-30 08:02",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  3459000,
@@ -1961,14 +1961,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:02:26.590Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:02:16.824Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:02",
+                                            "availabilityCheckedAt":  "2026-10-30 08:02",
                                             "srp":  4129000,
                                             "observedListPrice":  4129000,
                                             "productPagePrice":  3459000,
@@ -1992,7 +1992,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  400000,
                                             "wowCouponDiscount":  270000,
-                                            "checkoutDiscountCheckedAt":  "2026-10-29T11:02:50.343Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-29T23:02:41.070Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -2009,10 +2009,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-29 16:02",
+                                            "priceComparisonAt":  "2026-10-29 20:02",
                                             "lastVerifiedFinalPrice":  3459000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-29 20:02",
-                                            "priceCheckedAt":  "2026-10-29 20:02"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-30 08:02",
+                                            "priceCheckedAt":  "2026-10-30 08:02"
                                         }
                                     ],
                          "references":  [
@@ -2025,16 +2025,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  4129000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "sku-not-found",
-                                                 "dailySalesStatus":  "sku-not-found",
-                                                 "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "stock":  20,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -2052,7 +2052,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/8906279054?itemId=26011692765\u0026vendorItemId=92993600715",
-                                            "checkedAt":  "2026-10-29 20:01",
+                                            "checkedAt":  "2026-10-30 08:01",
                                             "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  null,
@@ -2060,14 +2060,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  null,
                                             "status":  "품절",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "chrome",
                                                                        "extensionVersion":  "1.9.54",
-                                                                       "runId":  "c048ddf523c14623bb1ecd080065745b",
-                                                                       "checkedAt":  "2026-10-29T11:01:46.197Z"
+                                                                       "runId":  "ab30703d88274c798f4a1e031d9aa18a",
+                                                                       "checkedAt":  "2026-10-29T23:01:35.406Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-29 20:01",
+                                            "availabilityCheckedAt":  "2026-10-30 08:01",
                                             "srp":  4319000,
                                             "observedListPrice":  4319000,
                                             "productPagePrice":  3619000,
@@ -2103,7 +2103,7 @@ window.MARKET_DATA = {
                                             "priceChange":  null,
                                             "priceTrend":  "unavailable",
                                             "priceComparisonAt":  "",
-                                            "priceCheckedAt":  "2026-10-29 20:01"
+                                            "priceCheckedAt":  "2026-10-30 08:01"
                                         }
                                     ],
                          "references":  [
@@ -2122,10 +2122,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-28",
+                                                 "asOfDate":  "2026-10-29",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  "2026-10-28",
+                                                 "monthThrough":  "2026-10-29",
+                                                 "sourceDate":  "2026-10-29",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
