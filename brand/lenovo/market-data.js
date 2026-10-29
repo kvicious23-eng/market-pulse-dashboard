@@ -34,12 +34,12 @@ window.MARKET_DATA = {
                                             "scheduledBrowser":  "whale"
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-29T13:40:42+09:00",
                  "historyBrands":  [
                                        "Lenovo"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-29T14:22:28+09:00"
              },
     "products":  [
                      {
@@ -261,13 +261,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-28",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-28",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -459,13 +459,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-28",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-28",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -662,13 +662,13 @@ window.MARKET_DATA = {
                                                  "stock":  null,
                                                  "dailySales":  null,
                                                  "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stockStatus":  "sku-not-found",
+                                                 "dailySalesStatus":  "sku-not-found",
+                                                 "monthSalesStatus":  "sku-not-found",
                                                  "asOfDate":  "2026-10-28",
                                                  "month":  "2026-10",
                                                  "monthThrough":  "2026-10-28",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-28",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
