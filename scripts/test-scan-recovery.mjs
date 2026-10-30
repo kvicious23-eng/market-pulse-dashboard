@@ -7,7 +7,7 @@ const scan=source.slice(source.indexOf('async function scanAll('),source.indexOf
 const products=[{brand:'Acer',mtm:'A',productId:'1',itemId:'2',vendorItemId:'3',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',skuId:'private'},
  {brand:'Lenovo',mtm:'B',productId:'4',itemId:'5',vendorItemId:'6',url:'https://www.coupang.com/vp/products/4?itemId=5&vendorItemId=6'}];
 async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T20:00+09:00',blocked=false,{firstStartedAt=null,elapsedMs=1000,confirmed=false,whale=false,retryDenied=false,failStop=false}={}) {
- const files=[],events=[],state=firstStartedAt?{scheduledScanBudget:{scanSlot:slot,firstStartedAt}}:{};let scanCount=0;
+ const files=[],events=[],state=firstStartedAt?{scheduledScanBudget:{scanSlot:slot,firstStartedAt}}:{};let scanCount=0,stopWrites=0;
  if(whale)state.primaryRequest={scanSlot:slot,requestId:'c'.repeat(32),deadlineAt:new Date(Date.parse(slot)+120*60000).toISOString()};
  class Clock extends Date{constructor(...a){super(...(a.length?a:[Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs]));}static now(){return Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs;}}
  const context={Date:Clock,URL,Object,Set,crypto:{randomUUID:()=> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},navigator:{userAgent:edge?'Edg/1':whale?'Whale/1':'Chrome/1'},isEdgeBrowser:edge,primaryStopRequestId:null,
@@ -15,9 +15,9 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
   waitForScanDownload:async id=>{if(failWitness&&id===1)throw Error('interrupted');events.push('complete:'+id);},
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>{const index=scanCount++;const denied=blocked&&(index===0||retryDenied&&index>=products.length);return {ok:!denied,...(denied?{reason:'access-check',accessCheckDetail:'access-denied-message'}:{}),accessDiagnostic:{observedAt:new Clock().toISOString(),responses:[{route:'product',event:'complete',status:denied&&confirmed&&(!retryDenied||index>=products.length)?403:200}],page:{marker:denied?'access denied':''}}};},collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
   chrome:{runtime:{getManifest:()=>({version:'1.9.55'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
-   downloads:{download:async o=>{if(failStop&&o.filename.includes('access-stop'))throw Error('stop-save-failed');files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
+   downloads:{download:async o=>{if(o.filename.includes('access-stop')&&failStop&&(failStop===true||stopWrites++===0))throw Error('stop-save-failed');files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
  vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+source.slice(source.indexOf('function isConfirmedAccessDenied('),source.indexOf('async function saveAccessDiagnosticArchive('))+';'+source.slice(source.indexOf('function scanSaveTargets('),source.indexOf('async function saveCompletedScan('))+';'+scan+';this.run=scanAll;',context);
- if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else if(failStop)await assert.rejects(context.run(slot,recovery,whale?'c'.repeat(32):null),/stop-save-failed/); else await context.run(slot,recovery,whale?'c'.repeat(32):null);
+ if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else if(failStop===true)await assert.rejects(context.run(slot,recovery,whale?'c'.repeat(32):null),/stop-save-failed/); else await context.run(slot,recovery,whale?'c'.repeat(32):null);
  return {files,events,state};
 }
 let f=await run();assert.equal(f.files.length,2);assert.equal(f.files[0].filename,'MarketPulse/scan-start.json');
@@ -72,3 +72,11 @@ const retryStop=await run(false,null,false,'2026-10-30T16:00+09:00',true,{confir
 assert.equal(retryStop.events.filter(x=>x==='open').length,3);
 assert.equal(retryStop.files[1].data.attempt.phase,'retry');assert.equal(retryStop.files[1].data.complete,false);
 assert.equal(retryStop.state.lastResult,undefined);
+
+for(const whale of [false,true]) {
+ const recoveredProof=await run(false,null,false,whale?'2026-10-30T20:00+09:00':'2026-10-30T16:00+09:00',true,{confirmed:true,whale,failStop:'once'});
+ assert.match(recoveredProof.files[1].filename,/access-stop-[a-f0-9]{32}-saved\.json$/);
+ assert.equal(recoveredProof.events.filter(x=>x==='open').length,1);
+ assert.equal(recoveredProof.state.lastResult,undefined);
+}
+console.log('A transient stop-proof write failure uses one unique fallback without re-collecting or publishing partial prices.');

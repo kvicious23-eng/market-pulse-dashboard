@@ -242,6 +242,13 @@ try {
   & ([ScriptBlock]::Create('param($rows); foreach($entry in $rows){$result=$entry.result;$mine=$entry.mine;'+$branch+'$script:preserveWrites++}')) @([pscustomobject]@{result=$combined.results[0];mine=$saved},[pscustomobject]@{result=$combined.results[1];mine=$fresh})
   Check ($script:preserveWrites -eq 1 -and $saved.priceChange -eq 123 -and $saved.priceCheckedAt -ceq 'preserved') 'The importer recomputed a previously fixed model.'
   Write-Host 'Bounded second attempt: exact ten-minute completion cooldown, transient-only subset, replay/third-attempt guards, cumulative provenance and cross-run issue resolution passed.'
+  $queue.state='final-uploaded';$queue.finalCommit='e'*40;$queue.nextCheckAt=$null
+  Write-ModelEdgeJson (Get-BlueRecoveryQueuePath $temp $base) $queue
+  $global:ModelTestNow=(Get-NextScanTime $queue.scanSlot).AddSeconds(1)
+  Remove-Item (Join-Path $temp 'reports\poll-dispatch.txt') -Force -ErrorAction SilentlyContinue
+  & (Join-Path $temp 'scripts\run-blue-recovery.ps1') -RepoPath $temp
+  Check ((Read-ScanRecoveryJson (Get-BlueRecoveryQueuePath $temp $base)).state -eq 'superseded') 'An old final-uploaded queue kept polling after the next slot.'
+  Check (-not(Test-Path (Join-Path $temp 'reports\poll-dispatch.txt'))) 'An old queue dispatched a worker after the next slot.'
   Write-Host "Post-publication $primary/full Edge -> delayed subset: exact failed subset, full-row merge/provenance, pinned original, replay, direct-subset/tamper/identity rejection and failed/partial/launch/timeout preservation passed."
 } finally {
   $env:ProgramFiles=$oldProgramFiles;$env:LOCALAPPDATA=$oldLocal

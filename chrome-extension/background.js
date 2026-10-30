@@ -244,6 +244,13 @@ function isConfirmedAccessDenied(row) {
   return status===403&&d?.page?.marker==='access denied';
 }
 
+async function saveAccessStopProof(proof) {
+  const stem=`MarketPulse/access-stop-${proof.runId}`;
+  // A retry never revisits Coupang. A unique path also survives a locked target.
+  try {await downloadScanPayload(proof,stem+'.json');}
+  catch {await downloadScanPayload(proof,stem+'-saved.json');}
+}
+
 async function saveAccessDiagnosticArchive(payload) {
   const relevant=payload.results.some(row=>row.accessDiagnostics?.some(attempt=>attempt.reason==='access-check'||attempt.diagnostic?.page?.marker||attempt.diagnostic?.responses?.some(response=>response.event==='error'||response.status===403||response.status===429||response.status>=500)))
     ||payload.recovery?.reason==='access-check';
@@ -251,6 +258,7 @@ async function saveAccessDiagnosticArchive(payload) {
   const archive={version:1,browser:payload.browser,extensionVersion:payload.extensionVersion,runId:payload.runId,
     scanSlot:payload.scanSlot,startedAt:payload.startedAt,completedAt:payload.completedAt,
     chromeRunId:payload.recovery?.chromeRunId||null,primaryBrowser:payload.recovery?.primaryBrowser||null,primaryRequestId:payload.primaryRequestId||null,
+    targetCount:payload.targetCount??payload.results.length,stopReason:payload.stopReason||null,
     results:payload.results.map(row=>({mtm:row.mtm,ok:row.ok===true,attempts:row.accessDiagnostics||[]}))};
   try {
     const filename=`MarketPulse/${payload.browser==='whale'?'whale-access-diagnostic':'access-diagnostic'}-${payload.runId}.json`;
@@ -1326,8 +1334,8 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
       const frozen={lastRunSlot:scanSlot,lastAccessStop:proof,scanProgress:{mtm:accessStop.mtm,stage:'access-stopped',completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:completedAt}};
       if(primaryRequestId)frozen.primaryRequest={...primaryState,handoff:true,accessStopRunId:runId};
       await chrome.storage.local.set(frozen);
-      await saveAccessDiagnosticArchive({browser,extensionVersion:proof.extensionVersion,runId,scanSlot,primaryRequestId,startedAt:scanStartedAt,completedAt,results});
-      await downloadScanPayload(proof,`MarketPulse/access-stop-${runId}.json`);
+      try {await saveAccessStopProof(proof);}
+      finally {await saveAccessDiagnosticArchive({browser,extensionVersion:proof.extensionVersion,runId,scanSlot,primaryRequestId,startedAt:scanStartedAt,completedAt,targetCount:targets.length,stopReason:proof.stopReason,results});}
       return;
     }
     const itemIds=results.map(result=>String(result.itemId||''));

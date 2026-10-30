@@ -3,6 +3,7 @@
 $ErrorActionPreference='Stop'
 $originalProgramFiles=$env:ProgramFiles;$originalLocalAppData=$env:LOCALAPPDATA
 function Must-Fail([scriptblock]$Action){$failed=$false;try{& $Action}catch{$failed=$true};if(-not $failed){throw 'Expected stop-proof rejection.'}}
+function Checkpoint-NotLaunched {if($global:AccessStopLaunches -ne 0){throw 'Conflicting proof launched Edge.'}}
 function Start-Sleep {param([int]$Seconds)}
 function Start-Process {
   param([string]$FilePath,[string[]]$ArgumentList)
@@ -67,7 +68,16 @@ try {
    $exe=Join-Path $temp 'Microsoft\Edge\Application\msedge.exe';New-Item -ItemType Directory (Split-Path $exe) -Force|Out-Null;New-Item -ItemType File $exe|Out-Null
    $profile=Join-Path $temp 'Microsoft\Edge\User Data\Default';New-Item -ItemType Directory $profile -Force|Out-Null
    @{extensions=@{settings=@{('d'*32)=@{path=(Join-Path $temp 'chrome-extension')}}}}|ConvertTo-Json -Depth 8|Set-Content (Join-Path $profile 'Secure Preferences') -Encoding UTF8
-   Write-ScanRecoveryJson (Join-Path $global:AccessStopFolder ('access-stop-'+$w.runId+'.json')) $stop
+   $stopPath=Join-Path $global:AccessStopFolder ('access-stop-'+$w.runId+'.json')
+   $savedPath=Join-Path $global:AccessStopFolder ('access-stop-'+$w.runId+'-saved.json')
+   if($browser -eq 'whale'){Write-ScanRecoveryJson $savedPath $stop}else{
+    Write-ScanRecoveryJson $stopPath $stop
+    $bad=$stop|ConvertTo-Json -Depth 12|ConvertFrom-Json;$bad.trigger.itemId='999'
+    Write-ScanRecoveryJson $savedPath $bad
+    Must-Fail {Invoke-AccessStopRecovery $temp $global:AccessStopFolder $slot}
+    Checkpoint-NotLaunched
+    Write-ScanRecoveryJson $savedPath $stop
+   }
    Invoke-AccessStopRecovery $temp $global:AccessStopFolder $slot
    $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $temp $slot)
    if($r.state -cne 'result-ready' -or $r.targets.Count -ne 2 -or $r.accessStopEvidence.runId -cne $w.runId -or $global:AccessStopLaunches -ne 1){throw 'Access stop full Edge flow failed.'}

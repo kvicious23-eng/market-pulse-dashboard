@@ -2,6 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+// Use the same dated ownership table as collectors and Windows, including
+// historical Chrome evenings. Never infer ownership from today's schedule.
+const policySource=fs.readFileSync(new URL('../chrome-extension/scan-policy.js',import.meta.url),'utf8');
+const routing=JSON.parse(policySource.match(/\/\* ROUTING_JSON_BEGIN \*\/([\s\S]*?)\/\* ROUTING_JSON_END \*\//)?.[1]||'null');
+function primaryBrowserForSlot(slot) {
+  if(routing?.version!==1||routing.slots.join(',')!=='08:00,12:00,16:00,20:00')throw Error('invalid-routing-policy');
+  const position=routing.slots.indexOf(slot.slice(11,16));
+  if(position<0)return 'chrome'; // Older, non-current schedule logs.
+  const policy=routing.changes.filter(row=>row.from<=slot).at(-1);
+  if(!policy||!['chrome','whale'].includes(policy.owners[position]))throw Error('missing-routing-policy');
+  return policy.owners[position];
+}
+
 const validTime = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
 const accessBlocked = attempt => {
   if(attempt?.reason==='access-check')return true;
@@ -58,11 +71,14 @@ export function summarizeRun(input) {
   const missing = models.filter(m => m.initialBlocked === null).length;
   return {
     browser: input.browser, extensionVersion: /^\d+\.\d+\.\d+$/.test(input.extensionVersion || '') ? input.extensionVersion : null,
-    runId: input.runId, primaryBrowser: input.primaryBrowser || input.recovery?.primaryBrowser || (input.browser==='whale'?'whale':'chrome'),
+    runId: input.runId, primaryBrowser: input.primaryBrowser || input.recovery?.primaryBrowser || primaryBrowserForSlot(input.scanSlot),
     chromeRunId: /^[a-f0-9]{32}$/.test(input.chromeRunId || input.recovery?.chromeRunId || '')
       ? input.chromeRunId || input.recovery.chromeRunId : null,
     scanSlot: input.scanSlot, startedAt: input.startedAt, completedAt: input.completedAt,
-    resultCount: models.length, traceCoverage: missing ? 'incomplete' : 'observed-all-listed-models',
+    resultCount: models.length, targetCount: Number.isInteger(input.targetCount)?input.targetCount:models.length,
+    stopReason: input.stopReason==='http-403-access-denied'?input.stopReason:null,
+    unattemptedCount: input.stopReason==='http-403-access-denied'&&Number.isInteger(input.targetCount)?Math.max(0,input.targetCount-models.length):0,
+    traceCoverage: missing ? 'incomplete' : 'observed-all-listed-models',
     missingInitialEvidence: missing,
     initialBlocked: count('initialBlocked'), recoveredOnRetry: count('recoveredOnRetry'),
     finalBlocked: count('finalBlocked'), unresolvedOther: count('unresolvedOther'),
@@ -83,7 +99,7 @@ export function analyzeFolder(folder, {slot = null, uploadLog = ''} = {}) {
     try {
       const data = JSON.parse(fs.readFileSync(path.join(folder, name), 'utf8').replace(/^\uFEFF/, ''));
       if (slot && data.scanSlot !== slot) continue;
-      if(data.browser==='whale'&&(!data.primaryRequestId||!data.scanSlot?.endsWith('T12:00+09:00')||data.scanSlot.slice(0,10)<'2026-10-21'))continue;
+      if(data.browser==='whale'&&(!data.primaryRequestId||primaryBrowserForSlot(data.scanSlot)!=='whale'))continue;
       const run = summarizeRun(data), key = `${run.browser}:${run.runId}`;
       const prior = byRun.get(key);
       if (prior && JSON.stringify(prior) !== JSON.stringify(run)) {
@@ -96,7 +112,7 @@ export function analyzeFolder(folder, {slot = null, uploadLog = ''} = {}) {
   const runs = [...byRun.values()].filter(Boolean).sort((a,b) => a.scanSlot.localeCompare(b.scanSlot) || a.startedAt.localeCompare(b.startedAt));
   const slots = new Set(runs.map(r => r.scanSlot));
   const loggedSlots = [...uploadLog.matchAll(/-ExpectedSlotStart\s+(\d{4}-\d{2}-\d{2}T\d{2}):00:00\+09:00/g)].map(m => `${m[1]}:00+09:00`);
-  const missingChromeSlots = [...new Set(loggedSlots)].filter(s => (!slot || s === slot) && !runs.some(r => r.browser === (s.slice(0,10)>='2026-10-21'&&s.endsWith('T12:00+09:00')?'whale':'chrome') && r.scanSlot === s));
+  const missingChromeSlots = [...new Set(loggedSlots)].filter(s => (!slot || s === slot) && !runs.some(r => r.browser === primaryBrowserForSlot(s) && r.scanSlot === s));
   const pairs = [];
   for (const scanSlot of slots) {
     for (const edge of runs.filter(r => r.scanSlot === scanSlot && r.browser === 'edge')) {
@@ -131,7 +147,7 @@ export function runCli(args) {
     fs.renameSync(temp, output);
   }
   for (const r of report.runs.filter(r => ['chrome','whale'].includes(r.browser))) {
-    console.log(`Access summary: browser=${r.browser}; slot=${r.scanSlot}; run=${r.runId}; initial=${r.initialBlocked}; recovered=${r.recoveredOnRetry}; final=${r.finalBlocked}; other-unresolved=${r.unresolvedOther}; missing-evidence=${r.missingInitialEvidence}; listed=${r.resultCount}`);
+    console.log(`Access summary: browser=${r.browser}; slot=${r.scanSlot}; run=${r.runId}; initial=${r.initialBlocked}; recovered=${r.recoveredOnRetry}; final=${r.finalBlocked}; other-unresolved=${r.unresolvedOther}; missing-evidence=${r.missingInitialEvidence}; listed=${r.resultCount}; not-attempted=${r.unattemptedCount}; stop=${r.stopReason||'none'}`);
   }
   console.log(`Access evidence: runs=${report.runs.length}; missing-chrome-slots=${report.missingChromeSlots.length}; invalid-files=${report.errors.length}. Missing evidence is not zero denials.`);
   return report;
