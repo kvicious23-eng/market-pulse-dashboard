@@ -31,12 +31,12 @@ window.MARKET_DATA = {
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-30T20:18:48+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-10-31T08:31:03+09:00"
              },
     "products":  [
                      {
@@ -291,16 +291,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  42000,
                          "supplierMetrics":  {
-                                                 "stock":  334,
-                                                 "dailySales":  10,
-                                                 "monthSales":  186,
+                                                 "stock":  327,
+                                                 "dailySales":  7,
+                                                 "monthSales":  193,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-10-29",
+                                                 "asOfDate":  "2026-10-30",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-29",
-                                                 "sourceDate":  "2026-10-29",
+                                                 "monthThrough":  "2026-10-30",
+                                                 "sourceDate":  "2026-10-30",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -382,16 +382,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  165000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "sku-not-found",
-                                                 "dailySalesStatus":  "sku-not-found",
-                                                 "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-29",
+                                                 "stock":  1,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
+                                                 "asOfDate":  "2026-10-30",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-29",
-                                                 "sourceDate":  "2026-10-29",
+                                                 "monthThrough":  "2026-10-30",
+                                                 "sourceDate":  "2026-10-30",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -479,10 +479,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-10-29",
+                                                 "asOfDate":  "2026-10-30",
                                                  "month":  "2026-10",
-                                                 "monthThrough":  "2026-10-29",
-                                                 "sourceDate":  "2026-10-29",
+                                                 "monthThrough":  "2026-10-30",
+                                                 "sourceDate":  "2026-10-30",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
