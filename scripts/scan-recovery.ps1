@@ -42,6 +42,56 @@ function Test-ChromeExitRecovery($Witness,$Completed,[bool]$ChromeSeen,[int]$Abs
     $Completed.scanSlot -ceq $Witness.scanSlot -and $Completed.complete -eq $true
   [bool]($Witness -and $ChromeSeen -and $AbsentChecks -ge 2 -and -not $finished)
 }
+function Assert-AccessStop($Stop,[string]$Slot,$Catalog,$Witness,[string]$RepoPath,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  $browser=Get-PrimaryScanBrowser $Slot
+  if(-not $Stop -or $Stop.version -ne 1 -or $Stop.browser -cne $browser -or
+      $Stop.scanSlot -cne $Slot -or $Stop.runId -notmatch '^[a-f0-9]{32}$' -or
+      $Stop.terminal -ne $true -or $Stop.complete -ne $false -or $Stop.reason -cne 'access-check' -or
+      $Stop.stopReason -cne 'http-403-access-denied' -or [version]$Stop.extensionVersion -lt [version]'1.9.55' -or
+      $Stop.policyId -cne (Get-ScanSlotPolicy $Slot).id) {throw 'Unconfirmed primary access stop.'}
+  Assert-ScanStartWitness $Witness $Slot $Catalog $browser
+  if($Stop.runId -cne $Witness.runId -or $Stop.startedAt -cne $Witness.startedAt -or
+      $Stop.extensionVersion -cne $Witness.extensionVersion -or $Stop.deadlineAt -cne $Witness.deadlineAt) {throw 'Access stop witness mismatch.'}
+  $start=[DateTimeOffset]::Parse($Stop.startedAt);$end=[DateTimeOffset]::Parse($Stop.stoppedAt)
+  $deadline=[DateTimeOffset]::Parse($Stop.deadlineAt);$slotStart=[DateTimeOffset]::Parse($Slot)
+  $observed=[DateTimeOffset]::Parse($Stop.attempt.diagnostic.observedAt)
+  $next=$slotStart.AddHours($(if($slotStart.Hour -eq 20){12}else{4}))
+  if($end -lt $start -or $observed -lt $start -or $observed -gt $end -or $end -gt $Now.AddSeconds(5) -or
+      $deadline -le $Now -or $end -gt $deadline -or $deadline -gt $start.AddHours(2) -or
+      $deadline -gt $slotStart.AddMinutes(140) -or $deadline -gt $next) {throw 'Access stop is stale or outside its original budget.'}
+  $targets=@($Stop.targets)
+  if(-not $targets.Count -or $Stop.targetCount -ne $targets.Count -or $Stop.attemptedCount -lt 1 -or
+      $Stop.attemptedCount -gt $targets.Count) {throw 'Access stop target count mismatch.'}
+  Assert-ScanCatalog -Catalog $Catalog -Results $targets
+  Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($Witness.targets)}) -Results $targets
+  $trigger=@($targets|Where-Object {$_.brand -ceq $Stop.trigger.brand -and $_.mtm -ceq $Stop.trigger.mtm -and
+    $_.productId -ceq $Stop.trigger.productId -and $_.itemId -ceq $Stop.trigger.itemId -and $_.vendorItemId -ceq $Stop.trigger.vendorItemId})
+  $d=$Stop.attempt.diagnostic
+  $responses=@($d.responses|Where-Object {$_.route -ceq 'product' -and $_.event -ceq 'complete'})
+  $status=if($responses.Count){$responses[-1].status}else{$d.page.navigationStatus}
+  if($trigger.Count -ne 1 -or $Stop.attempt.reason -cne 'access-check' -or $status -ne 403 -or
+      $d.page.marker -cne 'access denied') {throw 'Access stop lacks a matching HTTP 403 and Access Denied page.'}
+  if($browser -eq 'whale') {
+    $q=Read-WhalePrimaryRequest $RepoPath $Slot
+    Assert-WhalePrimaryRequest $q $Slot $Catalog $Now
+    if($Stop.primaryRequestId -cne $q.requestId -or $Witness.primaryRequestId -cne $q.requestId -or
+        $deadline -gt (Get-WhaleDeadline $q)) {throw 'Access stop Whale request mismatch.'}
+  }
+}
+function Invoke-AccessStopRecovery([string]$RepoPath,[string]$Folder,[string]$Slot) {
+  $existing=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+  if($existing -and $existing.scanSlot -ceq $Slot){return}
+  $browser=Get-PrimaryScanBrowser $Slot
+  $q=if($browser -eq 'whale'){Read-WhalePrimaryRequest $RepoPath $Slot}else{$null}
+  if($browser -eq 'whale' -and -not $q){return}
+  $w=if($browser -eq 'whale'){Get-WhaleStartWitness $Folder $q}else{Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')}
+  if(-not $w -or $w.scanSlot -cne $Slot -or $w.runId -notmatch '^[a-f0-9]{32}$'){return}
+  $stop=Read-ScanRecoveryJson (Join-Path $Folder ("access-stop-$($w.runId).json"))
+  if(-not $stop){return}
+  $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+  Assert-AccessStop $stop $Slot $catalog $w $RepoPath
+  & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -AccessStop $stop -PrimaryBrowser $browser
+}
 function Assert-EdgeRecoveryResult($Payload,$Receipt,$Targets) {
   if (-not $Payload -or $Payload.browser -ne 'edge' -or $Payload.complete -ne $true -or
       $Payload.scanSlot -cne $Receipt.scanSlot -or $Payload.runId -cne $Receipt.runId -or
@@ -217,7 +267,7 @@ function Get-WhalePrimaryReceipt([string]$Folder,$Request,[DateTimeOffset]$Now=[
     try {
     if(-not $data -or $data.version -ne 1 -or $data.browser -cne 'whale' -or $data.scanSlot -cne $Request.scanSlot -or
       $data.requestId -cne $Request.requestId -or ($Request.scanSlot -cge '2026-10-26T20:00+09:00' -and $data.policyId -cne $Request.policyId) -or [int]$data.launchAttempt -ne [int]$Request.launchAttempts){continue}
-    if($data.status -cnotin @('accepted','checking','running','stopping','retry-started','complete','edge-ready','state-unavailable','stalled-unconfirmed','deadline-exhausted','rejected')){continue}
+    if($data.status -cnotin @('accepted','checking','running','stopping','retry-started','complete','access-stopped','edge-ready','state-unavailable','stalled-unconfirmed','deadline-exhausted','rejected')){continue}
       if($Request.scanSlot -cge '2026-10-26T20:00+09:00' -and ($data.receiptVersion -ne 2 -or [version]$data.receiptProducerVersion -lt [version]'1.9.49')){continue}
       $at=[DateTimeOffset]::Parse([string]$data.at)
       if($at -lt [DateTimeOffset]::Parse([string]$Request.requestedAt) -or $at -gt $Now.AddSeconds(2)){continue}
@@ -231,9 +281,12 @@ function Get-WhalePrimaryReceipt([string]$Folder,$Request,[DateTimeOffset]$Now=[
   if($latest){return $latest.data};return $null
 }
 function Get-WhalePrimaryAction($Health,$Witness,$Request,[DateTimeOffset]$LaunchAt,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  # This status freezes Whale, but only the separately validated 403 stop proof
+  # authorizes Edge. A missing/unwritten proof must not trigger a generic retry.
   $same=$Health -and $Health.scanSlot -ceq $Request.scanSlot -and $Health.requestId -ceq $Request.requestId -and [int]$Health.launchAttempt -eq [int]$Request.launchAttempts
   $started=$Witness -and $Witness.scanSlot -ceq $Request.scanSlot -and $Witness.primaryRequestId -ceq $Request.requestId
   if($same) {
+    if($Health.status -eq 'access-stopped'){return 'wait'}
     if($Health.status -eq 'edge-ready'){return 'edge'}
     if($Health.status -in @('stalled-unconfirmed','deadline-exhausted')){return 'fail'}
     if($Health.status -eq 'rejected') {

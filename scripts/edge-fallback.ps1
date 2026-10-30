@@ -5,6 +5,7 @@
   $ExitProof=$null,
   $SaveFailure=$null,
   $PrimaryFailure=$null,
+  $AccessStop=$null,
   [ValidateSet('chrome','whale')][string]$PrimaryBrowser='chrome'
 )
 $ErrorActionPreference = 'Stop'
@@ -46,7 +47,19 @@ try {
 if((Get-PrimaryScanBrowser (Get-ScanRecoverySlot)) -cne $PrimaryBrowser){throw 'Wrong primary browser for the recovery slot.'}
 $processExit=$null -ne $StartWitness
 $receipt=$null;$receiptPath=Get-EdgeReceiptPath $RepoPath (Get-ScanRecoverySlot)
-if ($PrimaryFailure) {
+if ($AccessStop) {
+  $slot=Get-ScanRecoverySlot
+  $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
+  $q=if($PrimaryBrowser -eq 'whale'){Read-WhalePrimaryRequest $RepoPath $slot}else{$null}
+  $w=if($PrimaryBrowser -eq 'whale'){Get-WhaleStartWitness $resultFolder $q}else{Read-ScanRecoveryJson (Join-Path $resultFolder 'scan-start.json')}
+  Assert-AccessStop $AccessStop $slot $catalog $w $RepoPath
+  $targets=@($w.targets)
+  $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
+    reason='access-check';chromeRunId=$AccessStop.runId;chromeStartedAt=$AccessStop.startedAt;chromeCompletedAt=$AccessStop.stoppedAt;
+    chromeExtensionVersion=$AccessStop.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');
+    blockedCount=1;targets=$targets;accessStopEvidence=$AccessStop}
+  Write-Host "$PrimaryBrowser confirmed HTTP 403 + Access Denied; primary stopped; starting full Edge recollection."
+} elseif ($PrimaryFailure) {
   if($PrimaryBrowser -ne 'whale'){throw 'Primary worker failure is only valid for Whale.'}
   $slot=$PrimaryFailure.scanSlot
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
@@ -111,7 +124,7 @@ if($receipt.scanSlot -cne (Get-ScanRecoverySlot)){throw 'Recovery must belong to
 if($PrimaryBrowser -eq 'whale') {
   $request=Read-WhalePrimaryRequest $RepoPath $slot
   Assert-WhalePrimaryRequest $request $receipt.scanSlot $catalog
-  $sourceId=if($PrimaryFailure){$PrimaryFailure.requestId}elseif($StartWitness){$StartWitness.primaryRequestId}elseif($SaveFailure){$SaveFailure.primaryRequestId}else{$scan.Data.primaryRequestId}
+  $sourceId=if($AccessStop){$AccessStop.primaryRequestId}elseif($PrimaryFailure){$PrimaryFailure.requestId}elseif($StartWitness){$StartWitness.primaryRequestId}elseif($SaveFailure){$SaveFailure.primaryRequestId}else{$scan.Data.primaryRequestId}
   if($sourceId -cne $request.requestId){throw 'Whale handoff request mismatch.'}
   $receipt|Add-Member primaryBrowser 'whale'
   $receipt|Add-Member primaryRequestId $request.requestId
@@ -127,7 +140,7 @@ if($PrimaryBrowser -eq 'chrome') {
   $end=[DateTimeOffset]::Parse($first).AddHours(2)
   $absolute=[DateTimeOffset]::Parse($receipt.scanSlot).AddMinutes(140)
   if($end -gt $absolute){$end=$absolute}
-  $carried=if($SaveFailure){$SaveFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
+  $carried=if($AccessStop){$AccessStop.deadlineAt}elseif($SaveFailure){$SaveFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
   if($carried -and [DateTimeOffset]::Parse($carried) -lt $end){$end=[DateTimeOffset]::Parse($carried)}
   $remaining=[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes)
   if($remaining -lt 1){throw 'No Chrome request budget remains for Edge.'}

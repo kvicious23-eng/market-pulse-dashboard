@@ -51,3 +51,5 @@ edge=await edgePage({verify:false});assert.deepEqual(edge.calls.map(x=>x.type),[
 edge=await edgePage({mismatch:true});assert.equal(edge.calls.length,0);
 console.log('Edge short-file transport, verify-only isolation and mismatched-run rejection passed.');
 
+
+r=await scenario([{ok:true,handoff:true,accessStopRunId:'a'.repeat(32),retryCount:0,running:true}]);assert.equal(r.events.at(-1).status,'access-stopped');assert.equal(r.calls.filter(x=>x.type==='RUN_PRIMARY_SCAN').length,1);assert.ok(!r.calls.some(x=>x.type==='PREPARE_PRIMARY_HANDOFF'));

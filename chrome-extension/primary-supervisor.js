@@ -20,7 +20,7 @@ async function runPrimarySupervisor(api,request,{verify=false,release}={}) {
     lastState=state;
     if(!state?.ok||state.workerVersion!==release){await emit('state-unavailable',{},state?.reason||'state-response-missing');return;}
     if(state.completed){await emit('complete',state);return;}
-    if(state.handoff){await emit('edge-ready',state);return;}
+    if(state.handoff){await emit(state.accessStopRunId?'access-stopped':'edge-ready',state);return;}
     if(state.running) {
       if(state.requestRunning) {
         // The original request fixes the deadline, not this attempt's liveness.

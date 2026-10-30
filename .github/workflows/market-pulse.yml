@@ -202,6 +202,7 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+          ./scripts/test-access-stop.ps1
           ./scripts/test-local-schedule.ps1
           ./scripts/test-whale-noon.ps1
           ./scripts/test-whale-noon.ps1 -FlowSlot "2026-10-26T20:00+09:00"
