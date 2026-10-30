@@ -235,6 +235,15 @@ function classifyAccessFailure(scan) {
   }
   return scan;
 }
+// Only a confirmed denial on the current product navigation stops a primary run.
+function isConfirmedAccessDenied(row) {
+  if(row?.ok||row?.reason!=='access-check')return false;
+  const attempt=row.accessDiagnostics?.at(-1),d=attempt?.diagnostic;
+  const responses=(d?.responses||[]).filter(r=>r.route==='product'&&r.event==='complete');
+  const status=responses.length?responses.at(-1).status:d?.page?.navigationStatus;
+  return status===403&&d?.page?.marker==='access denied';
+}
+
 async function saveAccessDiagnosticArchive(payload) {
   const relevant=payload.results.some(row=>row.accessDiagnostics?.some(attempt=>attempt.reason==='access-check'||attempt.diagnostic?.page?.marker||attempt.diagnostic?.responses?.some(response=>response.event==='error'||response.status===403||response.status===429||response.status>=500)))
     ||payload.recovery?.reason==='access-check';
@@ -1169,6 +1178,8 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
   const scanStartedAt = new Date().toISOString();
   const runId=recovery?.runId||crypto.randomUUID().replaceAll('-','');
   const results = [];
+  let accessStop=null;
+  const canStopForAccess=Boolean(scanSlot&&!recovery&&(!/Whale\//.test(navigator.userAgent)||primaryRequestId)&&!isEdgeBrowser);
   const scanWindowState={windowId:null,anchorTabIds:[]};
   const progress=async (mtm,stage,total)=>{
     checkRecoveryBudget();
@@ -1210,6 +1221,9 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
         const priceScan=await withScanTimeout(scanCoupangTab(tab.id,target),90000,`coupang-price:${target.mtm}`);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if(priceScan.accessDiagnostic){result.accessDiagnostics=[{phase:'initial',reason:priceScan.reason||'ok',diagnostic:priceScan.accessDiagnostic}];delete result.accessDiagnostic;}
+        if(canStopForAccess&&isConfirmedAccessDenied(result)) {
+          results.push(result);accessStop=result;break;
+        }
         if(priceScan?.ok) {
           try {
             await progress(target.mtm,'checkout',targets.length);
@@ -1258,7 +1272,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
     }
     // Retry blocked pages after the full pass. Processing the other targets
     // creates cooldown time without a long idle timer that Chrome may stop.
-    for (const result of results.filter(x=>!x.ok && x.reason==='access-check')) {
+    for (const result of results.filter(x=>!accessStop && !x.ok && x.reason==='access-check')) {
       checkRecoveryBudget();
       let retryTab;
       try {
@@ -1280,6 +1294,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
          }
          if(attempts.length)result.accessDiagnostics=attempts.slice(-2);
          delete result.accessDiagnostic;
+         if(canStopForAccess&&isConfirmedAccessDenied(result)){accessStop=result;break;}
          if (retryScan?.ok) {
            const trace=createCheckoutTrace();result.checkoutDiagnostic=trace.data;
            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,scanWindowState,trace),90000,`retry-checkout:${result.mtm}`));
@@ -1298,6 +1313,23 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
     }
     checkRecoveryBudget();
     const completedAt=new Date().toISOString();
+    if(accessStop) {
+      const browser=primaryRequestId?'whale':'chrome';
+      const proof={version:1,browser,extensionVersion:chrome.runtime.getManifest().version,runId,scanSlot,
+        policyId:scanPolicyForSlot(scanSlot).id,primaryRequestId,reason:'access-check',stopReason:'http-403-access-denied',
+        terminal:true,complete:false,startedAt:scanStartedAt,stoppedAt:completedAt,
+        deadlineAt:new Date(recoveryDeadline).toISOString(),targetCount:targets.length,attemptedCount:results.length,
+        targets:scanSaveTargets(targets),trigger:Object.fromEntries(['brand','mtm','productId','itemId','vendorItemId'].map(key=>[key,accessStop[key]])),
+        attempt:accessStop.accessDiagnostics.at(-1)};
+      // Freeze this primary before exposing the stop proof; never save partial prices
+      // through saveCompletedScan or pendingScanResults. Edge owns the full recollection.
+      const frozen={lastRunSlot:scanSlot,lastAccessStop:proof,scanProgress:{mtm:accessStop.mtm,stage:'access-stopped',completed:results.length,total:targets.length,startedAt:scanStartedAt,updatedAt:completedAt}};
+      if(primaryRequestId)frozen.primaryRequest={...primaryState,handoff:true,accessStopRunId:runId};
+      await chrome.storage.local.set(frozen);
+      await saveAccessDiagnosticArchive({browser,extensionVersion:proof.extensionVersion,runId,scanSlot,primaryRequestId,startedAt:scanStartedAt,completedAt,results});
+      await downloadScanPayload(proof,`MarketPulse/access-stop-${runId}.json`);
+      return;
+    }
     const itemIds=results.map(result=>String(result.itemId||''));
     const payload = {
       version:5,
@@ -1892,7 +1924,7 @@ async function primaryRecoveryState(message) {
   const q=state.primaryRequest,exists=q?.scanSlot===message.scanSlot&&q.requestId===message.requestId;
   return {ok:true,browser:'whale',scanSlot:message.scanSlot,requestId:message.requestId,policyId:scanPolicyForSlot(message.scanSlot).id,workerVersion:chrome.runtime.getManifest().version,
     running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size),requestRunning:Boolean(exists&&((activeScanPromise&&activeScanSlot===message.scanSlot&&activeScanRequestId===message.requestId)||[...primaryPendingOperations].some(row=>row.requestId===message.requestId))),
-    requestExists:Boolean(exists),completed:primarySavedForRequest(state,message),retryCount:exists?(q.retryCount||0):0,handoff:Boolean(exists&&q.handoff),
+    requestExists:Boolean(exists),completed:primarySavedForRequest(state,message),retryCount:exists?(q.retryCount||0):0,handoff:Boolean(exists&&q.handoff),accessStopRunId:exists?(q.accessStopRunId||null):null,
     deadlineAt:exists?(q.deadlineAt||new Date(Date.parse(q.scanSlot)+120*60000).toISOString()):null,firstRequestedAt:exists?(q.firstRequestedAt||q.scanSlot):null,
     attemptStartedAt:exists?(q.attemptStartedAt||null):null,
     progress:exists?state.scanProgress:null,lastError:exists?state.lastScanError:null};

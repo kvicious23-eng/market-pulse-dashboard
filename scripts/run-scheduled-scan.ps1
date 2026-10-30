@@ -58,6 +58,9 @@ try {
     if ($receipt -and $receipt.scanSlot -ceq $slot) { Write-WatchLog "Slot=$slot; existing recovery state=$($receipt.state); no second handoff.";exit 0 }
     $alive=@(Get-Process -ErrorAction Stop | Where-Object {$_.ProcessName -eq $primaryBrowser -and $_.SessionId -eq $session}).Count -gt 0
     if ($alive) {$seen=$true;$absent=0} elseif($seen) {$absent++}
+    Invoke-AccessStopRecovery $RepoPath $folder $slot
+    $accessReceipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $slot)
+    if($accessReceipt -and $accessReceipt.scanSlot -ceq $slot){Write-WatchLog "Slot=$slot; validated access-stop handoff state=$($accessReceipt.state); no primary continuation.";exit 0}
     Invoke-ScanSaveRecovery $RepoPath $folder $slot
     $witness=if($primaryBrowser -eq 'whale'){Get-WhaleStartWitness $folder $request}else{Read-ScanRecoveryJson (Join-Path $folder 'scan-start.json')}
     if ($witness -and $witness.scanSlot -ceq $slot) {

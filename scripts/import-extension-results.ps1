@@ -44,7 +44,10 @@ function Get-LatestResultPath {
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
 $candidateError=''
 do {
-  if ($recoverySlot -and -not $ModelRecoverySource) { Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot }
+  if ($recoverySlot -and -not $ModelRecoverySource) {
+    Invoke-AccessStopRecovery $RepoPath $resultFolder $recoverySlot
+    Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot
+  }
   $resultPath = Get-LatestResultPath
   $payload=$null
   if ($resultPath) {
