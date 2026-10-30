@@ -17,6 +17,9 @@ try {
     $q=Read-ScanRecoveryJson $file.FullName
     if(-not $q -or $q.state -cin @('complete','partial','unresolved','deferred','expired','superseded','integrity-failed')){continue}
     $now=[DateTimeOffset]::UtcNow
+    # Once the next regular slot starts this queue can never collect again.
+    # Stop polling an old final-uploaded commit forever if Pages never completed.
+    if($now -ge (Get-NextScanTime $q.scanSlot)){$q.state='superseded';Write-ModelEdgeJson $file.FullName $q;continue}
     if($q.state -ne 'final-uploaded' -and $now -ge [DateTimeOffset]::Parse($q.publicationDeadline)){$q.state='expired';Write-ModelEdgeJson $file.FullName $q;continue}
     if($q.nextCheckAt -and $now -lt [DateTimeOffset]::Parse($q.nextCheckAt)){continue}
       $attempt=if($q.activeAttempt -eq 2){2}else{1}

@@ -86,7 +86,16 @@ function Invoke-AccessStopRecovery([string]$RepoPath,[string]$Folder,[string]$Sl
   if($browser -eq 'whale' -and -not $q){return}
   $w=if($browser -eq 'whale'){Get-WhaleStartWitness $Folder $q}else{Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')}
   if(-not $w -or $w.scanSlot -cne $Slot -or $w.runId -notmatch '^[a-f0-9]{32}$'){return}
-  $stop=Read-ScanRecoveryJson (Join-Path $Folder ("access-stop-$($w.runId).json"))
+  $stop=$null
+  foreach($suffix in @('','-saved')) {
+    $path=Join-Path $Folder ("access-stop-$($w.runId)$suffix.json")
+    if(Test-Path -LiteralPath $path) {
+      $candidate=Read-ScanRecoveryJson $path
+      if(-not $candidate){throw 'Unreadable access stop proof; no inferred handoff.'}
+      if($stop -and ($stop|ConvertTo-Json -Depth 20 -Compress) -cne ($candidate|ConvertTo-Json -Depth 20 -Compress)){throw 'Conflicting access stop proofs; no handoff.'}
+      $stop=$candidate
+    }
+  }
   if(-not $stop){return}
   $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
   Assert-AccessStop $stop $Slot $catalog $w $RepoPath

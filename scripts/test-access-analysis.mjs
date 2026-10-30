@@ -80,5 +80,14 @@ try {
   assert.equal(whaleReport.runs.length,1);assert.equal(whaleReport.runs[0].primaryBrowser,'whale');assert.equal(whaleReport.runs[0].initialBlocked,3);
   fs.writeFileSync(path.join(whaleFolder,`whale-validation-${'f'.repeat(32)}.json`),JSON.stringify({...whale,primaryRequestId:null}));
   assert.equal(analyzeFolder(whaleFolder).runs.length,1,'Manual validation must stay out of operational access history');
+  const evening={...whale,scanSlot:'2026-10-30T20:00+09:00',runId:'9'.repeat(32),startedAt:'2026-10-30T11:00:00Z',completedAt:'2026-10-30T11:01:00Z',targetCount:17,stopReason:'http-403-access-denied',results:[row('blocked',false,[attempt('initial','access-check','2026-10-30T11:00:10Z')])]};
+  write.call(null,`whale-access-diagnostic-${evening.runId}.json`,evening);
+  const eveningReport=analyzeFolder(folder,{slot:evening.scanSlot,uploadLog:'-ExpectedSlotStart 2026-10-30T20:00:00+09:00'});
+  assert.equal(eveningReport.runs.length,1);assert.equal(eveningReport.missingChromeSlots.length,0);
+  assert.equal(eveningReport.runs[0].unattemptedCount,16);assert.equal(eveningReport.runs[0].targetCount,17);
+  const oldEvening={...evening,runId:'8'.repeat(32),scanSlot:'2026-10-25T20:00+09:00'};
+  write(`whale-access-diagnostic-${oldEvening.runId}.json`,oldEvening);
+  assert.equal(analyzeFolder(folder,{slot:oldEvening.scanSlot}).runs.length,0,'Pre-routing-change Whale evenings are not production runs');
+
 } finally {fs.rmSync(folder,{recursive:true,force:true});}
 console.log('Access analysis initial/retry/final counts, unknown evidence, chronology, pairing, privacy, CLI and conflict checks passed.');
