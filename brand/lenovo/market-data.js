@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-10-31T12:16:37+09:00",
+                 "snapshotAt":  "2026-10-31T16:32:16+09:00",
                  "sourceFile":  "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
                  "comparisonBasis":  "동일 MTM·용량의 당일 공개가와 배송비 기준. 내 쿠팡은 exact Item ID 직접 수집가의 카드 적용 전 공개 실구매가를 사용",
                  "exclusions":  "개인화 쿠폰·적립금·조건부 카드/멤버십 가격은 기본 비교에서 제외. 다나와 쿠팡 항목은 당일 Item ID 미검증 시 참고로 분리",
@@ -9,11 +9,11 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
                                     "fullResearch":  "기본+정밀 동시 실행",
                                     "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-10-31T12:16:37+09:00",
+                                    "lastAttemptAt":  "2026-10-31T16:32:16+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Lenovo 수집 결과: 검증 2, 품절 1, 일부 0 / 전체 3",
-                                    "collectionRoute":  "Windows PC · 일반 Whale 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-10-31T12:16:37+09:00",
+                                    "collectionRoute":  "Windows PC · 일반 Edge 확장프로그램",
+                                    "competitionLastAttemptAt":  "2026-10-31T16:32:16+09:00",
                                     "competitionConfigurationStatus":  "configured",
                                     "competitionValidationStatus":  "no-verified-listings",
                                     "alertEvaluation":  ""
@@ -21,18 +21,36 @@ window.MARKET_DATA = {
                  "updatedAt":  "2026-09-14T19:42:57+09:00",
                  "brand":  "Lenovo",
                  "collectionEvidence":  {
-                                            "browser":  "whale",
+                                            "browser":  "edge",
                                             "extensionVersion":  "1.9.56",
-                                            "scanSlot":  "2026-10-31T12:00+09:00",
+                                            "scanSlot":  "2026-10-31T16:00+09:00",
                                             "policyId":  "whale-noon-evening-v1",
-                                            "runId":  "3221b3e356d94f30a29645c08fdfd6c7",
-                                            "startedAt":  "2026-10-31T03:00:10.220Z",
-                                            "completedAt":  "2026-10-31T03:16:37.012Z",
+                                            "runId":  "3749ad8659c74a8b9c8632019fbdfc5e",
+                                            "startedAt":  "2026-10-31T07:15:58.161Z",
+                                            "completedAt":  "2026-10-31T07:32:16.192Z",
                                             "targetCount":  17,
                                             "resultCount":  17
                                         },
-                 "recoveryEvidence":  null,
-                 "publishedAt":  "2026-10-31T12:16:37+09:00",
+                 "recoveryEvidence":  {
+                                          "reason":  "access-check",
+                                          "exitCause":  "unknown",
+                                          "primaryBrowser":  null,
+                                          "scanSlot":  "2026-10-31T16:00+09:00",
+                                          "chromeRunId":  "733e8a2c104140b29e9e6b58e8184b09",
+                                          "edgeRunId":  "3749ad8659c74a8b9c8632019fbdfc5e",
+                                          "chromeStartedAt":  "2026-10-31T07:00:00.117Z",
+                                          "chromeExtensionVersion":  "1.9.56",
+                                          "edgeExtensionVersion":  "1.9.56",
+                                          "chromeCompletedAt":  "2026-10-31T07:15:50.933Z",
+                                          "accessCheckCount":  1,
+                                          "processObservedAt":  null,
+                                          "absentChecks":  null,
+                                          "edgeStartedAt":  "2026-10-31T07:15:58.161Z",
+                                          "targetCount":  17,
+                                          "resultCount":  17,
+                                          "listMatched":  true
+                                      },
+                 "publishedAt":  "2026-10-31T16:32:16+09:00",
                  "historyBrands":  [
                                        "Lenovo"
                                    ],
@@ -55,7 +73,7 @@ window.MARKET_DATA = {
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "checkedAt":  "2026-10-31 12:05",
+                                            "checkedAt":  "2026-10-31 16:21",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  789000,
@@ -63,14 +81,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Edge 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "edge",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "3221b3e356d94f30a29645c08fdfd6c7",
-                                                                       "checkedAt":  "2026-10-31T03:05:21.409Z"
+                                                                       "runId":  "3749ad8659c74a8b9c8632019fbdfc5e",
+                                                                       "checkedAt":  "2026-10-31T07:21:14.716Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-31 12:05",
+                                            "availabilityCheckedAt":  "2026-10-31 16:21",
                                             "srp":  1109000,
                                             "observedListPrice":  1109000,
                                             "productPagePrice":  789000,
@@ -94,7 +112,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  160000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-10-31T03:05:45.640Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-31T07:21:36.880Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -110,10 +128,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-31 08:22",
+                                            "priceComparisonAt":  "2026-10-31 12:05",
                                             "lastVerifiedFinalPrice":  789000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-31 12:05",
-                                            "priceCheckedAt":  "2026-10-31 12:05"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-31 16:21",
+                                            "priceCheckedAt":  "2026-10-31 16:21"
                                         },
                                         {
                                             "role":  "competitor",
@@ -288,7 +306,7 @@ window.MARKET_DATA = {
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "checkedAt":  "2026-10-31 12:06",
+                                            "checkedAt":  "2026-10-31 16:22",
                                             "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  829000,
@@ -296,16 +314,16 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  null,
                                             "status":  "품절",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Edge 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "edge",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "3221b3e356d94f30a29645c08fdfd6c7",
-                                                                       "checkedAt":  "2026-10-31T03:06:26.097Z"
+                                                                       "runId":  "3749ad8659c74a8b9c8632019fbdfc5e",
+                                                                       "checkedAt":  "2026-10-31T07:22:16.300Z"
                                                                    },
                                             "lastVerifiedFinalPrice":  829000,
                                             "lastVerifiedPriceCheckedAt":  "2026-10-28 20:06",
-                                            "availabilityCheckedAt":  "2026-10-31 12:06",
+                                            "availabilityCheckedAt":  "2026-10-31 16:22",
                                             "srp":  1159000,
                                             "observedListPrice":  1159000,
                                             "productPagePrice":  839000,
@@ -341,7 +359,7 @@ window.MARKET_DATA = {
                                             "priceChange":  null,
                                             "priceTrend":  "unavailable",
                                             "priceComparisonAt":  "2026-10-28 20:06",
-                                            "priceCheckedAt":  "2026-10-31 12:06"
+                                            "priceCheckedAt":  "2026-10-31 16:22"
                                         },
                                         {
                                             "role":  "competitor",
@@ -486,7 +504,7 @@ window.MARKET_DATA = {
                                             "wowPrice":  null,
                                             "wowStatus":  "현재 미확인",
                                             "membershipCondition":  "현재 공개 WOW 가격 미확인",
-                                            "checkedAt":  "2026-10-31 12:07",
+                                            "checkedAt":  "2026-10-31 16:23",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  879000,
@@ -494,14 +512,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Edge 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "whale",
+                                                                       "browser":  "edge",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "3221b3e356d94f30a29645c08fdfd6c7",
-                                                                       "checkedAt":  "2026-10-31T03:07:15.664Z"
+                                                                       "runId":  "3749ad8659c74a8b9c8632019fbdfc5e",
+                                                                       "checkedAt":  "2026-10-31T07:23:07.814Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-10-31 12:07",
+                                            "availabilityCheckedAt":  "2026-10-31 16:23",
                                             "srp":  1199000,
                                             "observedListPrice":  1199000,
                                             "productPagePrice":  879000,
@@ -525,7 +543,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  160000,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-10-31T03:07:39.450Z",
+                                            "checkoutDiscountCheckedAt":  "2026-10-31T07:23:31.033Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -541,10 +559,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-10-31 08:24",
+                                            "priceComparisonAt":  "2026-10-31 12:07",
                                             "lastVerifiedFinalPrice":  879000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-10-31 12:07",
-                                            "priceCheckedAt":  "2026-10-31 12:07"
+                                            "lastVerifiedPriceCheckedAt":  "2026-10-31 16:23",
+                                            "priceCheckedAt":  "2026-10-31 16:23"
                                         },
                                         {
                                             "role":  "competitor",
