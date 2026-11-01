@@ -116,6 +116,7 @@ console.log('Supplier CSV checks passed: official one-click request, local decod
  try{
   let result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(fileClicks,0);
   result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','2963085',true);assert.equal(result.phase,'clicked');assert.equal(fileClicks,1);
+  result=await supplierExportFile(['basic_operation_rocket_2026100720261007','basic_operation_rocket_2026100120261007'],'2026-10-08T04:24:37.116Z');assert.equal(result.phase,'ready');assert.equal(fileClicks,1);
   rows.push(row('another','2026-10-08 01:25:00 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z','',true);assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
   rows=[];result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.116Z');assert.equal(result.requestId,'2963085');assert.equal(refreshClicks,1);assert.equal(fileClicks,1,'Refreshing history must not click the file before durable arming');
   rows=[row('old','2026-10-07 11:59:59 PM'),row('2963085','2026-10-08 12:00:00 AM')];

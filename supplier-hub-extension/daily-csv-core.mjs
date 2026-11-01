@@ -3,6 +3,17 @@ import {premiumUrl} from './premium-core.mjs';
 export const DAILY_CSV_ALARM='supplier-daily-csv';
 export const csvName=filename=>(String(filename||'').split(/[\\/]/).pop()||'').match(/^basic_operation_rocket_(\d{8})(\d{8})(?: \(\d+\))?\.csv$/i)?.[0]||'';
 export function kstDay(now){return new Date(now+9*3600000).toISOString().slice(0,10);}
+// On the first day, Supplier may retain the full previous-month range.
+// Accept that range OR the previous day only; both require native validation.
+export function supplierCsvNames(day) {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day||''))throw Error('csv_day_invalid');
+  const at=new Date(day+'T00:00:00Z');
+  if(!Number.isFinite(+at)||at.toISOString().slice(0,10)!==day)throw Error('csv_day_invalid');
+  const end=new Date(+at-86400000),start=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth(),1));
+  const compact=d=>d.toISOString().slice(0,10).replaceAll('-','');
+  const name=d=>'basic_operation_rocket_'+compact(d)+compact(end);
+  return at.getUTCDate()===1?[...new Set([name(start),name(end)])]:[name(start)];
+}
 export function supplierDownload(item,job){
   const started=Date.parse(item?.startTime),requested=Date.parse(job?.requestedAt);
   if(!csvName(item?.filename)||!Number.isFinite(started)||!Number.isFinite(requested)||kstDay(started)!==kstDay(requested))return false;

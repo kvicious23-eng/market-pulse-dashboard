@@ -158,6 +158,8 @@ export async function supplierExportFile(expectedName,requestedAt,requestId='',c
   const heads=[...tables[0].querySelectorAll('thead th')].map(e=>e.innerText.replace(/\s/g,''));
   const index=name=>heads.indexOf(name),nameIndex=index('파일명'),dateIndex=index('요청일시'),stateIndex=index('상태'),idIndex=index('ID');
   if([nameIndex,dateIndex,stateIndex,idIndex].some(i=>i<0))return {phase:'unverified',reason:'export_history_schema_unconfirmed'};
+  const names=Array.isArray(expectedName)?expectedName:[expectedName];
+  if(!names.length||names.length>2||names.some(n=>!/^basic_operation_rocket_\d{16}$/.test(n)))return {phase:'unverified',reason:'export_filename_invalid'};
   const requested=Date.parse(requestedAt);
   if(!Number.isFinite(requested))return {phase:'unverified',reason:'export_request_date_invalid'};
   const requestDay=new Date(requested+9*3600000).toISOString().slice(0,10);
@@ -167,7 +169,7 @@ export async function supplierExportFile(expectedName,requestedAt,requestId='',c
     return Number.isFinite(time)&&new Date(time+9*3600000).toISOString().slice(0,10)===day?day:null;
   };
   // Daily exports match the KST calendar date; hours/minutes/seconds are audit only.
-  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>cells[nameIndex]===expectedName&&parseDay(cells[dateIndex])===requestDay);
+  const matchingRows=table=>[...table.querySelectorAll('tbody tr')].map(row=>({row,cells:[...row.querySelectorAll('td')].map(e=>e.innerText.trim())})).filter(({cells})=>names.includes(cells[nameIndex])&&parseDay(cells[dateIndex])===requestDay);
   let rows=matchingRows(tables[0]);
   // Supplier can open the history modal with a stale snapshot immediately after
   // accepting an export request. Refresh that snapshot before concluding that

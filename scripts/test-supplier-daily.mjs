@@ -80,3 +80,10 @@ await new DailyCsv(f.io).tick();assert.equal(f.clicks,1);assert.equal(f.saved.sc
 const bridge=readTestFile('scripts/supplier-daily-bridge.ps1','utf8');
 assert.match(bridge,/\$signal=Get-SupplierInventorySignal \$now/);
 assert.doesNotMatch(bridge,/Read-SupplierLocalState \$signalPath/,'Stale price readiness must not bypass the inventory clock');
+
+const {supplierCsvNames}=await import('../supplier-hub-extension/daily-csv-core.mjs');
+assert.deepEqual(supplierCsvNames('2026-11-01'),['basic_operation_rocket_2026100120261031','basic_operation_rocket_2026103120261031']);
+assert.deepEqual(supplierCsvNames('2027-01-01'),['basic_operation_rocket_2026120120261231','basic_operation_rocket_2026123120261231']);
+assert.deepEqual(supplierCsvNames('2028-03-01'),['basic_operation_rocket_2028020120280229','basic_operation_rocket_2028022920280229']);
+assert.deepEqual(supplierCsvNames('2026-11-02'),['basic_operation_rocket_2026110120261101']);
+assert.throws(()=>supplierCsvNames('2026-02-30'));
