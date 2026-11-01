@@ -31,12 +31,12 @@ window.MARKET_DATA = {
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-11-01T12:17:02+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-11-01T14:38:30+09:00"
              },
     "products":  [
                      {
@@ -317,16 +317,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  42000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stock":  319,
+                                                 "dailySales":  8,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
                                                  "asOfDate":  "2026-10-31",
                                                  "month":  "2026-11",
                                                  "monthThrough":  "2026-10-31",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-31",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -410,16 +410,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  165000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stock":  0,
+                                                 "dailySales":  1,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
                                                  "asOfDate":  "2026-10-31",
                                                  "month":  "2026-11",
                                                  "monthThrough":  "2026-10-31",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-31",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -503,16 +503,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  17000,
                          "supplierMetrics":  {
-                                                 "stock":  null,
-                                                 "dailySales":  null,
-                                                 "monthSales":  null,
-                                                 "stockStatus":  "csv-invalid",
-                                                 "dailySalesStatus":  "csv-invalid",
-                                                 "monthSalesStatus":  "csv-invalid",
+                                                 "stock":  2,
+                                                 "dailySales":  0,
+                                                 "monthSales":  0,
+                                                 "stockStatus":  "confirmed",
+                                                 "dailySalesStatus":  "confirmed",
+                                                 "monthSalesStatus":  "confirmed",
                                                  "asOfDate":  "2026-10-31",
                                                  "month":  "2026-11",
                                                  "monthThrough":  "2026-10-31",
-                                                 "sourceDate":  null,
+                                                 "sourceDate":  "2026-10-31",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
