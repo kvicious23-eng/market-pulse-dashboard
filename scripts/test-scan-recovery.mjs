@@ -81,8 +81,8 @@ for(const whale of [false,true]) {
 }
 console.log('A transient stop-proof write failure uses one unique fallback without re-collecting or publishing partial prices.');
 
-// The real collector, including success summaries and immediate 403 stop, uses ABBA.
-for(const [day,arm,ms] of [['03','A',20000],['04','B',40000],['05','B',40000],['06','A',20000]]) {
+// The real collector, including success summaries and immediate 403 stop, uses the seven-day 40-second window.
+for(const [day,arm,ms] of [['03','B',40000],['04','B',40000],['05','B',40000],['06','B',40000],['07','B',40000],['08','B',40000],['09','B',40000]]) {
  for(const hour of ['08','16']) {
   const slot=`2026-11-${day}T${hour}:00+09:00`;
   for(let restart=0;restart<2;restart++) {
@@ -101,4 +101,4 @@ const bs=bstop.files.find(f=>f.filename.includes('cadence-summary')).data;
 assert.equal(bs.first403.ordinal,1);assert.equal(bs.productOperations,1);assert.equal(bs.checkoutOperations,0);
 assert.equal(bs.waits.length,0);assert.equal(bstop.state.lastResult,undefined);
 await assert.rejects(run(false,null,false,'2026-11-04T08:00+09:00',false,{firstStartedAt:'2026-11-04T08:00+09:00',elapsedMs:121*60000}),/budget-exhausted/);
-console.log('ABBA real collector: eight slots, deterministic restarts, waits, success metadata, immediate 403 and inherited budget passed.');
+console.log('Seven-day real collector: fourteen slots, deterministic restarts, waits, success metadata, immediate 403 and inherited budget passed.');

@@ -47,7 +47,7 @@ function chromeCadencePolicy(slot,browser,recovery=null,primaryRequestId=null,tr
   if(browser!=='chrome'||recovery||primaryRequestId||transientTargets||!slot)return base;
   try {if(scanPolicyForSlot(slot).browser!=='chrome')return base;} catch {return base;}
   if(!['08:00','16:00'].includes(slot.slice(11,16)))return base;
-  const arms={'2026-11-03':'A','2026-11-04':'B','2026-11-05':'B','2026-11-06':'A'};
+  const arms={'2026-11-03':'B','2026-11-04':'B','2026-11-05':'B','2026-11-06':'B','2026-11-07':'B','2026-11-08':'B','2026-11-09':'B'};
   const arm=arms[slot.slice(0,10)];
-  return arm?{experimentId:'chrome-cadence-abba-20261103',arm,delayMs:arm==='B'?40000:20000}:base;
+  return arm?{experimentId:'chrome-cadence-week-20261103',arm,delayMs:arm==='B'?40000:20000}:base;
 }

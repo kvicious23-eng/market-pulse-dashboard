@@ -1288,7 +1288,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
         if (tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`coupang-close:${target.mtm}`).catch(()=>{});
       }
       await progress(target.mtm,'completed',targets.length);
-      // Only the scheduled Chrome primary product cadence is assigned by ABBA.
+      // Only the scheduled Chrome primary product cadence uses the fixed seven-day observation window.
       await cadenceWait();
     }
     // Retry blocked pages after the full pass. Processing the other targets
@@ -1969,7 +1969,7 @@ async function primaryRecoveryState(message) {
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({cadenceExperimentId:'chrome-cadence-abba-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if (message?.type==='GET_PRODUCTS') {
