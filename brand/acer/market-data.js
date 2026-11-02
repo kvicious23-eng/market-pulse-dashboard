@@ -31,12 +31,12 @@ window.MARKET_DATA = {
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-11-02T20:17:59+09:00",
                  "historyBrands":  [
                                        "Acer"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-11-03T08:30:49+09:00"
              },
     "products":  [
                      {
@@ -273,10 +273,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -520,10 +520,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -767,10 +767,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -942,10 +942,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1207,16 +1207,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  1689000,
                          "supplierMetrics":  {
-                                                 "stock":  12,
+                                                 "stock":  11,
                                                  "dailySales":  1,
-                                                 "monthSales":  1,
+                                                 "monthSales":  2,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1428,15 +1428,15 @@ window.MARKET_DATA = {
                          "srp":  1229000,
                          "supplierMetrics":  {
                                                  "stock":  11,
-                                                 "dailySales":  1,
+                                                 "dailySales":  0,
                                                  "monthSales":  1,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1674,16 +1674,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  1439000,
                          "supplierMetrics":  {
-                                                 "stock":  110,
+                                                 "stock":  106,
                                                  "dailySales":  4,
-                                                 "monthSales":  4,
+                                                 "monthSales":  8,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1826,10 +1826,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -1919,10 +1919,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -2017,10 +2017,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -2109,16 +2109,16 @@ window.MARKET_DATA = {
                          "category":  "Notebook",
                          "srp":  4319000,
                          "supplierMetrics":  {
-                                                 "stock":  20,
+                                                 "stock":  24,
                                                  "dailySales":  0,
                                                  "monthSales":  0,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }

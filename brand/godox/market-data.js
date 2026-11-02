@@ -31,12 +31,12 @@ window.MARKET_DATA = {
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
-                 "publishedAt":  "2026-11-02T20:17:59+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null
+                 "renamedTo":  null,
+                 "publishedAt":  "2026-11-03T08:30:49+09:00"
              },
     "products":  [
                      {
@@ -317,16 +317,16 @@ window.MARKET_DATA = {
                          "category":  "Camera",
                          "srp":  42000,
                          "supplierMetrics":  {
-                                                 "stock":  308,
-                                                 "dailySales":  11,
-                                                 "monthSales":  11,
+                                                 "stock":  300,
+                                                 "dailySales":  8,
+                                                 "monthSales":  19,
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -416,10 +416,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "sku-not-found",
                                                  "dailySalesStatus":  "sku-not-found",
                                                  "monthSalesStatus":  "sku-not-found",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
@@ -509,10 +509,10 @@ window.MARKET_DATA = {
                                                  "stockStatus":  "confirmed",
                                                  "dailySalesStatus":  "confirmed",
                                                  "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-01",
+                                                 "asOfDate":  "2026-11-02",
                                                  "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-01",
-                                                 "sourceDate":  "2026-11-01",
+                                                 "monthThrough":  "2026-11-02",
+                                                 "sourceDate":  "2026-11-02",
                                                  "salesBasis":  "outbound",
                                                  "source":  "Supplier Hub CSV"
                                              }
