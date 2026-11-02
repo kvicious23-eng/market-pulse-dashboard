@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
     "meta":  {
-                 "snapshotAt":  "2026-11-02T08:19:01+09:00",
+                 "snapshotAt":  "2026-11-02T12:17:04+09:00",
                  "sourceFile":  "product-catalog.json",
                  "comparisonBasis":  "Exact model and item price comparison",
                  "exclusions":  "Personal rewards and unverified benefits are excluded",
@@ -9,34 +9,34 @@ window.MARKET_DATA = {
                                     "quickWatch":  "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
                                     "fullResearch":  "Basic and precision scan",
                                     "dashboardSync":  "GitHub Pages automatic deployment",
-                                    "lastAttemptAt":  "2026-11-02T08:19:01+09:00",
+                                    "lastAttemptAt":  "2026-11-02T12:17:04+09:00",
                                     "lastAttemptStatus":  "success",
                                     "lastAttemptText":  "Godox 수집 결과: 검증 2, 품절 1, 일부 0 / 전체 3",
-                                    "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionLastAttemptAt":  "2026-11-02T08:19:01+09:00",
+                                    "collectionRoute":  "Windows PC · 일반 Whale 확장프로그램",
+                                    "competitionLastAttemptAt":  "2026-11-02T12:17:04+09:00",
                                     "competitionConfigurationStatus":  "configured",
                                     "competitionValidationStatus":  "verified",
                                     "alertEvaluation":  ""
                                 },
                  "brand":  "Godox",
                  "collectionEvidence":  {
-                                            "browser":  "chrome",
+                                            "browser":  "whale",
                                             "extensionVersion":  "1.9.56",
-                                            "scanSlot":  "2026-11-02T08:00+09:00",
+                                            "scanSlot":  "2026-11-02T12:00+09:00",
                                             "policyId":  "whale-noon-evening-v1",
-                                            "runId":  "069d827c61704fcd8a7d41ca2b3575a7",
-                                            "startedAt":  "2026-11-01T23:00:01.332Z",
-                                            "completedAt":  "2026-11-01T23:19:01.138Z",
+                                            "runId":  "29d0777e4cbc4c91a87b8a865ed53300",
+                                            "startedAt":  "2026-11-02T03:00:10.154Z",
+                                            "completedAt":  "2026-11-02T03:17:04.153Z",
                                             "targetCount":  17,
                                             "resultCount":  17
                                         },
                  "recoveryEvidence":  null,
+                 "publishedAt":  "2026-11-02T12:17:04+09:00",
                  "historyBrands":  [
                                        "Godox"
                                    ],
                  "lifecycleStatus":  "active",
-                 "renamedTo":  null,
-                 "publishedAt":  "2026-11-02T08:30:08+09:00"
+                 "renamedTo":  null
              },
     "products":  [
                      {
@@ -55,7 +55,7 @@ window.MARKET_DATA = {
                                             "checkoutInferredZeroFields":  [
 
                                                                            ],
-                                            "checkedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  1000,
                                             "finalPrice":  41000,
@@ -63,14 +63,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "chrome",
+                                                                       "browser":  "whale",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "069d827c61704fcd8a7d41ca2b3575a7",
-                                                                       "checkedAt":  "2026-11-01T23:04:25.780Z"
+                                                                       "runId":  "29d0777e4cbc4c91a87b8a865ed53300",
+                                                                       "checkedAt":  "2026-11-02T03:04:28.984Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-11-02 08:04",
+                                            "availabilityCheckedAt":  "2026-11-02 12:04",
                                             "srp":  42000,
                                             "observedListPrice":  41000,
                                             "productPagePrice":  41000,
@@ -94,7 +94,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-01T23:04:51.514Z",
+                                            "checkoutDiscountCheckedAt":  "2026-11-02T03:04:52.207Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -105,10 +105,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-11-01 20:04",
+                                            "priceComparisonAt":  "2026-11-02 08:04",
                                             "lastVerifiedFinalPrice":  41000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04"
+                                            "lastVerifiedPriceCheckedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04"
                                         },
                                         {
                                             "role":  "competitor",
@@ -130,36 +130,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] [Godox 정품] 고독스 C100 투명 뷰파인더 카메라",
                                             "priceLabel":  "[오늘출발] [Godox 정품] 고독스 C100 투명 뷰파인더 카메라 평일 16:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,070원 무료배송 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
-                                            "url":  "https://price.enuri.com/catalog/148559067"
-                                        },
-                                        {
-                                            "role":  "competitor",
-                                            "channel":  "오픈마켓",
-                                            "seller":  "G마켓",
-                                            "status":  "판매중",
-                                            "displayPrice":  43200,
-                                            "instantDiscount":  null,
-                                            "couponDiscount":  null,
-                                            "cardDiscount":  null,
-                                            "finalPrice":  43200,
-                                            "shipping":  0,
-                                            "shippingStatus":  "verified",
-                                            "sellerRowVerified":  true,
-                                            "matchedMtm":  "C100",
-                                            "alertEligible":  true,
-                                            "competitionPolicyVerified":  true,
-                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
-                                            "sourceType":  "에누리",
-                                            "productTitle":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라  /ED",
-                                            "priceLabel":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라 /ED 평일 16:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,200원 무료배송 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
-                                            "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -182,10 +156,36 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라 /ED",
                                             "priceLabel":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라 /ED 평일 16:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,200원 무료배송 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
+                                            "url":  "https://price.enuri.com/catalog/148559067"
+                                        },
+                                        {
+                                            "role":  "competitor",
+                                            "channel":  "오픈마켓",
+                                            "seller":  "G마켓",
+                                            "status":  "판매중",
+                                            "displayPrice":  43200,
+                                            "instantDiscount":  null,
+                                            "couponDiscount":  null,
+                                            "cardDiscount":  null,
+                                            "finalPrice":  43200,
+                                            "shipping":  0,
+                                            "shippingStatus":  "verified",
+                                            "sellerRowVerified":  true,
+                                            "matchedMtm":  "C100",
+                                            "alertEligible":  true,
+                                            "competitionPolicyVerified":  true,
+                                            "condition":  "다나와 배송비 포함 공개 판매가. 추가 쿠폰·카드할인은 미확인.",
+                                            "sourceType":  "에누리",
+                                            "productTitle":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라  /ED",
+                                            "priceLabel":  "[오늘출발] 고독스 Godox 정품 고독스 C100 투명 뷰파인더 카메라 /ED 평일 16:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,200원 무료배송 - 구매하기 (새 창 열림)",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
+                                            "confidence":  "B",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -208,10 +208,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 평일 15:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -234,10 +234,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "[오늘출발] 고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 평일 15:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -260,10 +260,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라",
                                             "priceLabel":  "고독스 GODOX 고독스 C100 투명 디스플레이 뷰파인더 미니 토이 카메라 신고 42,000원 3,500원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         },
                                         {
@@ -286,10 +286,10 @@ window.MARKET_DATA = {
                                             "sourceType":  "에누리",
                                             "productTitle":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송",
                                             "priceLabel":  "[오늘출발] 고독스 Godox 고독스 C100 투명 뷰파인더 포켓 카메라 C타입 세기 정품 AS가능 / 당일발송 평일 14:00까지 주문 시 120점 적립 에누리 앱에서 구매 시 신고 43,110원 3,000원 - 구매하기 (새 창 열림)",
-                                            "checkedAt":  "2026-11-02 08:04",
-                                            "priceCheckedAt":  "2026-11-02 08:04",
+                                            "checkedAt":  "2026-11-02 12:04",
+                                            "priceCheckedAt":  "2026-11-02 12:04",
                                             "confidence":  "B",
-                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Chrome에서 확인",
+                                            "confidenceText":  "정확한 MTM의 쇼핑몰별 판매가를 일반 Whale에서 확인",
                                             "url":  "https://price.enuri.com/catalog/148559067"
                                         }
                                     ],
@@ -344,7 +344,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9792771317?itemId=29320396361\u0026vendorItemId=96234989566",
-                                            "checkedAt":  "2026-11-02 08:00",
+                                            "checkedAt":  "2026-11-02 12:00",
                                             "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  165000,
@@ -352,16 +352,16 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  null,
                                             "status":  "품절",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "chrome",
+                                                                       "browser":  "whale",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "069d827c61704fcd8a7d41ca2b3575a7",
-                                                                       "checkedAt":  "2026-11-01T23:00:11.704Z"
+                                                                       "runId":  "29d0777e4cbc4c91a87b8a865ed53300",
+                                                                       "checkedAt":  "2026-11-02T03:00:21.566Z"
                                                                    },
                                             "lastVerifiedFinalPrice":  165000,
                                             "lastVerifiedPriceCheckedAt":  "2026-10-31 08:17",
-                                            "availabilityCheckedAt":  "2026-11-02 08:00",
+                                            "availabilityCheckedAt":  "2026-11-02 12:00",
                                             "srp":  165000,
                                             "observedListPrice":  165000,
                                             "productPagePrice":  165000,
@@ -397,7 +397,7 @@ window.MARKET_DATA = {
                                             "priceChange":  null,
                                             "priceTrend":  "unavailable",
                                             "priceComparisonAt":  "2026-10-31 08:17",
-                                            "priceCheckedAt":  "2026-11-02 08:00"
+                                            "priceCheckedAt":  "2026-11-02 12:00"
                                         }
                                     ],
                          "references":  [
@@ -437,7 +437,7 @@ window.MARKET_DATA = {
                                             "shipping":  0,
                                             "sourceType":  "관리화면 등록 URL",
                                             "url":  "https://www.coupang.com/vp/products/9792744152?itemId=29320288864\u0026vendorItemId=96234888229",
-                                            "checkedAt":  "2026-11-02 08:00",
+                                            "checkedAt":  "2026-11-02 12:01",
                                             "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
                                             "instantDiscount":  0,
                                             "finalPrice":  17000,
@@ -445,14 +445,14 @@ window.MARKET_DATA = {
                                             "confidence":  "A",
                                             "cardDiscount":  0,
                                             "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
+                                            "confidenceText":  "동일 Item ID의 일반 Whale 화면에서 가격 확인",
                                             "collectionEvidence":  {
-                                                                       "browser":  "chrome",
+                                                                       "browser":  "whale",
                                                                        "extensionVersion":  "1.9.56",
-                                                                       "runId":  "069d827c61704fcd8a7d41ca2b3575a7",
-                                                                       "checkedAt":  "2026-11-01T23:00:53.205Z"
+                                                                       "runId":  "29d0777e4cbc4c91a87b8a865ed53300",
+                                                                       "checkedAt":  "2026-11-02T03:01:00.940Z"
                                                                    },
-                                            "availabilityCheckedAt":  "2026-11-02 08:01",
+                                            "availabilityCheckedAt":  "2026-11-02 12:01",
                                             "srp":  17000,
                                             "observedListPrice":  17000,
                                             "productPagePrice":  17000,
@@ -476,7 +476,7 @@ window.MARKET_DATA = {
                                             "checkoutCouponSource":  "checkout",
                                             "wowInstantDiscount":  0,
                                             "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-01T23:01:16.912Z",
+                                            "checkoutDiscountCheckedAt":  "2026-11-02T03:01:25.736Z",
                                             "checkoutUnparsedFields":  [
 
                                                                        ],
@@ -487,10 +487,10 @@ window.MARKET_DATA = {
                                             "alertEligible":  true,
                                             "priceChange":  0,
                                             "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-11-01 20:01",
+                                            "priceComparisonAt":  "2026-11-02 08:00",
                                             "lastVerifiedFinalPrice":  17000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-02 08:00",
-                                            "priceCheckedAt":  "2026-11-02 08:00"
+                                            "lastVerifiedPriceCheckedAt":  "2026-11-02 12:01",
+                                            "priceCheckedAt":  "2026-11-02 12:01"
                                         }
                                     ],
                          "references":  [
