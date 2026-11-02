@@ -1186,6 +1186,16 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
   const scanStartedAt = new Date().toISOString();
   const runId=recovery?.runId||crypto.randomUUID().replaceAll('-','');
   const results = [];
+  const cadence=chromeCadencePolicy(scanSlot,isEdgeBrowser?'edge':/Whale\//.test(navigator.userAgent)?'whale':'chrome',recovery,primaryRequestId,transientTargets);
+  const cadenceMetrics={productOperations:0,checkoutOperations:0,waits:[],first403:null};
+  const cadenceWait=async()=>{
+    const at=Date.now();await wait(cadence.delayMs);
+    cadenceMetrics.waits.push({configuredMs:cadence.delayMs,actualMs:Date.now()-at});
+  };
+  const note403=(row,ordinal)=>{
+    const d=row.accessDiagnostics?.at(-1)?.diagnostic;
+    if(!cadenceMetrics.first403&&(d?.responses?.some(x=>x.route==='product'&&x.status===403)||d?.page?.navigationStatus===403))cadenceMetrics.first403={ordinal,elapsedMs:Date.now()-Date.parse(scanStartedAt)};
+  };
   let accessStop=null;
   const canStopForAccess=Boolean(scanSlot&&!recovery&&(!/Whale\//.test(navigator.userAgent)||primaryRequestId)&&!isEdgeBrowser);
   const scanWindowState={windowId:null,anchorTabIds:[]};
@@ -1222,6 +1232,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
       let tab;
       await progress(target.mtm,'coupang-load',targets.length);
       try {
+        cadenceMetrics.productOperations++;
         tab = await openScanTab(target.url,`coupang-open:${target.mtm}`,scanWindowState);
         await withScanTimeout(waitForComplete(tab.id),60000,`coupang-load:${target.mtm}`);
         await wait(7000);
@@ -1229,12 +1240,14 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
         const priceScan=await withScanTimeout(scanCoupangTab(tab.id,target),90000,`coupang-price:${target.mtm}`);
         const result={...target, ...priceScan, checkedAt:new Date().toISOString()};
         if(priceScan.accessDiagnostic){result.accessDiagnostics=[{phase:'initial',reason:priceScan.reason||'ok',diagnostic:priceScan.accessDiagnostic}];delete result.accessDiagnostic;}
+        note403(result,results.length+1);
         if(canStopForAccess&&isConfirmedAccessDenied(result)) {
           results.push(result);accessStop=result;break;
         }
         if(priceScan?.ok) {
           try {
             await progress(target.mtm,'checkout',targets.length);
+            cadenceMetrics.checkoutOperations++;
             const trace=createCheckoutTrace();result.checkoutDiagnostic=trace.data;
             Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,scanWindowState,trace),90000,`checkout:${target.mtm}`));
           } catch(error) {
@@ -1275,8 +1288,8 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
         if (tab?.id) await withScanTimeout(chrome.tabs.remove(tab.id),15000,`coupang-close:${target.mtm}`).catch(()=>{});
       }
       await progress(target.mtm,'completed',targets.length);
-      // A slower cadence reduces Coupang's temporary access-check response.
-      await wait(20000);
+      // Only the scheduled Chrome primary product cadence is assigned by ABBA.
+      await cadenceWait();
     }
     // Retry blocked pages after the full pass. Processing the other targets
     // creates cooldown time without a long idle timer that Chrome may stop.
@@ -1285,6 +1298,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
       let retryTab;
       try {
         await progress(result.mtm,'coupang-retry',targets.length);
+        cadenceMetrics.productOperations++;
         retryTab=await openScanTab(result.url,`retry-open:${result.mtm}`,scanWindowState);
         await withScanTimeout(waitForComplete(retryTab.id),60000,`retry-load:${result.mtm}`);
         await wait(10000);
@@ -1302,8 +1316,10 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
          }
          if(attempts.length)result.accessDiagnostics=attempts.slice(-2);
          delete result.accessDiagnostic;
+         note403(result,results.indexOf(result)+1);
          if(canStopForAccess&&isConfirmedAccessDenied(result)){accessStop=result;break;}
          if (retryScan?.ok) {
+           cadenceMetrics.checkoutOperations++;
            const trace=createCheckoutTrace();result.checkoutDiagnostic=trace.data;
            Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(result,scanWindowState,trace),90000,`retry-checkout:${result.mtm}`));
          }
@@ -1371,6 +1387,19 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
     await chrome.storage.local.set({lastScanError:String(error),lastScanErrorAt:new Date().toISOString()});
     throw error;
   } finally {
+    // Local metadata only, including successful runs. Never archive price rows here.
+    if(cadence.experimentId) {
+      const summary={version:1,...cadence,runId,scanSlot,startedAt:scanStartedAt,endedAt:new Date().toISOString(),
+        deadlineAt:Number.isFinite(recoveryDeadline)?new Date(recoveryDeadline).toISOString():null,
+        ...cadenceMetrics,outcome:accessStop?'access-stopped':results.length&&results.every(x=>x.ok)?'collected':'see-run-diagnostics',
+        observationScope:'explicit-product-and-checkout-operations-not-network-requests'};
+      await chrome.storage.local.set({lastCadenceSummary:summary}).catch(()=>{});
+      try {
+        const filename=`MarketPulse/cadence-summary-${runId}.json`;
+        const id=await withScanTimeout(chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(summary)),filename,conflictAction:'overwrite',saveAs:false}),10000,'cadence-summary');
+        await withScanTimeout(waitForScanDownload(id,filename),20000,'cadence-summary-save');
+      } catch {}
+    }
     for(const anchorId of scanWindowState.anchorTabIds) {
       await chrome.tabs.remove(anchorId).catch(()=>{});
     }
@@ -1940,7 +1969,7 @@ async function primaryRecoveryState(message) {
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({cadenceExperimentId:'chrome-cadence-abba-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if (message?.type==='GET_PRODUCTS') {

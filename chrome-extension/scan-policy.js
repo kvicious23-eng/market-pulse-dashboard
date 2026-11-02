@@ -40,3 +40,14 @@ function primaryWitnessFilename(slot,id) {
   if(!/^[a-f0-9]{32}$/.test(id||''))throw Error('invalid-primary-id');
   return `MarketPulse/whale-scan-start-${scanSlotKey(slot)}-${id}.json`;
 }
+
+// Fixed KST slot assignment; independent of wall clock, restart or locale.
+function chromeCadencePolicy(slot,browser,recovery=null,primaryRequestId=null,transientTargets=null) {
+  const base={experimentId:null,arm:null,delayMs:20000};
+  if(browser!=='chrome'||recovery||primaryRequestId||transientTargets||!slot)return base;
+  try {if(scanPolicyForSlot(slot).browser!=='chrome')return base;} catch {return base;}
+  if(!['08:00','16:00'].includes(slot.slice(11,16)))return base;
+  const arms={'2026-11-03':'A','2026-11-04':'B','2026-11-05':'B','2026-11-06':'A'};
+  const arm=arms[slot.slice(0,10)];
+  return arm?{experimentId:'chrome-cadence-abba-20261103',arm,delayMs:arm==='B'?40000:20000}:base;
+}

@@ -11,7 +11,7 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
  if(whale)state.primaryRequest={scanSlot:slot,requestId:'c'.repeat(32),deadlineAt:new Date(Date.parse(slot)+120*60000).toISOString()};
  class Clock extends Date{constructor(...a){super(...(a.length?a:[Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs]));}static now(){return Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs;}}
  const context={Date:Clock,URL,Object,Set,crypto:{randomUUID:()=> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},navigator:{userAgent:edge?'Edg/1':whale?'Whale/1':'Chrome/1'},isEdgeBrowser:edge,primaryStopRequestId:null,
-  createCheckoutTrace:()=>({data:{version:1,events:[]}}),saveCheckoutDiagnosticArchive:async()=>'not-needed',accessDiagnosticTabs:new Map(),saveAccessDiagnosticArchive:async()=>'not-needed',saveCompletedScan:async payload=>{const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';const id=await context.chrome.downloads.download({url:'data:application/json,'+encodeURIComponent(JSON.stringify(payload)),filename});await context.waitForScanDownload(id,filename);},withScanTimeout:async p=>p,wait:async()=>{},getTargets:async()=>products,validateProductCatalog:()=>[],
+  createCheckoutTrace:()=>({data:{version:1,events:[]}}),saveCheckoutDiagnosticArchive:async()=>'not-needed',accessDiagnosticTabs:new Map(),saveAccessDiagnosticArchive:async()=>'not-needed',saveCompletedScan:async payload=>{const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';const id=await context.chrome.downloads.download({url:'data:application/json,'+encodeURIComponent(JSON.stringify(payload)),filename});await context.waitForScanDownload(id,filename);},withScanTimeout:async p=>p,wait:async ms=>{events.push(`wait:${ms}`);},getTargets:async()=>products,validateProductCatalog:()=>[],
   waitForScanDownload:async id=>{if(failWitness&&id===1)throw Error('interrupted');events.push('complete:'+id);},
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>{const index=scanCount++;const denied=blocked&&(index===0||retryDenied&&index>=products.length);return {ok:!denied,...(denied?{reason:'access-check',accessCheckDetail:'access-denied-message'}:{}),accessDiagnostic:{observedAt:new Clock().toISOString(),responses:[{route:'product',event:'complete',status:denied&&confirmed&&(!retryDenied||index>=products.length)?403:200}],page:{marker:denied?'access denied':''}}};},collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
   chrome:{runtime:{getManifest:()=>({version:'1.9.55'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
@@ -80,3 +80,25 @@ for(const whale of [false,true]) {
  assert.equal(recoveredProof.state.lastResult,undefined);
 }
 console.log('A transient stop-proof write failure uses one unique fallback without re-collecting or publishing partial prices.');
+
+// The real collector, including success summaries and immediate 403 stop, uses ABBA.
+for(const [day,arm,ms] of [['03','A',20000],['04','B',40000],['05','B',40000],['06','A',20000]]) {
+ for(const hour of ['08','16']) {
+  const slot=`2026-11-${day}T${hour}:00+09:00`;
+  for(let restart=0;restart<2;restart++) {
+   const x=await run(false,null,false,slot);
+   const summary=x.files.find(f=>f.filename.includes('cadence-summary')).data;
+   assert.equal(summary.arm,arm);assert.equal(summary.delayMs,ms);
+   assert.equal(summary.productOperations,2);assert.equal(summary.checkoutOperations,2);
+   assert.equal(summary.waits.length,2);assert.equal(summary.waits[0].configuredMs,ms);
+   assert.equal(summary.first403,null);assert.equal(x.events.filter(e=>e===`wait:${ms}`).length,2);
+   assert.equal(JSON.stringify(summary).includes('private'),false);assert.equal(summary.results,undefined);
+  }
+ }
+}
+const bstop=await run(false,null,false,'2026-11-04T16:00+09:00',true,{confirmed:true});
+const bs=bstop.files.find(f=>f.filename.includes('cadence-summary')).data;
+assert.equal(bs.first403.ordinal,1);assert.equal(bs.productOperations,1);assert.equal(bs.checkoutOperations,0);
+assert.equal(bs.waits.length,0);assert.equal(bstop.state.lastResult,undefined);
+await assert.rejects(run(false,null,false,'2026-11-04T08:00+09:00',false,{firstStartedAt:'2026-11-04T08:00+09:00',elapsedMs:121*60000}),/budget-exhausted/);
+console.log('ABBA real collector: eight slots, deterministic restarts, waits, success metadata, immediate 403 and inherited budget passed.');

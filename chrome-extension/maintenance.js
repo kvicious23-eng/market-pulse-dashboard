@@ -16,6 +16,7 @@ async function maintainExtension() {
     const health=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_EXTENSION_HEALTH'}));
     const permission=await maintenanceTimeout(chrome.permissions.contains({permissions:['webRequest']}));
     receipt.workerVersion=health?.version||null;
+    receipt.cadenceExperimentId=health?.cadenceExperimentId||null;
     receipt.policyId=health?.policyId||null;
     receipt.slotOwners=health?.slotOwners||null;
     receipt.observerStatus=health?.observerStatus||null;
