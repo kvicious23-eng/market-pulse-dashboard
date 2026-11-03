@@ -11,6 +11,11 @@ function Get-CommonDeadline($Request) {
  $cap=[DateTimeOffset]::Parse($Request.scanSlot).AddMinutes(140);$next=Get-NextScanTime $Request.scanSlot
  if($cap -lt $end){$end=$cap};if($next -lt $end){$end=$next};$end
 }
+# Compare Windows/browser representations by whole UTC seconds, without rounding.
+# Keep original timestamps and every budget/expiry calculation unchanged.
+function Test-CommonDeadlineSecond([string]$Recorded,[DateTimeOffset]$Expected) {
+ return ([DateTimeOffset]::Parse($Recorded)).ToUnixTimeSeconds() -eq $Expected.ToUnixTimeSeconds()
+}
 function Assert-CommonRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
  $protocol=Get-CommonProtocolId $Slot
  if(-not $protocol -or -not $Request -or $Request.version -ne 1 -or $Request.primaryProtocolId -cne $protocol -or
@@ -40,7 +45,7 @@ function Assert-CommonWitness($Witness,$Request,$Catalog) {
  if($Witness.primaryRequestId -cne $Request.requestId -or $Witness.primaryProtocolId -cne $Request.primaryProtocolId -or
    [version]$Witness.extensionVersion -lt [version]'1.9.62' -or
    [DateTimeOffset]::Parse($Witness.startedAt) -lt [DateTimeOffset]::Parse($Request.requestedAt) -or
-   [DateTimeOffset]::Parse($Witness.deadlineAt) -ne (Get-CommonDeadline $Request)){throw 'Common start witness mismatch'}
+   -not (Test-CommonDeadlineSecond $Witness.deadlineAt (Get-CommonDeadline $Request))){throw 'Common start witness mismatch'}
 }
 function Get-CommonSavedResult([string]$Folder,[string]$Slot,[string]$RepoPath,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
  $q=Read-CommonRequest $RepoPath $Slot
@@ -96,7 +101,8 @@ function Assert-CommonFailure($Failure,[string]$Slot,$Catalog,$Request,$Witness,
   $Failure.running -ne $false -or $Failure.completed -ne $false -or $Failure.requestExists -ne $true -or
   $Failure.targetCount -ne @($Request.targets).Count -or $Failure.runId -cne $Witness.runId -or
   [version]$Failure.workerVersion -lt [version]'1.9.62' -or
-  [DateTimeOffset]::Parse($Failure.deadlineAt) -ne (Get-CommonDeadline $Request) -or
+  -not (Test-CommonDeadlineSecond $Failure.deadlineAt (Get-CommonDeadline $Request)) -or
+  (Get-CommonDeadline $Request) -le $Now -or
   [DateTimeOffset]::Parse($Failure.deadlineAt) -le $Now -or
   [DateTimeOffset]::Parse($Failure.at) -gt $Now.AddSeconds(5) -or
   ($Now-[DateTimeOffset]::Parse($Failure.at)).TotalSeconds -gt 90){throw 'Unconfirmed common worker handoff'}
@@ -156,7 +162,7 @@ function Assert-CommonPayload($Payload,$Request,$Witness,$Catalog,[DateTimeOffse
    [version]$Payload.extensionVersion -lt [version]'1.9.62' -or $Payload.complete -ne $true -or
    $Payload.targetCount -ne @($Request.targets).Count -or $Payload.resultCount -ne @($Payload.results).Count -or
    $Payload.targetCount -ne @($Payload.results).Count -or
-   [DateTimeOffset]::Parse($Payload.deadlineAt) -ne (Get-CommonDeadline $Request) -or
+   -not (Test-CommonDeadlineSecond $Payload.deadlineAt (Get-CommonDeadline $Request)) -or
    [DateTimeOffset]::Parse($Payload.completedAt) -lt [DateTimeOffset]::Parse($Payload.startedAt) -or
    [DateTimeOffset]::Parse($Payload.completedAt) -gt (Get-CommonDeadline $Request) -or
    [DateTimeOffset]::Parse($Payload.completedAt) -gt $Now.AddMinutes(2) -or

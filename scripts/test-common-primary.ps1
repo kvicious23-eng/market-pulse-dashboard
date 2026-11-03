@@ -63,6 +63,35 @@ try{
    Assert-PrimaryScanSource (Read-ScanRecoveryJson $p) $slot $global:CommonFolder $temp
    if($global:CommonEdges){throw 'Healthy primary incorrectly launched Edge'}
    $payload=Read-ScanRecoveryJson $p;$w=Get-CommonStartWitness $global:CommonFolder $q
+   # Reproduce Windows ticks versus browser milliseconds through real validators.
+   $preciseQ=$q|ConvertTo-Json -Depth 20|ConvertFrom-Json
+   $preciseQ.requestedAt=$start.AddTicks(2919491).ToString('o')
+   $preciseDeadline=Get-CommonDeadline $preciseQ
+   foreach($fraction in @('0000000','2910000','9999999')){
+    $whole=$preciseDeadline.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss")
+    $represented=$whole+'.'+$fraction+'Z'
+    $preciseW=$w|ConvertTo-Json -Depth 20|ConvertFrom-Json;$preciseW.deadlineAt=$represented
+    $preciseP=$payload|ConvertTo-Json -Depth 40|ConvertFrom-Json;$preciseP.deadlineAt=$represented
+    Assert-CommonWitness $preciseW $preciseQ $catalog
+    Assert-CommonPayload $preciseP $preciseQ $preciseW $catalog
+   }
+   $preciseW.deadlineAt=$preciseDeadline.ToOffset([TimeSpan]::FromHours(9)).ToString('o')
+   Assert-CommonWitness $preciseW $preciseQ $catalog
+   foreach($neighbor in @($preciseDeadline.AddSeconds(-1),$preciseDeadline.AddSeconds(1))){
+    $bad=$preciseW|ConvertTo-Json -Depth 20|ConvertFrom-Json;$bad.deadlineAt=$neighbor.ToString('o');$denied=$false
+    try{Assert-CommonWitness $bad $preciseQ $catalog}catch{$denied=$true}
+    if(-not $denied){throw 'Adjacent-second witness deadline admitted'}
+    $bad=$preciseP|ConvertTo-Json -Depth 40|ConvertFrom-Json;$bad.deadlineAt=$neighbor.ToString('o');$denied=$false
+    try{Assert-CommonPayload $bad $preciseQ $preciseW $catalog}catch{$denied=$true}
+    if(-not $denied){throw 'Adjacent-second payload deadline admitted'}
+   }
+   # Even a tiny difference across a second boundary must fail; this is not a tolerance.
+   if(Test-CommonDeadlineSecond ($preciseDeadline.AddSeconds(1).UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss")+'.000Z') ([DateTimeOffset]::Parse($whole+'.9999999Z'))){throw 'Cross-second values were rounded or treated as a tolerance'}
+   $expired=$preciseP|ConvertTo-Json -Depth 40|ConvertFrom-Json
+   $expired.completedAt=$preciseDeadline.AddTicks(1).ToString('o');$expired.scannedAt=$expired.completedAt;$denied=$false
+   try{Assert-CommonPayload $expired $preciseQ $preciseW $catalog $preciseDeadline.AddMinutes(1)}catch{$denied=$true}
+   if(-not $denied){throw 'Seconds-only identity comparison extended the completion budget'}
+   Write-Host "Seconds-only witness/payload equality, timezone, adjacent-second rejection and original expiry passed: $slot"
    $priorAttempt=$payload|ConvertTo-Json -Depth 40|ConvertFrom-Json;$priorAttempt.runId=('f'*32);Write-ScanRecoveryJson $p $priorAttempt
    if(Get-CommonSavedResult $global:CommonFolder $slot $temp){throw 'Previous attempt shadowed current start witness'}
    Write-ScanRecoveryJson $p $payload
@@ -120,6 +149,21 @@ try{
    }
    $proof=[pscustomobject]@{version=1;mode='freeze';verifyOnly=$false;browser=$q.browser;scanSlot=$slot;requestId=$q.requestId;primaryProtocolId=$q.primaryProtocolId;nonce=('f'*32);status='edge-ready';ok=$true;handoff=$true;running=$false;completed=$false;requestExists=$true;targetCount=2;runId=$w.runId;workerVersion='1.9.63';deadlineAt=$w.deadlineAt;at=$global:CommonNow.ToString('o');retryCount=1;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
    Assert-CommonFailure $proof $slot $catalog $q $w
+   $preciseQ=$q|ConvertTo-Json -Depth 20|ConvertFrom-Json;$preciseQ.requestedAt=$start.AddTicks(2919491).ToString('o')
+   $preciseDeadline=Get-CommonDeadline $preciseQ
+   $preciseW=$w|ConvertTo-Json -Depth 20|ConvertFrom-Json;$preciseW.deadlineAt=$preciseDeadline.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+   $preciseProof=$proof|ConvertTo-Json -Depth 20|ConvertFrom-Json;$preciseProof.deadlineAt=$preciseW.deadlineAt
+   Assert-CommonFailure $preciseProof $slot $catalog $preciseQ $preciseW
+   foreach($neighbor in @($preciseDeadline.AddSeconds(-1),$preciseDeadline.AddSeconds(1))){
+    $bad=$preciseProof|ConvertTo-Json -Depth 20|ConvertFrom-Json;$bad.deadlineAt=$neighbor.ToString('o');$denied=$false
+    try{Assert-CommonFailure $bad $slot $catalog $preciseQ $preciseW}catch{$denied=$true}
+    if(-not $denied){throw 'Adjacent-second handoff deadline admitted'}
+   }
+   $lateProof=$preciseProof|ConvertTo-Json -Depth 20|ConvertFrom-Json
+   $lateProof.deadlineAt=$preciseDeadline.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss")+'.9999999Z'
+   $lateNow=$preciseDeadline.AddTicks(1);$lateProof.at=$lateNow.ToString('o');$denied=$false
+   try{Assert-CommonFailure $lateProof $slot $catalog $preciseQ $preciseW $lateNow}catch{$denied=$true}
+   if(-not $denied){throw 'Same-second represented deadline extended the handoff budget'}
    foreach($field in @('requestId','primaryProtocolId','runId','targetCount','originalWorkerInstanceId','at')){
     $bad=$proof|ConvertTo-Json -Depth 8|ConvertFrom-Json;$bad.$field='invalid';$rejected=$false
     try{Assert-CommonFailure $bad $slot $catalog $q $w}catch{$rejected=$true}
