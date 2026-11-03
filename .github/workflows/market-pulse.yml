@@ -14,6 +14,8 @@ on:
   push:
     branches: [main]
     paths:
+      # All Windows entry points, shared helpers and PS regression tests are gates.
+      - "scripts/*.ps1"
       - ".github/workflows/market-pulse.yml"
       - "scripts/update-market-data.mjs"
       - "index.html"
@@ -204,6 +206,7 @@ jobs:
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           ./scripts/test-price-publication.ps1
+          ./scripts/test-publication-flow.ps1
           ./scripts/test-common-primary.ps1
           ./scripts/test-worker-probe.ps1
           ./scripts/test-access-stop.ps1
@@ -224,6 +227,7 @@ jobs:
           ./scripts/test-supplier-metrics.ps1
           ./scripts/test-supplier-daily.ps1
           ./scripts/test-morning-recovery.ps1
+          ./scripts/test-common-morning.ps1
 
   deploy:
     needs: [update, windows_history]

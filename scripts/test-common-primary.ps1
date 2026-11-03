@@ -40,6 +40,8 @@ try{
   Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
   foreach($name in @('scan-recovery.ps1','common-primary.ps1','run-common-primary.ps1','edge-fallback.ps1','brand-lifecycle.ps1','browser-profile.ps1')){
    $text=Get-Content (Join-Path $PSScriptRoot $name) -Raw -Encoding UTF8
+   # Test slots include today's production slot. Never share its named mutexes.
+   $text=$text.Replace('Local\MarketPulse',('Local\MPFixture.'+(Split-Path $temp -Leaf)))
    $text=$text.Replace('[DateTimeOffset]::UtcNow','$global:CommonNow')
    $text=$text.Replace('$resultFolder = Join-Path ([Environment]::GetFolderPath(''UserProfile'')) ''Downloads\MarketPulse''','$resultFolder=$global:CommonFolder')
    $text=$text.Replace('$folder=Join-Path ([Environment]::GetFolderPath(''UserProfile'')) ''Downloads\MarketPulse''','$folder=$global:CommonFolder')

@@ -481,6 +481,7 @@ if ($alreadyImported) {
   }
   Invoke-Git -Arguments @('add','--','brand') | Out-Null
   $metricDiff=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
+  Prepare-PricePublicationCommit $RepoPath
   if ($metricDiff -eq 1) { Invoke-Git -Arguments @('commit','-m','data: refresh Supplier Hub product metrics') | Out-Null }
   Write-Host "This price scan was already imported at $scanKst; publishing pending data without repeating price history."
   Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
@@ -948,6 +949,7 @@ if (Test-Path (Join-Path $RepoPath 'brand')) { Invoke-Git -Arguments @('add','--
 Invoke-Git -Arguments @('add','--','dist/price-history.js') | Out-Null
 Invoke-Git -Arguments @('add','--','dist/competitor-price-history.js') | Out-Null
 $diffExit=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
+Prepare-PricePublicationCommit $RepoPath
 if ($diffExit -eq 1) {
   Invoke-Git -Arguments @('commit','-m','data: import Coupang prices from Chrome extension') | Out-Null
 }
