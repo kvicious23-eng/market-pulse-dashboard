@@ -17,7 +17,7 @@ $extensionPath = Join-Path $RepoPath 'chrome-extension'
 . (Join-Path $PSScriptRoot 'browser-profile.ps1')
 
 function Get-LatestScan {
-  if($PrimaryBrowser -eq 'whale') {
+  if($PrimaryBrowser -eq 'whale' -or (Get-CommonProtocolId (Get-ScanRecoverySlot))) {
     $path=Get-SavedPrimaryResultPath $resultFolder (Get-ScanRecoverySlot) $RepoPath
     if($path){return [pscustomobject]@{File=Get-Item $path;Data=(Read-ScanRecoveryJson $path)}}
     return $null
@@ -43,7 +43,7 @@ $handoffHeld=$false
 try {
   try {$handoffHeld=$handoffMutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$handoffHeld=$true}
   if(-not $handoffHeld){return}
-  $existing=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath (Get-ScanRecoverySlot))
+  $existing=Read-EdgeOwnership $RepoPath (Get-ScanRecoverySlot)
   if($existing -and $existing.scanSlot -ceq (Get-ScanRecoverySlot)){return}
 if((Get-PrimaryScanBrowser (Get-ScanRecoverySlot)) -cne $PrimaryBrowser){throw 'Wrong primary browser for the recovery slot.'}
 $processExit=$null -ne $StartWitness
@@ -100,7 +100,7 @@ if ($AccessStop) {
 } elseif ($processExit) {
   $slot=Get-ScanRecoverySlot
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
-  Assert-ScanStartWitness $StartWitness $slot $catalog $PrimaryBrowser
+  if(Get-CommonProtocolId $slot){Assert-CommonWitness $StartWitness (Read-CommonRequest $RepoPath $slot) $catalog}else{Assert-ScanStartWitness $StartWitness $slot $catalog $PrimaryBrowser}
   $session=(Get-Process -Id $PID).SessionId
   if (-not $ExitProof.chromeSeen -or [int]$ExitProof.absentChecks -lt 2 -or
       ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse([string]$ExitProof.observedAt)).TotalSeconds -gt 30 -or
@@ -217,6 +217,7 @@ try {
 } catch {
   if ($receipt) {
     $receipt.state='failed'
+    $receipt | Add-Member failureKind $(if($_.Exception.Message -eq 'Edge fallback did not finish before the timeout; the existing dashboard is preserved.'){'monitor-timeout'}else{'launch-or-validation-failed'}) -Force
     $receipt | Add-Member -NotePropertyName failure -NotePropertyValue $_.Exception.Message -Force
     Write-ScanRecoveryJson $receiptPath $receipt
   }

@@ -1,4 +1,5 @@
-async function bounded(p,ms=10000){let timer;try{return await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}}
+const commonPageStarted=Date.now();
+async function bounded(p,ms=10000,cleanup=false){if(!cleanup&&Date.now()-commonPageStarted>=30000)throw Error('primary-api-timeout');ms=cleanup?Math.min(ms,2000):Math.min(ms,Math.max(1,30000-(Date.now()-commonPageStarted)));let timer;try{return await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('primary-api-timeout')),ms);})]);}finally{clearTimeout(timer);}}
 (async()=>{
  try{
   const p=new URLSearchParams(location.search),requestId=p.get('requestId'),nonce=p.get('nonce'),mode=p.get('mode')||'start',slot=p.get('slot');
@@ -21,5 +22,5 @@ async function bounded(p,ms=10000){let timer;try{return await Promise.race([p,ne
    await new Promise(r=>setTimeout(r,500));
   }
  }catch{}
- finally{try{const tab=await bounded(chrome.tabs.getCurrent());if(tab?.id)await bounded(chrome.tabs.remove(tab.id));}catch{}}
+ finally{try{const tab=await bounded(chrome.tabs.getCurrent(),2000,true);if(tab?.id)await bounded(chrome.tabs.remove(tab.id),2000,true);}catch{}}
 })();

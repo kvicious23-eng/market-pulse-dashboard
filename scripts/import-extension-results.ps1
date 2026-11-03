@@ -31,19 +31,20 @@ function Invoke-Git {
 
 function Get-LatestResultPath {
   if($ModelRecoverySource){return $ModelRecoverySource}
-  $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
+  $receipt=Read-EdgeOwnership $RepoPath $recoverySlot
   if ($receipt -and $receipt.scanSlot -ceq $recoverySlot) {
     $edgePath=Get-EdgeRecoveryResultPath -RepoPath $RepoPath -ResultFolder $resultFolder -Slot $recoverySlot
     if($edgePath){return Resolve-BluePublicationResult $edgePath $recoverySlot $resultFolder $RepoPath}
     return $edgePath
   }
-  $normalSlot=if($minimumStart -or (Get-PrimaryScanBrowser $recoverySlot) -eq 'whale'){$recoverySlot}else{''}
+  $normalSlot=if($minimumStart -or (Get-CommonProtocolId $recoverySlot) -or (Get-PrimaryScanBrowser $recoverySlot) -eq 'whale'){$recoverySlot}else{''}
   return Get-SavedPrimaryResultPath $resultFolder $normalSlot $RepoPath
 }
 
 $deadline = [DateTime]::UtcNow.AddMinutes(45)
 $candidateError=''
 do {
+  if(Get-CommonProtocolId $recoverySlot){$deadline=(Get-CommonResultWaitDeadline $RepoPath $recoverySlot ([DateTimeOffset]$deadline)).UtcDateTime}
   if ($recoverySlot -and -not $ModelRecoverySource) {
     if(Get-CommonProtocolId $recoverySlot){Invoke-CommonPrimaryStep $RepoPath $resultFolder $recoverySlot}
     Invoke-ChromeWorkerRecovery $RepoPath $resultFolder $recoverySlot
@@ -217,6 +218,7 @@ if ($scanKst -in $retiredScanTimes) {
 $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalogPath | ConvertFrom-Json } else { $null }
 . (Join-Path $PSScriptRoot 'brand-lifecycle.ps1')
 Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
+Assert-ScanPublicationOrder $payload $RepoPath
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
 $metricDay=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
 $metricPublishedAt=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
@@ -851,7 +853,7 @@ foreach ($spec in $specs) {
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
   if ($payload.recovery -and $payload.recovery.reason -in @('primary-worker-failed','chrome-worker-interrupted','chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error')) {
-    $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
+    $receipt=Read-EdgeOwnership $RepoPath $recoverySlot
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
     $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';primaryBrowser=$receipt.primaryBrowser;scanSlot=$payload.scanSlot;
       chromeRunId=$receipt.chromeRunId;edgeRunId=$payload.runId;chromeStartedAt=$receipt.chromeStartedAt;

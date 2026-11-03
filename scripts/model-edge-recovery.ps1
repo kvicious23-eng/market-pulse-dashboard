@@ -74,6 +74,7 @@ function Test-ModelEdgeVerifiedRow($Row) {
 function Assert-ModelEdgeResult($Edge,$Receipt,$Base) {
   if($Receipt.attempt -eq 2 -and ([version]$Edge.extensionVersion -lt [version]'1.9.54' -or $Edge.recovery.attempt -ne 2)){throw 'Second result requires the matching new worker attempt.'}
   Assert-EdgeRecoveryResult $Edge $Receipt @($Receipt.targets)
+  if($Receipt.primaryProtocolId -cne $Base.recovery.primaryProtocolId -or $Edge.recovery.primaryProtocolId -cne $Base.recovery.primaryProtocolId){throw 'Subset Edge protocol mismatch.'}
   if($Edge.recovery.scope -cne 'models' -or $Edge.recovery.baseHash -cne $Receipt.baseHash -or
     $Edge.recovery.baseRunId -cne $Base.runId -or [version]$Edge.extensionVersion -lt [version]'1.9.52' -or
     $Edge.policyId -cne $Base.policyId -or $Edge.recovery.policyId -cne $Base.policyId -or
@@ -175,7 +176,7 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
       foreach($limit in @([DateTimeOffset]::Parse($Slot).AddMinutes(140),$now.AddMinutes(40),[DateTimeOffset]::Parse($base.deadlineAt))){if($limit -lt $deadline){$deadline=$limit}}
       $receipt=[pscustomobject]@{version=1;state='started';attempt=$attempt;scope='models';reason='model-errors';scanSlot=$Slot;runId=[guid]::NewGuid().ToString('N');mergedRunId=[guid]::NewGuid().ToString('N');
         baseRunId=$base.runId;baseHash=$hash;chromeRunId=$base.recovery.chromeRunId;chromeStartedAt=$base.recovery.chromeStartedAt;chromeCompletedAt=$base.recovery.chromeCompletedAt;
-        primaryBrowser=(Get-PrimaryScanBrowser $Slot);primaryRequestId=$base.recovery.primaryRequestId;policyId=$base.policyId;triggeredAt=$now.ToString('o');deadlineAt=$deadline.ToString('o');targets=$targets}
+        primaryBrowser=(Get-PrimaryScanBrowser $Slot);primaryRequestId=$base.recovery.primaryRequestId;primaryProtocolId=$base.recovery.primaryProtocolId;policyId=$base.policyId;triggeredAt=$now.ToString('o');deadlineAt=$deadline.ToString('o');targets=$targets}
       # Persist before launch. An interrupted process never assumes launch failed.
       Write-ModelEdgeJson $paths.receipt $receipt
       try {

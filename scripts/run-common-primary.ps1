@@ -9,7 +9,7 @@ $log=Join-Path $RepoPath 'reports\scan-watchdog.log'
 function Write-CommonLog([string]$Text){Add-Content $log -Encoding UTF8 -Value "[$([DateTimeOffset]::Now.ToString('o'))] Slot=$Slot; common primary: $Text"}
 try{
  try{$held=$lock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
- $edge=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+ $edge=Read-EdgeOwnership $RepoPath $Slot
  if($edge -and $edge.scanSlot -ceq $Slot){Write-CommonLog ('Edge already owns recovery; state='+$edge.state);return}
  $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
  $path=Get-CommonRequestPath $RepoPath $Slot;$q=Read-CommonRequest $RepoPath $Slot
@@ -29,7 +29,7 @@ try{
  }else{Write-ScanRecoveryJson $path $q}
  $seen=$false;$absent=0;$session=(Get-Process -Id $PID).SessionId
  while([DateTimeOffset]::UtcNow -lt (Get-CommonDeadline $q)){
-  $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+  $r=Read-EdgeOwnership $RepoPath $Slot
   if($r -and $r.scanSlot -ceq $Slot){Write-CommonLog "Edge owns recovery; state=$($r.state)";return}
   $saved=Get-CommonSavedResult $folder $Slot $RepoPath
   if($saved){Write-CommonLog 'completed result saved and verified';return}
