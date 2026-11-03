@@ -39,7 +39,7 @@ for(const [browser,hour]of [['chrome','08'],['chrome','16'],['whale','12'],['wha
  const frozen=await send('PREPARE_PRIMARY_HANDOFF');assert.equal(frozen.handoff,true);assert.equal(frozen.status,'edge-ready');assert.equal(state.lastRunSlot,slot);
  assert.equal((await send('RUN_PRIMARY_SCAN',{retry:true})).reason,'edge-handoff-started');
  const plan={};vm.runInNewContext(policy+';this.get=windowsPrimaryProtocol;this.cadence=chromeCadencePolicy;',plan);
- assert.equal(plan.get('2026-11-03T20:00+09:00'),null);assert.equal(plan.get(slot),'windows-primary-v2');
+ assert.equal(plan.get('2026-11-03T12:00+09:00'),null);assert.equal(plan.get('2026-11-03T16:00+09:00'),'windows-primary-v2');assert.equal(plan.get('2026-11-03T20:00+09:00'),'windows-primary-v2');assert.equal(plan.get(slot),'windows-primary-v2');
  assert.equal(plan.cadence(slot,browser,null,requestId).delayMs,browser==='chrome'?40000:20000);
 }
 const page=readTestFile('chrome-extension/common-primary.js','utf8');

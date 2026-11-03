@@ -29,7 +29,7 @@ function Start-Process {
  }
 }
 try{
- foreach($slot in @('2026-11-04T08:00+09:00','2026-11-04T12:00+09:00','2026-11-04T16:00+09:00','2026-11-04T20:00+09:00')){
+ foreach($slot in @('2026-11-03T16:00+09:00','2026-11-03T20:00+09:00','2026-11-04T08:00+09:00','2026-11-04T12:00+09:00','2026-11-04T16:00+09:00','2026-11-04T20:00+09:00')){
  foreach($mode in @('healthy','worker','access','save')){
  $temp=Join-Path ([IO.Path]::GetTempPath()) ('MPCommon-'+[guid]::NewGuid().ToString('N'))
  try{

@@ -2,7 +2,7 @@
 const SCAN_ROUTING_POLICY = /* ROUTING_JSON_BEGIN */
 {
   "version": 1,
-  "windowsPrimary": {"from":"2026-11-04T08:00+09:00","id":"windows-primary-v2"},
+  "windowsPrimary": {"from":"2026-11-03T16:00+09:00","id":"windows-primary-v2"},
   "slots": ["08:00", "12:00", "16:00", "20:00"],
   "changes": [
     {"from":"1970-01-01T08:00+09:00","id":"chrome-four-v1","owners":["chrome","chrome","chrome","chrome"]},
