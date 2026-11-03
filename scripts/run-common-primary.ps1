@@ -9,6 +9,8 @@ $log=Join-Path $RepoPath 'reports\scan-watchdog.log'
 function Write-CommonLog([string]$Text){Add-Content $log -Encoding UTF8 -Value "[$([DateTimeOffset]::Now.ToString('o'))] Slot=$Slot; common primary: $Text"}
 try{
  try{$held=$lock.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
+ $edge=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+ if($edge -and $edge.scanSlot -ceq $Slot){Write-CommonLog ('Edge already owns recovery; state='+$edge.state);return}
  $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
  $path=Get-CommonRequestPath $RepoPath $Slot;$q=Read-CommonRequest $RepoPath $Slot
  if((Test-Path $path) -and -not $q){throw 'Common request corrupt; do not replace its identity'}
