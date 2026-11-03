@@ -6,7 +6,7 @@ Lenovo, Acer, Godox 및 사용자 등록 브랜드의 가격 모니터링 대시
 
 | 구분 | 현재 기준 |
 |---|---|
-| 가격 확장 | Chrome·Edge·Whale 1.9.64. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
+| 가격 확장 | Chrome·Edge·Whale 1.9.65. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
 | Supplier Connector | Chrome의 독립 0.1.23. 가격 성공을 CSV 시작 조건으로 사용하지 않음 |
 | 정기 수집 | 한국시간 매일 08·12·16·20시. Chrome 08/16, Whale 12/20 |
 | 실행 주체 | Windows가 공통 요청을 전달하고 감시. 공통 프로토콜 적용 이후 세 가격 확장의 자체 정기 알람은 0개 |
