@@ -61,10 +61,14 @@ try {
     Invoke-ChromeWorkerRecovery $RepoPath $folder $slot
     Invoke-AccessStopRecovery $RepoPath $folder $slot
     $accessReceipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $slot)
-    if($accessReceipt -and $accessReceipt.scanSlot -ceq $slot){Write-WatchLog "Slot=$slot; validated access-stop handoff state=$($accessReceipt.state); no primary continuation.";exit 0}
+    if($accessReceipt -and $accessReceipt.scanSlot -ceq $slot){Write-WatchLog "Slot=$slot; validated primary handoff state=$($accessReceipt.state); no primary continuation.";exit 0}
     Invoke-ScanSaveRecovery $RepoPath $folder $slot
     $witness=if($primaryBrowser -eq 'whale'){Get-WhaleStartWitness $folder $request}else{Read-ScanRecoveryJson (Join-Path $folder 'scan-start.json')}
     if ($witness -and $witness.scanSlot -ceq $slot) {
+      if($primaryBrowser -eq 'chrome' -and $MonitorMinutes -eq 75 -and [version]$witness.extensionVersion -ge [version]'1.9.60') {
+        $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
+        $deadline=Get-ChromeWitnessMonitorDeadline $witness $slot $catalog
+      }
       $completedPath=Get-SavedPrimaryResultPath $folder $slot $RepoPath
       $completed=Read-ScanRecoveryJson $completedPath
       if ($completed -and $completed.browser -eq $primaryBrowser -and $completed.runId -ceq $witness.runId -and $completed.complete -eq $true) {
