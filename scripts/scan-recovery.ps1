@@ -390,7 +390,13 @@ function Assert-ChromeWorkerFailure($Failure,[string]$Slot,$Catalog,$Witness,[Da
     $Failure.scanSlot -cne $Slot -or $Failure.runId -cne $Witness.runId -or
     $Failure.startedAt -cne $Witness.startedAt -or $Failure.deadlineAt -cne $Witness.deadlineAt -or
     [version]$Failure.workerVersion -lt [version]'1.9.59' -or [version]$Witness.extensionVersion -gt [version]$Failure.workerVersion -or
-    $Failure.total -ne $Witness.targetCount -or $Failure.completed -lt 0 -or $Failure.completed -ge $Failure.total) {throw 'Unconfirmed Chrome worker interruption.'}
+    $Failure.total -ne $Witness.targetCount -or $Failure.completed -lt 0 -or $Failure.completed -gt $Failure.total) {throw 'Unconfirmed Chrome worker interruption.'}
+  if(($Failure.completed -isnot [int] -and $Failure.completed -isnot [long]) -or
+     ($Failure.total -isnot [int] -and $Failure.total -isnot [long]) -or
+     ([version]$Failure.workerVersion -ge [version]'1.9.60' -and (-not $Failure.stage -or $Failure.stage -ceq 'complete' -or
+       $Failure.originalWorkerInstanceId -cnotmatch '^[a-f0-9]{32}$' -or $Failure.currentWorkerInstanceId -cnotmatch '^[a-f0-9]{32}$' -or
+       $Failure.originalWorkerInstanceId -ceq $Failure.currentWorkerInstanceId -or
+       $Failure.originalWorkerInstanceId -cne $Witness.workerInstanceId))){throw 'Invalid worker progress evidence.'}
   $observed=[DateTimeOffset]::Parse($Failure.observedAt)
   if($observed -gt $Now.AddSeconds(5) -or ($Now-$observed).TotalSeconds -gt 90 -or
     [DateTimeOffset]::Parse($Failure.progressUpdatedAt) -lt [DateTimeOffset]::Parse($Witness.startedAt) -or
@@ -401,7 +407,8 @@ function Assert-ChromeWorkerFailure($Failure,[string]$Slot,$Catalog,$Witness,[Da
 }
 function Invoke-ChromeWorkerRecovery([string]$RepoPath,[string]$Folder,[string]$Slot) {
   if((Get-PrimaryScanBrowser $Slot) -ne 'chrome'){return}
-  if(Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)){return}
+  $priorEdge=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+  if($priorEdge -and $priorEdge.scanSlot -ceq $Slot){return}
   if(Get-SavedPrimaryResultPath $Folder $Slot $RepoPath){return}
   $w=Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')
   if(-not $w -or $w.scanSlot -cne $Slot -or [version]$w.extensionVersion -lt [version]'1.9.59'){return}
@@ -435,4 +442,15 @@ function Invoke-ChromeWorkerRecovery([string]$RepoPath,[string]$Folder,[string]$
     Assert-ChromeWorkerFailure $proof $Slot $catalog $w
     & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -WorkerFailure $proof
   } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
+
+function Get-ChromeWitnessMonitorDeadline($Witness,[string]$Slot,$Catalog) {
+  Assert-ScanStartWitness $Witness $Slot $Catalog 'chrome'
+  $end=[DateTimeOffset]::Parse([string]$Witness.deadlineAt)
+  $cap=[DateTimeOffset]::Parse([string]$Witness.startedAt).AddHours(2)
+  $slotCap=[DateTimeOffset]::Parse($Slot).AddMinutes(140)
+  $next=Get-NextScanTime $Slot
+  if($slotCap -lt $cap){$cap=$slotCap};if($next -lt $cap){$cap=$next}
+  if($end -gt $cap -or $end -lt [DateTimeOffset]::Parse([string]$Witness.startedAt)){throw 'Monitor cannot extend the original collection budget.'}
+  $end.UtcDateTime
 }

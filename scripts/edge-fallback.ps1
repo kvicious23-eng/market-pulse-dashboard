@@ -64,6 +64,8 @@ if ($AccessStop) {
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
   $w=Read-ScanRecoveryJson (Join-Path $resultFolder 'scan-start.json')
   Assert-ChromeWorkerFailure $WorkerFailure $slot $catalog $w
+  $finished=Read-ScanRecoveryJson (Get-SavedPrimaryResultPath $resultFolder $slot $RepoPath)
+  if($finished -and $finished.runId -ceq $w.runId -and $finished.complete -eq $true){return}
   $targets=@($w.targets)
   $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
     reason='chrome-worker-interrupted';chromeRunId=$w.runId;chromeStartedAt=$w.startedAt;
