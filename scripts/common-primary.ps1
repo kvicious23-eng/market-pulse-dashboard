@@ -33,7 +33,7 @@ function Get-CommonStartWitness([string]$Folder,$Request) {
 function Assert-CommonWitness($Witness,$Request,$Catalog) {
  Assert-ScanStartWitness $Witness $Request.scanSlot $Catalog $Request.browser
  if($Witness.primaryRequestId -cne $Request.requestId -or $Witness.primaryProtocolId -cne $Request.primaryProtocolId -or
-   [version]$Witness.extensionVersion -lt [version]'1.9.61' -or
+   [version]$Witness.extensionVersion -lt [version]'1.9.62' -or
    [DateTimeOffset]::Parse($Witness.startedAt) -lt [DateTimeOffset]::Parse($Request.requestedAt) -or
    [DateTimeOffset]::Parse($Witness.deadlineAt) -ne (Get-CommonDeadline $Request)){throw 'Common start witness mismatch'}
 }
@@ -48,7 +48,7 @@ function Get-CommonSavedResult([string]$Folder,[string]$Slot,[string]$RepoPath,[
   if($q.browser -eq 'chrome' -and $f.Name -cnotmatch '^latest-coupang-scan(?:-[a-f0-9]{32})?\.json$'){continue}
   $d=Read-ScanRecoveryJson $f.FullName
   if(-not $d -or $d.browser -cne $q.browser -or $d.scanSlot -cne $Slot -or $d.primaryRequestId -cne $q.requestId){continue}
-  if($d.runId -cnotmatch '^[a-f0-9]{32}$' -or [version]$d.extensionVersion -lt [version]'1.9.61' -or $d.primaryProtocolId -cne $q.primaryProtocolId -or
+  if($d.runId -cnotmatch '^[a-f0-9]{32}$' -or [version]$d.extensionVersion -lt [version]'1.9.62' -or $d.primaryProtocolId -cne $q.primaryProtocolId -or
     $d.complete -ne $true -or $d.targetCount -ne @($d.results).Count -or $d.resultCount -ne @($d.results).Count -or
     [DateTimeOffset]::Parse($d.startedAt) -lt [DateTimeOffset]::Parse($q.requestedAt) -or
     [DateTimeOffset]::Parse($d.completedAt) -lt [DateTimeOffset]::Parse($d.startedAt) -or
@@ -84,7 +84,7 @@ function Send-CommonPrimaryPage([string]$RepoPath,[string]$Folder,$Request,[stri
  if($r.version -ne 1 -or $r.nonce -cne $nonce -or $r.mode -cne $Mode -or $r.browser -cne $Request.browser -or
    $r.scanSlot -cne $Request.scanSlot -or $r.requestId -cne $Request.requestId -or $r.primaryProtocolId -cne $Request.primaryProtocolId -or
    $r.policyId -cne $Request.policyId -or $r.verifyOnly -ne ($Mode -eq 'verify') -or
-   [version]$r.workerVersion -lt [version]'1.9.61' -or
+   [version]$r.workerVersion -lt [version]'1.9.62' -or
    [DateTimeOffset]::Parse($r.at) -gt [DateTimeOffset]::UtcNow.AddSeconds(5) -or
    ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($r.at)).TotalSeconds -gt 90){throw 'Common receipt mismatch'}
  return $r
@@ -98,13 +98,12 @@ function Assert-CommonFailure($Failure,[string]$Slot,$Catalog,$Request,$Witness,
   $Failure.status -cne 'edge-ready' -or $Failure.ok -ne $true -or $Failure.handoff -ne $true -or
   $Failure.running -ne $false -or $Failure.completed -ne $false -or $Failure.requestExists -ne $true -or
   $Failure.targetCount -ne @($Request.targets).Count -or $Failure.runId -cne $Witness.runId -or
-  [version]$Failure.workerVersion -lt [version]'1.9.61' -or
+  [version]$Failure.workerVersion -lt [version]'1.9.62' -or
   [DateTimeOffset]::Parse($Failure.deadlineAt) -ne (Get-CommonDeadline $Request) -or
   [DateTimeOffset]::Parse($Failure.deadlineAt) -le $Now -or
   [DateTimeOffset]::Parse($Failure.at) -gt $Now.AddSeconds(5) -or
   ($Now-[DateTimeOffset]::Parse($Failure.at)).TotalSeconds -gt 90){throw 'Unconfirmed common worker handoff'}
- if($Request.browser -eq 'whale' -and $Failure.retryCount -ne 1){throw 'Whale bounded retry not consumed'}
- if($Request.browser -eq 'chrome' -and $Failure.retryCount -notin @(0,1)){throw 'Chrome retry count invalid'}
+ if($Failure.retryCount -notin @(0,1)){throw 'Common retry count invalid'}
  if(-not $Failure.workerRestarted -and -not $Failure.stopAcknowledged){throw 'No confirmed restart or acknowledged stop'}
  if($Failure.workerRestarted -and ($Failure.originalWorkerInstanceId -cne $Witness.workerInstanceId -or
     $Failure.workerInstanceId -cnotmatch '^[a-f0-9]{32}$' -or $Failure.workerInstanceId -ceq $Witness.workerInstanceId)){throw 'Worker identity mismatch'}
@@ -144,9 +143,6 @@ function Invoke-CommonPrimaryStep([string]$RepoPath,[string]$Folder,[string]$Slo
    return
   }
   if(-not $state.workerRestarted -and -not $state.stopAcknowledged){return}
-  if($q.browser -eq 'whale' -and [int]$state.retryCount -lt 1 -and -not $state.handoff){
-   $null=Send-CommonPrimaryPage $RepoPath $Folder $q 'retry';return
-  }
   $proof=Send-CommonPrimaryPage $RepoPath $Folder $q 'freeze'
   if(-not $proof -or $proof.handoff -ne $true){return}
   $w=Get-CommonStartWitness $Folder $q
