@@ -25,9 +25,28 @@ try{
  # A committed result is retained, allowing a subsequent retry to push it.
  Start-PricePublication $root $catalog
  Set-Content $brand 'committed-price' -Encoding UTF8;Set-Content $csv 'committed-local-history' -Encoding UTF8
- Git-Test @('add','brand');Git-Test @('commit','-qm','completed-price')
+ Git-Test @('add','brand');Prepare-PricePublicationCommit $root;Git-Test @('commit','-qm','completed-price')
  Repair-PricePublication $root
  if((Get-Content $brand -Raw).Trim() -ne 'committed-price' -or (Get-Content $csv -Raw).Trim() -ne 'committed-local-history'){throw 'A committed result was rolled back'}
+ # An unrelated clean HEAD must not silently bless a partial ignored CSV.
+ Start-PricePublication $root $catalog
+ Set-Content $csv 'partial-uncommitted-history' -Encoding UTF8
+ Git-Test @('commit','--allow-empty','-qm','unrelated-head')
+ $failed=$false;try{Repair-PricePublication $root}catch{$failed=$true}
+ if(-not $failed -or -not(Get-PricePublicationJournal $root) -or (Get-Content $csv -Raw).Trim() -ne 'partial-uncommitted-history'){throw 'Unrelated HEAD erased recovery evidence'}
+ $j=Get-PricePublicationJournal $root
+ Git-Test @('reset','--soft',$j.baseCommit);Repair-PricePublication $root
+ # A prepared tree must match both committed outputs and ignored local history.
+ foreach($mutation in @('committed-output','local-history')){
+  Start-PricePublication $root $catalog
+  Set-Content $brand ('ready-'+$mutation) -Encoding UTF8;Set-Content $csv 'prepared-history' -Encoding UTF8
+  Git-Test @('add','brand');Prepare-PricePublicationCommit $root;Git-Test @('commit','-qm','prepared-price')
+  if($mutation -eq 'committed-output'){Set-Content $brand 'external-price' -Encoding UTF8;Git-Test @('add','brand');Git-Test @('commit','-qm','external-price')}
+  else{Set-Content $csv 'external-history' -Encoding UTF8}
+  $failed=$false;try{Repair-PricePublication $root}catch{$failed=$true}
+  if(-not $failed -or -not(Get-PricePublicationJournal $root)){throw ('Unverified prepared result admitted: '+$mutation)}
+  $j=Get-PricePublicationJournal $root;Git-Test @('reset','--hard',$j.baseCommit);Repair-PricePublication $root
+ }
  # Corrupt backup evidence must never overwrite current files.
  Start-PricePublication $root $catalog
  $j=Get-PricePublicationJournal $root;$backup=Join-Path $root ('reports\price-publication-backup-'+$j.id)

@@ -96,6 +96,19 @@ try {
   $first=(Invoke-SupplierGit $repo @('rev-parse','HEAD')).Output -join ''
   Publish-SupplierDailyMetrics $repo $queue $root $day
   Check (((Invoke-SupplierGit $repo @('rev-parse','HEAD')).Output -join '') -eq $first) 'Repeated CSV made a duplicate commit.'
+  # Independent inventory publication repairs an interrupted price transaction
+  # before checking Git cleanliness; no price scan or extra CSV is requested.
+  . (Join-Path $PSScriptRoot 'price-publication.ps1')
+  [IO.File]::WriteAllText((Join-Path $repo '.gitignore'),'reports/'+[Environment]::NewLine)
+  [void](Invoke-SupplierGit $repo @('add','.gitignore'));[void](Invoke-SupplierGit $repo @('commit','-m','ignore local journals'))
+  Start-PricePublication $repo $catalog
+  [IO.File]::WriteAllText($dataPath,'interrupted-price-output')
+  [IO.File]::WriteAllText($historyPath,'interrupted-history-output')
+  Publish-SupplierDailyMetrics $repo $queue $root $day
+  Check (-not(Get-PricePublicationJournal $repo)) 'Independent inventory left an interrupted price journal.'
+  Check ([IO.File]::ReadAllText($historyPath) -ceq 'preserved-history') 'Independent inventory failed to restore verified history.'
+  $restored=([IO.File]::ReadAllText($dataPath) -replace '^window\.MARKET_DATA\s*=\s*','' -replace ';\s*$','')|ConvertFrom-Json
+  Check ($restored.products[0].coupang.price -eq 100 -and $restored.products[0].supplierMetrics.stock -eq 14) 'Inventory recovery damaged price or CSV metrics.'
   $catalog.products[0].brand='Renamed';Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') $catalog
   $blocked=$false;try { Publish-SupplierDailyMetrics $repo $queue $root $day } catch {$blocked=$true}
   Check $blocked 'Metrics-only upload altered current product/brand list.'

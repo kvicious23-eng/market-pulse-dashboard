@@ -9,8 +9,8 @@ try {
   $signal=Get-SupplierMorningSignal $ResultFolder $now.Date $now $RepoPath
   if (-not $signal -or $signal.source -ne 'edge') { return }
   Save-SupplierLocalState (Join-Path $RepoPath 'reports\supplier-morning-signal.json') $signal
-  $receiptPath=Join-Path $RepoPath 'reports\edge-recovery.json'
-  $receipt=Read-ScanRecoveryJson $receiptPath
+  $receiptPath=Get-EdgeReceiptPath $RepoPath $signal.scanSlot
+  $receipt=Read-EdgeOwnership $RepoPath $signal.scanSlot
   if ($receipt.supplierResumeLaunchedAt) {return}
   $root=Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data'
   $prices=@(Get-BrowserExtensionInstallations $root (Join-Path $RepoPath 'chrome-extension'))

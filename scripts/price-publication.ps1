@@ -15,7 +15,28 @@ function Get-PricePublicationJournal([string]$RepoPath) {
    ($f.existed -and $f.hash -cnotmatch '^[a-f0-9]{64}$')){throw 'Unsafe price publication recovery path/hash'}
  }
  if(@($j.files.relative|Sort-Object -Unique).Count -ne $j.files.Count){throw 'Duplicate price publication recovery path'}
+ if($j.preparedTree -and $j.preparedTree -cnotmatch '^[a-f0-9]{40}$'){throw 'Invalid prepared publication tree'}
+ if($j.preparedTree){
+  foreach($relative in @('reports/my-coupang-price-history.csv','reports/competitor-price-history.csv')){
+   $entry=@($j.preparedLocalFiles|Where-Object {$_.relative -ceq $relative})
+   if($entry.Count -ne 1 -or $entry[0].existed -isnot [bool] -or ($entry[0].existed -and $entry[0].hash -cnotmatch '^[a-f0-9]{64}$')){throw 'Invalid prepared local history evidence'}
+  }
+  if(@($j.preparedLocalFiles).Count -ne 2){throw 'Unexpected prepared local history paths'}
+ }
  $j
+}
+function Prepare-PricePublicationCommit([string]$RepoPath) {
+ $j=Get-PricePublicationJournal $RepoPath
+ if(-not $j){throw 'Missing price publication journal before commit'}
+ $tree=[string]@(Invoke-PricePublicationGit $RepoPath @('write-tree'))[0]
+ if($tree -cnotmatch '^[a-f0-9]{40}$'){throw 'Missing prepared publication tree'}
+ $local=@(foreach($relative in @('reports/my-coupang-price-history.csv','reports/competitor-price-history.csv')){
+  $path=Join-Path $RepoPath $relative;$exists=Test-Path -LiteralPath $path
+  [pscustomobject]@{relative=$relative;existed=[bool]$exists;hash=$(if($exists){(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()}else{$null})}
+ })
+ $j|Add-Member preparedTree $tree -Force
+ $j|Add-Member preparedLocalFiles $local -Force
+ Write-ScanRecoveryJson (Join-Path $RepoPath 'reports\price-publication-transaction.json') $j
 }
 function Complete-PricePublication([string]$RepoPath) {
  $j=Get-PricePublicationJournal $RepoPath
@@ -31,6 +52,15 @@ function Repair-PricePublication([string]$RepoPath) {
   $head=[string]@(Invoke-PricePublicationGit $RepoPath @('rev-parse','HEAD'))[0]
   if($head -cne $j.baseCommit){
    if(@(Invoke-PricePublicationGit $RepoPath @('status','--porcelain')).Count){throw 'Publication HEAD changed with unresolved edits; preserve recovery evidence for review'}
+   # An unrelated commit is not proof that this interrupted publication committed.
+   if(-not $j.preparedTree){throw 'Publication HEAD changed without prepared output evidence; preserve recovery journal'}
+   $paths=@($j.files.relative|Where-Object {$_ -cnotmatch '^reports/'})
+   $check=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments (@('diff','--quiet',$j.preparedTree,'HEAD','--')+$paths)
+   if($check.Code -ne 0){throw 'Committed price outputs differ from prepared publication; preserve recovery journal'}
+   foreach($f in @($j.preparedLocalFiles)){
+    $path=Join-Path $RepoPath $f.relative
+    if((Test-Path -LiteralPath $path) -ne $f.existed -or ($f.existed -and (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $f.hash)){throw 'Local history differs from prepared publication; preserve recovery journal'}
+   }
    Complete-PricePublication $RepoPath;return
   }
   $backup=Join-Path $RepoPath ('reports\price-publication-backup-'+$j.id)

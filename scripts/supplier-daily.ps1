@@ -31,16 +31,20 @@ function Get-SupplierInventorySignal([DateTimeOffset]$Now) {
 function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffset]$Now,[string]$RepoPath='') {
   try {
     $slot=$Day.ToString('yyyy-MM-dd')+'T08:00+09:00'
-    $receipt=if ($RepoPath) {Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\edge-recovery.json')} else {$null}
+    $common=Get-CommonProtocolId $slot
+    if($common -and -not $RepoPath){return $null}
+    $receipt=if ($RepoPath) {Read-EdgeOwnership $RepoPath $slot} else {$null}
     $edge=$receipt -and $receipt.scanSlot -ceq $slot
     if ($edge) {
       # Pending/failed recovery must never fall back to a blocked or late Chrome JSON.
       if ($receipt.state -ne 'result-ready' -or $receipt.runId -notmatch '^[a-f0-9]{32}$' -or
-          $receipt.chromeRunId -notmatch '^[a-f0-9]{32}$' -or $receipt.reason -notin @('access-check','chrome-process-exit','file-save-error')) {return $null}
+          $receipt.chromeRunId -notmatch '^[a-f0-9]{32}$' -or $receipt.reason -notin @('access-check','chrome-process-exit','chrome-worker-interrupted','primary-worker-failed','file-save-error')) {return $null}
       $path=Get-EdgeRecoveryResultPath $RepoPath $Folder $slot
-    } else { $path=Get-SavedChromeResultPath $Folder $slot }
+    } elseif($common) { $path=Get-CommonSavedResult $Folder $slot $RepoPath $Now }
+    else { $path=Get-SavedChromeResultPath $Folder $slot }
     if ((Get-Item -LiteralPath $path).Length -gt 10MB) { return $null }
     $scan=Read-SupplierLocalState $path
+    if($common){Assert-PrimaryScanSource $scan $slot $Folder $RepoPath}
     $start=[DateTimeOffset]::Parse([string]$scan.startedAt);$end=[DateTimeOffset]::Parse([string]$scan.completedAt)
     $slotStart=[DateTimeOffset]::Parse($slot)
     $rows=@($scan.results);$ids=@($rows | ForEach-Object { [string]$_.itemId })
@@ -109,6 +113,11 @@ function Invoke-SupplierGit([string]$RepoPath,[string[]]$Arguments,[int[]]$Accep
 }
 function Publish-SupplierDailyMetrics {
   param([string]$RepoPath,$Queue,[string]$DownloadRoot,[datetime]$Day)
+  # A killed price uploader must not consume all independent inventory retries.
+  if(Test-Path (Join-Path $RepoPath 'reports\price-publication-transaction.json')){
+    . (Join-Path $PSScriptRoot 'price-publication.ps1')
+    Repair-PricePublication $RepoPath
+  }
   $check=Test-SupplierDailyCsv -Path $Queue.filename -DownloadRoot $DownloadRoot -Day $Day -RequestedAt ([DateTimeOffset]::Parse($Queue.requestedAt))
   if (-not $check.ok) { throw $check.reason }
   $catalog=Read-SupplierLocalState (Join-Path $DownloadRoot 'MarketPulse\product-catalog.json')
