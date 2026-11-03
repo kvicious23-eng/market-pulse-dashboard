@@ -57,6 +57,22 @@ try{
   }
   $q=[pscustomobject]@{version=1;browser=(Get-PrimaryScanBrowser $slot);primaryProtocolId=(Get-CommonProtocolId $slot);policyId=(Get-ScanSlotPolicy $slot).id;scanSlot=$slot;requestId=('e'*32);requestedAt=$start.ToString('o');targets=$targets;launchAttempts=1;lastLaunchAt=$start.ToString('o');lastProbeAt=$null;stopRequestedAt=$null}
   if($mode -eq 'healthy'){
+   if(Read-CommonRequest $temp $slot){throw 'Missing request was invented'}
+   if(Get-CommonStartWitness $global:CommonFolder $null){throw 'Missing request invented a witness'}
+   $requestPath=Get-CommonRequestPath $temp $slot
+   New-Item -ItemType Directory (Split-Path $requestPath) -Force|Out-Null
+   foreach($broken in @('{',('{"scanSlot":"2026-11-02T16:00+09:00"}'))){
+    Set-Content $requestPath $broken -Encoding UTF8;$denied=$false
+    try{Get-CommonSavedResult $global:CommonFolder $slot $temp|Out-Null}catch{$denied=$true}
+    if(-not $denied){throw 'Uploader treated corrupt request as missing'}
+    $denied=$false
+    try{& (Join-Path $temp 'scripts\run-common-primary.ps1') -RepoPath $temp -Slot $slot}catch{$denied=$true}
+    if(-not $denied -or $global:CommonStarts -ne 0 -or $global:CommonEdges -ne 0){throw 'Corrupt request was treated as absent or relaunched'}
+    if((Get-Content $requestPath -Raw -Encoding UTF8).Trim() -cne $broken){throw 'Corrupt request evidence was replaced'}
+    $logText=Get-Content (Join-Path $temp 'reports\scan-watchdog.log') -Raw -Encoding UTF8
+    if($logText -notmatch 'common primary: failed: Corrupt common primary request'){throw 'Hidden common failure was not logged'}
+   }
+   Remove-Item $requestPath
    & (Join-Path $temp 'scripts\run-common-primary.ps1') -RepoPath $temp -Slot $slot
    $q=Read-CommonRequest $temp $slot;$p=Get-SavedPrimaryResultPath $global:CommonFolder $slot $temp $global:CommonNow.AddSeconds(5)
    if(-not $p){throw 'Common healthy result not selected'}

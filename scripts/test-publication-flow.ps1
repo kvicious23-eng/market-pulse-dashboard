@@ -61,5 +61,30 @@ function Invoke-MarketPulseGit {
  Check ((Get-Content $dataPath -Raw -Encoding UTF8) -ceq $published) 'Retry recalculated the existing failed model'
  Check (-not(Test-Path (Join-Path $repo 'reports\price-publication-transaction.json'))) 'Retry left a recovery journal'
  Check (-not(@(Git-Flow @('status','--porcelain')).Count)) 'Full importer left a dirty fixture'
+ # A current manual SRP clear must outrank an older scan's embedded SRP.
+ $currentTarget=$target|ConvertTo-Json -Depth 20|ConvertFrom-Json;$currentTarget.srp=$null
+ Write-ScanRecoveryJson (Join-Path $folder 'product-catalog.json') ([pscustomobject]@{products=@($currentTarget)})
+ $q.requestId=('d'*32);$q.requestedAt='2026-11-03T16:20:00+09:00'
+ Write-ScanRecoveryJson (Get-CommonRequestPath $repo $slot) $q
+ $w.primaryRequestId=$q.requestId;$w.runId=('e'*32);$w.startedAt='2026-11-03T16:20:01+09:00';$w.deadlineAt=(Get-CommonDeadline $q).ToString('o')
+ Write-ScanRecoveryJson (Join-Path $folder ('chrome-scan-start-'+(Get-ScanSlotKey $slot)+'-'+$q.requestId+'.json')) $w
+ $fresh=$target|ConvertTo-Json -Depth 20|ConvertFrom-Json
+ foreach($pair in @{
+   ok=$true;checkedAt='2026-11-03T16:22:00+09:00';price=600000;basisPrice=700000;strikePrice=700000;
+   priceBasisSource='visible-product-price';priceBasisType='top-visible';strikeReliable=$true;strikeAnchorVerified=$true;basisEvidence=@{text='700000'};
+   checkoutDiscountStatus='captured';checkoutDiscountReason='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=100000;wowInstantDiscount=0;wowCouponDiscount=0;checkoutDiscountTotal=100000;cardBenefitStatus='none';cardDiscount=0
+ }.GetEnumerator()){$fresh|Add-Member $pair.Key $pair.Value -Force}
+ $payload.runId=$w.runId;$payload.primaryRequestId=$q.requestId;$payload.startedAt=$w.startedAt;$payload.deadlineAt=$w.deadlineAt
+ $payload.completedAt='2026-11-03T16:25:00+09:00';$payload.scannedAt=$payload.completedAt;$payload.results=@($fresh)
+ $rawPath=Join-Path $folder 'latest-coupang-scan.json';Write-ScanRecoveryJson $rawPath $payload
+ $rawHash=(Get-FileHash $rawPath -Algorithm SHA256).Hash
+ & $importer -RepoPath $repo -ExpectedSlotStart $slot
+ $rawData=Get-Content $dataPath -Raw -Encoding UTF8
+ $current=$rawData.Substring($rawData.IndexOf('=')+1).Trim().TrimEnd(';')|ConvertFrom-Json
+ $mine=@($current.products[0].offers|Where-Object role -eq mine)[0]
+ Check ($null -eq $current.products[0].srp -and $null -eq $mine.srp -and $null -eq $mine.displayPrice -and $null -eq $mine.instantDiscount) 'Cleared manual SRP was resurrected from an older scan.'
+ Check ($mine.finalPrice -eq 600000 -and $mine.alertEligible -eq $true) 'Missing manual SRP damaged independently verified selling price.'
+ Check ((Get-FileHash $rawPath -Algorithm SHA256).Hash -ceq $rawHash) 'SRP clear rewrote source evidence.'
+ Write-Host 'Whole importer preserves an explicitly cleared manual SRP despite older embedded scan SRP.'
  Write-Host 'Full common-result importer -> new brand -> failed-model history -> commit -> injected push failure -> retained output -> idempotent retry passed; local bare remote only.'
 }finally{Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue;Remove-Variable PublicationFlowNow -Scope Global -ErrorAction SilentlyContinue}

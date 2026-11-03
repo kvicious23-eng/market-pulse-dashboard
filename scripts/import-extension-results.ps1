@@ -597,8 +597,6 @@ foreach ($spec in $specs) {
       # be older than a catalog edit, so it must not overwrite the current SRP.
       $srp=if ($null -ne $product.srp -and [long]$product.srp -gt 0) {
         [long]$product.srp
-      } elseif ($null -ne $result.srp -and [long]$result.srp -gt 0) {
-        [long]$result.srp
       } else {
         $null
       }

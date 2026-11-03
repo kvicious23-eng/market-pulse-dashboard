@@ -113,6 +113,9 @@ function Invoke-SupplierGit([string]$RepoPath,[string[]]$Arguments,[int[]]$Accep
 }
 function Publish-SupplierDailyMetrics {
   param([string]$RepoPath,$Queue,[string]$DownloadRoot,[datetime]$Day)
+  $publicationLock=Enter-MarketPulseRepositoryLock $RepoPath
+  try {
+  . (Join-Path $PSScriptRoot 'price-publication.ps1')
   # A killed price uploader must not consume all independent inventory retries.
   if(Test-Path (Join-Path $RepoPath 'reports\price-publication-transaction.json')){
     . (Join-Path $PSScriptRoot 'price-publication.ps1')
@@ -140,6 +143,8 @@ function Publish-SupplierDailyMetrics {
   if (($expected -join ',') -cne (@($actual | Sort-Object) -join ',')) { throw 'catalog_publication_mismatch' }
   $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
   $stamp=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$zone).ToString('yyyy-MM-ddTHH:mm:sszzz')
+  Start-PricePublication $RepoPath $catalog
+  try {
   foreach ($entry in $files) {
     if (Set-BrandSupplierMetrics -Data $entry.data -Batch $batch -PublishedAt $stamp) {
       $json=$entry.data | ConvertTo-Json -Depth 100
@@ -149,6 +154,14 @@ function Publish-SupplierDailyMetrics {
   # Only these brand data files are staged. Price/competitor history is untouched.
   foreach ($entry in $files) { [void](Invoke-SupplierGit $RepoPath @('add','--',$entry.file.FullName)) }
   $diff=Invoke-SupplierGit $RepoPath @('diff','--cached','--quiet') @(0,1)
+  Prepare-PricePublicationCommit $RepoPath
   if ($diff.Code -eq 1) { [void](Invoke-SupplierGit $RepoPath @('commit','-m','data: refresh daily Supplier Hub metrics')) }
   [void](Invoke-SupplierGit $RepoPath @('push','origin','main'))
+  Complete-PricePublication $RepoPath
+  } catch {
+    $publicationError=$_
+    try {Repair-PricePublication $RepoPath} catch {Write-Warning 'Supplier publication recovery is pending; preserve the journal and inspect supplier-daily-upload.log.'}
+    throw $publicationError
+  }
+  } finally {$publicationLock.ReleaseMutex();$publicationLock.Dispose()}
 }
