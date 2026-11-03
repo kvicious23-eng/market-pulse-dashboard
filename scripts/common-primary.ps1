@@ -1,4 +1,4 @@
-# Shared Windows entry and sparse liveness checks. No product requests originate here.
+﻿# Shared Windows entry and sparse liveness checks. No product requests originate here.
 function Get-CommonRequestPath([string]$RepoPath,[string]$Slot) {
  Join-Path $RepoPath ('reports\primary-request-'+(Get-PrimaryScanBrowser $Slot)+'-'+(Get-ScanSlotKey $Slot)+'.json')
 }
@@ -32,6 +32,7 @@ function Assert-CommonRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$N
  }
 }
 function Get-CommonStartWitness([string]$Folder,$Request) {
+ if(-not $Request){return $null}
  Read-ScanRecoveryJson (Join-Path $Folder ($Request.browser+'-scan-start-'+(Get-ScanSlotKey $Request.scanSlot)+'-'+$Request.requestId+'.json'))
 }
 function Assert-CommonWitness($Witness,$Request,$Catalog) {
