@@ -1,6 +1,18 @@
 $ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'git-timeout.ps1')
+function Assert-UploadChildStopped([int]$ChildId,[string]$Message,[int]$WaitMilliseconds=5000) {
+  $child=Get-Process -Id $ChildId -ErrorAction SilentlyContinue
+  if(-not $child){return}
+  try {
+    # taskkill can return while Windows still exposes an exiting process.
+    # Require actual exit within the bounded cleanup allowance, not absence
+    # from an immediately sampled process list. A live orphan still fails.
+    if(-not $child.WaitForExit($WaitMilliseconds)){throw $Message}
+    $child.Refresh()
+    if(-not $child.HasExited){throw $Message}
+  } finally {$child.Dispose()}
+}
 foreach($case in @(
  @('2026-10-26T20:00+09:00','2026-10-26T20:30+09:00','2026-10-26T22:30+09:00'),
  @('2026-10-26T20:00+09:00','2026-10-26T21:15+09:00','2026-10-26T22:30+09:00'),
@@ -16,6 +28,12 @@ $root=Join-Path ([IO.Path]::GetTempPath()) ('market-pulse-upload-timeout-'+[guid
 $originalDeadline=$env:MARKET_PULSE_UPLOAD_DEADLINE
 try {
   New-Item -ItemType Directory $root -Force | Out-Null
+  # The exit-observation helper must still reject a genuinely running orphan.
+  $live=Start-Process powershell.exe -ArgumentList '-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 30"' -WindowStyle Hidden -PassThru
+  try {
+    $rejected=$false;try{Assert-UploadChildStopped $live.Id 'live-child-not-stopped' 200}catch{if($_.Exception.Message -ne 'live-child-not-stopped'){throw};$rejected=$true}
+    if(-not $rejected){throw 'A live child passed the cleanup assertion.'}
+  }finally{Stop-MarketPulseProcessTree $live;$live.Dispose()}
   $spaced=Join-Path $root 'repo with spaces'
   New-Item -ItemType Directory $spaced -Force | Out-Null
   $result=Invoke-MarketPulseGit -RepoPath $spaced -Arguments @('--version')
@@ -41,7 +59,7 @@ public class FakeGit {
   catch {if($_.Exception.Message -ne 'git_command_timeout'){throw}}
   if(Test-Path $pidFile){
     $childId=[int](Get-Content $pidFile)
-    if(Get-Process -Id $childId -ErrorAction SilentlyContinue){throw 'Git child survived timeout.'}
+    Assert-UploadChildStopped $childId 'Git child survived timeout.'
   }else{throw 'Fake Git child did not start.'}
   $env:MARKET_PULSE_UPLOAD_DEADLINE=[DateTimeOffset]::UtcNow.AddSeconds(-1).ToString('o')
   try {Invoke-MarketPulseGit -RepoPath $root -Arguments @('--version') | Out-Null;throw 'Expired budget accepted.'}
@@ -82,7 +100,7 @@ while($true){Start-Sleep -Seconds 1}
   $budget=Get-Content (Join-Path $fixture 'reports\scheduled-upload-budget.json') -Raw | ConvertFrom-Json
   if(-not $budget.exhausted -or $budget.status -ne 'timed-out'){throw 'Timeout status missing.'}
   $workerChild=[int](Get-Content (Join-Path $fixture 'worker-child.pid'))
-  if(Get-Process -Id $workerChild -ErrorAction SilentlyContinue){throw 'Upload child survived timeout.'}
+  Assert-UploadChildStopped $workerChild 'Upload child survived timeout.'
   $launchCount=[IO.File]::ReadAllText((Join-Path $fixture 'worker-launch-count.txt'))
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner -RepoPath $fixture -TimeoutSeconds 5 -ExpectedSlotStart $slot
   if($LASTEXITCODE -ne 1 -or [IO.File]::ReadAllText((Join-Path $fixture 'worker-launch-count.txt')) -cne $launchCount){throw 'Same slot restarted an exhausted worker.'}
