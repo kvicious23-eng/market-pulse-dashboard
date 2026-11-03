@@ -63,6 +63,7 @@ public class FakeGit {
   $importer=Join-Path $scripts 'import-extension-results.ps1'
   [IO.File]::WriteAllText($importer,@'
 param([string]$RepoPath,[switch]$WaitForToday,[string]$ExpectedSlotStart)
+[IO.File]::AppendAllText((Join-Path $RepoPath 'worker-launch-count.txt'),'started'+[Environment]::NewLine)
 $child=Start-Process powershell.exe -ArgumentList '-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 30"' -WindowStyle Hidden -PassThru
 [IO.File]::WriteAllText((Join-Path $RepoPath 'worker-child.pid'),[string]$child.Id)
 while($true){Start-Sleep -Seconds 1}
@@ -82,9 +83,9 @@ while($true){Start-Sleep -Seconds 1}
   if(-not $budget.exhausted -or $budget.status -ne 'timed-out'){throw 'Timeout status missing.'}
   $workerChild=[int](Get-Content (Join-Path $fixture 'worker-child.pid'))
   if(Get-Process -Id $workerChild -ErrorAction SilentlyContinue){throw 'Upload child survived timeout.'}
-  $watch=[Diagnostics.Stopwatch]::StartNew()
+  $launchCount=[IO.File]::ReadAllText((Join-Path $fixture 'worker-launch-count.txt'))
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner -RepoPath $fixture -TimeoutSeconds 5 -ExpectedSlotStart $slot
-  if($LASTEXITCODE -ne 1 -or $watch.Elapsed.TotalSeconds -gt 3){throw 'Same slot restarted an exhausted worker.'}
+  if($LASTEXITCODE -ne 1 -or [IO.File]::ReadAllText((Join-Path $fixture 'worker-launch-count.txt')) -cne $launchCount){throw 'Same slot restarted an exhausted worker.'}
   [IO.File]::WriteAllText($importer,('param([string]$RepoPath,[switch]$WaitForToday,[string]$ExpectedSlotStart)'+[Environment]::NewLine))
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner -RepoPath $fixture -TimeoutSeconds 20 -ExpectedSlotStart $next
   if($LASTEXITCODE -ne 0){throw 'Next slot could not run.'}

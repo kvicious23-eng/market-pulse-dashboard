@@ -11,7 +11,7 @@ for(const [browser,hour,stopped=false]of [['chrome','08'],['chrome','16'],['whal
   primaryPendingOperations:new Set(),activeScanPromise:null,activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
   validateProductCatalog:p=>p.some(x=>x.invalid)?['invalid']:[],currentScheduledScanSlot:()=>slot,recentScanSlot:()=>true,
   requestScan:(...args)=>{starts.push(args);return true;},
-  chrome:{runtime:{getManifest:()=>({version:'1.9.62'}),getURL:p=>'extension://'+p,onMessage:{addListener:f=>handler=f}},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}}}};
+  chrome:{runtime:{getManifest:()=>({version:'1.9.63'}),getURL:p=>'extension://'+p,onMessage:{addListener:f=>handler=f}},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}}}};
  vm.runInNewContext(policy+';'+source.slice(source.indexOf('function isPrimarySender(')),c);
  const msg={products:[product],scanSlot:slot,requestId,policyId:'whale-noon-evening-v1',primaryProtocolId:'windows-primary-v2',requestedAt:slot};
  async function send(type,extra={},page='common-primary.html'){
@@ -47,12 +47,12 @@ for(const mode of ['verify','start','probe']){
  const slot='2026-11-04T08:00+09:00',requestId='a'.repeat(32),nonce='e'.repeat(32),calls=[],files=[],closed=[];
  const q={version:1,browser:'chrome',primaryProtocolId:'windows-primary-v2',policyId:'whale-noon-evening-v1',scanSlot:slot,requestId,requestedAt:slot,targets:[product]};
  const c={URLSearchParams,navigator:{userAgent:'Chrome/150'},location:{search:'?slot='+encodeURIComponent(slot)+'&requestId='+requestId+'&nonce='+nonce+'&mode='+mode},setTimeout,clearTimeout,Date,
-  fetch:async()=>({ok:true,json:async()=>q}),chrome:{runtime:{getURL:p=>'extension://'+p,getManifest:()=>({version:'1.9.62'}),sendMessage:async m=>{calls.push(m);return {ok:true,version:'1.9.62'};}},
+  fetch:async()=>({ok:true,json:async()=>q}),chrome:{runtime:{getURL:p=>'extension://'+p,getManifest:()=>({version:'1.9.63'}),sendMessage:async m=>{calls.push(m);return {ok:true,version:'1.9.63'};}},
   downloads:{download:async o=>{files.push(o);return files.length;},search:async()=>[{state:'complete',filename:'C:/Downloads/'+files.at(-1).filename}]},
   tabs:{getCurrent:async()=>({id:1}),remove:async id=>closed.push(id)}}};
  await vm.runInNewContext(policy+';'+page,c);
  assert.equal(calls.length,1,'One-shot page cannot create a periodic receipt loop');assert.equal(files.length,1);assert.deepEqual(closed,[1]);
- const receipt=JSON.parse(decodeURIComponent(files[0].url.split(',')[1]));assert.equal(receipt.version,1);assert.equal(receipt.workerVersion,'1.9.62');assert.equal(receipt.verifyOnly,mode==='verify');
+ const receipt=JSON.parse(decodeURIComponent(files[0].url.split(',')[1]));assert.equal(receipt.version,1);assert.equal(receipt.workerVersion,'1.9.63');assert.equal(receipt.verifyOnly,mode==='verify');
  assert.equal(calls[0].type,{verify:'CHECK_PRIMARY_TRANSPORT',start:'RUN_PRIMARY_SCAN',probe:'GET_PRIMARY_STATE'}[mode]);
 }
 console.log('Common Chrome/Whale admission, ownership, immutable catalog, retry/freeze policy, cadence and one-shot sparse receipt page passed.');

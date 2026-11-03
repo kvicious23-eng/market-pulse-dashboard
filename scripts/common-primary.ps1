@@ -18,11 +18,15 @@ function Assert-CommonRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$N
   $Request.policyId -cne (Get-ScanSlotPolicy $Slot).id -or $Request.requestId -cnotmatch '^[a-f0-9]{32}$'){throw 'Invalid common primary request'}
  $at=[DateTimeOffset]::Parse($Request.requestedAt);$slotAt=[DateTimeOffset]::Parse($Slot)
  if($at -lt $slotAt -or $at -gt $slotAt.AddMinutes(75) -or $at -gt $Now.AddMinutes(2)){throw 'Common request outside start window'}
- if(-not $Catalog -or $null -eq $Catalog.products){throw 'Common catalogue unavailable'}
+ if(-not $Catalog -or $Catalog.products -isnot [array] -or $Request.targets -isnot [array]){throw 'Common catalogue/targets must be arrays'}
+ foreach($key in @('itemId','vendorItemId')){if(@($Request.targets|Group-Object $key|Where-Object {$_.Count -gt 1}).Count){throw 'Duplicate common target ID'}}
+ if(@($Request.targets|Group-Object {([string]$_.brand+'|'+[string]$_.mtm).ToLowerInvariant()}|Where-Object {$_.Count -gt 1}).Count){throw 'Duplicate common brand/model'}
  Assert-ScanCatalog $Catalog @($Request.targets)
  foreach($row in @($Request.targets)){
   $uri=[uri]$row.url
-  if($uri.Scheme -ne 'https' -or $uri.Host -ne 'www.coupang.com' -or $uri.AbsolutePath -cne ('/vp/products/'+$row.productId) -or
+  if(-not $row.brand -or -not $row.mtm -or $row.productId -cnotmatch '^\d+$' -or $row.itemId -cnotmatch '^\d+$' -or $row.vendorItemId -cnotmatch '^\d+$' -or
+    $uri.UserInfo -or -not $uri.IsDefaultPort -or [regex]::Matches($uri.Query,'(?:\?|&)itemId=').Count -ne 1 -or [regex]::Matches($uri.Query,'(?:\?|&)vendorItemId=').Count -ne 1 -or
+    $uri.Scheme -ne 'https' -or $uri.Host -ne 'www.coupang.com' -or $uri.AbsolutePath -cne ('/vp/products/'+$row.productId) -or
     $uri.Query -notmatch ('(?:\?|&)itemId='+[regex]::Escape($row.itemId)+'(?:&|$)') -or
     $uri.Query -notmatch ('(?:\?|&)vendorItemId='+[regex]::Escape($row.vendorItemId)+'(?:&|$)')){throw 'Common product URL mismatch'}
  }
@@ -31,7 +35,7 @@ function Get-CommonStartWitness([string]$Folder,$Request) {
  Read-ScanRecoveryJson (Join-Path $Folder ($Request.browser+'-scan-start-'+(Get-ScanSlotKey $Request.scanSlot)+'-'+$Request.requestId+'.json'))
 }
 function Assert-CommonWitness($Witness,$Request,$Catalog) {
- Assert-ScanStartWitness $Witness $Request.scanSlot $Catalog $Request.browser
+ Assert-ScanStartWitness $Witness $Request.scanSlot $Catalog $Request.browser -LatestStart (Get-CommonDeadline $Request).ToString('o') -AllowEmpty
  if($Witness.primaryRequestId -cne $Request.requestId -or $Witness.primaryProtocolId -cne $Request.primaryProtocolId -or
    [version]$Witness.extensionVersion -lt [version]'1.9.62' -or
    [DateTimeOffset]::Parse($Witness.startedAt) -lt [DateTimeOffset]::Parse($Request.requestedAt) -or
@@ -42,21 +46,13 @@ function Get-CommonSavedResult([string]$Folder,[string]$Slot,[string]$RepoPath,[
  if(-not $q){return $null}
  $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
  Assert-CommonRequest $q $Slot $catalog $Now
- $filter=if($q.browser -eq 'chrome'){'latest-coupang-scan*.json'}else{'whale-scan-*.json'}
- foreach($f in @(Get-ChildItem $Folder -Filter $filter -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTimeUtc -Descending)){
-  if($q.browser -eq 'whale' -and $f.Name -cnotmatch '^whale-scan-[a-f0-9]{32}(?:-saved)?\.json$'){continue}
-  if($q.browser -eq 'chrome' -and $f.Name -cnotmatch '^latest-coupang-scan(?:-[a-f0-9]{32})?\.json$'){continue}
+ $w=Get-CommonStartWitness $Folder $q
+ if(-not $w){return $null}
+ $names=if($q.browser -eq 'chrome'){@('latest-coupang-scan.json',('latest-coupang-scan-'+$w.runId+'.json'))}else{@(('whale-scan-'+$w.runId+'.json'),('whale-scan-'+$w.runId+'-saved.json'))}
+ foreach($f in @($names|ForEach-Object {Get-Item -LiteralPath (Join-Path $Folder $_) -ErrorAction SilentlyContinue}|Sort-Object LastWriteTimeUtc -Descending)){
   $d=Read-ScanRecoveryJson $f.FullName
-  if(-not $d -or $d.browser -cne $q.browser -or $d.scanSlot -cne $Slot -or $d.primaryRequestId -cne $q.requestId){continue}
-  if($d.runId -cnotmatch '^[a-f0-9]{32}$' -or [version]$d.extensionVersion -lt [version]'1.9.62' -or $d.primaryProtocolId -cne $q.primaryProtocolId -or
-    $d.complete -ne $true -or $d.targetCount -ne @($d.results).Count -or $d.resultCount -ne @($d.results).Count -or
-    [DateTimeOffset]::Parse($d.startedAt) -lt [DateTimeOffset]::Parse($q.requestedAt) -or
-    [DateTimeOffset]::Parse($d.completedAt) -lt [DateTimeOffset]::Parse($d.startedAt) -or
-    [DateTimeOffset]::Parse($d.completedAt) -gt $Now.AddMinutes(2) -or
-    [DateTimeOffset]::Parse($d.completedAt) -gt (Get-CommonDeadline $q)){throw 'Invalid common completed result'}
-  if($q.browser -eq 'whale' -and $f.Name -cnotmatch ('^whale-scan-'+$d.runId+'(?:-saved)?\.json$')){throw 'Invalid common Whale result path'}
-  if($q.browser -eq 'chrome' -and $f.Name -cnotmatch ('^latest-coupang-scan(?:-'+$d.runId+')?\.json$')){throw 'Invalid common Chrome result path'}
-  Assert-ScanCatalog $catalog @($d.results);Assert-ScanCatalog ([pscustomobject]@{products=@($q.targets)}) @($d.results)
+  if(-not $d -or $d.browser -cne $q.browser -or $d.scanSlot -cne $Slot -or $d.primaryRequestId -cne $q.requestId -or $d.runId -cne $w.runId){continue}
+  Assert-CommonPayload $d $q $w $catalog $Now
   return $f.FullName
  }
  return $null
@@ -75,10 +71,10 @@ function Send-CommonPrimaryPage([string]$RepoPath,[string]$Folder,$Request,[stri
  $nonce=[guid]::NewGuid().ToString('N')
  Write-ScanRecoveryJson (Join-Path $RepoPath ('chrome-extension\runtime\primary-request-'+$Request.requestId+'.json')) $Request
  $url='chrome-extension://'+$browser.id+'/common-primary.html?slot='+[uri]::EscapeDataString($Request.scanSlot)+'&requestId='+$Request.requestId+'&nonce='+$nonce+'&mode='+$Mode
- Start-Process $browser.exe -ArgumentList @(('--profile-directory='+$browser.profile),$url)
+ Start-Process $browser.exe -ArgumentList @(("--profile-directory="+[char]34+$browser.profile+[char]34),$url)
  $filename='common-primary-'+$Request.browser+'-'+(Get-ScanSlotKey $Request.scanSlot)+'-'+$Request.requestId+'-'+$nonce+'.json'
  $path=Join-Path $Folder $filename
- for($i=0;$i -lt 25;$i++){if(Test-Path $path){break};Start-Sleep -Milliseconds 500}
+ for($i=0;$i -lt 70;$i++){if(Test-Path $path){break};Start-Sleep -Milliseconds 500}
  $r=Read-ScanRecoveryJson $path
  if(-not $r){return $null}
  if($r.version -ne 1 -or $r.nonce -cne $nonce -or $r.mode -cne $Mode -or $r.browser -cne $Request.browser -or
@@ -110,7 +106,7 @@ function Assert-CommonFailure($Failure,[string]$Slot,$Catalog,$Request,$Witness,
 }
 function Invoke-CommonPrimaryStep([string]$RepoPath,[string]$Folder,[string]$Slot) {
  if(-not(Get-CommonProtocolId $Slot)){return}
- $existing=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+ $existing=Read-EdgeOwnership $RepoPath $Slot
  if($existing -and $existing.scanSlot -ceq $Slot){return}
  if(Get-CommonSavedResult $Folder $Slot $RepoPath){return}
  $mutex=New-Object Threading.Mutex($false,('Local\MarketPulse.CommonProbe.'+(Get-ScanSlotKey $Slot)));$held=$false
@@ -149,4 +145,33 @@ function Invoke-CommonPrimaryStep([string]$RepoPath,[string]$Folder,[string]$Slo
   Assert-CommonFailure $proof $Slot $catalog $q $w
   & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -PrimaryFailure $proof -PrimaryBrowser $q.browser
  }finally{if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
+
+function Assert-CommonPayload($Payload,$Request,$Witness,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+ Assert-CommonWitness $Witness $Request $Catalog
+ if(-not $Payload -or $Payload.version -ne 5 -or $Payload.browser -cne $Request.browser -or $Payload.scanSlot -cne $Request.scanSlot -or
+   $Payload.primaryRequestId -cne $Request.requestId -or $Payload.primaryProtocolId -cne $Request.primaryProtocolId -or
+   $Payload.policyId -cne $Request.policyId -or $Payload.runId -cne $Witness.runId -or $Payload.startedAt -cne $Witness.startedAt -or
+   [version]$Payload.extensionVersion -lt [version]'1.9.62' -or $Payload.complete -ne $true -or
+   $Payload.targetCount -ne @($Request.targets).Count -or $Payload.resultCount -ne @($Payload.results).Count -or
+   $Payload.targetCount -ne @($Payload.results).Count -or
+   [DateTimeOffset]::Parse($Payload.deadlineAt) -ne (Get-CommonDeadline $Request) -or
+   [DateTimeOffset]::Parse($Payload.completedAt) -lt [DateTimeOffset]::Parse($Payload.startedAt) -or
+   [DateTimeOffset]::Parse($Payload.completedAt) -gt (Get-CommonDeadline $Request) -or
+   [DateTimeOffset]::Parse($Payload.completedAt) -gt $Now.AddMinutes(2) -or
+   [math]::Abs(([DateTimeOffset]::Parse($Payload.scannedAt)-[DateTimeOffset]::Parse($Payload.completedAt)).TotalSeconds) -gt 1){throw 'Common payload provenance/time/count mismatch'}
+ Assert-ScanCatalog $Catalog @($Payload.results)
+ Assert-ScanCatalog ([pscustomobject]@{products=@($Request.targets)}) @($Payload.results)
+}
+function Get-CommonResultWaitDeadline([string]$RepoPath,[string]$Slot,[DateTimeOffset]$Fallback) {
+ if(-not(Get-CommonProtocolId $Slot)){return $Fallback}
+ $q=Read-CommonRequest $RepoPath $Slot
+ if(-not $q){return $Fallback}
+ # Only file-delivery grace; the collector deadline itself never changes.
+ $end=(Get-CommonDeadline $q).AddSeconds(30)
+ foreach($limit in @(([DateTimeOffset]::Parse($Slot)).AddMinutes(150),(Get-NextScanTime $Slot))){
+  if($limit -lt $end){$end=$limit}
+ }
+ if($env:MARKET_PULSE_UPLOAD_DEADLINE){$limit=[DateTimeOffset]::Parse($env:MARKET_PULSE_UPLOAD_DEADLINE);if($limit -lt $end){$end=$limit}}
+ $end
 }

@@ -16,16 +16,16 @@ function Get-ScanRecoverySlot([DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   $hour=@(8,12,16,20 | Where-Object {$_ -le $kst.Hour} | Select-Object -Last 1)
   if ($hour.Count) { '{0}T{1:00}:00+09:00' -f $kst.ToString('yyyy-MM-dd'),$hour[0] }
 }
-function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog,[string]$Browser='chrome') {
+function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog,[string]$Browser='chrome',[string]$LatestStart='',[switch]$AllowEmpty) {
   if (-not $Witness -or $Witness.version -ne 1 -or $Witness.browser -cne $Browser -or
       $Witness.scanSlot -cne $Slot -or $Witness.runId -notmatch '^[a-f0-9]{32}$') { throw 'Missing or mismatched Chrome start witness.' }
   if($Browser -eq 'whale' -and $Slot -cge '2026-10-26T20:00+09:00' -and ($Witness.policyId -cne (Get-ScanSlotPolicy $Slot).id -or [version]$Witness.extensionVersion -lt [version]'1.9.49')){throw 'Whale start policy/version mismatch.'}
   $slotStart=[DateTimeOffset]::Parse($Slot)
   $start=[DateTimeOffset]::Parse([string]$Witness.startedAt)
-  if ($start -lt $slotStart -or $start -gt $slotStart.AddMinutes(75) -or $start -gt [DateTimeOffset]::UtcNow.AddMinutes(2)) { throw 'Chrome start witness is outside this slot.' }
+  if ($start -lt $slotStart -or $start -gt $(if($LatestStart){[DateTimeOffset]::Parse($LatestStart)}else{$slotStart.AddMinutes(75)}) -or $start -gt [DateTimeOffset]::UtcNow.AddMinutes(2)) { throw 'Chrome start witness is outside this slot.' }
   if (-not $Catalog -or -not $Catalog.PSObject.Properties['products']) { throw 'A saved catalogue is required for process-exit recovery.' }
   $rows=@($Witness.targets)
-  if (-not $rows.Count -or $rows.Count -ne [int]$Witness.targetCount) { throw 'Invalid Chrome start target count.' }
+  if ((-not $rows.Count -and -not($AllowEmpty -and $Catalog.products -is [array] -and @($Catalog.products|Where-Object {$_.enabled -ne $false}).Count -eq 0)) -or $rows.Count -ne [int]$Witness.targetCount) { throw 'Invalid Chrome start target count.' }
   $keys=@($rows | ForEach-Object {"$($_.productId)|$($_.itemId)|$($_.vendorItemId)"})
   if (@($keys | Sort-Object -Unique).Count -ne $rows.Count) { throw 'Duplicate Chrome start targets.' }
   foreach ($row in $rows) {
@@ -49,7 +49,7 @@ function Assert-AccessStop($Stop,[string]$Slot,$Catalog,$Witness,[string]$RepoPa
       $Stop.terminal -ne $true -or $Stop.complete -ne $false -or $Stop.reason -cne 'access-check' -or
       $Stop.stopReason -cne 'http-403-access-denied' -or [version]$Stop.extensionVersion -lt [version]'1.9.55' -or
       $Stop.policyId -cne (Get-ScanSlotPolicy $Slot).id) {throw 'Unconfirmed primary access stop.'}
-  Assert-ScanStartWitness $Witness $Slot $Catalog $browser
+  if(Get-CommonProtocolId $Slot){Assert-CommonWitness $Witness (Read-CommonRequest $RepoPath $Slot) $Catalog}else{Assert-ScanStartWitness $Witness $Slot $Catalog $browser}
   if($Stop.runId -cne $Witness.runId -or $Stop.startedAt -cne $Witness.startedAt -or
       $Stop.extensionVersion -cne $Witness.extensionVersion -or $Stop.deadlineAt -cne $Witness.deadlineAt) {throw 'Access stop witness mismatch.'}
   $start=[DateTimeOffset]::Parse($Stop.startedAt);$end=[DateTimeOffset]::Parse($Stop.stoppedAt)
@@ -116,13 +116,45 @@ function Assert-EdgeRecoveryResult($Payload,$Receipt,$Targets) {
       [DateTimeOffset]::Parse([string]$Payload.completedAt) -gt [DateTimeOffset]::Parse([string]$Receipt.deadlineAt)){throw 'Edge routing policy/budget mismatch.'}
   }
   if($Receipt.deadlineAt -and ($Payload.recovery.deadlineAt -cne $Receipt.deadlineAt -or [DateTimeOffset]::Parse([string]$Payload.completedAt) -gt [DateTimeOffset]::Parse([string]$Receipt.deadlineAt))){throw 'Edge completed outside its original collection budget.'}
+  if($Receipt.primaryProtocolId){
+    if($Payload.version -ne 5 -or [version]$Payload.extensionVersion -lt [version]'1.9.62' -or
+      [math]::Abs(([DateTimeOffset]::Parse($Payload.scannedAt)-[DateTimeOffset]::Parse($Payload.completedAt)).TotalSeconds) -gt 1 -or $Payload.policyId -cne $Receipt.policyId -or $Payload.recovery.policyId -cne $Receipt.policyId -or
+      $Payload.recovery.primaryProtocolId -cne $Receipt.primaryProtocolId -or $Payload.recovery.primaryBrowser -cne $Receipt.primaryBrowser -or
+      $Payload.recovery.primaryRequestId -cne $Receipt.primaryRequestId -or
+      [DateTimeOffset]::Parse($Payload.completedAt) -lt [DateTimeOffset]::Parse($Payload.startedAt) -or
+      [DateTimeOffset]::Parse($Payload.completedAt) -gt [DateTimeOffset]::UtcNow.AddMinutes(2)){throw 'Common Edge provenance/time mismatch'}
+  }
   $rows=@($Payload.results)
   if ($rows.Count -ne @($Targets).Count -or [int]$Payload.targetCount -ne $rows.Count -or [int]$Payload.resultCount -ne $rows.Count) { throw 'Edge recovery collection is incomplete.' }
   Assert-ScanCatalog -Catalog ([pscustomobject]@{products=@($Targets)}) -Results $rows
 }
 function Get-EdgeRecoveryResultPath([string]$RepoPath,[string]$ResultFolder,[string]$Slot) {
-  $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+  $receipt=Read-EdgeOwnership $RepoPath $Slot
   if (-not $receipt -or $receipt.scanSlot -cne $Slot) { return $null }
+  $common=Get-CommonProtocolId $Slot
+  if($common -and ($receipt.state -eq 'started' -or ($receipt.state -eq 'failed' -and $receipt.failureKind -eq 'monitor-timeout'))){
+    $path=Get-SavedEdgeRunPath $ResultFolder $receipt.runId
+    $payload=Read-ScanRecoveryJson $path
+    if($payload){
+      Assert-EdgeRecoveryResult $payload $receipt @($receipt.targets)
+      Assert-PrimaryScanSource $payload $Slot $ResultFolder $RepoPath
+      # Reconcile an interrupted monitor without launching a second collector.
+      $mutex=New-Object Threading.Mutex($false,('Local\MarketPulseEdgeHandoff.'+($Slot -replace '[^0-9]','')));$held=$false
+      try{
+        try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
+        if($held){
+          $latest=Read-EdgeOwnership $RepoPath $Slot
+          if($latest.runId -cne $receipt.runId -or $latest.primaryRequestId -cne $receipt.primaryRequestId -or $latest.deadlineAt -cne $receipt.deadlineAt){throw 'Edge ownership changed during reconciliation'}
+          if($latest.state -eq 'failed' -and $latest.failureKind -ne 'monitor-timeout'){throw 'Edge integrity failure appeared during reconciliation'}
+          $latest|Add-Member reconciledFrom $latest.state -Force
+          $latest|Add-Member reconciledAt ([DateTimeOffset]::UtcNow.ToString('o')) -Force
+          $latest.state='result-ready';Write-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot) $latest
+        }
+      }finally{if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+      return $path
+    }
+    if($receipt.state -eq 'started' -or [DateTimeOffset]::UtcNow -lt ([DateTimeOffset]::Parse($receipt.deadlineAt)).AddSeconds(30)){return ''}
+  }
   if ($receipt.state -eq 'failed') { throw 'Edge recovery failed; preserve the previous dashboard and inspect scan-watchdog.log.' }
   if ($receipt.state -eq 'started') { return '' }
   if ($receipt.state -ne 'result-ready' -or $receipt.runId -notmatch '^[a-f0-9]{32}$') { throw 'Invalid Edge recovery receipt.' }
@@ -259,6 +291,7 @@ function Get-WhaleStartWitness([string]$Folder,$Request) {
   if($data -and $data.scanSlot -ceq $Request.scanSlot -and $data.primaryRequestId -ceq $Request.requestId){return $data};return $null
 }
 function Get-EdgeReceiptPath([string]$RepoPath,[string]$Slot) {
+  if(Get-CommonProtocolId $Slot){return Join-Path $RepoPath ('reports\edge-recovery-'+(Get-ScanSlotKey $Slot)+'.json')}
   if($Slot -cge '2026-10-26T20:00+09:00' -and (Get-PrimaryScanBrowser $Slot) -eq 'whale'){return Join-Path $RepoPath ('reports\edge-recovery-'+(Get-ScanSlotKey $Slot)+'.json')}
   Join-Path $RepoPath 'reports\edge-recovery.json'
 }
@@ -379,12 +412,14 @@ function Assert-PrimaryScanSource($Payload,[string]$Slot,[string]$Folder,[string
   if(Get-CommonProtocolId $Slot){
     $q=Read-CommonRequest $RepoPath $Slot;$catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json');Assert-CommonRequest $q $Slot $catalog
     if($Payload.browser -eq 'edge'){
-      $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+      $r=Read-EdgeOwnership $RepoPath $Slot
+      if($r.primaryBrowser -cne $q.browser -or $r.policyId -cne $q.policyId -or [DateTimeOffset]::Parse($r.deadlineAt) -ne (Get-CommonDeadline $q)){throw 'Common Edge request budget/owner mismatch'}
       if($r.primaryRequestId -cne $q.requestId -or $r.primaryProtocolId -cne $q.primaryProtocolId -or $Payload.recovery.primaryRequestId -cne $q.requestId -or $Payload.recovery.primaryProtocolId -cne $q.primaryProtocolId){throw 'Unbound common Edge source'}
       Assert-EdgeRecoveryResult $Payload $r @($q.targets);return
     }
     $selected=Read-ScanRecoveryJson (Get-CommonSavedResult $Folder $Slot $RepoPath)
-    if(-not $selected -or $Payload.runId -cne $selected.runId -or $Payload.primaryRequestId -cne $q.requestId){throw 'Unbound common production source'};return
+    Assert-CommonPayload $Payload $q (Get-CommonStartWitness $Folder $q) $catalog
+    if(-not $selected -or ($Payload|ConvertTo-Json -Depth 40 -Compress) -cne ($selected|ConvertTo-Json -Depth 40 -Compress)){throw 'Unbound or altered common production source'};return
   }
   if ($Payload.browser -eq 'edge') {
     $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
@@ -487,3 +522,23 @@ function Get-CommonProtocolId([string]$Slot) {
 }
 $commonModule=Join-Path $PSScriptRoot 'common-primary.ps1'
 if(Test-Path $commonModule){. $commonModule}
+
+function Read-EdgeOwnership([string]$RepoPath,[string]$Slot) {
+ $path=Get-EdgeReceiptPath $RepoPath $Slot
+ $r=Read-ScanRecoveryJson $path
+ if((Get-CommonProtocolId $Slot) -and (Test-Path -LiteralPath $path)){
+  if(-not $r -or $r.version -ne 1 -or $r.scanSlot -cne $Slot -or $r.runId -cnotmatch '^[a-f0-9]{32}$' -or
+    $r.state -cnotin @('started','failed','result-ready') -or $r.primaryProtocolId -cne (Get-CommonProtocolId $Slot) -or
+    $r.primaryBrowser -cne (Get-PrimaryScanBrowser $Slot)){throw 'Corrupt or mismatched Edge ownership; do not relaunch'}
+ }
+ $r
+}
+
+function Assert-ScanPublicationOrder($Payload,[string]$RepoPath) {
+ $candidate=[DateTimeOffset]::Parse([string]$Payload.scannedAt)
+ foreach($file in @(Get-ChildItem (Join-Path $RepoPath 'brand') -Filter 'market-data.js' -Recurse -File -ErrorAction SilentlyContinue)){
+  $raw=[IO.File]::ReadAllText($file.FullName,[Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
+  $data=($raw -replace '^\s*window\.MARKET_DATA\s*=\s*','' -replace ';\s*$','')|ConvertFrom-Json
+  if($data.meta.snapshotAt -and [DateTimeOffset]::Parse([string]$data.meta.snapshotAt) -gt $candidate){throw 'Newer price snapshot already published; refuse an older price/history import'}
+ }
+}

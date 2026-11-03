@@ -203,6 +203,7 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+          ./scripts/test-price-publication.ps1
           ./scripts/test-common-primary.ps1
           ./scripts/test-worker-probe.ps1
           ./scripts/test-access-stop.ps1

@@ -47,7 +47,8 @@ function validateProductCatalog(products) {
     try{
       const url=new URL(String(product?.url||''));
       const urlProductId=url.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||'';
-      if(url.protocol!=='https:'||url.hostname!=='www.coupang.com'||urlProductId!==productId
+      if(url.protocol!=='https:'||url.hostname!=='www.coupang.com'||urlProductId!==productId||url.pathname!=='/vp/products/'+productId||url.username||url.password||url.port||
+          ![productId,itemId,vendorItemId].every(id=>/^\d+$/.test(id))||url.searchParams.getAll('itemId').length!==1||url.searchParams.getAll('vendorItemId').length!==1
           ||url.searchParams.get('itemId')!==itemId||url.searchParams.get('vendorItemId')!==vendorItemId){
         errors.push(`${label}:coupang-url-identifiers-mismatch`);
       }
@@ -1221,7 +1222,9 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
   };
   try {
     checkRecoveryBudget();
-    const configuredTargets=transientTargets||await withScanTimeout(getTargets(),15000,'scan-targets');
+    const commonPrimary=Boolean(primaryRequestId&&windowsPrimaryProtocol(scanSlot));
+    if(commonPrimary&&(primaryState?.requestId!==primaryRequestId||primaryState?.scanSlot!==scanSlot||!Array.isArray(primaryState?.targets)))throw Error('common-primary-targets-unavailable');
+    const configuredTargets=transientTargets||(commonPrimary?primaryState.targets:await withScanTimeout(getTargets(),15000,'scan-targets'));
     const catalogErrors=validateProductCatalog(configuredTargets);
     if(catalogErrors.length) throw new Error(`product-catalog-invalid:${catalogErrors.join(',')}`);
     const targets=configuredTargets.filter(x=>x.enabled!==false).map(product=>Object.fromEntries(Object.entries(product).filter(([key])=>!['skuid','productcode','상품코드'].includes(key.replace(/[\s_]/g,'').toLowerCase()))));
@@ -2034,7 +2037,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
       const firstAt=prior?.firstRequestedAt||message.requestedAt||slot;
       if(!Number.isFinite(Date.parse(firstAt))||Date.parse(firstAt)<Date.parse(slot)||Date.parse(firstAt)>Date.parse(slot)+75*60000||Date.parse(firstAt)>Date.now()+120000)return {ok:false,reason:'invalid-request-time'};
       const deadlineAt=prior?.deadlineAt||new Date(primaryScanDeadline(firstAt,slot)).toISOString();
-      await chrome.storage.local.set({products:message.products,primaryRequest:{catalogSignature:primaryCatalogSignature(message.products),browser:/Whale\//.test(navigator.userAgent)?'whale':'chrome',primaryProtocolId:windowsPrimaryProtocol(slot),targetCount:message.products.length,scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,attemptStartedAt:new Date().toISOString(),retryCount:prior?1:0,handoff:false}});
+      await chrome.storage.local.set({products:message.products,primaryRequest:{targets:JSON.parse(JSON.stringify(message.products)),catalogSignature:primaryCatalogSignature(message.products),browser:/Whale\//.test(navigator.userAgent)?'whale':'chrome',primaryProtocolId:windowsPrimaryProtocol(slot),targetCount:message.products.length,scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,attemptStartedAt:new Date().toISOString(),retryCount:prior?1:0,handoff:false}});
       return requestScan(slot,null,requestId)?{ok:true,reason:prior?'retry-started':'started'}:{ok:false,reason:'already-running'};
     }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
@@ -2078,7 +2081,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
           !Number.isFinite(Date.parse(recovery.deadlineAt))||Date.now()>=Date.parse(recovery.deadlineAt))throw Error('invalid-whale-recovery-budget');
       } catch {fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-whale-recovery-budget'});return;}
     }
-    chrome.storage.local.set({products:message.products}).then(()=>sendResponse(requestScan(message.scanSlot||null,recovery)?{ok:true}:{ok:false,reason:'already-running'}))
+    chrome.storage.local.set({products:message.products}).then(()=>sendResponse(requestScan(message.scanSlot||null,recovery,null,message.products)?{ok:true}:{ok:false,reason:'already-running'}))
       .catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
   }
