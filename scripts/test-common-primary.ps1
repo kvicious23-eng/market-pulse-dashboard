@@ -12,7 +12,7 @@ function Start-Process {
   return
  }
  if($FilePath -notmatch '(chrome|whale)\.exe$'){throw 'Unexpected process in isolated common test'}
- $url=$ArgumentList[-1];$nonce=[regex]::Match($url,'nonce=([a-f0-9]{32})').Groups[1].Value;$mode=[regex]::Match($url,'mode=([a-z]+)').Groups[1].Value
+ $global:CommonStarts++;$url=$ArgumentList[-1];$nonce=[regex]::Match($url,'nonce=([a-f0-9]{32})').Groups[1].Value;$mode=[regex]::Match($url,'mode=([a-z]+)').Groups[1].Value
  $id=[regex]::Match($url,'requestId=([a-f0-9]{32})').Groups[1].Value
  $q=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles ("chrome-extension\runtime\primary-request-$id.json"))
  $w=[pscustomobject]@{version=1;browser=$q.browser;extensionVersion='1.9.61';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;primaryRequestId=$q.requestId;runId=('a'*32);workerInstanceId=('b'*32);scanSlot=$q.scanSlot;startedAt=([DateTimeOffset]::Parse($q.requestedAt)).AddSeconds(1).ToString('o');deadlineAt=(Get-CommonDeadline $q).ToString('o');targetCount=2;targets=@($q.targets)}
@@ -33,7 +33,7 @@ try{
  foreach($mode in @('healthy','worker','access','save')){
  $temp=Join-Path ([IO.Path]::GetTempPath()) ('MPCommon-'+[guid]::NewGuid().ToString('N'))
  try{
-  $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp;$global:CommonFolder=Join-Path $temp 'Downloads';$global:CommonEdges=0;$global:CommonRetry=0;$global:CommonMode=$mode
+  $env:ProgramFiles=$temp;$env:LOCALAPPDATA=$temp;$global:CommonFolder=Join-Path $temp 'Downloads';$global:CommonEdges=0;$global:CommonStarts=0;$global:CommonRetry=0;$global:CommonMode=$mode
   $start=[DateTimeOffset]::Parse($slot);$global:CommonNow=$start.AddMinutes(3)
   New-Item -ItemType Directory (Join-Path $temp 'scripts'),(Join-Path $temp 'chrome-extension'),$global:CommonFolder -Force|Out-Null
   Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
@@ -98,6 +98,8 @@ try{
    if($global:CommonEdges -ne 1 -or $r.state -ne 'result-ready' -or [DateTimeOffset]::Parse($r.deadlineAt) -ne (Get-CommonDeadline $q)){throw 'Common full Edge/budget flow failed'}
    $p=Get-EdgeRecoveryResultPath $temp $global:CommonFolder $slot;Assert-PrimaryScanSource (Read-ScanRecoveryJson $p) $slot $global:CommonFolder $temp
    Invoke-CommonPrimaryStep $temp $global:CommonFolder $slot;if($global:CommonEdges -ne 1){throw 'Common duplicate Edge'}
+   $beforeStarts=$global:CommonStarts;& (Join-Path $temp 'scripts\run-common-primary.ps1') -RepoPath $temp -Slot $slot
+   if($global:CommonStarts -ne $beforeStarts){throw 'Common primary restarted after Edge ownership'}
   }
   Write-Host "Common slot=$slot browser=$($q.browser) mode=$mode passed."
  }finally{Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue}
@@ -105,5 +107,5 @@ try{
 }finally{
  $env:ProgramFiles=$oldPF;$env:LOCALAPPDATA=$oldLA
  Remove-Item Function:\Start-Sleep,Function:\Start-Process -ErrorAction SilentlyContinue
- Remove-Variable CommonFolder,CommonEdges,CommonRetry,CommonMode,CommonNow -Scope Global -ErrorAction SilentlyContinue
+ Remove-Variable CommonStarts,CommonFolder,CommonEdges,CommonRetry,CommonMode,CommonNow -Scope Global -ErrorAction SilentlyContinue
 }
