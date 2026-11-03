@@ -8,21 +8,21 @@ function Start-Process {
   $q=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles 'chrome-extension\runtime\edge-request.json')
   if($q.products.Count -ne 2 -or $q.recovery.primaryProtocolId -ne 'windows-primary-v2'){throw 'Common Edge lost full targets/protocol'}
   $at=[DateTimeOffset]::Parse($q.recovery.triggeredAt)
-  Write-ScanRecoveryJson (Join-Path $global:CommonFolder "edge-recovery-$($q.runId).json") ([pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.61';complete=$true;scanSlot=$q.scanSlot;runId=$q.runId;recovery=$q.recovery;startedAt=$at.AddMilliseconds(1).ToString('o');completedAt=$at.AddMilliseconds(2).ToString('o');targetCount=2;resultCount=2;results=@($q.products)})
+  Write-ScanRecoveryJson (Join-Path $global:CommonFolder "edge-recovery-$($q.runId).json") ([pscustomobject]@{version=5;browser='edge';extensionVersion='1.9.62';complete=$true;scanSlot=$q.scanSlot;runId=$q.runId;recovery=$q.recovery;startedAt=$at.AddMilliseconds(1).ToString('o');completedAt=$at.AddMilliseconds(2).ToString('o');targetCount=2;resultCount=2;results=@($q.products)})
   return
  }
  if($FilePath -notmatch '(chrome|whale)\.exe$'){throw 'Unexpected process in isolated common test'}
  $global:CommonStarts++;$url=$ArgumentList[-1];$nonce=[regex]::Match($url,'nonce=([a-f0-9]{32})').Groups[1].Value;$mode=[regex]::Match($url,'mode=([a-z]+)').Groups[1].Value
  $id=[regex]::Match($url,'requestId=([a-f0-9]{32})').Groups[1].Value
  $q=Read-ScanRecoveryJson (Join-Path $env:ProgramFiles ("chrome-extension\runtime\primary-request-$id.json"))
- $w=[pscustomobject]@{version=1;browser=$q.browser;extensionVersion='1.9.61';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;primaryRequestId=$q.requestId;runId=('a'*32);workerInstanceId=('b'*32);scanSlot=$q.scanSlot;startedAt=([DateTimeOffset]::Parse($q.requestedAt)).AddSeconds(1).ToString('o');deadlineAt=(Get-CommonDeadline $q).ToString('o');targetCount=2;targets=@($q.targets)}
- if($mode -eq 'retry'){$global:CommonRetry=1}
- $r=[pscustomobject]@{version=1;browser=$q.browser;workerVersion='1.9.61';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;scanSlot=$q.scanSlot;requestId=$id;nonce=$nonce;mode=$mode;verifyOnly=($mode -eq 'verify');at=$global:CommonNow.ToString('o');ok=$true;requestExists=$true;running=$false;requestRunning=$false;completed=$false;handoff=($mode -eq 'freeze');status=$(if($mode -eq 'freeze'){'edge-ready'}else{'accepted'});retryCount=$global:CommonRetry;targetCount=2;runId=$w.runId;deadlineAt=$w.deadlineAt;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
+ $w=[pscustomobject]@{version=1;browser=$q.browser;extensionVersion='1.9.62';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;primaryRequestId=$q.requestId;runId=('a'*32);workerInstanceId=('b'*32);scanSlot=$q.scanSlot;startedAt=([DateTimeOffset]::Parse($q.requestedAt)).AddSeconds(1).ToString('o');deadlineAt=(Get-CommonDeadline $q).ToString('o');targetCount=2;targets=@($q.targets)}
+ if($mode -eq 'retry'){throw 'Worker interruption must never request a primary retry'}
+ $r=[pscustomobject]@{version=1;browser=$q.browser;workerVersion='1.9.62';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;scanSlot=$q.scanSlot;requestId=$id;nonce=$nonce;mode=$mode;verifyOnly=($mode -eq 'verify');at=$global:CommonNow.ToString('o');ok=$true;requestExists=$true;running=$false;requestRunning=$false;completed=$false;handoff=($mode -eq 'freeze');status=$(if($mode -eq 'freeze'){'edge-ready'}else{'accepted'});retryCount=$global:CommonRetry;targetCount=2;runId=$w.runId;deadlineAt=$w.deadlineAt;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
  Write-ScanRecoveryJson (Join-Path $global:CommonFolder ("common-primary-"+$q.browser+'-'+(Get-ScanSlotKey $q.scanSlot)+'-'+$id+'-'+$nonce+'.json')) $r
  if($mode -eq 'start'){
   Write-ScanRecoveryJson (Join-Path $global:CommonFolder ($q.browser+'-scan-start-'+(Get-ScanSlotKey $q.scanSlot)+'-'+$id+'.json')) $w
   if($global:CommonMode -eq 'healthy'){
-   $p=[pscustomobject]@{version=5;browser=$q.browser;extensionVersion='1.9.61';primaryProtocolId=$q.primaryProtocolId;scanSlot=$q.scanSlot;runId=$w.runId;primaryRequestId=$id;startedAt=$w.startedAt;completedAt=$global:CommonNow.AddSeconds(2).ToString('o');deadlineAt=$w.deadlineAt;complete=$true;targetCount=2;resultCount=2;results=@($q.targets)}
+   $p=[pscustomobject]@{version=5;browser=$q.browser;extensionVersion='1.9.62';primaryProtocolId=$q.primaryProtocolId;scanSlot=$q.scanSlot;runId=$w.runId;primaryRequestId=$id;startedAt=$w.startedAt;completedAt=$global:CommonNow.AddSeconds(2).ToString('o');deadlineAt=$w.deadlineAt;complete=$true;targetCount=2;resultCount=2;results=@($q.targets)}
    $name=if($q.browser -eq 'chrome'){'latest-coupang-scan.json'}else{'whale-scan-'+$w.runId+'.json'}
    Write-ScanRecoveryJson (Join-Path $global:CommonFolder $name) $p
   }
@@ -69,7 +69,7 @@ try{
     try{Assert-CommonRequest $bad $slot $catalog}catch{$rejected=$true}
     if(-not $rejected){throw ('Invalid common request admitted: '+$field)}
    }
-   $proof=[pscustomobject]@{version=1;mode='freeze';verifyOnly=$false;browser=$q.browser;scanSlot=$slot;requestId=$q.requestId;primaryProtocolId=$q.primaryProtocolId;nonce=('f'*32);status='edge-ready';ok=$true;handoff=$true;running=$false;completed=$false;requestExists=$true;targetCount=2;runId=$w.runId;workerVersion='1.9.61';deadlineAt=$w.deadlineAt;at=$global:CommonNow.ToString('o');retryCount=1;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
+   $proof=[pscustomobject]@{version=1;mode='freeze';verifyOnly=$false;browser=$q.browser;scanSlot=$slot;requestId=$q.requestId;primaryProtocolId=$q.primaryProtocolId;nonce=('f'*32);status='edge-ready';ok=$true;handoff=$true;running=$false;completed=$false;requestExists=$true;targetCount=2;runId=$w.runId;workerVersion='1.9.62';deadlineAt=$w.deadlineAt;at=$global:CommonNow.ToString('o');retryCount=1;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
    Assert-CommonFailure $proof $slot $catalog $q $w
    foreach($field in @('requestId','primaryProtocolId','runId','targetCount','originalWorkerInstanceId','at')){
     $bad=$proof|ConvertTo-Json -Depth 8|ConvertFrom-Json;$bad.$field='invalid';$rejected=$false
@@ -84,13 +84,13 @@ try{
 
    if($mode -eq 'worker'){
     Invoke-CommonPrimaryStep $temp $global:CommonFolder $slot
-    if($q.browser -eq 'whale'){if($global:CommonRetry -ne 1){throw 'Whale retry not requested'};$global:CommonNow=$global:CommonNow.AddSeconds(61);Invoke-CommonPrimaryStep $temp $global:CommonFolder $slot}
+    if($global:CommonRetry -ne 0){throw 'Worker retry was consumed before direct Edge handoff'}
    }elseif($mode -eq 'access'){
-    $stop=[pscustomobject]@{version=1;browser=$q.browser;scanSlot=$slot;runId=$w.runId;extensionVersion='1.9.61';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;primaryRequestId=$q.requestId;startedAt=$w.startedAt;stoppedAt=$global:CommonNow.AddSeconds(-1).ToString('o');deadlineAt=$w.deadlineAt;terminal=$true;complete=$false;reason='access-check';stopReason='http-403-access-denied';targetCount=2;attemptedCount=1;targets=$targets;trigger=$targets[0];attempt=@{reason='access-check';diagnostic=@{observedAt=$global:CommonNow.AddSeconds(-2).ToString('o');responses=@(@{route='product';event='complete';status=403});page=@{marker='access denied';navigationStatus=403}}}}
+    $stop=[pscustomobject]@{version=1;browser=$q.browser;scanSlot=$slot;runId=$w.runId;extensionVersion='1.9.62';primaryProtocolId=$q.primaryProtocolId;policyId=$q.policyId;primaryRequestId=$q.requestId;startedAt=$w.startedAt;stoppedAt=$global:CommonNow.AddSeconds(-1).ToString('o');deadlineAt=$w.deadlineAt;terminal=$true;complete=$false;reason='access-check';stopReason='http-403-access-denied';targetCount=2;attemptedCount=1;targets=$targets;trigger=$targets[0];attempt=@{reason='access-check';diagnostic=@{observedAt=$global:CommonNow.AddSeconds(-2).ToString('o');responses=@(@{route='product';event='complete';status=403});page=@{marker='access denied';navigationStatus=403}}}}
     Write-ScanRecoveryJson (Join-Path $global:CommonFolder ('access-stop-'+$w.runId+'.json')) $stop
     Invoke-AccessStopRecovery $temp $global:CommonFolder $slot
    }else{
-    $failure=[pscustomobject]@{version=1;browser=$q.browser;scanSlot=$slot;runId=$w.runId;primaryRequestId=$q.requestId;reason='file-save-error';error='FILE_ACCESS_DENIED';stage='edge-ready';chromeRetries=1;saveAttempts=2;firstStartedAt=$q.requestedAt;startedAt=$w.startedAt;completedAt=$global:CommonNow.AddSeconds(-1).ToString('o');deadlineAt=$w.deadlineAt;extensionVersion='1.9.61';targetCount=2;targets=$targets}
+    $failure=[pscustomobject]@{version=1;browser=$q.browser;scanSlot=$slot;runId=$w.runId;primaryRequestId=$q.requestId;reason='file-save-error';error='FILE_ACCESS_DENIED';stage='edge-ready';chromeRetries=1;saveAttempts=2;firstStartedAt=$q.requestedAt;startedAt=$w.startedAt;completedAt=$global:CommonNow.AddSeconds(-1).ToString('o');deadlineAt=$w.deadlineAt;extensionVersion='1.9.62';targetCount=2;targets=$targets}
     Write-ScanRecoveryJson (Join-Path $global:CommonFolder ('scan-save-recovery-'+$w.runId+'.json')) $failure
     Invoke-ScanSaveRecovery $temp $global:CommonFolder $slot
    }

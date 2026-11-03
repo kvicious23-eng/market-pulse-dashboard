@@ -1982,7 +1982,7 @@ async function primaryRecoveryState(message) {
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if (message?.type==='GET_PRODUCTS') {
@@ -2000,7 +2000,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     primaryRecoveryState(message).then(async state=>{
       if(message.type==='STOP_PRIMARY_SCAN'&&state.requestRunning)primaryStopRequestId=message.requestId;
       if(message.type==='PREPARE_PRIMARY_HANDOFF') {
-        if(state.running||state.completed||!state.requestExists||(windowsPrimaryProtocol(message.scanSlot)?(state.browser==='whale'?state.retryCount!==1:state.retryCount>1):state.retryCount!==1)||Date.now()>=Date.parse(state.deadlineAt)||(windowsPrimaryProtocol(message.scanSlot)&&!state.workerRestarted&&!state.stopAcknowledged))return {ok:false,reason:'unsafe-handoff'};
+        if(state.running||state.completed||!state.requestExists||(windowsPrimaryProtocol(message.scanSlot)?state.retryCount>1:state.retryCount!==1)||Date.now()>=Date.parse(state.deadlineAt)||(windowsPrimaryProtocol(message.scanSlot)&&!state.workerRestarted&&!state.stopAcknowledged))return {ok:false,reason:'unsafe-handoff'};
         const operation={requestId:message.requestId,stage:'primary-freeze'};primaryPendingOperations.add(operation);
         try{const data=await chrome.storage.local.get('primaryRequest');
           if(activeScanPromise||data.primaryRequest?.requestId!==message.requestId)return {ok:false,reason:'unsafe-handoff'};
@@ -2028,7 +2028,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
       if(activeScanPromise||primaryPendingOperations.size)return (activeScanSlot===slot&&activeScanRequestId===requestId)||[...primaryPendingOperations].some(row=>row.requestId===requestId)?{ok:true,reason:'already-running'}:{ok:false,reason:'busy-unrelated'};
       if(prior) {
         if(!message.retry)return {ok:false,reason:'interrupted-retry-required'};
-        if((prior.retryCount||0)>=(windowsPrimaryProtocol(slot)&&!(/Whale\//.test(navigator.userAgent))?0:1))return {ok:false,reason:'retry-exhausted'};
+        if((prior.retryCount||0)>=(windowsPrimaryProtocol(slot)?0:1))return {ok:false,reason:'retry-exhausted'};
         if(Date.now()>=Date.parse(prior.deadlineAt||new Date(Date.parse(slot)+120*60000).toISOString())||slot!==currentScheduledScanSlot())return {ok:false,reason:'outside-recovery-budget'};
       } else if(slot!==currentScheduledScanSlot()||!recentScanSlot(slot))return {ok:false,reason:'outside-start-window'};
       const firstAt=prior?.firstRequestedAt||message.requestedAt||slot;

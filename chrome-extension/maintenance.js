@@ -19,6 +19,7 @@ async function maintainExtension() {
     receipt.workerInstanceId=health?.workerInstanceId||null;
     receipt.windowsPrimaryFrom=health?.windowsPrimaryFrom||null;
     receipt.primaryProtocolId=health?.primaryProtocolId||null;
+    receipt.workerFailurePolicy=health?.workerFailurePolicy||null;
     receipt.cadenceExperimentId=health?.cadenceExperimentId||null;
     receipt.policyId=health?.policyId||null;
     receipt.slotOwners=health?.slotOwners||null;
