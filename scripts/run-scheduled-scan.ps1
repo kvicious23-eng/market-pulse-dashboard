@@ -58,6 +58,7 @@ try {
     if ($receipt -and $receipt.scanSlot -ceq $slot) { Write-WatchLog "Slot=$slot; existing recovery state=$($receipt.state); no second handoff.";exit 0 }
     $alive=@(Get-Process -ErrorAction Stop | Where-Object {$_.ProcessName -eq $primaryBrowser -and $_.SessionId -eq $session}).Count -gt 0
     if ($alive) {$seen=$true;$absent=0} elseif($seen) {$absent++}
+    Invoke-ChromeWorkerRecovery $RepoPath $folder $slot
     Invoke-AccessStopRecovery $RepoPath $folder $slot
     $accessReceipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $slot)
     if($accessReceipt -and $accessReceipt.scanSlot -ceq $slot){Write-WatchLog "Slot=$slot; validated access-stop handoff state=$($accessReceipt.state); no primary continuation.";exit 0}

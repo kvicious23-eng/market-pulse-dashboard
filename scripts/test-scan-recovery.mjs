@@ -14,7 +14,7 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
   createCheckoutTrace:()=>({data:{version:1,events:[]}}),saveCheckoutDiagnosticArchive:async()=>'not-needed',accessDiagnosticTabs:new Map(),saveAccessDiagnosticArchive:async()=>'not-needed',saveCompletedScan:async payload=>{const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';const id=await context.chrome.downloads.download({url:'data:application/json,'+encodeURIComponent(JSON.stringify(payload)),filename});await context.waitForScanDownload(id,filename);},withScanTimeout:async p=>p,wait:async ms=>{events.push(`wait:${ms}`);},getTargets:async()=>products,validateProductCatalog:()=>[],
   waitForScanDownload:async id=>{if(failWitness&&id===1)throw Error('interrupted');events.push('complete:'+id);},
   openScanTab:async()=>{events.push('open');return {id:1};},waitForComplete:async()=>{},scanCoupangTab:async()=>{const index=scanCount++;const denied=blocked&&(index===0||retryDenied&&index>=products.length);return {ok:!denied,...(denied?{reason:'access-check',accessCheckDetail:'access-denied-message'}:{}),accessDiagnostic:{observedAt:new Clock().toISOString(),responses:[{route:'product',event:'complete',status:denied&&confirmed&&(!retryDenied||index>=products.length)?403:200}],page:{marker:denied?'access denied':''}}};},collectCheckoutDiscountsForTarget:async()=>({checkoutDiscountStatus:'captured'}),localDay:()=> '2026-10-07',
-  chrome:{runtime:{getManifest:()=>({version:'1.9.55'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
+  chrome:{runtime:{getPlatformInfo:async()=>({}),getManifest:()=>({version:'1.9.55'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
    downloads:{download:async o=>{if(o.filename.includes('access-stop')&&failStop&&(failStop===true||stopWrites++===0))throw Error('stop-save-failed');files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
  vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+source.slice(source.indexOf('function isConfirmedAccessDenied('),source.indexOf('async function saveAccessDiagnosticArchive('))+';'+source.slice(source.indexOf('function scanSaveTargets('),source.indexOf('async function saveCompletedScan('))+';'+scan+';this.run=scanAll;',context);
  if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else if(failStop===true)await assert.rejects(context.run(slot,recovery,whale?'c'.repeat(32):null),/stop-save-failed/); else await context.run(slot,recovery,whale?'c'.repeat(32):null);
@@ -91,7 +91,7 @@ for(const [day,arm,ms] of [['03','B',40000],['04','B',40000],['05','B',40000],['
    assert.equal(summary.arm,arm);assert.equal(summary.delayMs,ms);
    assert.equal(summary.productOperations,2);assert.equal(summary.checkoutOperations,2);
    assert.equal(summary.waits.length,2);assert.equal(summary.waits[0].configuredMs,ms);
-   assert.equal(summary.first403,null);assert.equal(x.events.filter(e=>e===`wait:${ms}`).length,2);
+   assert.equal(summary.first403,null);assert.equal(x.events.filter(e=>e==='wait:20000').length,ms===40000?4:2);
    assert.equal(JSON.stringify(summary).includes('private'),false);assert.equal(summary.results,undefined);
   }
  }

@@ -1189,7 +1189,13 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
   const cadence=chromeCadencePolicy(scanSlot,isEdgeBrowser?'edge':/Whale\//.test(navigator.userAgent)?'whale':'chrome',recovery,primaryRequestId,transientTargets);
   const cadenceMetrics={productOperations:0,checkoutOperations:0,waits:[],first403:null};
   const cadenceWait=async()=>{
-    const at=Date.now();await wait(cadence.delayMs);
+    const at=Date.now();
+    for(let remaining=cadence.delayMs;remaining>0;) {
+      checkRecoveryBudget();
+      const step=Math.min(20000,remaining);await wait(step);remaining-=step;
+      if(cadence.delayMs>20000)await withScanTimeout(chrome.runtime.getPlatformInfo(),10000,'cadence-liveness');
+      checkRecoveryBudget();
+    }
     cadenceMetrics.waits.push({configuredMs:cadence.delayMs,actualMs:Date.now()-at});
   };
   const note403=(row,ordinal)=>{
@@ -1222,6 +1228,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
     if((!isEdgeBrowser&&!/Whale\//.test(globalThis.navigator?.userAgent||'')&&scanSlot)||primaryRequestId) {
       const witness={version:1,browser:primaryRequestId?'whale':'chrome',primaryRequestId,policyId:scanSlot?scanPolicyForSlot(scanSlot).id:null,extensionVersion:chrome.runtime.getManifest().version,
         runId,scanSlot,deadlineAt:Number.isFinite(recoveryDeadline)?new Date(recoveryDeadline).toISOString():null,startedAt:scanStartedAt,targetCount:targets.length,targets};
+      await chrome.storage.local.set({activeRunWitness:witness});
       const witnessUrl='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(witness));
       const witnessDownload=await withScanTimeout(chrome.downloads.download({url:witnessUrl,
         filename:primaryRequestId?primaryWitnessFilename(scanSlot,primaryRequestId):'MarketPulse/scan-start.json',conflictAction:'overwrite',saveAs:false}),30000,'scan-start-witness');
@@ -2033,7 +2040,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     fallbackCatalogPending=true;
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
-      !['chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error','model-errors'].includes(recovery.reason)||
+      !['chrome-worker-interrupted','chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error','model-errors'].includes(recovery.reason)||
       !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;
@@ -2068,6 +2075,26 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='RUN_SCAN') {
     sendResponse(requestScan(/Whale\//.test(navigator.userAgent)?null:undefined)?{ok:true}:{ok:false,reason:'already-running'});
     return;
+  }
+  if(message?.type==='FREEZE_INTERRUPTED_SCAN') {
+    if(_sender?.url?.split('?')[0]!==chrome.runtime.getURL('worker-probe.html')){sendResponse({status:'rejected'});return;}
+    chrome.storage.local.get(['activeRunWitness','scanProgress','lastResult','scheduledScanBudget']).then(async s=>{
+      const w=s.activeRunWitness,p=s.scanProgress,b=s.scheduledScanBudget;
+      if(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size)return {status:'running'};
+      if(!w||w.browser!=='chrome'||w.scanSlot!==message.scanSlot||w.runId!==message.runId||
+         currentScheduledScanSlot()!==w.scanSlot||Date.now()>=Date.parse(w.deadlineAt)||
+         !p||p.startedAt!==w.startedAt||p.stage==='complete'||s.lastResult?.runId===w.runId||
+         b?.scanSlot!==w.scanSlot||b.deadlineAt!==w.deadlineAt)return {status:'unconfirmed'};
+      fallbackCatalogPending=true;
+      try {
+        const proof={status:'interrupted',workerVersion:chrome.runtime.getManifest().version,startedAt:w.startedAt,
+          deadlineAt:w.deadlineAt,progressUpdatedAt:p.updatedAt,completed:p.completed,total:p.total,
+          reason:'chrome-worker-interrupted',running:false,primaryFrozen:true};
+        await chrome.storage.local.set({lastRunSlot:w.scanSlot,running:false,runningStartedAt:null,
+          lastScanError:'scan-interrupted-by-worker-restart',lastScanErrorAt:new Date().toISOString()});
+        return proof;
+      } finally {fallbackCatalogPending=false;}
+    }).then(sendResponse).catch(()=>sendResponse({status:'unconfirmed'}));return true;
   }
   if (message?.type==='GET_SCAN_STATUS') {
     chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(async state=>{

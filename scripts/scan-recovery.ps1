@@ -381,3 +381,58 @@ function Assert-PrimaryScanSource($Payload,[string]$Slot,[string]$Folder,[string
     if(-not $selected -or $Payload.runId -cne $selected.runId -or $Payload.primaryRequestId -cne $selected.primaryRequestId){throw 'Whale result is not backed by the scheduled request.'}
   }
 }
+
+function Assert-ChromeWorkerFailure($Failure,[string]$Slot,$Catalog,$Witness,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  Assert-ScanStartWitness $Witness $Slot $Catalog 'chrome'
+  if((Get-PrimaryScanBrowser $Slot) -cne 'chrome' -or -not $Failure -or $Failure.version -ne 1 -or
+    $Failure.browser -cne 'chrome' -or $Failure.status -cne 'interrupted' -or $Failure.reason -cne 'chrome-worker-interrupted' -or
+    $Failure.running -ne $false -or $Failure.primaryFrozen -ne $true -or $Failure.nonce -notmatch '^[a-f0-9]{32}$' -or
+    $Failure.scanSlot -cne $Slot -or $Failure.runId -cne $Witness.runId -or
+    $Failure.startedAt -cne $Witness.startedAt -or $Failure.deadlineAt -cne $Witness.deadlineAt -or
+    [version]$Failure.workerVersion -lt [version]'1.9.59' -or [version]$Witness.extensionVersion -gt [version]$Failure.workerVersion -or
+    $Failure.total -ne $Witness.targetCount -or $Failure.completed -lt 0 -or $Failure.completed -ge $Failure.total) {throw 'Unconfirmed Chrome worker interruption.'}
+  $observed=[DateTimeOffset]::Parse($Failure.observedAt)
+  if($observed -gt $Now.AddSeconds(5) -or ($Now-$observed).TotalSeconds -gt 90 -or
+    [DateTimeOffset]::Parse($Failure.progressUpdatedAt) -lt [DateTimeOffset]::Parse($Witness.startedAt) -or
+    [DateTimeOffset]::Parse($Failure.progressUpdatedAt) -gt $observed -or
+    [DateTimeOffset]::Parse($Failure.deadlineAt) -le $Now -or
+    [DateTimeOffset]::Parse($Failure.deadlineAt) -gt [DateTimeOffset]::Parse($Witness.startedAt).AddHours(2) -or
+    [DateTimeOffset]::Parse($Failure.deadlineAt) -gt [DateTimeOffset]::Parse($Slot).AddMinutes(140)) {throw 'Worker proof stale or outside original budget.'}
+}
+function Invoke-ChromeWorkerRecovery([string]$RepoPath,[string]$Folder,[string]$Slot) {
+  if((Get-PrimaryScanBrowser $Slot) -ne 'chrome'){return}
+  if(Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)){return}
+  if(Get-SavedPrimaryResultPath $Folder $Slot $RepoPath){return}
+  $w=Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')
+  if(-not $w -or $w.scanSlot -cne $Slot -or [version]$w.extensionVersion -lt [version]'1.9.59'){return}
+  if(([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($w.startedAt)).TotalSeconds -lt 90){return}
+  $catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json')
+  Assert-ScanStartWitness $w $Slot $catalog 'chrome'
+  if([DateTimeOffset]::Parse($w.deadlineAt) -le [DateTimeOffset]::UtcNow){return}
+  $stamp=Join-Path $RepoPath ('reports\worker-probe-'+($Slot -replace '\D','')+'.json')
+  $prior=Read-ScanRecoveryJson $stamp
+  if($prior -and ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($prior.at)).TotalSeconds -lt 60){return}
+  $mutex=New-Object Threading.Mutex($false,('Local\MarketPulseWorkerProbe.'+($Slot -replace '\D','')))
+  $held=$false
+  try {
+    try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
+    if(-not $held){return}
+    $prior=Read-ScanRecoveryJson $stamp
+    if($prior -and ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($prior.at)).TotalSeconds -lt 60){return}
+    . (Join-Path $PSScriptRoot 'browser-profile.ps1')
+    $profiles=@(Get-BrowserExtensionInstallations (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data') (Join-Path $RepoPath 'chrome-extension'))
+    if($profiles.Count -ne 1){return}
+    $exe=@("$env:ProgramFiles\Google\Chrome\Application\chrome.exe","C:\Program Files (x86)\Google\Chrome\Application\chrome.exe","$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe")|Where-Object {Test-Path $_}|Select-Object -First 1
+    if(-not $exe){return}
+    $nonce=[guid]::NewGuid().ToString('N')
+    Write-ScanRecoveryJson $stamp @{at=[DateTimeOffset]::UtcNow.ToString('o');nonce=$nonce}
+    $url="chrome-extension://$($profiles[0].Id)/worker-probe.html?slot=$([uri]::EscapeDataString($Slot))&runId=$($w.runId)&nonce=$nonce"
+    Start-Process $exe -ArgumentList @("--profile-directory=$($profiles[0].Profile)",$url)
+    $path=Join-Path $Folder "worker-probe-$nonce.json"
+    for($i=0;$i -lt 20;$i++){if(Test-Path $path){break};Start-Sleep -Milliseconds 500}
+    $proof=Read-ScanRecoveryJson $path
+    if(-not $proof -or $proof.nonce -cne $nonce -or $proof.status -cne 'interrupted'){return}
+    Assert-ChromeWorkerFailure $proof $Slot $catalog $w
+    & (Join-Path $PSScriptRoot 'edge-fallback.ps1') -RepoPath $RepoPath -WorkerFailure $proof
+  } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
+}
