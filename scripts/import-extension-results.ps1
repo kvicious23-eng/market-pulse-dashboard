@@ -27,6 +27,8 @@ function Invoke-Git {
 }
 
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+. (Join-Path $PSScriptRoot 'price-publication.ps1')
+Repair-PricePublication $RepoPath
 # Collection/recovery waits do not own the shared repository publication lock.
 
 function Get-LatestResultPath {
@@ -386,6 +388,8 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
 }
 
 Invoke-Git -Arguments @('pull','--rebase','origin','main') | Out-Null
+Assert-ScanPublicationOrder $payload $RepoPath
+Start-PricePublication $RepoPath $catalog
 $historyRows=@()
 $specs=@(Get-BrandSpecs -Catalog $catalog -RepositoryPath $RepoPath)
 # A verified scan can be published from its saved JSON while the PC importer
@@ -484,6 +488,7 @@ if ($alreadyImported) {
   Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
   Save-BlueRecoveryFinalCommit $payload $RepoPath
   Update-BlueIssueLedger $payload $RepoPath $resultFolder
+  Complete-PricePublication $RepoPath
   return
 }
 foreach ($spec in $specs) {
@@ -952,5 +957,10 @@ Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
 Save-BlueRecoveryFinalCommit $payload $RepoPath
   Update-BlueIssueLedger $payload $RepoPath $resultFolder
 
+  Complete-PricePublication $RepoPath
+} catch {
+  $publicationError=$_
+  try{Repair-PricePublication $RepoPath}catch{Write-Warning 'Price publication recovery is pending; preserve the journal and inspect the upload log.'}
+  throw $publicationError
 } finally { if($repositoryMutex){$repositoryMutex.ReleaseMutex();$repositoryMutex.Dispose()} }
 
