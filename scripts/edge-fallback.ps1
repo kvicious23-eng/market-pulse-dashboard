@@ -52,7 +52,7 @@ if ($AccessStop) {
   $slot=Get-ScanRecoverySlot
   $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
   $q=if($PrimaryBrowser -eq 'whale'){Read-WhalePrimaryRequest $RepoPath $slot}else{$null}
-  $w=if($PrimaryBrowser -eq 'whale'){Get-WhaleStartWitness $resultFolder $q}else{Read-ScanRecoveryJson (Join-Path $resultFolder 'scan-start.json')}
+  $w=if(Get-CommonProtocolId $slot){Get-CommonStartWitness $resultFolder (Read-CommonRequest $RepoPath $slot)}elseif($PrimaryBrowser -eq 'whale'){Get-WhaleStartWitness $resultFolder $q}else{Read-ScanRecoveryJson (Join-Path $resultFolder 'scan-start.json')}
   Assert-AccessStop $AccessStop $slot $catalog $w $RepoPath
   $targets=@($w.targets)
   $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
@@ -72,6 +72,11 @@ if ($AccessStop) {
     chromeExtensionVersion=$w.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');
     targets=$targets;workerFailureEvidence=$WorkerFailure}
   Write-Host 'Chrome worker interruption confirmed and primary frozen; starting full Edge recollection.'
+} elseif ($PrimaryFailure -and (Get-CommonProtocolId $slot)) {
+  $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json');$q=Read-CommonRequest $RepoPath $slot
+  $w=Get-CommonStartWitness $resultFolder $q;Assert-CommonFailure $PrimaryFailure $slot $catalog $q $w
+  $targets=@($q.targets)
+  $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');reason='primary-worker-failed';chromeRunId=$w.runId;chromeStartedAt=$w.startedAt;chromeExtensionVersion=$w.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');targets=$targets;primaryFailureEvidence=$PrimaryFailure}
 } elseif ($PrimaryFailure) {
   if($PrimaryBrowser -ne 'whale'){throw 'Primary worker failure is only valid for Whale.'}
   $slot=$PrimaryFailure.scanSlot
@@ -134,7 +139,14 @@ if ($AccessStop) {
 }
 
 if($receipt.scanSlot -cne (Get-ScanRecoverySlot)){throw 'Recovery must belong to the current slot.'}
-if($PrimaryBrowser -eq 'whale') {
+if(Get-CommonProtocolId $slot){
+  $request=Read-CommonRequest $RepoPath $slot;Assert-CommonRequest $request $slot $catalog
+  $sourceId=if($AccessStop){$AccessStop.primaryRequestId}elseif($PrimaryFailure){$PrimaryFailure.requestId}elseif($StartWitness){$StartWitness.primaryRequestId}elseif($SaveFailure){$SaveFailure.primaryRequestId}else{$scan.Data.primaryRequestId}
+  if($sourceId -cne $request.requestId){throw 'Common handoff request mismatch'}
+  foreach($field in @('primaryRequestId','primaryProtocolId','policyId','primaryBrowser')){$value=switch($field){'primaryRequestId'{$request.requestId};'primaryProtocolId'{$request.primaryProtocolId};'policyId'{$request.policyId};'primaryBrowser'{$request.browser}};$receipt|Add-Member -NotePropertyName $field -NotePropertyValue $value -Force}
+  if($PrimaryBrowser -eq 'whale'){$receipt|Add-Member deadlineAt (Get-CommonDeadline $request).ToString('o');$remaining=[math]::Floor(((Get-CommonDeadline $request)-[DateTimeOffset]::UtcNow).TotalMinutes);if($remaining -lt 1){throw 'Common budget exhausted'};$TimeoutMinutes=[math]::Min($TimeoutMinutes,$remaining)}
+}
+if($PrimaryBrowser -eq 'whale' -and -not(Get-CommonProtocolId $slot)) {
   $request=Read-WhalePrimaryRequest $RepoPath $slot
   Assert-WhalePrimaryRequest $request $receipt.scanSlot $catalog
   $sourceId=if($AccessStop){$AccessStop.primaryRequestId}elseif($PrimaryFailure){$PrimaryFailure.requestId}elseif($StartWitness){$StartWitness.primaryRequestId}elseif($SaveFailure){$SaveFailure.primaryRequestId}else{$scan.Data.primaryRequestId}
@@ -153,7 +165,7 @@ if($PrimaryBrowser -eq 'chrome') {
   $end=[DateTimeOffset]::Parse($first).AddHours(2)
   $absolute=[DateTimeOffset]::Parse($receipt.scanSlot).AddMinutes(140)
   if($end -gt $absolute){$end=$absolute}
-  $carried=if($AccessStop){$AccessStop.deadlineAt}elseif($SaveFailure){$SaveFailure.deadlineAt}elseif($WorkerFailure){$WorkerFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
+  $carried=if(Get-CommonProtocolId $slot){(Get-CommonDeadline $request).ToString('o')}elseif($AccessStop){$AccessStop.deadlineAt}elseif($SaveFailure){$SaveFailure.deadlineAt}elseif($WorkerFailure){$WorkerFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
   if($carried -and [DateTimeOffset]::Parse($carried) -lt $end){$end=[DateTimeOffset]::Parse($carried)}
   $remaining=[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes)
   if($remaining -lt 1){throw 'No Chrome request budget remains for Edge.'}
@@ -174,7 +186,7 @@ if ($installedExtensions.Count -ne 1) {
 }
 $selected = $installedExtensions[0]
 $recovery=[pscustomobject]@{runId=$receipt.runId;reason=$receipt.reason;chromeRunId=$receipt.chromeRunId;
-  chromeStartedAt=$receipt.chromeStartedAt;triggeredAt=$receipt.triggeredAt;primaryBrowser=$receipt.primaryBrowser;primaryRequestId=$receipt.primaryRequestId;policyId=$receipt.policyId;deadlineAt=$receipt.deadlineAt}
+  chromeStartedAt=$receipt.chromeStartedAt;triggeredAt=$receipt.triggeredAt;primaryBrowser=$receipt.primaryBrowser;primaryRequestId=$receipt.primaryRequestId;primaryProtocolId=$receipt.primaryProtocolId;policyId=$receipt.policyId;deadlineAt=$receipt.deadlineAt}
 $edgeRequest=[pscustomobject]@{version=1;browser='edge';scanSlot=$receipt.scanSlot;runId=$receipt.runId;products=$targets;recovery=$recovery}
 Write-ScanRecoveryJson (Join-Path $RepoPath 'chrome-extension\runtime\edge-request.json') $edgeRequest
 $triggerUrl="chrome-extension://$($selected.Id)/fallback.html?slot=$([uri]::EscapeDataString($receipt.scanSlot))&runId=$($receipt.runId)"

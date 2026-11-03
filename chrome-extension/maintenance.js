@@ -17,6 +17,8 @@ async function maintainExtension() {
     const permission=await maintenanceTimeout(chrome.permissions.contains({permissions:['webRequest']}));
     receipt.workerVersion=health?.version||null;
     receipt.workerInstanceId=health?.workerInstanceId||null;
+    receipt.windowsPrimaryFrom=health?.windowsPrimaryFrom||null;
+    receipt.primaryProtocolId=health?.primaryProtocolId||null;
     receipt.cadenceExperimentId=health?.cadenceExperimentId||null;
     receipt.policyId=health?.policyId||null;
     receipt.slotOwners=health?.slotOwners||null;

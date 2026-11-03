@@ -71,6 +71,10 @@ function Assert-AccessStop($Stop,[string]$Slot,$Catalog,$Witness,[string]$RepoPa
   $status=if($responses.Count){$responses[-1].status}else{$d.page.navigationStatus}
   if($trigger.Count -ne 1 -or $Stop.attempt.reason -cne 'access-check' -or $status -ne 403 -or
       $d.page.marker -cne 'access denied') {throw 'Access stop lacks a matching HTTP 403 and Access Denied page.'}
+  if(Get-CommonProtocolId $Slot) {
+    $q=Read-CommonRequest $RepoPath $Slot;Assert-CommonRequest $q $Slot $Catalog $Now;Assert-CommonWitness $Witness $q $Catalog
+    if($Stop.primaryRequestId -cne $q.requestId -or $Stop.primaryProtocolId -cne $q.primaryProtocolId -or $deadline -gt (Get-CommonDeadline $q)){throw 'Common stop request mismatch'}
+  }
   if($browser -eq 'whale') {
     $q=Read-WhalePrimaryRequest $RepoPath $Slot
     Assert-WhalePrimaryRequest $q $Slot $Catalog $Now
@@ -84,7 +88,7 @@ function Invoke-AccessStopRecovery([string]$RepoPath,[string]$Folder,[string]$Sl
   $browser=Get-PrimaryScanBrowser $Slot
   $q=if($browser -eq 'whale'){Read-WhalePrimaryRequest $RepoPath $Slot}else{$null}
   if($browser -eq 'whale' -and -not $q){return}
-  $w=if($browser -eq 'whale'){Get-WhaleStartWitness $Folder $q}else{Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')}
+  $w=if(Get-CommonProtocolId $Slot){Get-CommonStartWitness $Folder (Read-CommonRequest $RepoPath $Slot)}elseif($browser -eq 'whale'){Get-WhaleStartWitness $Folder $q}else{Read-ScanRecoveryJson (Join-Path $Folder 'scan-start.json')}
   if(-not $w -or $w.scanSlot -cne $Slot -or $w.runId -notmatch '^[a-f0-9]{32}$'){return}
   $stop=$null
   foreach($suffix in @('','-saved')) {
@@ -158,6 +162,10 @@ function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]
       $Failure.scanSlot -cne $Slot -or $Failure.reason -ne 'file-save-error' -or $Failure.error -ne 'FILE_ACCESS_DENIED' -or
       $Failure.stage -ne 'edge-ready' -or [int]$Failure.chromeRetries -ne 1 -or [int]$Failure.saveAttempts -ne 2 -or
       $Failure.runId -notmatch '^[a-f0-9]{32}$' -or $Slot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Unconfirmed Chrome save failure.' }
+  if(Get-CommonProtocolId $Slot) {
+    $q=Read-CommonRequest $RepoPath $Slot;Assert-CommonRequest $q $Slot $Catalog $Now
+    if($Failure.primaryRequestId -cne $q.requestId -or [DateTimeOffset]::Parse($Failure.deadlineAt) -gt (Get-CommonDeadline $q)){throw 'Common save proof mismatch'}
+  }
   if($Failure.browser -eq 'whale') {
     $q=Read-WhalePrimaryRequest $RepoPath $Slot
     Assert-WhalePrimaryRequest $q $Slot $Catalog $Now
@@ -238,11 +246,13 @@ function Get-WhaleDeadline($Request) {
 }
 function Get-WhaleRequestPath([string]$RepoPath,[string]$Slot) {Join-Path $RepoPath ('reports\whale-primary-request-'+(Get-ScanSlotKey $Slot)+'.json')}
 function Read-WhalePrimaryRequest([string]$RepoPath,[string]$Slot) {
+  if(Get-CommonProtocolId $Slot){return Read-CommonRequest $RepoPath $Slot}
   $data=Read-ScanRecoveryJson (Get-WhaleRequestPath $RepoPath $Slot)
   if(-not $data -and $Slot -clt '2026-10-26T20:00+09:00'){$data=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\whale-primary-request.json')}
   if($data -and $data.scanSlot -ceq $Slot){return $data};return $null
 }
 function Get-WhaleStartWitness([string]$Folder,$Request) {
+  if(Get-CommonProtocolId $Request.scanSlot){return Get-CommonStartWitness $Folder $Request}
   $name='whale-scan-start-'+(Get-ScanSlotKey $Request.scanSlot)+'-'+$Request.requestId+'.json'
   $data=Read-ScanRecoveryJson (Join-Path $Folder $name)
   if(-not $data -and $Request.scanSlot -clt '2026-10-26T20:00+09:00'){$data=Read-ScanRecoveryJson (Join-Path $Folder 'whale-scan-start.json')}
@@ -322,6 +332,7 @@ function Assert-WhalePrimaryFailure($Failure,[string]$Slot,$Catalog,$Request,[Da
   if($at -lt $requestAt -or $at -gt $Now.AddSeconds(2) -or ($Now-$at).TotalSeconds -gt 180 -or $end -le $Now -or $end -gt (Get-WhaleDeadline $Request)) {throw 'Whale failure evidence is stale or outside the recovery budget.'}
 }
 function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if(Get-CommonProtocolId $Slot){Assert-CommonRequest $Request $Slot $Catalog $Now;return}
   if ((Get-PrimaryScanBrowser $Slot) -ne 'whale' -or -not $Request -or $Request.version -ne 1 -or $Request.browser -ne 'whale' -or
       $Request.scanSlot -cne $Slot -or ($Slot -cge '2026-10-26T20:00+09:00' -and $Request.policyId -cne (Get-ScanSlotPolicy $Slot).id) -or $Request.requestId -notmatch '^[a-f0-9]{32}$') {throw 'Invalid Whale noon request.'}
   if(-not $Catalog -or -not $Catalog.PSObject.Properties['products'] -or $null -eq $Catalog.products){throw 'Saved catalog is required for Whale.'}
@@ -338,6 +349,7 @@ function Assert-WhalePrimaryRequest($Request,[string]$Slot,$Catalog,[DateTimeOff
   Assert-ScanCatalog -Catalog $Catalog -Results @($Request.targets)
 }
 function Get-SavedPrimaryResultPath([string]$Folder,[string]$Slot,[string]$RepoPath,[DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
+  if(Get-CommonProtocolId $Slot){return Get-CommonSavedResult $Folder $Slot $RepoPath $Now}
   if ((Get-PrimaryScanBrowser $Slot) -ne 'whale') {return Get-SavedChromeResultPath $Folder $Slot}
   $request=Read-WhalePrimaryRequest $RepoPath $Slot
   if (-not $request -or $request.scanSlot -cne $Slot) {return $null}
@@ -364,6 +376,16 @@ function Assert-PrimaryScanSource($Payload,[string]$Slot,[string]$Folder,[string
   if($Payload.browser -eq 'mixed'){Assert-ModelEdgeComposite $Payload $Slot $Folder $RepoPath;return}
   if($Payload.recovery.scope -eq 'models'){throw 'A subset Edge result cannot be published directly.'}
   $expected=Get-PrimaryScanBrowser $Slot
+  if(Get-CommonProtocolId $Slot){
+    $q=Read-CommonRequest $RepoPath $Slot;$catalog=Read-ScanRecoveryJson (Join-Path $Folder 'product-catalog.json');Assert-CommonRequest $q $Slot $catalog
+    if($Payload.browser -eq 'edge'){
+      $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
+      if($r.primaryRequestId -cne $q.requestId -or $r.primaryProtocolId -cne $q.primaryProtocolId -or $Payload.recovery.primaryRequestId -cne $q.requestId -or $Payload.recovery.primaryProtocolId -cne $q.primaryProtocolId){throw 'Unbound common Edge source'}
+      Assert-EdgeRecoveryResult $Payload $r @($q.targets);return
+    }
+    $selected=Read-ScanRecoveryJson (Get-CommonSavedResult $Folder $Slot $RepoPath)
+    if(-not $selected -or $Payload.runId -cne $selected.runId -or $Payload.primaryRequestId -cne $q.requestId){throw 'Unbound common production source'};return
+  }
   if ($Payload.browser -eq 'edge') {
     $r=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
     if($expected -eq 'whale') {
@@ -406,7 +428,7 @@ function Assert-ChromeWorkerFailure($Failure,[string]$Slot,$Catalog,$Witness,[Da
     [DateTimeOffset]::Parse($Failure.deadlineAt) -gt [DateTimeOffset]::Parse($Slot).AddMinutes(140)) {throw 'Worker proof stale or outside original budget.'}
 }
 function Invoke-ChromeWorkerRecovery([string]$RepoPath,[string]$Folder,[string]$Slot) {
-  if((Get-PrimaryScanBrowser $Slot) -ne 'chrome'){return}
+  if((Get-PrimaryScanBrowser $Slot) -ne 'chrome' -or (Get-CommonProtocolId $Slot)){return}
   $priorEdge=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $Slot)
   if($priorEdge -and $priorEdge.scanSlot -ceq $Slot){return}
   if(Get-SavedPrimaryResultPath $Folder $Slot $RepoPath){return}
@@ -454,3 +476,14 @@ function Get-ChromeWitnessMonitorDeadline($Witness,[string]$Slot,$Catalog) {
   if($end -gt $cap -or $end -lt [DateTimeOffset]::Parse([string]$Witness.startedAt)){throw 'Monitor cannot extend the original collection budget.'}
   $end.UtcDateTime
 }
+
+function Get-CommonProtocolId([string]$Slot) {
+ if(-not $Slot){return $null}
+ Get-ScanSlotPolicy $Slot|Out-Null
+ $source=Get-Content (Join-Path (Split-Path $PSScriptRoot -Parent) 'chrome-extension\scan-policy.js') -Raw -Encoding UTF8
+ $json=[regex]::Match($source,'(?s)/\* ROUTING_JSON_BEGIN \*/\s*(.*?)\s*/\* ROUTING_JSON_END \*/').Groups[1].Value
+ $p=($json|ConvertFrom-Json).windowsPrimary
+ if($p -and $Slot -cge $p.from){return [string]$p.id};return $null
+}
+$commonModule=Join-Path $PSScriptRoot 'common-primary.ps1'
+if(Test-Path $commonModule){. $commonModule}

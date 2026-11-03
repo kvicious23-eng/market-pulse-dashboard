@@ -125,6 +125,7 @@ jobs:
           node --check chrome-extension/background.js
           node --check chrome-extension/checkout-diagnostics.js
           node --check chrome-extension/fallback.js
+          node --check chrome-extension/common-primary.js
           node --check chrome-extension/primary.js
           node --check chrome-extension/primary-supervisor.js
           node --check chrome-extension/options.js
@@ -202,6 +203,7 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+          ./scripts/test-common-primary.ps1
           ./scripts/test-worker-probe.ps1
           ./scripts/test-access-stop.ps1
           ./scripts/test-local-schedule.ps1

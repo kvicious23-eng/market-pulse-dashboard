@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'browser-profile.ps1')
 $slot=Get-ScanRecoverySlot
 if (-not $slot -or ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($slot)).TotalMinutes -gt 75) { exit 0 }
+if(Get-CommonProtocolId $slot){& (Join-Path $PSScriptRoot 'run-common-primary.ps1') -RepoPath $RepoPath -Slot $slot;exit}
 $folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
 $log=Join-Path $RepoPath 'reports\scan-watchdog.log'
 New-Item -ItemType Directory -Path (Split-Path $log) -Force | Out-Null
