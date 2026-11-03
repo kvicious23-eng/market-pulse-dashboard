@@ -3,8 +3,11 @@ function Get-CommonRequestPath([string]$RepoPath,[string]$Slot) {
  Join-Path $RepoPath ('reports\primary-request-'+(Get-PrimaryScanBrowser $Slot)+'-'+(Get-ScanSlotKey $Slot)+'.json')
 }
 function Read-CommonRequest([string]$RepoPath,[string]$Slot) {
- $q=Read-ScanRecoveryJson (Get-CommonRequestPath $RepoPath $Slot)
- if($q -and $q.scanSlot -ceq $Slot){return $q};return $null
+ $path=Get-CommonRequestPath $RepoPath $Slot
+ if(-not(Test-Path -LiteralPath $path)){return $null}
+ $q=Read-ScanRecoveryJson $path
+ if(-not $q -or $q.scanSlot -cne $Slot){throw 'Corrupt common primary request; preserve its identity and inspect the saved record'}
+ return $q
 }
 function Get-CommonDeadline($Request) {
  $end=[DateTimeOffset]::Parse($Request.requestedAt).AddHours(2)

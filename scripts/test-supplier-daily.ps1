@@ -109,6 +109,48 @@ try {
   Check ([IO.File]::ReadAllText($historyPath) -ceq 'preserved-history') 'Independent inventory failed to restore verified history.'
   $restored=([IO.File]::ReadAllText($dataPath) -replace '^window\.MARKET_DATA\s*=\s*','' -replace ';\s*$','')|ConvertFrom-Json
   Check ($restored.products[0].coupang.price -eq 100 -and $restored.products[0].supplierMetrics.stock -eq 14) 'Inventory recovery damaged price or CSV metrics.'
+  # Fault injection uses only this temporary repository, CSV and bare remote.
+  $script:OriginalSupplierGit=(Get-Command Invoke-SupplierGit).ScriptBlock
+  $script:SupplierFaultPhase=''
+  function Invoke-SupplierGit([string]$RepoPath,[string[]]$Arguments,[int[]]$Accepted=@(0)) {
+    if($script:SupplierFaultPhase -and $Arguments[0] -ceq $script:SupplierFaultPhase){throw 'synthetic-supplier-publication-failure'}
+    & $script:OriginalSupplierGit -RepoPath $RepoPath -Arguments $Arguments -Accepted $Accepted
+  }
+  function Read-FixtureSupplierData {
+    $value=[IO.File]::ReadAllText($dataPath);$value.Substring($value.IndexOf('=')+1).Trim().TrimEnd(';')|ConvertFrom-Json
+  }
+  try {
+    $beforeBrand=(Get-FileHash $dataPath -Algorithm SHA256).Hash
+    $beforeHistory=(Get-FileHash $historyPath -Algorithm SHA256).Hash
+    $faultRows=@(Import-Csv $csv -Encoding UTF8);$faultRows[2].'현재재고수량'='11';$faultRows|Export-Csv $csv -NoTypeInformation -Encoding UTF8;Stamp-CsvDay $csv $day
+    $script:SupplierFaultPhase='add';$failed=$false
+    try{Publish-SupplierDailyMetrics $repo $queue $root $day}catch{$failed=$_.Exception.Message -eq 'synthetic-supplier-publication-failure'}
+    Check $failed 'Supplier pre-commit fault was not reached.'
+    Check ((Get-FileHash $dataPath -Algorithm SHA256).Hash -ceq $beforeBrand) 'Supplier failure left partially updated brand data.'
+    Check ((Get-FileHash $historyPath -Algorithm SHA256).Hash -ceq $beforeHistory) 'Supplier rollback changed price history.'
+    Check (-not(Get-PricePublicationJournal $repo)) 'Supplier pre-commit recovery left a journal.'
+    $script:SupplierFaultPhase=''
+    Check (-not(Invoke-SupplierGit $repo @('status','--porcelain')).Output.Count) 'Supplier failure left a dirty repository.'
+    Publish-SupplierDailyMetrics $repo $queue $root $day
+    Check ((Read-FixtureSupplierData).products[0].supplierMetrics.stock -eq 15) 'Supplier retry did not publish fresh metrics.'
+    $faultRows[2].'현재재고수량'='12';$faultRows|Export-Csv $csv -NoTypeInformation -Encoding UTF8;Stamp-CsvDay $csv $day
+    $script:SupplierFaultPhase='push';$failed=$false
+    try{Publish-SupplierDailyMetrics $repo $queue $root $day}catch{$failed=$_.Exception.Message -eq 'synthetic-supplier-publication-failure'}
+    Check $failed 'Supplier post-commit push fault was not reached.'
+    Check (-not(Get-PricePublicationJournal $repo)) 'Supplier committed result was not retained safely.'
+    $script:SupplierFaultPhase=''
+    $retained=(Invoke-SupplierGit $repo @('rev-parse','HEAD')).Output -join ''
+    Publish-SupplierDailyMetrics $repo $queue $root $day
+    Check (((Invoke-SupplierGit $repo @('rev-parse','HEAD')).Output -join '') -ceq $retained) 'Supplier push retry duplicated its metrics commit.'
+    Check ((Get-FileHash $historyPath -Algorithm SHA256).Hash -ceq $beforeHistory) 'Supplier push retry changed price history.'
+    $afterPush=Read-FixtureSupplierData
+    Check ($afterPush.products[0].supplierMetrics.stock -eq 16 -and $afterPush.products[0].coupang.price -eq 100) 'Supplier push retry lost committed metrics or changed price.'
+    Check (((Invoke-SupplierGit $repo @('ls-remote','origin','refs/heads/main')).Output -join '') -match $retained) 'Supplier retry did not push its retained commit.'
+    Write-Host 'Supplier own pre-commit rollback, post-commit push retention and idempotent retry passed.'
+  } finally {
+    Set-Item Function:\Invoke-SupplierGit -Value $script:OriginalSupplierGit
+    Remove-Variable OriginalSupplierGit,SupplierFaultPhase -Scope Script -ErrorAction SilentlyContinue
+  }
   $catalog.products[0].brand='Renamed';Save-SupplierLocalState (Join-Path $folder 'product-catalog.json') $catalog
   $blocked=$false;try { Publish-SupplierDailyMetrics $repo $queue $root $day } catch {$blocked=$true}
   Check $blocked 'Metrics-only upload altered current product/brand list.'

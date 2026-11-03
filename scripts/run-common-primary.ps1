@@ -48,4 +48,8 @@ try{
   Start-Sleep -Seconds 10
  }
  Write-CommonLog 'original collection budget exhausted; no inferred recovery'
+}catch{
+ $failure=$_
+ try{Write-CommonLog ('failed: '+$failure.Exception.Message)}catch{}
+ throw $failure
 }finally{if($held){$lock.ReleaseMutex()};$lock.Dispose()}
