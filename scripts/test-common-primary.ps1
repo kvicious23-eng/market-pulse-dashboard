@@ -63,6 +63,25 @@ try{
    Write-ScanRecoveryJson (Get-CommonRequestPath $temp $slot) $q
    $null=Send-CommonPrimaryPage $temp $global:CommonFolder $q 'start'
    $w=Get-CommonStartWitness $global:CommonFolder $q;Assert-CommonWitness $w $q $catalog
+   foreach($field in @('requestId','browser','primaryProtocolId','policyId','requestedAt')){
+    $bad=$q|ConvertTo-Json -Depth 12|ConvertFrom-Json
+    $bad.$field='invalid';$rejected=$false
+    try{Assert-CommonRequest $bad $slot $catalog}catch{$rejected=$true}
+    if(-not $rejected){throw ('Invalid common request admitted: '+$field)}
+   }
+   $proof=[pscustomobject]@{version=1;mode='freeze';verifyOnly=$false;browser=$q.browser;scanSlot=$slot;requestId=$q.requestId;primaryProtocolId=$q.primaryProtocolId;nonce=('f'*32);status='edge-ready';ok=$true;handoff=$true;running=$false;completed=$false;requestExists=$true;targetCount=2;runId=$w.runId;workerVersion='1.9.61';deadlineAt=$w.deadlineAt;at=$global:CommonNow.ToString('o');retryCount=1;workerRestarted=$true;stopAcknowledged=$false;workerInstanceId=('c'*32);originalWorkerInstanceId=$w.workerInstanceId}
+   Assert-CommonFailure $proof $slot $catalog $q $w
+   foreach($field in @('requestId','primaryProtocolId','runId','targetCount','originalWorkerInstanceId','at')){
+    $bad=$proof|ConvertTo-Json -Depth 8|ConvertFrom-Json;$bad.$field='invalid';$rejected=$false
+    try{Assert-CommonFailure $bad $slot $catalog $q $w}catch{$rejected=$true}
+    if(-not $rejected){throw ('Invalid common failure admitted: '+$field)}
+   }
+   foreach($field in @('running','completed')){
+    $bad=$proof|ConvertTo-Json -Depth 8|ConvertFrom-Json;$bad.$field=$true;$rejected=$false
+    try{Assert-CommonFailure $bad $slot $catalog $q $w}catch{$rejected=$true}
+    if(-not $rejected){throw ('Unsafe common failure admitted: '+$field)}
+   }
+
    if($mode -eq 'worker'){
     Invoke-CommonPrimaryStep $temp $global:CommonFolder $slot
     if($q.browser -eq 'whale'){if($global:CommonRetry -ne 1){throw 'Whale retry not requested'};$global:CommonNow=$global:CommonNow.AddSeconds(61);Invoke-CommonPrimaryStep $temp $global:CommonFolder $slot}
