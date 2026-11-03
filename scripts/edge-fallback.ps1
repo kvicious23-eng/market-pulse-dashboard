@@ -5,6 +5,7 @@
   $ExitProof=$null,
   $SaveFailure=$null,
   $PrimaryFailure=$null,
+  $WorkerFailure=$null,
   $AccessStop=$null,
   [ValidateSet('chrome','whale')][string]$PrimaryBrowser='chrome'
 )
@@ -59,6 +60,16 @@ if ($AccessStop) {
     chromeExtensionVersion=$AccessStop.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');
     blockedCount=1;targets=$targets;accessStopEvidence=$AccessStop}
   Write-Host "$PrimaryBrowser confirmed HTTP 403 + Access Denied; primary stopped; starting full Edge recollection."
+} elseif ($WorkerFailure) {
+  $catalog=Read-ScanRecoveryJson (Join-Path $resultFolder 'product-catalog.json')
+  $w=Read-ScanRecoveryJson (Join-Path $resultFolder 'scan-start.json')
+  Assert-ChromeWorkerFailure $WorkerFailure $slot $catalog $w
+  $targets=@($w.targets)
+  $receipt=[pscustomobject]@{version=1;state='started';scanSlot=$slot;runId=[guid]::NewGuid().ToString('N');
+    reason='chrome-worker-interrupted';chromeRunId=$w.runId;chromeStartedAt=$w.startedAt;
+    chromeExtensionVersion=$w.extensionVersion;triggeredAt=[DateTimeOffset]::UtcNow.ToString('o');
+    targets=$targets;workerFailureEvidence=$WorkerFailure}
+  Write-Host 'Chrome worker interruption confirmed and primary frozen; starting full Edge recollection.'
 } elseif ($PrimaryFailure) {
   if($PrimaryBrowser -ne 'whale'){throw 'Primary worker failure is only valid for Whale.'}
   $slot=$PrimaryFailure.scanSlot
@@ -140,7 +151,7 @@ if($PrimaryBrowser -eq 'chrome') {
   $end=[DateTimeOffset]::Parse($first).AddHours(2)
   $absolute=[DateTimeOffset]::Parse($receipt.scanSlot).AddMinutes(140)
   if($end -gt $absolute){$end=$absolute}
-  $carried=if($AccessStop){$AccessStop.deadlineAt}elseif($SaveFailure){$SaveFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
+  $carried=if($AccessStop){$AccessStop.deadlineAt}elseif($SaveFailure){$SaveFailure.deadlineAt}elseif($WorkerFailure){$WorkerFailure.deadlineAt}elseif($StartWitness){$StartWitness.deadlineAt}else{$scan.Data.deadlineAt}
   if($carried -and [DateTimeOffset]::Parse($carried) -lt $end){$end=[DateTimeOffset]::Parse($carried)}
   $remaining=[math]::Floor(($end-[DateTimeOffset]::UtcNow).TotalMinutes)
   if($remaining -lt 1){throw 'No Chrome request budget remains for Edge.'}

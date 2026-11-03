@@ -189,3 +189,16 @@ try {
   if ((Get-SavedEdgeRunPath $temp ('b'*32)) -cne $edgeSaved) {throw 'Unique Edge save retry was not selected.'}
 } finally {Remove-Item $temp -Recurse -Force}
 Write-Host 'Save-error proof, dates, budget, exact catalogue and unique result selection passed.'
+
+# Explicit inactive-worker evidence: valid proof and independent rejection boundaries.
+$workerSlot='2026-10-30T08:00+09:00'
+$workerStart=[DateTimeOffset]::Parse($workerSlot)
+$workerWitness=[pscustomobject]@{version=1;browser='chrome';runId=('d'*32);scanSlot=$workerSlot;startedAt=$workerStart.ToString('o');deadlineAt=$workerStart.AddHours(2).ToString('o');extensionVersion='1.9.59';targetCount=1;targets=@($row)}
+$workerProof=[pscustomobject]@{version=1;browser='chrome';status='interrupted';reason='chrome-worker-interrupted';running=$false;primaryFrozen=$true;nonce=('e'*32);scanSlot=$workerSlot;runId=$workerWitness.runId;startedAt=$workerWitness.startedAt;deadlineAt=$workerWitness.deadlineAt;workerVersion='1.9.59';total=1;completed=0;observedAt=$workerStart.AddMinutes(2).ToString('o');progressUpdatedAt=$workerStart.AddMinutes(1).ToString('o')}
+Assert-ChromeWorkerFailure $workerProof $workerSlot ([pscustomobject]@{products=@($row)}) $workerWitness $workerStart.AddMinutes(2)
+foreach($field in @('running','primaryFrozen','runId','scanSlot','deadlineAt','status','workerVersion','nonce','observedAt')){
+ $bad=$workerProof|ConvertTo-Json|ConvertFrom-Json
+ switch($field){'running'{$bad.running=$true};'primaryFrozen'{$bad.primaryFrozen=$false};'runId'{$bad.runId='f'*32};'scanSlot'{$bad.scanSlot='2026-10-30T16:00+09:00'};'deadlineAt'{$bad.deadlineAt=$workerStart.AddHours(3).ToString('o')};'status'{$bad.status='running'};'workerVersion'{$bad.workerVersion='1.9.58'};'nonce'{$bad.nonce='invalid'};'observedAt'{$bad.observedAt=$workerStart.AddMinutes(-1).ToString('o')}}
+ Must-Fail {Assert-ChromeWorkerFailure $bad $workerSlot ([pscustomobject]@{products=@($row)}) $workerWitness $workerStart.AddMinutes(2)}
+}
+Write-Host 'Explicit Chrome worker proof accepted; busy/unfrozen/mismatched/stale/version/nonce/deadline evidence refused.'
