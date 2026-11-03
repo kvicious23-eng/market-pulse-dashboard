@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'git-timeout.ps1')
 function Assert-UploadChildStopped([int]$ChildId,[string]$Message,[int]$WaitMilliseconds=5000) {
@@ -124,8 +124,14 @@ while($true){Start-Sleep -Seconds 1}
   $waiter=$null
   try {
     $waiter=Start-Process powershell.exe -ArgumentList (($arguments | ForEach-Object {ConvertTo-MarketPulseArgument $_}) -join ' ') -WindowStyle Hidden -PassThru
-    for($i=0;$i -lt 50 -and -not (Test-Path $waitMarker);$i++){Start-Sleep -Milliseconds 100}
-    if(-not (Test-Path $waitMarker) -or $waiter.HasExited){throw 'Actual price worker did not reach the isolated collection wait.'}
+    # Common-protocol policy reads add process startup work on Windows CI.
+    # Readiness is bounded separately from the real timeout/cleanup assertions above.
+    for($i=0;$i -lt 300 -and -not (Test-Path $waitMarker) -and -not $waiter.HasExited;$i++){Start-Sleep -Milliseconds 100}
+    if(-not (Test-Path $waitMarker) -or $waiter.HasExited){
+      $workerLog=Join-Path $fixture 'reports\scheduled-upload.log'
+      if(Test-Path $workerLog){Get-Content $workerLog -Encoding UTF8 -Tail 24 | Write-Host}
+      throw 'Actual price worker did not reach the isolated collection wait.'
+    }
     $inventoryLock=Enter-MarketPulseRepositoryLock $fixture 1
     $inventoryLock.ReleaseMutex();$inventoryLock.Dispose()
   } finally {if($waiter){Stop-MarketPulseProcessTree $waiter;$waiter.Dispose()}}
