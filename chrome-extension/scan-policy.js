@@ -2,6 +2,7 @@
 const SCAN_ROUTING_POLICY = /* ROUTING_JSON_BEGIN */
 {
   "version": 1,
+  "windowsPrimary": {"from":"2026-11-04T08:00+09:00","id":"windows-primary-v2"},
   "slots": ["08:00", "12:00", "16:00", "20:00"],
   "changes": [
     {"from":"1970-01-01T08:00+09:00","id":"chrome-four-v1","owners":["chrome","chrome","chrome","chrome"]},
@@ -36,18 +37,20 @@ function primaryReceiptBase(receipt,verify=false) {
   if(!/^[a-f0-9]{32}$/.test(receipt.requestId||''))return prefix;
   return `${prefix}-${scanSlotKey(receipt.scanSlot)}-${receipt.requestId}`;
 }
-function primaryWitnessFilename(slot,id) {
+function primaryWitnessFilename(slot,id,browser='whale') {
   if(!/^[a-f0-9]{32}$/.test(id||''))throw Error('invalid-primary-id');
-  return `MarketPulse/whale-scan-start-${scanSlotKey(slot)}-${id}.json`;
+  return `MarketPulse/${browser==='chrome'?'chrome':'whale'}-scan-start-${scanSlotKey(slot)}-${id}.json`;
 }
 
 // Fixed KST slot assignment; independent of wall clock, restart or locale.
 function chromeCadencePolicy(slot,browser,recovery=null,primaryRequestId=null,transientTargets=null) {
   const base={experimentId:null,arm:null,delayMs:20000};
-  if(browser!=='chrome'||recovery||primaryRequestId||transientTargets||!slot)return base;
+  if(browser!=='chrome'||recovery||(primaryRequestId&&!windowsPrimaryProtocol(slot))||transientTargets||!slot)return base;
   try {if(scanPolicyForSlot(slot).browser!=='chrome')return base;} catch {return base;}
   if(!['08:00','16:00'].includes(slot.slice(11,16)))return base;
   const arms={'2026-11-03':'B','2026-11-04':'B','2026-11-05':'B','2026-11-06':'B','2026-11-07':'B','2026-11-08':'B','2026-11-09':'B'};
   const arm=arms[slot.slice(0,10)];
   return arm?{experimentId:'chrome-cadence-week-20261103',arm,delayMs:arm==='B'?40000:20000}:base;
 }
+
+function windowsPrimaryProtocol(slot) {if(!slot)return null;try{scanPolicyForSlot(slot);const p=SCAN_ROUTING_POLICY.windowsPrimary;return p&&slot>=p.from?p.id:null;}catch{return null;}}

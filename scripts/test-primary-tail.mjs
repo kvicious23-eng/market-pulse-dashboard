@@ -7,7 +7,7 @@ const dispatch=source.slice(source.indexOf('let activeScanPromise=null;'),source
 const helpers=source.slice(source.indexOf('function isPrimarySender('),source.indexOf('let fallbackCatalogPending=false;'));
 let resolveRoot,resolveTail,calls=0;
 const slot='2026-10-22T12:00+09:00',requestId='a'.repeat(32),state={primaryRequest:{scanSlot:slot,requestId,retryCount:0}};
-const ctx={Promise,Set,Date,Error,setTimeout,clearTimeout,fallbackCatalogPending:false,currentScheduledScanSlot:()=>slot,recentScanSlot:()=>true,
+const ctx={navigator:{userAgent:'Whale/5'},WORKER_INSTANCE_ID:'d'.repeat(32),Promise,Set,Date,Error,setTimeout,clearTimeout,fallbackCatalogPending:false,currentScheduledScanSlot:()=>slot,recentScanSlot:()=>true,
  scanAll:()=>{calls++;return new Promise(resolve=>resolveRoot=resolve);},chrome:{storage:{local:{get:async()=>state}},runtime:{getManifest:()=>({version:'1.9.50'})}}};
 vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),ctx);
 vm.runInNewContext(timer+dispatch+helpers+';this.start=requestScan;this.timeout=withScanTimeout;this.health=primaryRecoveryState;this.pending=()=>primaryPendingOperations.size;this.queue=()=>{queuedSaveRetry={slot:currentScheduledScanSlot(),primaryRequestId:"'+requestId+'",deadlineAt:"2099-01-01T00:00:00Z"};};',ctx);

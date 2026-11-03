@@ -45,6 +45,7 @@ $deadline = [DateTime]::UtcNow.AddMinutes(45)
 $candidateError=''
 do {
   if ($recoverySlot -and -not $ModelRecoverySource) {
+    if(Get-CommonProtocolId $recoverySlot){Invoke-CommonPrimaryStep $RepoPath $resultFolder $recoverySlot}
     Invoke-ChromeWorkerRecovery $RepoPath $resultFolder $recoverySlot
     Invoke-AccessStopRecovery $RepoPath $resultFolder $recoverySlot
     Invoke-ScanSaveRecovery $RepoPath $resultFolder $recoverySlot
@@ -849,7 +850,7 @@ foreach ($spec in $specs) {
   $data.meta.snapshotAt=$scanKst
   $data.meta | Add-Member -NotePropertyName collectionEvidence -NotePropertyValue (Get-ScanCollectionEvidence $payload) -Force
   $recoveryEvidence=$null
-  if ($payload.recovery -and $payload.recovery.reason -in @('chrome-worker-interrupted','chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error')) {
+  if ($payload.recovery -and $payload.recovery.reason -in @('primary-worker-failed','chrome-worker-interrupted','chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error')) {
     $receipt=Read-ScanRecoveryJson (Get-EdgeReceiptPath $RepoPath $recoverySlot)
     Assert-EdgeRecoveryResult -Payload $payload -Receipt $receipt -Targets @($receipt.targets)
     $recoveryEvidence=[pscustomobject]@{reason=$receipt.reason;exitCause='unknown';primaryBrowser=$receipt.primaryBrowser;scanSlot=$payload.scanSlot;

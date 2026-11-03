@@ -6,10 +6,10 @@ const source=readTestFile('chrome-extension/background.js','utf8');
 const scan=source.slice(source.indexOf('async function scanAll('),source.indexOf('\nconst SCHEDULED_SCAN_TIMES'));
 const products=[{brand:'Acer',mtm:'A',productId:'1',itemId:'2',vendorItemId:'3',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',skuId:'private'},
  {brand:'Lenovo',mtm:'B',productId:'4',itemId:'5',vendorItemId:'6',url:'https://www.coupang.com/vp/products/4?itemId=5&vendorItemId=6'}];
-async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T20:00+09:00',blocked=false,{firstStartedAt=null,elapsedMs=1000,confirmed=false,whale=false,retryDenied=false,failStop=false,frozenSlot=null,failCompletedSave=false}={}) {
+async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T20:00+09:00',blocked=false,{firstStartedAt=null,elapsedMs=1000,confirmed=false,whale=false,retryDenied=false,failStop=false,frozenSlot=null,failCompletedSave=false,common=false}={}) {
  const files=[],events=[],state=firstStartedAt?{scheduledScanBudget:{scanSlot:slot,firstStartedAt}}:{};let scanCount=0,stopWrites=0;
  if(frozenSlot)state.workerInterruptionHandoff={scanSlot:frozenSlot};
- if(whale)state.primaryRequest={scanSlot:slot,requestId:'c'.repeat(32),deadlineAt:new Date(Date.parse(slot)+120*60000).toISOString()};
+ if(whale||common)state.primaryRequest={scanSlot:slot,requestId:'c'.repeat(32),primaryProtocolId:common?'windows-primary-v2':null,deadlineAt:new Date(Date.parse(slot)+120*60000).toISOString()};
  class Clock extends Date{constructor(...a){super(...(a.length?a:[Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs]));}static now(){return Date.parse(slot||'2026-10-07T20:00+09:00')+elapsedMs;}}
  const context={WORKER_INSTANCE_ID:'d'.repeat(32),Date:Clock,URL,Object,Set,crypto:{randomUUID:()=> 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},navigator:{userAgent:edge?'Edg/1':whale?'Whale/1':'Chrome/1'},isEdgeBrowser:edge,primaryStopRequestId:null,
   createCheckoutTrace:()=>({data:{version:1,events:[]}}),saveCheckoutDiagnosticArchive:async()=>'not-needed',accessDiagnosticTabs:new Map(),saveAccessDiagnosticArchive:async()=>'not-needed',saveCompletedScan:async payload=>{if(failCompletedSave)throw Error('completion-save-failed');const filename=payload.recovery?`MarketPulse/edge-recovery-${payload.runId}.json`:'MarketPulse/latest-coupang-scan.json';const id=await context.chrome.downloads.download({url:'data:application/json,'+encodeURIComponent(JSON.stringify(payload)),filename});await context.waitForScanDownload(id,filename);},withScanTimeout:async p=>p,wait:async ms=>{events.push(`wait:${ms}`);},getTargets:async()=>products,validateProductCatalog:()=>[],
@@ -18,7 +18,7 @@ async function run(edge=false,recovery=null,failWitness=false,slot='2026-10-07T2
   chrome:{runtime:{getPlatformInfo:async()=>({}),getManifest:()=>({version:'1.9.55'})},storage:{local:{get:async()=>({...state}),set:async v=>Object.assign(state,v)}},tabs:{query:async()=>[],remove:async()=>{}},
    downloads:{download:async o=>{if(o.filename.includes('access-stop')&&failStop&&(failStop===true||stopWrites++===0))throw Error('stop-save-failed');files.push({...o,data:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('download:'+files.length);return files.length;}}}};
  vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';'+source.slice(source.indexOf('function isConfirmedAccessDenied('),source.indexOf('async function saveAccessDiagnosticArchive('))+';'+source.slice(source.indexOf('function scanSaveTargets('),source.indexOf('async function saveCompletedScan('))+';'+scan+';this.run=scanAll;',context);
- if(frozenSlot)await assert.rejects(context.run(slot,recovery),/primary-frozen-for-edge/);else if(failCompletedSave)await assert.rejects(context.run(slot,recovery),/completion-save-failed/);else if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else if(failStop===true)await assert.rejects(context.run(slot,recovery,whale?'c'.repeat(32):null),/stop-save-failed/); else await context.run(slot,recovery,whale?'c'.repeat(32):null);
+ if(frozenSlot)await assert.rejects(context.run(slot,recovery),/primary-frozen-for-edge/);else if(failCompletedSave)await assert.rejects(context.run(slot,recovery),/completion-save-failed/);else if(failWitness) await assert.rejects(context.run(slot,recovery),/interrupted/); else if(failStop===true)await assert.rejects(context.run(slot,recovery,(whale||common)?'c'.repeat(32):null),/stop-save-failed/); else await context.run(slot,recovery,(whale||common)?'c'.repeat(32):null);
  return {files,events,state};
 }
 let f=await run();assert.equal(f.files.length,2);assert.equal(f.files[0].filename,'MarketPulse/scan-start.json');
@@ -111,3 +111,21 @@ assert.equal(failedSave.state.lastCadenceSummary.outcome,'interrupted-or-failed'
 assert.equal(failedSave.state.lastCadenceSummary.completionSaved,false);
 assert.equal(failedSave.state.lastResult,undefined);
 console.log('Persisted primary handoff blocks restart; failed completion storage never reports saved.');
+
+for(const whale of [false,true]){
+ const slot=whale?'2026-11-04T12:00+09:00':'2026-11-04T08:00+09:00';
+ const x=await run(false,null,false,slot,false,{whale,common:true});
+ const witness=x.files[0],result=x.files.find(f=>f.data.complete===true).data;
+ assert.equal(witness.data.browser,whale?'whale':'chrome');
+ assert.equal(witness.data.primaryProtocolId,'windows-primary-v2');
+ assert.equal(result.primaryRequestId,'c'.repeat(32));
+ assert.equal(result.primaryProtocolId,'windows-primary-v2');
+ assert.match(witness.filename,new RegExp('MarketPulse/'+(whale?'whale':'chrome')+'-scan-start-'));
+ const summary=x.files.find(f=>f.filename.includes('cadence-summary'));
+ if(whale){assert.equal(summary,undefined)}else{assert.equal(summary.data.delayMs,40000)}
+ const denied=await run(false,null,false,slot,true,{whale,common:true,confirmed:true});
+ const proof=denied.files.find(f=>f.filename.includes('access-stop')).data;
+ assert.equal(proof.browser,whale?'whale':'chrome');assert.equal(proof.primaryRequestId,'c'.repeat(32));assert.equal(proof.primaryProtocolId,'windows-primary-v2');
+ assert.equal(denied.events.filter(e=>e==='open').length,1);assert.equal(denied.state.lastResult,undefined);
+}
+console.log('Common Chrome/Whale real collectors preserve request, protocol, cadence and immediate 403 handoff.');
