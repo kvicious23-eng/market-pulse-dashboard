@@ -50,7 +50,7 @@
             <strong id="minAdvantage">—</strong>
           </div>
           <div class="scoreboard__item">
-            <span>현재 경쟁 판매처</span>
+            <span>현재 경쟁모델</span>
             <strong id="sellerCount">—</strong>
           </div>
         </div>
@@ -73,14 +73,14 @@
         <div class="detail__head">
           <div>
             <p class="eyebrow">SELLER COMPARISON</p>
-            <h2 id="detailTitle">판매처별 가격</h2>
+            <h2 id="detailTitle">내 상품 · 지정 경쟁모델</h2>
             <p class="product-meta" id="productMeta"></p>
           </div>
           <div class="detail__actions">
-            <button class="export-button" id="exportExcel" type="button" title="이 브랜드의 누적 경쟁사 가격 이력을 Excel 파일로 저장">Excel 추출</button>
+            <button class="export-button" id="exportExcel" type="button" title="이 브랜드의 지정 경쟁모델 가격 이력을 Excel 파일로 저장">Excel 추출</button>
             <div class="view-switch" role="group" aria-label="가격 데이터 범위">
-              <button class="is-active" type="button" data-view="current">현재 판매</button>
-              <button type="button" data-view="reference">참고·품절 <b id="referenceCount">0</b></button>
+              <button class="is-active" type="button" data-view="current">지정 모델 비교</button>
+              <button type="button" data-view="reference" hidden>참고·품절 <b id="referenceCount">0</b></button>
             </div>
           </div>
         </div>
@@ -91,7 +91,7 @@
           <table>
             <thead>
               <tr>
-                <th>판매처</th>
+                <th>상품·모델</th>
                 <th>상태</th>
                 <th>가격 기준</th>
                 <th>할인 상세</th>
@@ -141,7 +141,7 @@
       <div class="method-copy">
         <p><strong>기본 비교가</strong><span id="basisText"></span></p>
         <p><strong>비교 제외</strong><span id="exclusionText"></span></p>
-        <p><strong>오래된 가격</strong><span>C등급 인덱스와 품절 가격은 현재 최저가 계산에서 제외하고 ‘참고·품절’에 분리했습니다.</span></p>
+        <p><strong>오래된 가격</strong><span>품절·미확인·이전 회차 가격은 현재 비교에서 제외하고 확인시각과 함께 참고값으로 표시합니다.</span></p>
       </div>
       <div class="modal__foot"><button class="button button--primary" type="button" data-close-modal>확인</button></div>
     </dialog>
@@ -150,6 +150,6 @@
     <script>document.write('<script src="../../dist/price-history.js?ts=' + Date.now() + '"></' + 'script>');</script>
     <script>document.write('<script src="../../dist/competitor-price-history.js?ts=' + Date.now() + '"></' + 'script>');</script>
     <script src="../../dist/xlsx-export.js?v=20260922-1"></script>
-    <script src="../../dist/app.js?v=20261009-1"></script>
+    <script src="../../dist/app.js?v=20261104-competitors"></script>
   </body>
 </html>

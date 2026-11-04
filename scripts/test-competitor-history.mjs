@@ -1,63 +1,44 @@
-import {readTestFile} from './test-source.mjs';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import vm from 'node:vm';
-
-const app=readTestFile('dist/app.js','utf8');
-const start=app.indexOf('  function exportCompetitorHistory() {');
-const end=app.indexOf('  function productStats(',start);
-assert.ok(start>0&&end>start);
-const exporter=app.slice(start,end);
-const headers=['수집시각','브랜드','MTM','판매처','가격'];
-const history={headers,rows:[
-  ['2026-09-24T14:10:00+09:00','Godox','C100','G마켓',41970],
-  ['2026-09-25T08:10:00+09:00','Godox','C100','옥션',41980],
-  ['2026-09-25T08:10:00+09:00','Acer','A1','11번가',900000]
-]};
-const downloads=[];
-const context={
-  window:{MARKET_PULSE_COMPETITOR_HISTORY:history},data:{meta:{brand:'Godox'}},
-  downloadWorkbook:(columns,rows,sheet,name)=>downloads.push({columns,rows,sheet,name})
-};
-vm.runInNewContext(`${exporter}\nthis.exportCompetitorHistory=exportCompetitorHistory`,context);
-context.exportCompetitorHistory();
-assert.equal(downloads.length,1);
-assert.equal(downloads[0].rows.length,2);
-assert.ok(downloads[0].rows.every(row=>row[1]==='Godox'));
-assert.match(downloads[0].name,/Godox_경쟁사가격히스토리_20260925\.xlsx$/);
-context.data.meta.brand='NewBrand';
-context.exportCompetitorHistory();
-assert.equal(downloads.length,1,'Brand without data cannot download another brand history');
-
-const stats=app.slice(app.indexOf('  function productStats('),app.indexOf('\n\n  function activeProduct()'));
-const productContext={
-  effectiveCompetitorPrice:offer=>offer.finalPrice,
-  effectiveFinalPrice:offer=>offer.finalPrice
-};
-vm.runInNewContext(`${stats}\nthis.productStats=productStats`,productContext);
-const mine={role:'mine',finalPrice:41000};
-const prices=[60000,43000,45000,42000,44000,47000,46000];
-const result=productContext.productStats({offers:[mine,...prices.map(finalPrice=>({role:'competitor',finalPrice}))]});
-assert.equal(result.competitors.length,5);
-assert.equal(JSON.stringify(result.competitors.map(row=>row.finalPrice)),JSON.stringify([42000,43000,44000,45000,46000]));
-
-const scanner=readTestFile('chrome-extension/background.js','utf8');
-const scannerStart=scanner.indexOf('function readEnuriSellers(');
-const scannerEnd=scanner.indexOf('\n\nasync function scanAll(',scannerStart);
-assert.ok(scannerStart>0&&scannerEnd>scannerStart);
-const scanContext={document:{
-  title:'GODOX C100 노출계 토이카메라 [정품]',
-  body:{innerText:'GODOX C100 정품 쇼핑몰별 최저가'},
-  querySelector:()=>({textContent:'GODOX C100 노출계 토이카메라 [정품]'}),
-  querySelectorAll:()=>[
-    {innerText:'GODOX 고독스 C100 41,970원 무료배송',querySelectorAll:()=>[
-      {alt:'GODOX 고독스 C100 정품'},{alt:'G마켓 로고'}]},
-    {innerText:'GODOX C100 해외구매 34,860원',querySelectorAll:()=>[
-      {alt:'GODOX C100 해외구매'},{alt:'옥션 로고'}]}
-  ]
-}};
-vm.runInNewContext(`${scanner.slice(scannerStart,scannerEnd)}\nthis.scan=readEnuriSellers`,scanContext);
-const scanned=scanContext.scan('Godox','C100',42000);
-assert.equal(scanned.sellers.length,1);
-assert.equal(scanned.sellers[0].price,41970);
-console.log('Competitor history, top five and listing exclusions passed.');
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
+import {offerFor,syncData,readHistory} from './competitor-data.mjs';
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'mp-competitor-'));
+const url='https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',key='1-2-3',slot='2026-11-04T08:00+09:00';
+const mine={role:'mine',finalPrice:12345,priceChange:-100,collectionEvidence:{runId:'a'.repeat(32)},supplierPrivateMarker:'preserve'};
+const own={brand:'Acer',mtm:'A1',productId:'10',itemId:'20',vendorItemId:'30',enabled:true,competitors:[{model:'Comp',url,note:'spec'}]};
+const catalog={products:[own,{...own,mtm:'A2',itemId:'21'}]};
+const target={competitorKey:key,model:'Comp',productId:'1',itemId:'2',vendorItemId:'3',url};
+const q={sourceRunId:'a'.repeat(32),requestId:'b'.repeat(32),browser:'chrome',scanSlot:slot,deadlineAt:'2026-11-04T10:00:00+09:00',publicationDeadline:'2026-11-04T10:30:00+09:00',firstPublishedAt:'2026-11-04T08:34:00+09:00',targets:[target]};
+const row={...target,ok:true,checkedAt:'2026-11-04T08:40:00+09:00',basisPrice:1500000,strikePrice:1500000,basisEvidence:{text:'1,500,000원'},price:1259000,priceBasisType:'crossed-out',priceBasisSource:'visible-product-price',strikeReliable:true,strikeAnchorVerified:true,checkoutDiscountStatus:'captured',checkoutCouponSource:'checkout',checkoutCouponDiscount:241000,wowInstantDiscount:0,wowCouponDiscount:0,checkoutDiscountTotal:241000,cardBenefitStatus:'captured',cardEvidenceSource:'dom',cardDiscount:20000,checkoutShipping:0,cardTerms:[{rate:2,maxDiscount:20000,providers:['A']} ]};
+const result={...q,scope:'competitors',terminal:true,startedAt:'2026-11-04T08:35:00+09:00',completedAt:'2026-11-04T08:41:00+09:00',total:1,results:[row]};
+try{
+ fs.mkdirSync(path.join(root,'brand/acer'),{recursive:true});fs.mkdirSync(path.join(root,'dist'));
+ const file=path.join(root,'brand/acer/market-data.js');
+ const initial={meta:{brand:'Acer',collectionEvidence:{scanSlot:slot,runId:q.sourceRunId},snapshotAt:slot,monitoring:{}},products:catalog.products.map(p=>({...p,offers:[structuredClone(mine),{role:'competitor',sourceType:'다나와'}],references:[{sourceType:'에누리'}],supplierMetrics:{stock:17}}))};
+ fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(initial)+';');
+ const read=()=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^window.MARKET_DATA\s*=\s*/,'').replace(/;\s*$/,''));
+ syncData(root,catalog);let d=read();assert.equal(d.products[0].competitorModels[0].phaseState,'pending');assert.equal(d.products[0].offers.length,1);assert.equal(d.products[0].references.length,0);
+ syncData(root,catalog,{queue:q,result});d=read();const c=d.products[0].competitorModels[0];assert.equal(c.finalPrice,1239000);assert.equal(c.cardDiscount,20000);assert.equal(c.srp,null);assert.equal(c.alertEligible,true);assert.equal(c.comparisonSlot,slot);
+ for(const p of d.products){assert.deepEqual(p.offers[0],mine);assert.deepEqual(p.supplierMetrics,{stock:17});}
+ assert.equal(d.meta.snapshotAt,slot);assert.deepEqual(d.meta.collectionEvidence,initial.meta.collectionEvidence);
+ assert.equal(readHistory(root).rows.length,2,'One physical result can serve two owner links');
+ syncData(root,catalog,{queue:q,result});assert.equal(readHistory(root).rows.length,2,'Repeated publication is idempotent');
+ const renamed={products:catalog.products.map(p=>({...p,competitors:p.competitors.map(c=>({...c,model:'Renamed'}))}))};syncData(root,renamed,{queue:q,result});assert.equal(readHistory(root).rows.length,2,'Renaming a link cannot duplicate a collected history event');
+ const previous=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,requestId:'wrong'}}));assert.equal(fs.readFileSync(file,'utf8'),previous);
+ assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,results:[{...row,vendorItemId:'9'}]}}));
+ assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,results:[{...row,checkedAt:'2026-11-04T10:01:00+09:00'}]}}));
+ const changed={products:[{...own,competitors:[]},{...catalog.products[1]}]};syncData(root,changed,{queue:q,result});assert.equal(read().products[0].competitorModels.length,0,'Removed link cannot be restored by old results');assert.equal(read().products[1].competitorModels.length,1);
+ assert.equal(offerFor({...row,checkoutShipping:3000},target).finalPrice,1242000);
+ assert.equal(offerFor({...row,checkoutShipping:null},target).alertEligible,false);
+ assert.equal(offerFor({...row,checkoutDiscountStatus:'missing'},target).alertEligible,false);
+ assert.equal(offerFor({...row,checkoutCouponSource:'page'},target).alertEligible,false);
+ assert.equal(offerFor({...row,checkoutDiscountTotal:1},target).alertEligible,false);
+ assert.equal(offerFor({...row,cardDiscount:99},target).alertEligible,false);
+ assert.equal(offerFor({...row,cardEvidenceSource:'guessed'},target).alertEligible,false);
+ assert.equal(offerFor({...row,cardBenefitStatus:'none',cardDiscount:0},target).finalPrice,1259000);
+ const sold=offerFor({...row,checkoutDiscountReason:'buy-now-button-sold-out'},target);assert.equal(sold.status,'품절');assert.equal(sold.finalPrice,null);
+ const partial=offerFor({...row,cardBenefitStatus:'partial'},target);assert.equal(partial.publishedPriceBasis,'pre-card');assert.equal(partial.finalPrice,1259000);assert.equal(partial.alertEligible,false);
+ const pending=read();const last=pending.products[1].competitorModels[0];last.lastVerifiedFinalPrice=last.finalPrice;last.lastVerifiedPriceCheckedAt=last.priceCheckedAt;last.finalPrice=null;last.alertEligible=false;last.phaseState='pending';fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(pending)+';');
+ syncData(root,changed,{queue:{...q,requestId:'e'.repeat(32)},result:{...result,requestId:'e'.repeat(32),results:[{...row,ok:false}]}});assert.equal(read().products[1].competitorModels[0].lastVerifiedFinalPrice,1239000,'Failure after a pending update must retain the dated prior reference');
+ syncData(root,changed,{queue:q,result:{...result,results:[],stoppedReason:'budget'}});assert.equal(read().products[1].competitorModels[0].phaseState,'not-collected');assert.equal(read().products[1].competitorModels[0].alertEligible,false);
+ console.log('Separate publication, coupon-first card caps, shared results, own price/inventory preservation, idempotent history, deletion races, malformed/late evidence and partial budgets passed.');
+}finally{fs.rmSync(root,{recursive:true,force:true});}

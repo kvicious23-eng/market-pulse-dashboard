@@ -16,7 +16,7 @@ const scheduleScript=readTestFile("scripts/set-local-schedule.ps1","utf8");
 const dashboard=readTestFile("dist/app.js","utf8");
 const lenovoRefresh=readTestFile("scripts/update-market-data.mjs","utf8");
 const acerRefresh=readTestFile("scripts/update-acer-data.mjs","utf8");
-assert.equal(manifest.version,"1.9.65");
+assert.equal(manifest.version,"1.9.66");
 // DOM string tables include attributes/CSS/URLs; only rendered text is evidence.
 const debugContext={};
 vm.runInNewContext(source.slice(source.indexOf('function debuggerSnapshotStrings('),source.indexOf('\nasync function captureDebuggerText('))+';this.snapshot=debuggerSnapshotStrings;',debugContext);
@@ -196,7 +196,6 @@ assert.match(importer,/\$result\.checkoutDiscountStatus -eq 'captured' -and \$re
 assert.match(importer,/availabilityReportAt'\)/);
 assert.match(importer,/NotePropertyName publishedAt/);
 assert.match(importer,/\$safeBrand \$safeCategory · Korea/);
-assert.match(importer,/Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue \$scanKst -Force/);
 assert.match(importer,/\$visualBasisValid=/);
 assert.match(dashboard,/categories\.length===1\?categories\[0\]:"Products"/);
 assert.match(importer,/\$null -eq \$result\.cardDiscount -or \[long\]\$result\.cardDiscount -ne \$pageBest\.amount/);

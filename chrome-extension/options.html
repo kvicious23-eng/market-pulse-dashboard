@@ -3,9 +3,9 @@
 <body><main>
   <header><div><p class="eyebrow">MARKET PULSE</p><h1>상품 관리</h1><p class="desc">기존 상품을 수정하거나 신규 상품을 등록해. SRP는 가격 판정의 기준값으로 사용돼.</p></div><div class="summary"><b id="activeCount">0</b><span>사용 상품</span></div></header>
   <section class="toolbar"><div><button id="add">+ 신규 상품</button><button id="save" class="primary">변경사항 저장</button></div><label>검색 <input id="search" placeholder="브랜드, MTM"></label></section>
-  <div id="notice" role="status"></div>
+  <p id="capacity" role="status"></p><div id="notice" role="status"></div>
   <section id="cards" aria-label="등록 상품 목록"></section>
-  <footer><button id="saveBottom" class="primary">변경사항 저장</button><p>저장 후 다음 자동수집부터 적용돼. 즉시 반영하려면 M 아이콘에서 ‘지금 수집 시작’을 선택해.</p></footer>
+  <footer><button id="saveBottom" class="primary">변경사항 저장</button><p>저장 후 다음 정기 수집부터 적용돼. 경쟁모델은 내 상품 게시 완료 뒤 자동으로 수집돼.</p></footer>
 </main><template id="cardTemplate"><article class="card">
   <div class="cardHead"><div><span class="brandBadge"></span><strong class="title"></strong></div><label class="toggle"><input class="enabled" type="checkbox"><span>사용</span></label></div>
   <div class="grid">
@@ -13,7 +13,5 @@
     <label class="wide">쿠팡 URL<input class="url" type="url" placeholder="https://www.coupang.com/vp/products/..."></label>
     <label>Product ID<input class="productId" readonly></label><label>Item ID<input class="itemId" readonly></label><label>VendorItem ID<input class="vendorItemId" readonly></label>
     <label>SKUID <small>Supplier Hub CSV 연결용 · 선택</small><input class="skuId" inputmode="numeric" placeholder="CSV의 SKU ID · 처음 한 번 등록"></label>
-    <label class="wide">다나와 URL <small>선택</small><input class="danawaUrl" type="url" placeholder="https://prod.danawa.com/info/?pcode=..."></label>
-    <label class="wide">에누리 정품 URL <small>선택</small><input class="enuriUrl" type="url" placeholder="https://price.enuri.com/catalog/..."></label>
-  </div><div class="cardFoot"><span class="validation"></span><button class="remove" type="button">목록에서 제거</button></div>
-</article></template><script src="options.js"></script></body></html>
+  </div><section class="competitor-editor"><h3>비교할 쿠팡 경쟁모델</h3><p>유사 스펙 여부는 직접 확인해서 등록해. 같은 경쟁상품은 여러 내 상품에 연결해도 한 번만 수집해.</p><div class="competitorRows"></div><button class="addCompetitor" type="button">+ 경쟁모델 추가</button></section><div class="cardFoot"><span class="validation"></span><button class="remove" type="button">목록에서 제거</button></div>
+</article></template><script src="competitor-models.js"></script><script src="options.js"></script></body></html>

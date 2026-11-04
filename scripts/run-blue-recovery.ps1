@@ -6,11 +6,15 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'model-edge-recovery.ps1')
 . (Join-Path $PSScriptRoot 'blue-recovery-queue.ps1')
 $folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
+. (Join-Path $PSScriptRoot 'competitor-phase.ps1')
 $log=Join-Path $RepoPath 'reports\blue-recovery.log'
 $mutex=New-Object Threading.Mutex($false,'Local\MarketPulse.BlueRecoveryPoll');$held=$false
 try {
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
   try {Confirm-BlueIssueLedger $RepoPath $folder}catch{Add-Content $log -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) Issue ledger awaiting a matching public snapshot: $($_.Exception.Message)"}
+  $competitorSlot=Get-ScanRecoverySlot
+  $cq=if($competitorSlot){Read-ScanRecoveryJson (Get-CompetitorQueuePath $RepoPath $competitorSlot)}else{$null}
+  if($cq -and $cq.state -cin @('starting','collecting','publishing')){Invoke-CompetitorPhase $RepoPath $folder;return}
   foreach($file in @(Get-ChildItem (Join-Path $RepoPath 'reports') -Filter 'blue-recovery-*.json' -File -ErrorAction SilentlyContinue|Sort-Object LastWriteTimeUtc -Descending)) {
     $q=$null
     try {
@@ -65,5 +69,6 @@ try {
       Add-Content $log -Encoding UTF8 -Value "$($now.ToString('o')) Slot=$($q.scanSlot); deferred recovery: $($q.lastError)"
     }
   }
+  Invoke-CompetitorPhase $RepoPath $folder
 } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 

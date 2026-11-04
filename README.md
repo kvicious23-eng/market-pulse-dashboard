@@ -6,7 +6,7 @@ Lenovo, Acer, Godox 및 사용자 등록 브랜드의 가격 모니터링 대시
 
 | 구분 | 현재 기준 |
 |---|---|
-| 가격 확장 | Chrome·Edge·Whale 1.9.65. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
+| 가격 확장 | Chrome·Edge·Whale 1.9.66. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
 | Supplier Connector | Chrome의 독립 0.1.23. 가격 성공을 CSV 시작 조건으로 사용하지 않음 |
 | 정기 수집 | 한국시간 매일 08·12·16·20시. Chrome 08/16, Whale 12/20 |
 | 실행 주체 | Windows가 공통 요청을 전달하고 감시. 공통 프로토콜 적용 이후 세 가격 확장의 자체 정기 알람은 0개 |
@@ -44,4 +44,8 @@ Lenovo, Acer, Godox 및 사용자 등록 브랜드의 가격 모니터링 대시
 
 운영 소스 변경 전 수집·업로드·복구 비실행과 다음 예약까지의 여유를 확인한다. 가격 확장 소스가 바뀌면 세 브라우저를 각각 재로드한 후 별도 nonce의 verify로 실행 버전·권한·목록·회차 소유권을 확인한다. Windows 코드나 문서만 바뀌면 필요한 검증을 수행하고 불필요한 재로드나 추가 실수집을 시작하지 않는다.
 
-CI는 Ubuntu와 Windows에서 JavaScript LF/CRLF 검사를 수행하고 Windows PowerShell 5.1의 수집·복구·이력·게시·Supplier 검사를 통과한 main만 Pages에 배포한다. Actions의 수동 Run workflow는 공개 조사 작업이며 PC의 가격 주문서 수집이나 Supplier 로그인·CSV를 원격 실행하는 기능이 아니다.
+CI는 Ubuntu와 Windows에서 JavaScript LF/CRLF 검사를 수행하고 Windows PowerShell 5.1의 수집·복구·이력·게시·Supplier 검사를 통과한 main만 Pages에 배포한다. Actions 수동 Run workflow는 검증·배포만 수행한다. 가격 수집은 운영 PC의 내 상품/지정 경쟁모델 단계에서 실행한다.
+
+## 지정 쿠팡 경쟁모델
+
+상품관리의 각 내 상품에서 경쟁모델명·쿠팡 URL·메모·활성을 등록한다. 동일 상품·옵션·판매자는 공유 수집하며 미등록도 허용한다. 내 상품 Pages 성공 후 별도 경쟁단계가 원래 예산 안에서 실행된다. SELLER COMPARISON과 Excel은 지정 경쟁모델만 사용하며 다나와·에누리 비교는 폐기했다. 상세 기준은 PROJECT_RULES.md의 1.9.66 절을 따른다.

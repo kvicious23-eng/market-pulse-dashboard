@@ -218,7 +218,7 @@
   }
 
   function collectionIssueText(offer) {
-    const reasons = {"access-check":"접근 제한", "tab-edit-busy":"브라우저 탭 일시 오류", "product-unavailable":"상품 가격 미확인", "checkout-unconfirmed":"주문 페이지·할인 미확인"};
+    const reasons = {"access-check":"접근 제한", "tab-edit-busy":"브라우저 탭 일시 오류", "product-unavailable":"상품 가격 미확인", "checkout-unconfirmed":"주문 페이지·할인 미확인","competitor-pending":"경쟁모델 업데이트 대기","shipping-unconfirmed":"배송비 미확인"};
     return reasons[offer?.collectionIssue] || "수집 미확인";
   }
 
@@ -233,16 +233,8 @@
   }
 
   function effectiveCompetitorPrice(offer, mine) {
-    if (offer?.competitionPolicyVerified !== true || offer?.sellerRowVerified !== true || offer?.shippingStatus !== 'verified') return null;
-    if (!Number.isFinite(offer.shipping) || offer.shipping < 0 || offer.finalPrice !== offer.displayPrice + offer.shipping) return null;
-    // Keep excluded legacy listings out of comparisons until a clean scan replaces them.
-    const evidence = [offer?.seller,offer?.condition,offer?.sourceType,offer?.productTitle,offer?.priceLabel].join(' ');
-    if (/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i.test(evidence)) return null;
-    const price = effectiveFinalPrice(offer);
-    const competitorDay = collectionDay(offer);
-    const mineDay = collectionDay(mine);
-    if (!Number.isFinite(price) || !competitorDay || !mineDay || competitorDay !== mineDay) return null;
-    return price;
+    if(offer?.kind!=='coupang-model'||offer.phaseState!=='collected'||offer.comparisonSlot!==data.meta.collectionEvidence?.scanSlot||cardReviewRequired(offer))return null;
+    return effectiveFinalPrice(offer);
   }
 
   function isSoldOut(offer) {
@@ -349,16 +341,16 @@
 
   function productStats(product) {
     const mine = product.offers.find((offer) => offer.role === "mine");
-    const competitors = product.offers
-      .filter((offer) => offer.role === "competitor" && Number.isFinite(effectiveCompetitorPrice(offer, mine)))
-      .sort((a, b) => effectiveCompetitorPrice(a, mine) - effectiveCompetitorPrice(b, mine))
-      .slice(0, 5);
-    const competitorBest = competitors[0] || null;
+    const competitors = [...(product.competitorModels||[])].sort((a,b)=>{
+      const x=effectiveCompetitorPrice(a,mine),y=effectiveCompetitorPrice(b,mine);
+      return (x??Infinity)-(y??Infinity);
+    });
+    const competitorBest = competitors.find(o=>Number.isFinite(effectiveCompetitorPrice(o,mine))) || null;
     const mineFinalPrice = effectiveFinalPrice(mine);
     const competitorBestPrice = competitorBest ? effectiveCompetitorPrice(competitorBest, mine) : null;
     const mineReady = Number.isFinite(mineFinalPrice);
     const difference = mineReady && Number.isFinite(competitorBestPrice) ? competitorBestPrice - mineFinalPrice : null;
-    const undercutters = mineReady ? competitors.filter((offer) => effectiveCompetitorPrice(offer, mine) < mineFinalPrice) : [];
+    const undercutters = mineReady ? competitors.filter((offer) => Number.isFinite(effectiveCompetitorPrice(offer,mine)) && effectiveCompetitorPrice(offer, mine) < mineFinalPrice) : [];
     return { mine, mineFinalPrice, competitors, competitorBest, competitorBestPrice, difference, undercutters };
   }
 
@@ -380,7 +372,7 @@
     const wins = stats.filter((item) => Number.isFinite(item.difference) && item.difference >= 0);
     const alerts = stats.filter((item) => item.undercutters.length > 0);
     const advantages = wins.map((item) => item.difference).filter(Number.isFinite);
-    const currentSellers = stats.reduce((sum, item) => sum + item.competitors.length, 0);
+    const currentSellers = stats.reduce((sum, item) => sum + item.competitors.filter(o=>Number.isFinite(effectiveCompetitorPrice(o,item.mine))).length, 0);
     const total = data.products.length;
     const brand = data.meta.brand || document.title.split(/\s+/)[0] || "Market Pulse";
 
@@ -439,7 +431,9 @@
         const source = await response.text();
         const latest = source.match(/["']?publishedAt["']?\s*:\s*"([^"]+)"/)?.[1]
           || source.match(/["']?snapshotAt["']?\s*:\s*"([^"]+)"/)?.[1];
-        if (latest && latest !== (data.meta.publishedAt || data.meta.snapshotAt)) location.reload();
+        const newest=JSON.parse(source.replace(/^\s*window\.MARKET_DATA\s*=\s*/, '').replace(/;\s*$/, ''));
+        const competitorChanged=JSON.stringify(newest.meta.competitorPhase||null)!==JSON.stringify(data.meta.competitorPhase||null);
+        if (competitorChanged || (latest && latest !== (data.meta.publishedAt || data.meta.snapshotAt))) location.reload();
       } catch {
         // 다음 확인 주기에 다시 시도합니다.
       }
@@ -559,13 +553,14 @@
 
     refs.offerRows.innerHTML = source.map((offer, index) => {
       const mine = offer.role === "mine";
+      const detailed=mine||offer.kind==='coupang-model';
       const current = activeView === "current";
       const price = current ? offer.finalPrice : offer.referencePrice;
-      const breakdown = mine ? priceBreakdown(offer) : null;
-      const srp = mine ? breakdown.srp : offer.displayPrice;
+      const breakdown = detailed ? priceBreakdown(offer) : null;
+      const srp = detailed ? breakdown.srp : offer.displayPrice;
       const matchingDifference = mine ? breakdown.matchingDifference : null;
-      const couponDiscount = mine ? breakdown.couponDiscount : offer.couponDiscount;
-      const checkout = mine ? checkoutDiscounts(offer, couponDiscount) : { regular: null, instant: null, coupon: null, total: couponDiscount };
+      const couponDiscount = detailed ? breakdown.couponDiscount : offer.couponDiscount;
+      const checkout = detailed ? checkoutDiscounts(offer, couponDiscount) : { regular: null, instant: null, coupon: null, total: couponDiscount };
       const offerFinalPrice = current
         ? (mine ? publishedPrice(offer) : effectiveCompetitorPrice(offer, stats.mine))
         : null;
@@ -580,7 +575,7 @@
         ? ((mine ? offerStatus(offer) === "현재가 직접 확인" : offer.alertEligible === true) && !soldOut ? "active" : "soldout")
         : "stale";
       const finalCell = current
-        ? `<strong class="price">${formatWon(offerFinalPrice)}</strong>${collectionReviewRequired(offer) ? '<small class="card-review-label">수집 오류 · 마지막 검증 가격(참고)</small>' : cardReviewRequired(offer) ? '<small class="card-review-label">카드 적용 전 금액 · 카드할인 재확인 필요</small>' : ""}`
+        ? `<strong class="price">${formatWon(mine?offerFinalPrice:cardReviewRequired(offer)?offer.preCardPrice:collectionReviewRequired(offer)?offer.lastVerifiedFinalPrice:offerFinalPrice)}</strong>${collectionReviewRequired(offer) ? `<small class="card-review-label">미확인 · 이전 가격 참고 ${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>` : cardReviewRequired(offer) ? '<small class="card-review-label">카드 적용 전 금액 · 카드할인 재확인 필요</small>' : ""}`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
       const diffCell = mine
         ? `<span class="diff diff--base">${collectionReviewRequired(offer) ? "계산 제외" : "비교 기준"}</span>`
@@ -593,19 +588,19 @@
           <td>
             <span class="seller">
               <span class="seller__mark">${escapeHtml(initials(offer.seller, mine))}</span>
-              <span><strong>${escapeHtml(offer.seller)}</strong><small>${escapeHtml(offer.channel)}${best ? " · 경쟁 최저" : ""}</small></span>
+              <span><strong>${escapeHtml(offer.seller)}</strong><small>${escapeHtml(offer.channel)} · ${escapeHtml(offer.priceCheckedAt||'확인 전')}${best ? " · 경쟁 최저" : ""}</small>${offer.note ? `<small>${escapeHtml(offer.note)}</small>` : ""}</span>
             </span>
           </td>
           <td data-label="상태"><span class="row-badge row-badge--${statusClass}">${escapeHtml(offerStatus(offer))}</span></td>
           <td data-label="가격 기준" class="cell-stack">
-            <span><small>SRP</small>${mine && !Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)}</span>
-            <span><small>표시가</small>${current && mine ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</span>
-            <span><small>매칭차액</small>${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</span>
+            <span><small>SRP</small>${mine ? (!Number.isFinite(srp) ? '<span class="unknown">SRP 미입력</span>' : formatWon(srp)) : '<span class="unknown">적용 대상 아님</span>'}</span>
+            <span><small>표시가</small>${current && detailed ? formatWon(breakdown.basisPrice) : '<span class="unknown">—</span>'}</span>
+            <span><small>매칭차액</small>${current && mine ? formatDiff(matchingDifference) : '<span class="unknown">—</span>'}</span>${offer.kind==='coupang-model'?`<span><small>배송비</small>${formatWon(offer.shipping)}</span>`:""}
           </td>
           <td data-label="할인 상세" class="cell-stack cell-stack--discount">
-            <span><small>일반 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.regular, checkout.regularStatus) : '<span class="unknown">—</span>'}</span>
-            <span><small>와우 즉시</small>${current && mine ? checkoutDiscountText(checkout.instant, checkout.instantStatus) : '<span class="unknown">—</span>'}</span>
-            <span><small>와우 쿠폰</small>${current && mine ? checkoutDiscountText(checkout.coupon, checkout.couponStatus) : '<span class="unknown">—</span>'}</span>
+            <span><small>일반 쿠폰</small>${current && detailed ? checkoutDiscountText(checkout.regular, checkout.regularStatus) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 즉시</small>${current && detailed ? checkoutDiscountText(checkout.instant, checkout.instantStatus) : '<span class="unknown">—</span>'}</span>
+            <span><small>와우 쿠폰</small>${current && detailed ? checkoutDiscountText(checkout.coupon, checkout.couponStatus) : '<span class="unknown">—</span>'}</span>
             <span class="cell-stack__total"><small>합계</small>${current ? discountText(checkout.total) : '<span class="unknown">—</span>'}</span>
           </td>
           <td data-label="카드할인">${current ? cardDiscountText(offer) : '<span class="unknown">—</span>'}</td>
@@ -614,7 +609,7 @@
           <td data-label="신뢰도"><span class="confidence confidence--${confidenceClass(offer.confidence)}">${escapeHtml(offer.confidence)}</span></td>
           <td><button class="evidence-button" type="button" data-evidence-index="${index}" aria-label="${escapeHtml(offer.seller)} 가격 근거 보기" title="가격 근거 보기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button></td>
         </tr>`;
-    }).join("");
+    }).join("") + (!stats.competitors.length ? '<tr><td colspan="9" class="unknown">등록된 경쟁모델 없음 · 상품관리에서 쿠팡 경쟁모델을 추가해.</td></tr>' : '');
   }
 
   function renderDetail() {
@@ -642,10 +637,10 @@
     const offer = list[index];
     if (!offer) return;
 
-    const mine = activeView === "current" && offer.role === "mine";
+    const mine = activeView === "current" && (offer.role === "mine" || offer.kind === "coupang-model");
     const breakdown = mine ? priceBreakdown(offer) : null;
     const displayPrice = mine
-      ? (Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : "SRP 미입력")
+      ? (Number.isFinite(breakdown.srp) ? formatWon(breakdown.srp) : offer.kind==='coupang-model'?"적용 대상 아님":"SRP 미입력")
       : (Number.isFinite(offer.displayPrice) ? formatWon(offer.displayPrice) : "미확인");
     const finalValue = activeView === "current"
       ? (mine ? publishedPrice(offer) : effectiveCompetitorPrice(offer, productStats(product).mine))
@@ -661,7 +656,7 @@
     const checkoutEvidence=mine&&Array.isArray(offer.checkoutDiscountEvidence)
       ? offer.checkoutDiscountEvidence.filter(Boolean) : [];
     refs.evidenceContent.innerHTML = `
-      <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(product.mtm)}</strong></div>
+      <div class="evidence__item"><span>MTM</span><strong>${escapeHtml(offer.model||product.mtm)}</strong></div>
       <div class="evidence__item"><span>채널·상태</span><strong>${escapeHtml(offer.channel)} · ${escapeHtml(offer.status)}</strong></div>
       <div class="evidence__item"><span>SRP</span><strong>${displayPrice}</strong></div>
       ${mine ? `<div class="evidence__item"><span>표시가</span><strong>${formatWon(breakdown.basisPrice)}</strong></div>

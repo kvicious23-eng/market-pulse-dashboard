@@ -45,14 +45,10 @@ for(const file of [...new Set(files)]){
     }
     const mine=product.offers?.find(offer=>offer.role==="mine");
     if(!mine){fail(file,`${label}: mine offer is missing`);continue;}
-    for(const offer of product.offers||[]){
-      if(offer.role==="competitor"&&offer.alertEligible===true) {
-        if(offer.competitionPolicyVerified!==true||offer.sellerRowVerified!==true||offer.shippingStatus!=='verified'||offer.matchedMtm!==product.mtm) fail(file,`${label}: competitor needs exact seller-row and shipping evidence`);
-        if(!finite(offer.shipping)||offer.shipping<0||!finite(offer.displayPrice)||offer.finalPrice!==offer.displayPrice+offer.shipping) fail(file,`${label}: competitor total must include verified shipping`);
-      }
-      if(offer.role==="competitor"&&offer.alertEligible!==true&&offer.alertEligible!==false) {
-        fail(file,`${label}: competitor eligibility must be explicitly true or false`);
-      }
+    if((product.offers||[]).some(o=>o.role!=='mine')||(product.references||[]).length)fail(file,`${label}: retired seller listings must be removed`);
+    for(const c of product.competitorModels||[]){
+      if(c.kind!=='coupang-model'||c.srp!==null||!/^\d+-\d+-\d+$/.test(c.competitorKey||'')||typeof c.alertEligible!=='boolean')fail(file,`${label}: competitor model identity/status invalid`);
+      if(c.alertEligible&&(!finite(c.shipping)||c.shipping<0||!finite(c.finalPrice)||c.phaseState!=='collected'||c.comparisonSlot!==data.meta.collectionEvidence?.scanSlot||c.checkoutDiscountStatus!=='captured'||!['none','captured'].includes(c.cardBenefitStatus)))fail(file,`${label}: competitor needs current checkout/card evidence`);
     }
     if(mine.collectionStatus === "review-needed") {
       if(mine.alertEligible !== false || mine.priceChange !== null || mine.publishedPriceBasis !== "last-verified" ||
