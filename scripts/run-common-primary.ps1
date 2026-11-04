@@ -16,7 +16,7 @@ try{
  if((Test-Path $path) -and -not $q){throw 'Common request corrupt; do not replace its identity'}
  if(-not $q){
   $now=[DateTimeOffset]::UtcNow
-  $targets=@($catalog.products|Where-Object {$_.enabled -ne $false}|Select-Object brand,mtm,category,srp,enabled,productId,itemId,vendorItemId,url,danawaUrl,enuriUrl)
+  $targets=@($catalog.products|Where-Object {$_.enabled -ne $false}|Select-Object brand,mtm,category,srp,enabled,productId,itemId,vendorItemId,url)
   $q=[pscustomobject]@{version=1;browser=(Get-PrimaryScanBrowser $Slot);primaryProtocolId=(Get-CommonProtocolId $Slot);policyId=(Get-ScanSlotPolicy $Slot).id;scanSlot=$Slot;requestId=[guid]::NewGuid().ToString('N');requestedAt=$now.ToString('o');targets=$targets;launchAttempts=0;lastLaunchAt=$now.ToString('o');lastProbeAt=$null;stopRequestedAt=$null}
  }
  Assert-CommonRequest $q $Slot $catalog

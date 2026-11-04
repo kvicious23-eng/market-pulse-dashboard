@@ -23,7 +23,7 @@ try {
     $profiles=@(Get-BrowserExtensionInstallations (Join-Path $env:LOCALAPPDATA 'Naver\Naver Whale\User Data') (Join-Path $RepoPath 'chrome-extension'))
     if($profiles.Count -ne 1){throw 'Exactly one eligible Whale scanner profile is required.'}
     $catalog=Read-ScanRecoveryJson (Join-Path $folder 'product-catalog.json')
-    $targets=@($catalog.products|Where-Object {$_.enabled -ne $false}|Select-Object brand,mtm,category,srp,enabled,productId,itemId,vendorItemId,url,danawaUrl,enuriUrl)
+    $targets=@($catalog.products|Where-Object {$_.enabled -ne $false}|Select-Object brand,mtm,category,srp,enabled,productId,itemId,vendorItemId,url)
     $requestPath=Get-WhaleRequestPath $RepoPath $slot
     $request=Read-WhalePrimaryRequest $RepoPath $slot
     if((Test-Path -LiteralPath $requestPath) -and -not $request){throw 'Existing Whale request is corrupt or mismatched; do not create another request.'}

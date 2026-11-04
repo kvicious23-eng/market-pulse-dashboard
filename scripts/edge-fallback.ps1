@@ -124,8 +124,7 @@ if ($AccessStop) {
   if (([DateTimeOffset]::UtcNow - $scanEnd.ToUniversalTime()).TotalHours -gt 3) { return }
   $targets=@(foreach($row in @($scan.Data.results)) {
     [pscustomobject]@{brand=$row.brand;mtm=$row.mtm;category=$row.category;srp=$row.srp;enabled=$true;
-      productId=$row.productId;itemId=$row.itemId;vendorItemId=$row.vendorItemId;url=$row.url;
-      danawaUrl=$row.danawaUrl;enuriUrl=$row.enuriUrl}
+      productId=$row.productId;itemId=$row.itemId;vendorItemId=$row.vendorItemId;url=$row.url}
   })
   if ($scan.Data.runId -notmatch '^[a-f0-9]{32}$' -or $scan.Data.scanSlot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Chrome access-check recovery needs an identified scheduled scan.' }
   if ([int]$scan.Data.targetCount -ne $targets.Count -or [int]$scan.Data.resultCount -ne $targets.Count) { throw 'Chrome access-check target count is invalid.' }

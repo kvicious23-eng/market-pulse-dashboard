@@ -1,35 +1,27 @@
-importScripts('scan-policy.js','checkout-diagnostics.js');
+importScripts('scan-policy.js','checkout-diagnostics.js','competitor-models.js','competitor-worker.js');
 const WORKER_INSTANCE_ID=(globalThis.crypto?.randomUUID?.()||String(Date.now())+'-'+Math.random()).replaceAll('-','');
 const TARGETS = [
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534',danawaUrl:'https://prod.danawa.com/info/?pcode=95845739'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535',danawaUrl:'https://prod.danawa.com/info/?pcode=95845826'},
-  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536',danawaUrl:'https://prod.danawa.com/info/?pcode=122647414'},
-  {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',srp:1558000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041',danawaUrl:'https://prod.danawa.com/info/?pcode=122672194'},
-  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',srp:1429000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514',danawaUrl:'https://prod.danawa.com/info/?pcode=123650595'},
-  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515',danawaUrl:'https://prod.danawa.com/info/?pcode=123763381'},
-  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922',danawaUrl:'https://prod.danawa.com/info/?pcode=93445997'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667',danawaUrl:'https://prod.danawa.com/info/?pcode=122719782'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006',danawaUrl:'https://prod.danawa.com/info/?pcode=122636128'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706',danawaUrl:'https://prod.danawa.com/info/?pcode=122702450'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758',danawaUrl:'https://prod.danawa.com/info/?pcode=122636236'},
-  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668',danawaUrl:'https://prod.danawa.com/info/?pcode=122719720'},
-  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227',danawaUrl:'https://prod.danawa.com/info/?pcode=107769113'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N3003DKR',productId:'9235110727',itemId:'27303268765',vendorItemId:'95415897535',srp:1159000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303268765&vendorItemId=95415897535'},
+  {brand:'Lenovo',category:'Notebook',mtm:'83N30046KR',productId:'8708708250',itemId:'25515648568',vendorItemId:'95415897536',srp:1199000,enabled:true,url:'https://www.coupang.com/vp/products/8708708250?itemId=25515648568&vendorItemId=95415897536'},
+  {brand:'Acer',category:'Notebook',mtm:'ANV16-I31-514Z',productId:'9573633117',itemId:'28575928128',vendorItemId:'95520178041',srp:1558000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28575928128&vendorItemId=95520178041'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-972S',productId:'9681715061',itemId:'28951318769',vendorItemId:'95881909514',srp:1429000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514'},
+  {brand:'Acer',category:'Notebook',mtm:'AG14-I71M-96C5',productId:'9681715061',itemId:'28951318771',vendorItemId:'95881909515',srp:1569000,enabled:true,url:'https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515'},
+  {brand:'Acer',category:'Notebook',mtm:'PHN16S-71-949J',productId:'9573633117',itemId:'26004597899',vendorItemId:'92986675922',srp:4099000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-I71-57P5',productId:'9616664363',itemId:'28714706385',vendorItemId:'95655361667',srp:1689000,enabled:true,url:'https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG14-75-508U',productId:'9428079675',itemId:'28287192873',vendorItemId:'95240133006',srp:1229000,enabled:true,url:'https://www.coupang.com/vp/products/9428079675?itemId=28287192873&vendorItemId=95240133006'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-7412',productId:'9573633117',itemId:'28029585486',vendorItemId:'94986693706',srp:1659000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28029585486&vendorItemId=94986693706'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-I71-75Y2',productId:'9483273252',itemId:'28237319655',vendorItemId:'95190959758',srp:1829000,enabled:true,url:'https://www.coupang.com/vp/products/9483273252?itemId=28237319655&vendorItemId=95190959758'},
+  {brand:'Acer',category:'Notebook',mtm:'SFG16-74-70E9',productId:'9573633117',itemId:'28714706401',vendorItemId:'95655361668',srp:1439000,enabled:true,url:'https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668'},
+  {brand:'Acer',category:'Notebook',mtm:'SF16-71T-7475',productId:'9437677217',itemId:'28067081535',vendorItemId:'95023756227',srp:2369000,enabled:true,url:'https://www.coupang.com/vp/products/9437677217?itemId=28067081535&vendorItemId=95023756227'},
   {"mtm":"SFG14-75-749N","productId":"9738841025","itemId":"29147260106","vendorItemId":"96070559959","category":"Notebook","srp":2299000,"brand":"Acer","enabled":true,"url":"https://www.coupang.com/vp/products/9738841025?itemId=29147260106&vendorItemId=96070559959"},
-  {brand:'Godox',category:'Camera',mtm:'C100',productId:'9738958594',itemId:'29147698397',vendorItemId:'96070924334',srp:42000,enabled:true,url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334',enuriUrl:'https://price.enuri.com/catalog/148559067'}
+  {brand:'Godox',category:'Camera',mtm:'C100',productId:'9738958594',itemId:'29147698397',vendorItemId:'96070924334',srp:42000,enabled:true,url:'https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334'}
 ];
 
 async function getTargets() {
   const state=await chrome.storage.local.get(['products']);
   if (!Array.isArray(state.products)) return TARGETS;
-  return state.products.map(product=>{
-    const fallback=TARGETS.find(target=>String(target.itemId)===String(product.itemId));
-    const target={...fallback,...product};
-    if(!target.danawaUrl&&fallback?.danawaUrl) target.danawaUrl=fallback.danawaUrl;
-    delete target.naverUrl;
-    if(String(target.itemId)==='29147698397' && !target.enuriUrl)
-      target.enuriUrl='https://price.enuri.com/catalog/148559067';
-    return target;
-  });
+  return state.products.map(product=>{const {danawaUrl,enuriUrl,naverUrl,...target}=product;return {...target,competitors:target.competitors||[]};});
 }
 
 function validateProductCatalog(products) {
@@ -288,7 +280,7 @@ async function waitForScanDownload(downloadId, expectedFilename) {
 }
 
 function scanSaveTargets(results) {
-  const keys=['brand','mtm','category','srp','productId','itemId','vendorItemId','url','danawaUrl','enuriUrl'];
+  const keys=['brand','mtm','category','srp','productId','itemId','vendorItemId','url'];
   return results.map(row=>Object.fromEntries(keys.filter(key=>row[key]!==undefined).map(key=>[key,row[key]])));
 }
 function scanSaveDeadline(startedAt,slot) {
@@ -362,7 +354,7 @@ async function waitForComplete(tabId) {
   return false;
 }
 
-async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId,expectedSrp) {
+async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId,expectedSrp,expectedMinimum=null) {
   const currentUrl = new URL(location.href);
   const params = currentUrl.searchParams;
   const actualProductId = currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
@@ -381,7 +373,7 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
     return {ok:false,reason:'access-check',accessCheckDetail};
   }
   // Preserve the notebook guard while allowing managed lower-priced products.
-  const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
+  const minimumPrice=expectedMinimum===10000?10000:Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
   const candidates = [];
   const addCandidate = (value, source, text='') => {
     const digits = String(value ?? '').replace(/[^0-9]/g, '');
@@ -1013,7 +1005,7 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
 async function scanCoupangTab(tabId,target) {
   const viewport=/Whale\//.test(globalThis.navigator?.userAgent||'')?await ensureWhaleTabViewport(tabId):null;
   const injected=await chrome.scripting.executeScript({
-    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp]
+    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp,target.minimumPrice]
   });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');
@@ -1071,102 +1063,6 @@ async function scanCoupangTab(tabId,target) {
     scan.cardMaxDiscount=null;
   }
   return scan;
-}
-
-function readDanawaSellers(expectedMtm,expectedSrp) {
-  const minimumPrice=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
-  const identity=String(expectedMtm).toUpperCase();
-  const titles=[document.querySelector('h1,h2,h3')?.textContent,document.title].filter(Boolean);
-  const title=String(titles.find(t=>t.toUpperCase().includes(identity))||titles[0]||'').trim();
-  const excluded=/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
-  if (excluded.test(title)) return {ok:false,reason:'excluded-product-or-payment',sellers:[],title};
-  if (!title.toUpperCase().includes(identity)) return {ok:false,reason:'mtm-mismatch',sellers:[],title};
-  const heading=[...document.querySelectorAll('h2,h3,h4,div,strong')].find(n=>n.textContent?.trim()==='쇼핑몰별 최저가');
-  const root=heading?.parentElement?.parentElement;
-  if(!root||root===document.body) return {ok:false,reason:'seller-section-not-found',sellers:[],title};
-  const sellers=[];
-
-  const delivery = label => {
-    if (/착불|조건부|배송비\s*(?:별도|미정)|배송료\s*별도/.test(label)) return null;
-    if (/무료\s*배송|배송비\s*무료/.test(label)) return 0;
-    const explicit=label.match(/배송(?:비|료)\s*[:：]?\s*([\d,]+)\s*원/);
-    if(explicit) return Number(explicit[1].replace(/,/g,''));
-    const small=[...label.matchAll(/([\d,]+)\s*원/g)]
-      .map(m=>Number(m[1].replace(/,/g,''))).filter(n=>n>0&&n<=10000);
-    return small.length===1?small[0]:null;
-  };
-
-  for(const row of root.querySelectorAll('tr')) {
-    const label=(row.innerText||'').replace(/\s+/g,' ').trim();
-    if(!label||label.length>850||excluded.test(label)||/이런 상품|추천상품|관심상품|광고/.test(label)) continue;
-    if(row.closest?.('[class*="recommend"],[class*="related"],[class*="ad_"],[class*="banner"]')) continue;
-    const logo=[...row.querySelectorAll('img[alt]')].find(img=>{
-      const alt=(img.getAttribute('alt')||'').trim();
-      return alt&&alt.length<=40&&!/광고|로딩|상품|이미지|다나와|노트북|맥북|SSD|GB|삼성 NT|레노버|애플/i.test(alt);
-    });
-    const seller=(logo?.getAttribute('alt')||'').replace(/\s로고$/,'').trim();
-    if(!seller) continue;
-    const priceNode=row.querySelector?.('.price a,.price_sect a,.price,.prc_t');
-    const amount=(priceNode?.innerText||label).match(/([0-9][0-9,]{3,})\s*원/);
-    if(!amount) continue;
-    const price=Number(amount[1].replace(/,/g,'')),shipping=delivery(label);
-    if(price<minimumPrice||price>7000000||shipping===null||shipping>100000) continue;
-    if(!sellers.some(x=>x.seller===seller&&x.price===price&&x.shipping===shipping))
-      sellers.push({seller,price,shipping,shippingStatus:'verified',sellerRowVerified:true,matchedMtm:expectedMtm,productTitle:title,label:label.slice(0,850)});
-  }
-  return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',sellers:sellers.slice(0,30),title};
-}
-
-// Inspect visible listing rows only. A search result, points-adjusted headline
-// or entire-page price never qualifies as evidence for an individual seller.
-function readEnuriSellers(expectedBrand,expectedMtm,expectedSrp) {
-  const title=document.querySelector('h1')?.textContent?.trim()||document.title||'';
-  const bodyText=document.body?.innerText||'';
-  const excluded=/해외\s*(?:구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체/i;
-  if(/captcha|접근이 제한|비정상적인 접근|로봇이 아닙니다/i.test(bodyText.slice(0,2000)))
-    return {ok:false,reason:'access-check',title,sellers:[]};
-  const mtm=String(expectedMtm).toLowerCase();
-  if(!title.toLowerCase().includes(mtm) || excluded.test(title))
-    return {ok:false,reason:'product-mismatch-or-excluded',title,sellers:[]};
-  const minimum=Number(expectedSrp)>0&&Number(expectedSrp)<250000?10000:250000;
-
-  const delivery = label => {
-    if (/착불|조건부|배송비\s*(?:별도|미정)|배송료\s*별도/.test(label)) return null;
-    if (/무료\s*배송|배송비\s*무료/.test(label)) return 0;
-    const explicit=label.match(/배송(?:비|료)\s*[:：]?\s*([\d,]+)\s*원/);
-    if(explicit) return Number(explicit[1].replace(/,/g,''));
-    const small=[...label.matchAll(/([\d,]+)\s*원/g)]
-      .map(m=>Number(m[1].replace(/,/g,''))).filter(n=>n>0&&n<=10000);
-    return small.length===1?small[0]:null;
-  };
-  const sellers=[];
-  const candidates=[...document.querySelectorAll('tr')];
-  for(const node of candidates) {
-    const label=(node.innerText||'').replace(/\s+/g,' ').trim();
-    if(!label || label.length>850 || excluded.test(label)) continue;
-    const productImage=[...node.querySelectorAll('img[alt]')]
-      .find(img=>img.alt?.toLowerCase().includes(mtm) &&
-        (img.alt.toLowerCase().includes(String(expectedBrand).toLowerCase()) ||
-         label.toLowerCase().includes(String(expectedBrand).toLowerCase())));
-    const productTitle=productImage?.alt?.trim()||'';
-    if(!productTitle || !label.toLowerCase().includes(mtm)) continue;
-    const logo=[...node.querySelectorAll('img[alt]')].find(img=>/\s로고$/.test(img.alt||''));
-    const seller=(logo?.alt||'').replace(/\s로고$/,'').trim() ||
-      node.querySelector('[class*="mall"],[class*="seller"],[class*="store"]')?.textContent?.trim()||'';
-    if(!seller || seller.length>60 || excluded.test(seller)) continue;
-    // The amount must be a visible sale price in this individual listing.
-    // Membership rewards, card rates and coupon headlines are not deducted.
-    const priceMatches=[...label.matchAll(/([0-9][0-9,]{3,})\s*원/g)]
-      .map(match=>Number(match[1].replace(/,/g,'')))
-      .filter(price=>price>=minimum&&price<=7000000);
-    if(!priceMatches.length) continue;
-    const price=priceMatches[0];
-    const shipping=delivery(label);
-    if(shipping===null||shipping>100000) continue;
-    if(!sellers.some(row=>row.seller===seller&&row.price===price&&row.shipping===shipping))
-      sellers.push({seller,price,shipping,shippingStatus:'verified',sellerRowVerified:true,matchedMtm:expectedMtm,label:label.slice(0,850),productTitle});
-  }
-  return {ok:sellers.length>0,reason:sellers.length?'ok':'verified-listings-not-found',title,sellers:sellers.slice(0,30)};
 }
 
 async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transientTargets=null) {
@@ -1269,29 +1165,6 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
             Object.assign(result,await withScanTimeout(collectCheckoutDiscountsForTarget(target,scanWindowState,trace,tab),90000,`checkout:${target.mtm}`));
           } catch(error) {
             Object.assign(result,{checkoutDiscountStatus:'missing',checkoutDiscountReason:String(error),checkoutCouponDiscount:null,checkoutCouponSource:null,wowInstantDiscount:null,wowCouponDiscount:null});
-          }
-        }
-        result.competitorPages=[];
-        const pages=[
-          {source:'다나와',url:target.danawaUrl,host:'prod.danawa.com'},
-          {source:'에누리',url:target.enuriUrl,host:'price.enuri.com'}
-        ];
-        for(const page of pages) {
-          if(!page.url) continue;
-          let externalTab;
-          try {
-            await progress(target.mtm,`competitor-${page.source}`,targets.length);
-            const parsed=new URL(page.url);
-            if(parsed.protocol!=='https:'||parsed.hostname!==page.host) throw new Error('unsupported-competitor-url');
-            externalTab=await withScanTimeout(withTabEditRetry(()=>chrome.tabs.create({url:page.url,active:true})),15000,`competitor-open:${target.mtm}`);
-            await withScanTimeout(waitForComplete(externalTab.id),60000,`competitor-load:${target.mtm}`);
-            await wait(6000);
-            const scan=await withScanTimeout(chrome.scripting.executeScript({target:{tabId:externalTab.id},func:page.source==='다나와'?readDanawaSellers:readEnuriSellers,args:page.source==='다나와'?[target.mtm,target.srp]:[target.brand,target.mtm,target.srp]}),30000,`competitor-read:${target.mtm}`);
-            result.competitorPages.push({source:page.source,url:page.url,title:scan[0].result.title||'',reason:scan[0].result.reason,sellers:scan[0].result.sellers||[]});
-          } catch(error) {
-            result.competitorPages.push({source:page.source,url:page.url,reason:String(error),sellers:[]});
-          } finally {
-            if(externalTab?.id) await withScanTimeout(chrome.tabs.remove(externalTab.id),15000,`competitor-close:${target.mtm}`).catch(()=>{});
           }
         }
         results.push(result);
@@ -1567,6 +1440,14 @@ function readCheckoutDiscounts() {
     const style=getComputedStyle(element),rect=element.getBoundingClientRect();
     return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
   };
+  const readShipping=()=>{
+    const amounts=[...document.querySelectorAll('dt,dd,li,tr,div,span,p')].filter(visible).map(node=>clean(node.innerText||node.textContent).replace(/\s+/g,''))
+      .filter(text=>text.length<=80).map(text=>{
+        const match=text.match(/^(?:총)?배송비(?:합계)?[:：]?(?:\+?([0-9][0-9,]*)원|무료(?:배송)?)$/);
+        return match?(match[1]===undefined?0:Number(match[1].replace(/,/g,''))):null;
+      }).filter(value=>Number.isInteger(value)&&value>=0&&value<=100000);
+    const unique=[...new Set(amounts)];return unique.length===1?unique[0]:null;
+  };
   const readAmount=(labels,excludedLabels=[])=>{
     const accepted=(Array.isArray(labels)?labels:[labels]).filter(Boolean).map(compact).sort((a,b)=>b.length-a.length);
     const excluded=(Array.isArray(excludedLabels)?excludedLabels:[excludedLabels]).filter(Boolean).map(compact);
@@ -1697,7 +1578,7 @@ function readCheckoutDiscounts() {
     wowInstantDiscount:readAmount(['와우 전용 즉시할인','와우전용 즉시할인','와우회원 즉시할인','와우 즉시할인']),
     wowCouponDiscount:readAmount(['와우 전용 쿠폰할인','와우전용 쿠폰할인','와우회원 쿠폰할인','와우 쿠폰할인']),
     wowMemberTotal:readAmount(['와우회원 총 추가 혜택','와우 회원 총 추가 혜택','와우 총 추가 혜택']),
-    paymentButtonPresent,discountEvidence
+    paymentButtonPresent,discountEvidence,shippingAmount:readShipping()
   };
 }
 
@@ -1859,6 +1740,7 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null,trace=c
       checkoutDiscountReason:reconciled.reason,
       checkoutCouponDiscount:reconciled.regular,checkoutCouponSource:'checkout',
       wowInstantDiscount:reconciled.instant,wowCouponDiscount:reconciled.coupon,
+      checkoutShipping:confirmedPage?.shippingAmount??null,
       checkoutDiscountTotal:reconciled.regular+reconciled.wowTotal,
       checkoutWowMemberTotal:wowMemberTotal,
       checkoutDiscountCapturedAt:page.capturedAt,checkoutInferredZeroFields:reconciled.inferredZeroFields,
@@ -1896,7 +1778,7 @@ async function diagnoseCheckoutDiscounts() {
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
   try {
     const read=await chrome.scripting.executeScript({
-      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp]
+      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp,target.minimumPrice]
     });
     const priceScan=read?.[0]?.result;
     const checkout=await collectCheckoutDiscountsForTarget(target);
@@ -2047,15 +1929,17 @@ async function primaryRecoveryState(message) {
 let fallbackCatalogPending=false;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({competitorPhasePolicy:'own-pages-then-competitors-v1',productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
+  if(message?.type==='COMPETITOR_PHASE'){handleCompetitorPhase(message,_sender,sendResponse);return true;}
   if (message?.type==='GET_PRODUCTS') {
     getTargets().then(products=>sendResponse({ok:true,products}));
     return true;
   }
   if (message?.type==='SAVE_PRODUCTS') {
-    const errors=validateProductCatalog(message.products);
+    let errors=validateProductCatalog(message.products);
+    try{message.products=message.products.map(CompetitorModels.clean);}catch(e){errors.push(String(e.message));}
     if(errors.length) sendResponse({ok:false,error:`product-catalog-invalid:${errors.join(',')}`});
     else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
     return true;

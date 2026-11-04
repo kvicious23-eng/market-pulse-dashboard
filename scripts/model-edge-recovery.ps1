@@ -171,7 +171,7 @@ function Invoke-ModelEdgeRecovery([string]$SourcePath,[string]$Slot,[string]$Fol
         $tmp=$paths.source+'.tmp';New-Item -ItemType Directory (Split-Path $tmp) -Force|Out-Null
         Copy-Item -LiteralPath $SourcePath -Destination $tmp;Move-Item -LiteralPath $tmp -Destination $paths.source -Force
       }
-      $targets=@(foreach($row in $eligible){$t=[ordered]@{};foreach($key in @('brand','mtm','category','srp','enabled','productId','itemId','vendorItemId','url','danawaUrl','enuriUrl')){$t[$key]=$row.PSObject.Properties[$key].Value};[pscustomobject]$t})
+      $targets=@(foreach($row in $eligible){$t=[ordered]@{};foreach($key in @('brand','mtm','category','srp','enabled','productId','itemId','vendorItemId','url')){$t[$key]=$row.PSObject.Properties[$key].Value};[pscustomobject]$t})
       $now=[DateTimeOffset]::UtcNow;$deadline=[DateTimeOffset]::Parse($base.startedAt).AddHours(2)
       foreach($limit in @([DateTimeOffset]::Parse($Slot).AddMinutes(140),$now.AddMinutes(40),[DateTimeOffset]::Parse($base.deadlineAt))){if($limit -lt $deadline){$deadline=$limit}}
       $receipt=[pscustomobject]@{version=1;state='started';attempt=$attempt;scope='models';reason='model-errors';scanSlot=$Slot;runId=[guid]::NewGuid().ToString('N');mergedRunId=[guid]::NewGuid().ToString('N');

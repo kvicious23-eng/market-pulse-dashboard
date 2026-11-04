@@ -27,6 +27,9 @@ function Invoke-Git {
 }
 
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+$competitorModule=Join-Path $PSScriptRoot 'competitor-phase.ps1'
+$competitorEnabled=(Test-Path $competitorModule) -and (Test-Path (Join-Path $PSScriptRoot 'competitor-data.mjs'))
+if($competitorEnabled){. $competitorModule}
 . (Join-Path $PSScriptRoot 'price-publication.ps1')
 Repair-PricePublication $RepoPath
 # Collection/recovery waits do not own the shared repository publication lock.
@@ -222,6 +225,9 @@ $catalog = if (Test-Path $catalogPath) { Get-Content -Raw -Encoding UTF8 $catalo
 Assert-ScanCatalog -Catalog $catalog -Results $payloadResults
 Assert-ScanPublicationOrder $payload $RepoPath
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+$competitorModule=Join-Path $PSScriptRoot 'competitor-phase.ps1'
+$competitorEnabled=(Test-Path $competitorModule) -and (Test-Path (Join-Path $PSScriptRoot 'competitor-data.mjs'))
+if($competitorEnabled){. $competitorModule}
 $metricDay=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).Date
 $metricPublishedAt=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone).ToString('yyyy-MM-ddTHH:mm:sszzz')
 $supplierBatch=Get-SupplierMetricBatch -Catalog $catalog -CsvFolders @((Split-Path -Parent $resultFolder),$resultFolder) -AsOfDay $metricDay -RequireDailyValidation -DownloadRoot (Split-Path -Parent $resultFolder)
@@ -433,29 +439,6 @@ if (Test-Path $publishedHistoryPath) {
     $localRows | Export-Csv -Path $historyPath -NoTypeInformation -Encoding UTF8
   }
 }
-# Recover published competitor rows before an early retry return, too.
-if (Test-Path $publishedCompetitorHistoryPath) {
-  $source=[IO.File]::ReadAllText($publishedCompetitorHistoryPath,[Text.Encoding]::UTF8)
-  $json=$source -replace '^\s*window\.MARKET_PULSE_COMPETITOR_HISTORY\s*=\s*','' -replace ';\s*$',''
-  $public=$json | ConvertFrom-Json
-  $headers=@($public.headers)
-  $local=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8 | Where-Object { [string]$_.'수집시각' -notin $retiredScanTimes }})
-  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
-  foreach($row in $local){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
-  foreach($values in @($public.rows)){
-    if(@($values).Count -ne $headers.Count){throw 'Published competitor history has an invalid row.'}
-    $fields=[ordered]@{}
-    for($i=0;$i -lt $headers.Count;$i++){$fields[[string]$headers[$i]]=[string]$values[$i]}
-    $row=[pscustomobject]$fields
-    if ([string]$row.'수집시각' -in $retiredScanTimes) { continue }
-    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
-    if($keys.Add($key)){$local+=$row}
-  }
-  if($local.Count -gt 0){
-    New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
-    $local | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
-  }
-}
 # A retry after a commit/push failure must push the existing import, not recalculate
 # the same scan against its own last verified price (which would erase its trend).
 $alreadyImported=$specs.Count -gt 0
@@ -489,6 +472,7 @@ if ($alreadyImported) {
   Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
   Save-BlueRecoveryFinalCommit $payload $RepoPath
   Update-BlueIssueLedger $payload $RepoPath $resultFolder
+  if($competitorEnabled){try{Add-CompetitorPhase $payload $RepoPath $resultFolder}catch{Write-Warning 'Competitor phase queue needs inspection; primary publication succeeded.'}}
   Complete-PricePublication $RepoPath
   return
 }
@@ -524,19 +508,7 @@ foreach ($spec in $specs) {
       }
       $mine=$product.offers | Where-Object {$_.role -eq 'mine'} | Select-Object -First 1
       if ($mine) { $mine.url=[string]$config.url }
-      if ($config.danawaUrl) {
-        $danawaRef=$product.references | Where-Object {$_.url -like 'https://prod.danawa.com/*'} | Select-Object -First 1
-        if ($danawaRef) {
-          $danawaRef.url=[string]$config.danawaUrl
-        } else {
-          $product.references += [pscustomobject]@{
-            role='competitor'; channel='Price comparison'; seller='Danawa'; status='Waiting for scan'
-            displayPrice=$null; finalPrice=$null; referencePrice=$null; condition='Exact MTM comparison'
-            sourceType='Danawa product page'; checkedAt=''; confidence='C'; confidenceText='Waiting for first scan'
-            url=[string]$config.danawaUrl
-          }
-        }
-      }
+
     }
   }
   $verified=0
@@ -751,72 +723,8 @@ foreach ($spec in $specs) {
       Set-ModelCollectionFailure $mine $result $kst
       $checkoutStatus='stale'
     }
-    # The scanner must identify the product page and the individual price row.
-    # Older payloads without this evidence cannot promote a competitor price.
-    $excludedCompetitor='해외\s*(구매|직구|배송)|구매\s*대행|현금(?!\s*영수증)|무통장\s*입금|계좌\s*이체'
-    $pages=@($result.competitorPages | Where-Object {$_.source -in @('다나와','에누리')})
-    if ($pages.Count -eq 0 -and $result.danawaUrl) {
-      $pages=@([pscustomobject]@{source='다나와';url=$result.danawaUrl;title=$result.competitorPageTitle;sellers=@($result.competitors)})
-    }
-    # Remove retired Naver offers even if an older snapshot contains them.
-    $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor' -or $_.sourceType -ne '네이버'})
-    $eligibleCompetitors=@(foreach($page in $pages){
-      $pageTitle=[string]$page.title
-      $pageUrl=[string]$page.url
-      $pageIdentityMatches=$pageTitle -and $pageTitle -match [regex]::Escape([string]$product.mtm)
-      $pageAllowed=$pageIdentityMatches -and $pageTitle -notmatch $excludedCompetitor -and
-        (($page.source -eq '다나와' -and $pageUrl -match '^https://prod\.danawa\.com/info/') -or
-         ($page.source -eq '에누리' -and $pageUrl -match '^https://price\.enuri\.com/catalog/'))
-      if(-not $pageAllowed){continue}
-      foreach($entry in @($page.sellers)){
-        $label=[string]$entry.label
-        $title=[string]$entry.productTitle
-        $price=0L
-        if(-not [long]::TryParse([string]$entry.price,[ref]$price)){continue}
-        $shipping=0L
-        if($entry.sellerRowVerified -ne $true -or $entry.matchedMtm -ne [string]$product.mtm -or $entry.shippingStatus -ne 'verified' -or
-          -not [long]::TryParse([string]$entry.shipping,[ref]$shipping) -or $shipping -lt 0 -or $shipping -gt 100000){continue}
-        $minimum=if($product.srp -and [long]$product.srp -lt 250000){10000}else{250000}
-        if(-not $label -or -not $entry.seller -or $price -lt $minimum -or $price -gt 7000000){continue}
-        if(([string]$entry.seller + ' ' + $label + ' ' + $title) -match $excludedCompetitor){continue}
-        if($page.source -ne '다나와' -and
-          ($title -notmatch [regex]::Escape([string]$product.mtm) -or
-           ($title + ' ' + $label) -notmatch [regex]::Escape([string]$spec.Brand))){continue}
-        [pscustomobject]@{seller=[string]$entry.seller;price=($price+$shipping);itemPrice=$price;shipping=$shipping;label=$label;productTitle=$title;source=[string]$page.source;url=$pageUrl}
-      }
-    })
-    if ($eligibleCompetitors.Count -gt 0) {
-      $validatedCompetitorCount += $eligibleCompetitors.Count
-      $product.offers=@($product.offers | Where-Object {$_.role -ne 'competitor'})
-      $displayed=New-Object 'System.Collections.Generic.HashSet[string]'
-      foreach ($entry in @($eligibleCompetitors | Sort-Object price,source)) {
-        $basis=if($null -ne $mine.observedListPrice){[long]$mine.observedListPrice}else{$null}
-        $competitorHistoryRows += [pscustomobject][ordered]@{
-          '수집일'=$scanKst.Substring(0,10);'수집시각'=$scanKst;'브랜드'=$spec.Brand
-          'MTM'=[string]$product.mtm;'비교 사이트'=[string]$entry.source
-          '판매처'=[string]$entry.seller;'가격'=[long]$entry.price
-          '쿠팡 기준가'=$basis;'기준가 대비 차액'=if($null -ne $basis){[long]$entry.price-$basis}else{$null}
-          '상품명'=[string]$entry.productTitle;'가격·결제 근거'=[string]$entry.label
-          '확인시각'=$kst;'상품 URL'=[string]$entry.url
-        }
-        # Retain both sources in history; show a seller and price only once now.
-        if(-not $displayed.Add("$($entry.seller.ToLowerInvariant())|$($entry.price)")){continue}
-        $channel=if($entry.seller -match $text.MarketplacePattern){$text.Marketplace}elseif($entry.seller -match $text.AcerPattern){$text.Manufacturer}else{$text.Specialist}
-        $product.offers += [pscustomobject]@{
-          role='competitor'; channel=$channel; seller=[string]$entry.seller; status=$text.OnSale
-          displayPrice=[long]$entry.itemPrice; instantDiscount=$null; couponDiscount=$null; cardDiscount=$null
-          finalPrice=[long]$entry.price; shipping=[long]$entry.shipping; shippingStatus='verified'; sellerRowVerified=$true; matchedMtm=[string]$product.mtm; alertEligible=$true; competitionPolicyVerified=$true
-          condition=$text.SellerCondition
-          sourceType=[string]$entry.source; productTitle=[string]$entry.productTitle; priceLabel=[string]$entry.label
-          checkedAt=$kst; priceCheckedAt=$kst; confidence='B'
-          confidenceText=$text.SellerDetail; url=[string]$entry.url
-        }
-      }
-    } else {
-      foreach ($competitor in @($product.offers | Where-Object {$_.role -eq 'competitor'})) {
-        $competitor | Add-Member -NotePropertyName alertEligible -NotePropertyValue $false -Force
-      }
-    }
+    $product.offers=@($product.offers|Where-Object {$_.role -eq 'mine'})
+    $product | Add-Member -NotePropertyName references -NotePropertyValue @() -Force
     $historyHasCurrentPrice=($result.ok -eq $true -and $mine.collectionStatus -ne 'review-needed')
     $historyCollectionSucceeded=$alertEligible -or $checkoutStatus -eq 'soldout'
     $historySrp=if($historyHasCurrentPrice -and $null -ne $mine.srp){$mine.srp}elseif($historyHasCurrentPrice -and $null -ne $product.srp){$product.srp}else{$null}
@@ -870,11 +778,7 @@ foreach ($spec in $specs) {
   $data.meta | Add-Member -NotePropertyName recoveryEvidence -NotePropertyValue $recoveryEvidence -Force
   $data.meta | Add-Member -NotePropertyName publishedAt -NotePropertyValue $scanKst -Force
   $data.meta.monitoring.lastAttemptAt=$scanKst
-  if (@($brandResults | Where-Object { $_.competitorReason -or @($_.competitorPages | Where-Object {$_.source -in @('다나와','에누리')}).Count -gt 0 }).Count -gt 0) {
-    $data.meta.monitoring | Add-Member -NotePropertyName competitionLastAttemptAt -NotePropertyValue $scanKst -Force
-  }
-  $data.meta.monitoring | Add-Member -NotePropertyName competitionConfigurationStatus -NotePropertyValue $(if(@($brandResults | Where-Object {$_.danawaUrl -or $_.enuriUrl}).Count -eq 0){'not-configured'}else{'configured'}) -Force
-  $data.meta.monitoring | Add-Member -NotePropertyName competitionValidationStatus -NotePropertyValue $(if($validatedCompetitorCount -gt 0){'verified'}else{'no-verified-listings'}) -Force
+  $data.meta.monitoring | Add-Member -NotePropertyName competitionValidationStatus -NotePropertyValue 'coupang-models' -Force
   $data.meta.monitoring | Add-Member -NotePropertyName alertEvaluation -NotePropertyValue '' -Force
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
@@ -882,6 +786,7 @@ foreach ($spec in $specs) {
   [void](Set-BrandSupplierMetrics -Data $data -Batch $supplierBatch -PublishedAt $metricPublishedAt)
   Write-Data $path $data
 }
+if($competitorEnabled){Invoke-CompetitorData $RepoPath 'prepare' $catalogPath}
 if ($historyRows.Count -gt 0) {
   New-Item -ItemType Directory -Path (Split-Path -Parent $historyPath) -Force | Out-Null
   $combined=@()
@@ -916,33 +821,6 @@ if ($historyRows.Count -gt 0) {
   [IO.File]::WriteAllText((Join-Path $RepoPath 'dist\price-history.js'),"window.MARKET_PULSE_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
   Write-Host "Price history saved: $historyPath ($($combined.Count) rows)"
 }
-if ($competitorHistoryRows.Count -gt 0) {
-  New-Item -ItemType Directory -Path (Split-Path -Parent $competitorHistoryPath) -Force | Out-Null
-  $combined=@(if(Test-Path $competitorHistoryPath){Import-Csv $competitorHistoryPath -Encoding UTF8 | Where-Object { [string]$_.'수집시각' -notin $retiredScanTimes }})
-  $keys=New-Object 'System.Collections.Generic.HashSet[string]'
-  foreach($row in $combined){[void]$keys.Add("$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')")}
-  foreach($row in $competitorHistoryRows){
-    $key="$($row.'수집시각')|$($row.'브랜드')|$($row.MTM)|$($row.'비교 사이트')|$($row.'판매처')|$($row.'가격')|$($row.'상품 URL')"
-    if([string]$row.'수집시각' -notin $retiredScanTimes -and $keys.Add($key)){$combined+=$row}
-  }
-  $combined=@($combined | Sort-Object '수집시각','브랜드','MTM','가격','판매처')
-  $combined | Export-Csv $competitorHistoryPath -NoTypeInformation -Encoding UTF8
-  $headers=@($combined[0].PSObject.Properties.Name)
-  $numberColumns=@('가격','쿠팡 기준가','기준가 대비 차액')
-  $exclusionPath=Join-Path $RepoPath 'scripts\competitor-history-exclusions.json'
-  $excludedKeys=@(if(Test-Path $exclusionPath){(Get-Content -Raw -Encoding UTF8 $exclusionPath | ConvertFrom-Json).keys})
-  $rows=@(foreach($entry in $combined){
-    $rowKey="$($entry.'수집시각')|$($entry.'브랜드')|$($entry.MTM)|$($entry.'비교 사이트')|$($entry.'판매처')|$($entry.'가격')|$($entry.'상품 URL')"
-    if($rowKey -in $excludedKeys){continue}
-    ,@($headers | ForEach-Object {
-      $value=[string]$entry.$_
-      if($_ -in $numberColumns -and $value -match '^-?\d+$'){[long]$value}else{$value}
-    })
-  })
-  $published=@{headers=$headers;rows=$rows} | ConvertTo-Json -Depth 5 -Compress
-  [IO.File]::WriteAllText($publishedCompetitorHistoryPath,"window.MARKET_PULSE_COMPETITOR_HISTORY = $published;",[Text.UTF8Encoding]::new($false))
-  Write-Host "Competitor history saved: $competitorHistoryPath ($($combined.Count) rows)"
-}
 if (Test-Path (Join-Path $RepoPath 'brand')) { Invoke-Git -Arguments @('add','--','brand') | Out-Null }
 Invoke-Git -Arguments @('add','--','dist/price-history.js') | Out-Null
 Invoke-Git -Arguments @('add','--','dist/competitor-price-history.js') | Out-Null
@@ -957,6 +835,7 @@ Add-BlueRecoveryQueue $payload $resultPath $RepoPath $resultFolder
 Save-BlueRecoveryFinalCommit $payload $RepoPath
   Update-BlueIssueLedger $payload $RepoPath $resultFolder
 
+  if($competitorEnabled){try{Add-CompetitorPhase $payload $RepoPath $resultFolder}catch{Write-Warning 'Competitor phase queue needs inspection; primary publication succeeded.'}}
   Complete-PricePublication $RepoPath
 } catch {
   $publicationError=$_

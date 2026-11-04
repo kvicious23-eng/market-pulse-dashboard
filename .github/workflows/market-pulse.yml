@@ -16,6 +16,7 @@ on:
     paths:
       # All Windows entry points, shared helpers and PS regression tests are gates.
       - "scripts/*.ps1"
+      - "scripts/competitor-*.mjs"
       - ".github/workflows/market-pulse.yml"
       - "scripts/update-market-data.mjs"
       - "index.html"
@@ -124,6 +125,10 @@ jobs:
         run: |
           node --check dist/app.js
           node --check dist/xlsx-export.js
+          node --check chrome-extension/competitor-models.js
+          node --check chrome-extension/competitor-worker.js
+          node --check chrome-extension/competitor.js
+          node --check scripts/competitor-data.mjs
           node --check chrome-extension/background.js
           node --check chrome-extension/checkout-diagnostics.js
           node --check chrome-extension/fallback.js
@@ -205,6 +210,8 @@ jobs:
             [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
             if ($errors.Count) { throw ($errors | Out-String) }
           }
+          ./scripts/test-competitor-publication.ps1
+          ./scripts/test-competitor-phase.ps1
           ./scripts/test-price-publication.ps1
           ./scripts/test-publication-flow.ps1
           ./scripts/test-common-primary.ps1
