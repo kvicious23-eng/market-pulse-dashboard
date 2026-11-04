@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';import {readTestFile} from './test-source.mjs';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import {offerFor,syncData,readHistory} from './competitor-data.mjs';
+import {offerFor,syncData,readHistory,assertCurrentSource} from './competitor-data.mjs';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'mp-competitor-'));
 const url='https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',key='1-2-3',slot='2026-11-04T08:00+09:00';
 const mine={role:'mine',finalPrice:12345,priceChange:-100,collectionEvidence:{runId:'a'.repeat(32)},supplierPrivateMarker:'preserve'};
@@ -21,6 +22,14 @@ try{
  for(const p of d.products){assert.deepEqual(p.offers[0],mine);assert.deepEqual(p.supplierMetrics,{stock:17});}
  assert.equal(d.meta.snapshotAt,slot);assert.deepEqual(d.meta.collectionEvidence,initial.meta.collectionEvidence);
  assert.equal(readHistory(root).rows.length,2,'One physical result can serve two owner links');
+ assert.equal(c.collectionIssue,null,'A valid price cannot carry a product-unavailable marker');
+ const composite=read();composite.meta.collectionEvidence.runId='e'.repeat(32);composite.meta.collectionEvidence.sourceRunId=q.sourceRunId;fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(composite)+';');syncData(root,catalog,{queue:q,result});assert.equal(read().products[0].competitorModels[0].alertEligible,true,'A model-only Edge composite must retain its proven source lineage');
+ const sameSlotNewOwn=read();sameSlotNewOwn.meta.collectionEvidence.runId='f'.repeat(32);delete sameSlotNewOwn.meta.collectionEvidence.sourceRunId;fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(sameSlotNewOwn)+';');
+ assert.throws(()=>assertCurrentSource(root,catalog,q),/superseded/);
+ const beforeStale=fs.readFileSync(file,'utf8'),historyBeforeStale=fs.readFileSync(path.join(root,'dist/competitor-price-history.js'),'utf8');
+ assert.throws(()=>syncData(root,catalog,{queue:q,result}),/superseded/);assert.equal(fs.readFileSync(file,'utf8'),beforeStale);assert.equal(fs.readFileSync(path.join(root,'dist/competitor-price-history.js'),'utf8'),historyBeforeStale);
+ syncData(root,catalog);assert.equal(read().products[0].competitorModels[0].alertEligible,false);assert.equal(read().products[0].competitorModels[0].phaseState,'pending');assert.equal(read().products[0].competitorModels[0].lastVerifiedFinalPrice,c.finalPrice);
+ sameSlotNewOwn.meta.collectionEvidence.runId=q.sourceRunId;fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(sameSlotNewOwn)+';');
  syncData(root,catalog,{queue:q,result});assert.equal(readHistory(root).rows.length,2,'Repeated publication is idempotent');
  const renamed={products:catalog.products.map(p=>({...p,competitors:p.competitors.map(c=>({...c,model:'Renamed'}))}))};syncData(root,renamed,{queue:q,result});assert.equal(readHistory(root).rows.length,2,'Renaming a link cannot duplicate a collected history event');
  const previous=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,requestId:'wrong'}}));assert.equal(fs.readFileSync(file,'utf8'),previous);
@@ -43,6 +52,7 @@ try{
  assert.throws(()=>syncData(root,{}, {queue:q,result}),/catalog/);
  // Invalid/missing timestamps must fail closed before any public/history write.
  for(const patch of [{startedAt:'bad'},{completedAt:null},{results:[],stoppedReason:null}]){const prior=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,...patch}}));assert.equal(fs.readFileSync(file,'utf8'),prior);}
+ const missingSourceBefore=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:{...q,sourceRunId:null},result:{...result,sourceRunId:null}}));assert.equal(fs.readFileSync(file,'utf8'),missingSourceBefore);
  assert.equal(offerFor({...row,checkoutCouponDiscount:0.5},target).alertEligible,false);
  const evidence=offerFor({...row,checkoutDiscountEvidence:['일반 쿠폰할인 241000원','배송지 수령인 전화번호 일반 쿠폰할인','일반 쿠폰할인 241000원']},target);assert.deepEqual(evidence.checkoutDiscountEvidence,['일반 쿠폰할인 241000원']);
  // Removing every owner still removes stale competitor links without changing own prices.
@@ -50,3 +60,13 @@ try{
  const hp=path.join(root,'dist/competitor-price-history.js'),historyBefore=fs.readFileSync(hp,'utf8');fs.writeFileSync(hp,'window.MARKET_PULSE_COMPETITOR_HISTORY = {"schema":99,"headers":[],"rows":[]};');assert.throws(()=>readHistory(root),/schema/);assert.equal(readHistory(root,{allowRetired:true}).rows.length,0);fs.writeFileSync(hp,historyBefore);
  console.log('Separate publication, coupon-first card caps, shared results, own price/inventory preservation, idempotent history, deletion races, malformed/late evidence and partial budgets passed.');
 }finally{fs.rmSync(root,{recursive:true,force:true});}
+
+// The actual UI also rejects stale source identities within the same slot.
+const ui=readTestFile('dist/app.js','utf8'),ua=ui.indexOf('  function effectiveCompetitorPrice('),ub=ui.indexOf('\n\n  function isSoldOut(',ua);
+const uc={data:{meta:{collectionEvidence:{scanSlot:slot,runId:'f'.repeat(32)}}},cardReviewRequired:()=>false,effectiveFinalPrice:o=>o.finalPrice};
+vm.runInNewContext(ui.slice(ua,ub)+';this.price=effectiveCompetitorPrice;',uc);
+const o={kind:'coupang-model',phaseState:'collected',comparisonSlot:slot,finalPrice:100,collectionEvidence:{sourceRunId:'a'.repeat(32)}};
+assert.equal(uc.price(o),null);uc.data.meta.collectionEvidence.sourceRunId='a'.repeat(32);assert.equal(uc.price(o),100);
+
+uc.data.meta.collectionEvidence={scanSlot:slot};const missing={...o,collectionEvidence:{}};assert.equal(uc.price(missing),null,'Two missing source IDs cannot establish identity');
+assert.throws(()=>assertCurrentSource(root,{products:[]},{sourceRunId:null}),/identity/);

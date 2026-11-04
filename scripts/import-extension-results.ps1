@@ -260,6 +260,12 @@ function Get-SafeCheckoutEvidence($values) {
   }
   return @($safe)
 }
+function Test-MarketPulseNumber($Value,[double]$Maximum,[switch]$Whole) {
+  if($null -eq $Value -or $Value -isnot [ValueType] -or $Value -is [bool]){return $false}
+  try{$number=[double]$Value}catch{return $false}
+  return -not [double]::IsNaN($number) -and -not [double]::IsInfinity($number) -and $number -ge 0 -and $number -le $Maximum -and (-not $Whole -or [math]::Floor($number) -eq $number)
+}
+function Test-MarketPulseMoney($Value){return Test-MarketPulseNumber $Value 7000000 -Whole}
 function Resolve-CheckoutDiscounts($result) {
   $status=if ($result.checkoutDiscountStatus) {[string]$result.checkoutDiscountStatus}else{'missing'}
   $reason=[string]$result.checkoutDiscountReason
@@ -268,6 +274,9 @@ function Resolve-CheckoutDiscounts($result) {
     # No checkout means no verified coupon, even when the product page displays
     # a lower price. Keep the availability result and all coupon layers unknown.
     return [pscustomobject]@{Status='soldout';Reason=$reason;Regular=$null;Instant=$null;Coupon=$null;Total=$null}
+  }
+  if(@($result.checkoutCouponDiscount,$result.wowInstantDiscount,$result.wowCouponDiscount,$result.checkoutDiscountTotal|Where-Object {$null -ne $_ -and -not (Test-MarketPulseMoney $_)}).Count){
+    return [pscustomobject]@{Status='unverified';Reason='checkout-amount-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
   }
   if ($status -ne 'captured') {
     $partialRegular=if ($null -ne $result.checkoutCouponDiscount) {[long]$result.checkoutCouponDiscount}else{$null}
@@ -563,7 +572,7 @@ foreach ($spec in $specs) {
     } else {$kst}
     $mine | Add-Member -NotePropertyName availabilityCheckedAt -NotePropertyValue $availabilityAt -Force
     $minimumPrice=if ($null -ne $product.srp -and [long]$product.srp -gt 0 -and [long]$product.srp -lt 250000) {10000} else {250000}
-    if ($result.ok -and ($result.checkoutDiscountStatus -eq 'captured' -or [string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out')) -and [long]$result.price -ge $minimumPrice -and [long]$result.price -le 7000000) {
+    if ($result.ok -and ($result.checkoutDiscountStatus -eq 'captured' -or [string]$result.checkoutDiscountReason -in @('buy-now-button-not-found','buy-now-button-sold-out')) -and (Test-MarketPulseMoney $result.price) -and [long]$result.price -ge $minimumPrice -and [long]$result.price -le 7000000) {
       $productPagePrice=[long]$result.price
       # The managed catalog/dashboard value is authoritative. A scan result can
       # be older than a catalog edit, so it must not overwrite the current SRP.
@@ -576,7 +585,7 @@ foreach ($spec in $specs) {
       $visualBasisValid=$result.priceBasisSource -eq 'visible-product-price' -and
         $result.strikeReliable -eq $true -and $result.strikeAnchorVerified -eq $true -and
         $null -ne $result.basisEvidence -and
-        $null -ne $result.basisPrice -and $null -ne $result.strikePrice -and
+        (Test-MarketPulseMoney $result.basisPrice) -and (Test-MarketPulseMoney $result.strikePrice) -and
         [long]$result.basisPrice -eq [long]$result.strikePrice -and
         [long]$result.basisPrice -ge $minimumPrice -and [long]$result.basisPrice -le 7000000
       $strike=if ($visualBasisValid) {[long]$result.basisPrice} else {$null}
@@ -601,7 +610,7 @@ foreach ($spec in $specs) {
       $cardBenefitStatus=if ($result.cardBenefitStatus) {[string]$result.cardBenefitStatus}else{'partial'}
       if ($cardBenefitStatus -notin @('none','captured','partial','unverified')) { $cardBenefitStatus='unverified' }
       $cardProviders=@($result.cardProviders | Where-Object { $_ })
-      $cardRateValid=$null -ne $result.cardRate -and [decimal]$result.cardRate -gt 0 -and [decimal]$result.cardRate -le 100
+      $cardRateValid=(Test-MarketPulseNumber $result.cardRate 100) -and [decimal]$result.cardRate -gt 0
       $cardSource=[string]$result.cardEvidenceSource
       $cardCapturedValid=$cardBenefitStatus -eq 'captured' -and $cardRateValid -and $cardProviders.Count -gt 0 -and
         $cardSource -match '^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$'
@@ -612,8 +621,8 @@ foreach ($spec in $specs) {
          $cardTerms=@([pscustomobject]@{rate=$result.cardRate;maxDiscount=$result.cardMaxDiscount;providers=$cardProviders})
        }
        $validTerms=@($cardTerms | Where-Object {
-         $null -ne $_.rate -and [decimal]$_.rate -gt 0 -and [decimal]$_.rate -le 100 -and
-         ($null -eq $_.maxDiscount -or [long]$_.maxDiscount -gt 0) -and
+         (Test-MarketPulseNumber $_.rate 100) -and [decimal]$_.rate -gt 0 -and
+         ($null -eq $_.maxDiscount -or ((Test-MarketPulseMoney $_.maxDiscount) -and [long]$_.maxDiscount -gt 0)) -and
          @($_.providers | Where-Object { $_ }).Count -gt 0
        })
        if ($cardCapturedValid -and ($validTerms.Count -eq 0 -or $validTerms.Count -ne $cardTerms.Count)) {
@@ -635,14 +644,14 @@ foreach ($spec in $specs) {
          }
        }
        $cardDiscount=if ($cardBenefitStatus -eq 'none') {
-        if ($null -ne $result.cardDiscount -and [long]$result.cardDiscount -ne 0) {
+        if ($null -ne $result.cardDiscount -and (-not (Test-MarketPulseMoney $result.cardDiscount) -or [long]$result.cardDiscount -ne 0)) {
           $cardBenefitStatus='unverified'
           $null
         } elseif ($null -ne $preCardItemPrice) { 0 } else { $null }
       } elseif ($cardCapturedValid) {
         # Validate the product-page observation, then calculate the applicable
         # discount from the checkout coupon-adjusted item price when available.
-         if ($null -eq $result.cardDiscount -or [long]$result.cardDiscount -ne $pageBest.amount) {
+         if (-not (Test-MarketPulseMoney $result.cardDiscount) -or [long]$result.cardDiscount -ne $pageBest.amount) {
           $cardBenefitStatus='unverified'
           $null
         } elseif ($soldOut) {

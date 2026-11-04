@@ -1,5 +1,8 @@
 ﻿$ErrorActionPreference='Stop'
 $source=Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot 'import-extension-results.ps1')
+$numberStart=$source.IndexOf('function Test-MarketPulseNumber(')
+$numberEnd=$source.IndexOf('function Resolve-CheckoutDiscounts(', $numberStart)
+. ([ScriptBlock]::Create($source.Substring($numberStart,$numberEnd-$numberStart)))
 # Exercise actual importer card handling without writing real data or invoking Git.
 $cardStart=$source.IndexOf('$cardBenefitStatus=if ($result.cardBenefitStatus)')
 $cardEnd=$source.IndexOf('$couponTotal=if ($checkoutStatus', $cardStart)
@@ -75,3 +78,25 @@ $historyRows=@();$competitorHistoryRows=@();$verified=0;$soldOutCount=0;$partial
 $after=@($data.products|ForEach-Object {$_|ConvertTo-Json -Depth 20 -Compress})
 if(($before -join '') -cne ($after -join '') -or $historyRows.Count -ne 0 -or $competitorHistoryRows.Count -ne 0){throw 'Post-publication retry rewrote retained rows or appended duplicate history.'}
 Write-Host 'Post-publication retained prices, timestamps, trends, comparison eligibility and both histories remain unchanged.'
+
+# Malformed financial fields are per-model review results, never rounded or fatal.
+foreach($value in @(-1,0.5,'1000','bad',[double]::NaN,[double]::PositiveInfinity,$true)){
+ if(Test-MarketPulseMoney $value){throw 'Invalid money was accepted'}
+ $r=[pscustomobject]@{checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=$value;wowInstantDiscount=0;wowCouponDiscount=0}
+ if((Resolve-CheckoutDiscounts $r).Status -eq 'captured'){throw 'Invalid checkout amount became verified'}
+}
+foreach($value in @(0,1,7000000)){if(-not (Test-MarketPulseMoney $value)){throw 'Valid whole money was rejected'}}
+$payload=[pscustomobject]@{browser='edge'}
+foreach($r in $brandResults){$r.PSObject.Properties.Remove('collectionSource')}
+$brandResults[0].cardBenefitStatus='captured';$brandResults[0].cardDiscount=24000
+$brandResults[0]|Add-Member cardRate 3 -Force
+$brandResults[0]|Add-Member cardProviders @('Test') -Force
+$brandResults[0]|Add-Member cardEvidenceSource 'dom' -Force
+foreach($field in @('price','basisPrice','cardRate','cardDiscount')){
+ $brandResults[0]|Add-Member $field 'malformed' -Force
+ $historyRows=@();$verified=0;$soldOutCount=0;$partialCount=0
+ . $loop
+ if($data.products[0].offers[0].alertEligible){throw 'Malformed field became an eligible price'}
+ $brandResults[0]|Add-Member $field $(if($field -eq 'price'){800000}elseif($field -eq 'basisPrice'){1000000}elseif($field -eq 'cardRate'){3}else{24000}) -Force
+}
+Write-Host 'Strict money/rate boundaries: invalid types/fractions/non-finite values stay isolated without rounding or publication failure.'

@@ -54,6 +54,24 @@ try{
   Write-ScanRecoveryJson (Join-Path $addRoot 'reports\scheduled-upload-budget.json') ([pscustomobject]@{scanSlot=$budgetSlot;deadlineAt='2026-11-04T10:30:00+09:00'})
   Add-CompetitorPhase $payload $addRoot $folder;Check (Test-Path $queueFile) 'Equivalent original publication budget failed to create queue'
  }
+ # A same-slot manual rerun must not reuse the previous physical run's completed queue.
+ $old=Read-ScanRecoveryJson $queueFile;$oldText=Get-Content $queueFile -Raw -Encoding UTF8
+ $payload.runId=('f'*32)
+ $blocked=$false;try{Add-CompetitorPhase $payload $addRoot $folder}catch{$blocked=$true}
+ Check $blocked 'Non-complete phase was replaced without idle inspection'
+ Check ((Get-Content $queueFile -Raw -Encoding UTF8) -ceq $oldText) 'Rejected replacement modified the old queue'
+ $old.state='complete';Write-ScanRecoveryJson $queueFile $old
+ Add-CompetitorPhase $payload $addRoot $folder
+ $fresh=Read-ScanRecoveryJson $queueFile
+ Check ($fresh.sourceRunId -ceq $payload.runId -and $fresh.requestId -cne $old.requestId) 'New own run reused completed competitor identity'
+ Check (Test-Path (Join-Path $addRoot ('reports\competitor-superseded-'+$old.requestId+'.json'))) 'Old completed competitor evidence lost'
+ Check ([DateTimeOffset]::Parse($fresh.deadlineAt) -eq [DateTimeOffset]::Parse($payload.deadlineAt)) 'Manual rerun extended original budget'
+ $originalFreshId=$fresh.requestId
+ $payload.runId=('e'*32);$payload|Add-Member modelRecovery ([pscustomobject]@{scope='models';sourceRunId=('f'*32);sourceBrowser='edge'}) -Force
+ Add-CompetitorPhase $payload $addRoot $folder
+ Check ((Read-ScanRecoveryJson $queueFile).requestId -ceq $originalFreshId) 'Same-lineage model recovery created a duplicate competitor phase'
+ $payload.PSObject.Properties.Remove('modelRecovery')
+ $payload.runId=('a'*32)
  Remove-Item $queueFile -Force;Write-ScanRecoveryJson (Join-Path $addRoot 'reports\scheduled-upload-budget.json') ([pscustomobject]@{scanSlot='2026-11-04T08:00:01+09:00';deadlineAt='2026-11-04T10:30:00+09:00'})
  $rejected=$false;try{Add-CompetitorPhase $payload $addRoot $folder}catch{$rejected=$true};Check $rejected 'Different original slot accepted'
  Write-Host 'Competitor normalized-slot queue creation, own recovery priority, Pages gate, no start replay, bound idle Edge, durable result re-export, short-budget publication and final deployment passed.'

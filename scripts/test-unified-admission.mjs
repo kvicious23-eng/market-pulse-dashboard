@@ -10,3 +10,6 @@ for(const url of ['https://user:secret@www.coupang.com/vp/products/1?itemId=2&ve
 }
 assert.ok(c.check([good,{...good}]).length>0);
 console.log('Unified catalog admission rejects credentials, nonstandard ports, duplicate queries, paths and IDs.');
+
+for(const srp of [0,-1,1.5,Number.MAX_SAFE_INTEGER+1,'1000000',NaN,Infinity])assert(c.check([{...good,srp}]).length);
+for(const srp of [null,undefined,1000000])assert.equal(c.check([{...good,srp}]).length,0);

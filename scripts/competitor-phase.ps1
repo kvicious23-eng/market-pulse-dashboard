@@ -3,14 +3,23 @@ function Get-CompetitorQueuePath([string]$RepoPath,[string]$Slot){Join-Path $Rep
 function Invoke-CompetitorData([string]$RepoPath,[string]$Mode,[string]$CatalogPath,[string]$QueuePath='',[string]$ResultPath=''){
  $args=@((Join-Path $RepoPath 'scripts\competitor-data.mjs'),$Mode,$RepoPath,$CatalogPath)
  if($QueuePath){$args+=@($QueuePath,$ResultPath)}
- $output=& node @args
- if($LASTEXITCODE){throw 'Competitor data validation/update failed'}
+ $priorErrorPreference=$ErrorActionPreference
+ try{$ErrorActionPreference='Continue';$output=& node @args 2>&1;$code=$LASTEXITCODE}finally{$ErrorActionPreference=$priorErrorPreference}
+ if($code){if($Mode -eq 'verify-source' -and ($output -join "`n") -match 'Competitor publication superseded'){throw 'Competitor publication superseded'};throw 'Competitor data validation/update failed'}
  if($Mode -eq 'plan'){return ($output -join "`n"|ConvertFrom-Json)}
 }
 function Add-CompetitorPhase($Payload,[string]$RepoPath,[string]$Folder){
  if(-not $Payload.scanSlot -or [version]$Payload.extensionVersion -lt [version]'1.9.66'){return}
  $path=Get-CompetitorQueuePath $RepoPath $Payload.scanSlot
- if(Test-Path $path){return}
+ $sourceRunId=if($Payload.modelRecovery.scope -ceq 'models'){$Payload.modelRecovery.sourceRunId}else{$Payload.runId}
+ $competitorBrowser=if($Payload.browser -ceq 'edge' -or $Payload.modelRecovery.sourceBrowser -ceq 'edge'){'edge'}else{Get-PrimaryScanBrowser $Payload.scanSlot}
+ $prior=$null
+ if(Test-Path $path){
+  $prior=Read-ScanRecoveryJson $path
+  if(-not $prior -or $prior.version -ne 1 -or $prior.scope -cne 'competitors' -or $prior.scanSlot -cne $Payload.scanSlot -or $prior.requestId -cnotmatch '^[a-f0-9]{32}$'){throw 'Existing competitor queue invalid; preserve original'}
+  if($prior.sourceRunId -ceq $sourceRunId){return}
+  if($prior.state -cne 'complete'){throw 'Different own run has a non-complete competitor phase; inspect idle state before replacement'}
+ }
  $catalogPath=Join-Path $Folder 'product-catalog.json'
  $plan=Invoke-CompetitorData $RepoPath 'plan' $catalogPath
  if(-not @($plan.targets).Count){return}
@@ -20,9 +29,10 @@ function Add-CompetitorPhase($Payload,[string]$RepoPath,[string]$Folder){
  $budget=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\scheduled-upload-budget.json')
  if(-not $budget -or [DateTimeOffset]::Parse($budget.scanSlot) -ne [DateTimeOffset]::Parse($Payload.scanSlot)){throw 'Original publication budget missing'}
  $pub=[DateTimeOffset]::Parse($budget.deadlineAt)
- $q=[pscustomobject]@{version=1;scope='competitors';state='waiting-deployment';scanSlot=$Payload.scanSlot;sourceRunId=$Payload.runId;sourceStartedAt=$Payload.startedAt;
+ $q=[pscustomobject]@{version=1;scope='competitors';state='waiting-deployment';scanSlot=$Payload.scanSlot;sourceRunId=$sourceRunId;sourceStartedAt=$Payload.startedAt;
    initialCommit=([string]@($r.Output)[0]);deadlineAt=$deadline.ToString('o');publicationDeadline=$pub.ToString('o');targets=@($plan.targets);
-   requestId=[guid]::NewGuid().ToString('N');browser=$(if($Payload.browser -eq 'edge'){'edge'}else{Get-PrimaryScanBrowser $Payload.scanSlot});attempt=$(if($Payload.browser -eq 'edge'){'edge'}else{'primary'});firstPublishedAt=$null;nextCheckAt=$null;lastError=$null;finalCommit=$null}
+   requestId=[guid]::NewGuid().ToString('N');browser=$competitorBrowser;attempt=$(if($competitorBrowser -ceq 'edge'){'edge'}else{'primary'});firstPublishedAt=$null;nextCheckAt=$null;lastError=$null;finalCommit=$null}
+ if($prior){Copy-Item -LiteralPath $path -Destination (Join-Path $RepoPath ('reports\competitor-superseded-'+$prior.requestId+'.json')) -ErrorAction Stop}
  Write-ScanRecoveryJson $path $q
 }
 function Start-CompetitorPage($Queue,[string]$RepoPath,[string]$Action){
@@ -120,6 +130,7 @@ function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
   }
   if($q.state -eq 'ready'){
    if(-not (Test-CompetitorOwnRecoveryReady $RepoPath $slot)){return}
+   Invoke-CompetitorData $RepoPath 'verify-source' (Join-Path $Folder 'product-catalog.json') $path
    $plan=Invoke-CompetitorData $RepoPath 'plan' (Join-Path $Folder 'product-catalog.json');$keys=@($plan.targets|ForEach-Object {$_.competitorKey})
    $q.targets=@($q.targets|Where-Object {$_.competitorKey -cin $keys})
    if(-not $q.targets.Count){$q|Add-Member noTargets $true -Force;Write-ScanRecoveryJson $path $q;return}

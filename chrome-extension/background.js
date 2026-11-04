@@ -55,7 +55,7 @@ function validateProductCatalog(products) {
       if(owner&&owner!==brand) errors.push(`${label}:duplicate-brand-slug`);
       else slugOwners.set(slug,brand);
     }
-    if(product?.srp!==null&&product?.srp!==undefined&&(!Number.isFinite(product.srp)||product.srp<=0)) errors.push(`${label}:srp-invalid`);
+    if(product?.srp!==null&&product?.srp!==undefined&&(!Number.isSafeInteger(product.srp)||product.srp<=0)) errors.push(`${label}:srp-invalid`);
   }
   return [...new Set(errors)];
 }
@@ -1622,7 +1622,7 @@ async function settleBuyButton(expectedProductId,expectedItemId,expectedVendorIt
   let previous=null,stable=0,viewport=null;
   for(let attempt=0;attempt<8;attempt++) {
     await new Promise(resolve=>setTimeout(resolve,250));
-    const current=find();if(!current)return {ok:false,reason:'buy-now-button-not-found'};
+    const current=find();if(!current)return {ok:false,reason:'buy-now-button-layout-changed'};
     if(current!==button){button=current;previous=null;stable=0;button.scrollIntoView({block:'center',inline:'center',behavior:'instant'});continue;}
     const r=button.getBoundingClientRect(),width=globalThis.innerWidth,height=globalThis.innerHeight;
     const left=Math.max(0,r.left),right=Math.min(width,r.left+r.width),top=Math.max(0,r.top),bottom=Math.min(height,r.top+r.height);
@@ -1683,7 +1683,8 @@ async function collectCheckoutDiscountsForTarget(target,windowState=null,trace=c
     }),30000);
     entryButtonEvidence=entered?.[0]?.result?.buttonEvidence||null;
     if(!entered?.[0]?.result?.ok) {
-      const reason=entered?.[0]?.result?.reason||'checkout-entry-failed';
+      const rawReason=entered?.[0]?.result?.reason;
+      const reason=rawReason==='buy-now-button-not-found'?'buy-now-button-layout-changed':rawReason||'checkout-entry-failed';
       return {
         checkoutDiscountStatus:'missing',checkoutDiscountReason:reason,
         checkoutCouponDiscount:null,checkoutCouponSource:null,
@@ -1810,13 +1811,10 @@ async function diagnoseCheckoutDiscounts() {
   }
   const itemId=activeUrl.searchParams.get('itemId');
   const targets=await getTargets();
-  const target=targets.find(entry=>entry.enabled!==false&&String(entry.itemId)===String(itemId));
+  const productId=activeUrl.pathname.match(/^\/vp\/products\/(\d+)\/?$/)?.[1],vendorItemId=activeUrl.searchParams.get('vendorItemId');
+  const target=targets.find(entry=>entry.enabled!==false&&String(entry.productId)===productId&&String(entry.itemId)===itemId&&String(entry.vendorItemId)===vendorItemId);
   if(!target) return {ok:false,reason:'registered-item-id-not-found'};
   try {
-    const read=await chrome.scripting.executeScript({
-      target:{tabId:activeTab.id},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp,target.minimumPrice]
-    });
-    const priceScan=read?.[0]?.result;
     const checkout=await collectCheckoutDiscountsForTarget(target);
     if(checkout.checkoutDiscountStatus!=='captured') return {ok:false,reason:checkout.checkoutDiscountReason};
     const payload={
@@ -1828,7 +1826,9 @@ async function diagnoseCheckoutDiscounts() {
       safety:{checkoutReadOnly:true,paymentButtonClicked:false,pageInteractionAfterEntry:false}
     };
     const url='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2));
-    await chrome.downloads.download({url,filename:'MarketPulse/checkout-discount-diagnostic.json',conflictAction:'overwrite',saveAs:false});
+    const filename='MarketPulse/checkout-discount-diagnostic.json';
+    const id=await withScanTimeout(chrome.downloads.download({url,filename,conflictAction:'overwrite',saveAs:false}),10000,'checkout-diagnostic-download');
+    await withScanTimeout(waitForScanDownload(id,filename),20000,'checkout-diagnostic-save');
     return {ok:true};
   } catch(error) {
     return {ok:false,reason:String(error)};
@@ -2119,7 +2119,12 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='DIAGNOSE_CHECKOUT_DISCOUNTS') {
-    diagnoseCheckoutDiscounts().then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
+    if(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size){sendResponse({ok:false,reason:'already-running'});return;}
+    primaryOperationOwner='checkout-diagnostic-'+crypto.randomUUID().replaceAll('-','');
+    activeScanSlot=null;activeScanRequestId=null;
+    activeScanPromise=diagnoseCheckoutDiscounts();
+    activeScanPromise.then(finishScan,finishScan);
+    activeScanPromise.then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)}));
     return true;
   }
 });

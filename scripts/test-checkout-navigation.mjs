@@ -119,6 +119,7 @@ for(const userAgent of ['Chrome/150','Edg/150','Whale/5']) {
     assert.equal(r.result.checkoutDiscountStatus,'missing');assert.equal(r.result.checkoutDiscountReason,reason);
     assert.equal(r.entryCalls,1);assert.equal(r.createAttempts,0);
   }
+  const changed=await scan({reuse:true,entryError:'buy-now-button-not-found',userAgent});assert.equal(changed.result.checkoutDiscountReason,'buy-now-button-layout-changed');assert.equal(changed.entryCalls,1);
   const timeout=await scan({reuse:true,child:true,confirmed:true,entryTimeout:true,userAgent});
   assert.equal(timeout.result.checkoutDiscountStatus,'missing');assert.equal(timeout.entryCalls,1);assert.equal(timeout.createAttempts,0);
   assert.deepEqual(timeout.removed,[11],'Lost entry acknowledgement only closes its child');

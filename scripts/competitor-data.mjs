@@ -15,7 +15,7 @@ export function offerFor(row,target){
   const basis=row.basisPrice;
   if(!Number.isSafeInteger(row.price)||row.price<10000||row.price>7000000||!row.basisEvidence||row.strikePrice!==basis||!Number.isSafeInteger(basis)||basis<10000||basis>7000000||row.strikeReliable!==true||row.strikeAnchorVerified!==true||!['top-visible','crossed-out'].includes(row.priceBasisType)||row.priceBasisSource!=='visible-product-price')return o;
   o.observedListPrice=basis;o.priceBasisType=row.priceBasisType;
-  if(['buy-now-button-not-found','buy-now-button-sold-out'].includes(row.checkoutDiscountReason))return {...o,confidence:'A',status:'품절',collectionStatus:null,checkoutDiscountStatus:'soldout',checkoutDiscountReason:row.checkoutDiscountReason};
+  if(['buy-now-button-not-found','buy-now-button-sold-out'].includes(row.checkoutDiscountReason))return {...o,confidence:'A',status:'품절',collectionStatus:null,collectionIssue:null,checkoutDiscountStatus:'soldout',checkoutDiscountReason:row.checkoutDiscountReason};
   if(row.checkoutDiscountStatus!=='captured'||row.checkoutCouponSource!=='checkout')return {...o,collectionIssue:'checkout-unconfirmed'};
   const discounts=[row.checkoutCouponDiscount,row.wowInstantDiscount,row.wowCouponDiscount];
   if(discounts.some(n=>!Number.isSafeInteger(n)||n<0)||discounts.reduce((a,b)=>a+b,0)>basis||(row.checkoutDiscountTotal!=null&&row.checkoutDiscountTotal!==discounts.reduce((a,b)=>a+b,0)))return {...o,collectionIssue:'checkout-unconfirmed'};
@@ -23,13 +23,13 @@ export function offerFor(row,target){
   if(!Number.isSafeInteger(row.checkoutShipping)||row.checkoutShipping<0||row.checkoutShipping>100000)return {...o,status:'배송비 미확인',collectionIssue:'shipping-unconfirmed'};
   const shipping=row.checkoutShipping;o.shipping=shipping;
   Object.assign(o,{preCardPrice:pre+shipping,couponDiscount:basis-pre,checkoutCouponDiscount:discounts[0],wowInstantDiscount:discounts[1],wowCouponDiscount:discounts[2],checkoutDiscountStatus:'captured',checkoutDiscountReason:row.checkoutDiscountReason,checkoutDiscountFieldStatus:row.checkoutDiscountFieldStatus||null,checkoutDiscountEvidence:safeEvidence(row.checkoutDiscountEvidence),cardProviders:row.cardProviders||[],cardTerms:row.cardTerms||[],cardRate:row.cardRate??null,cardMaxDiscount:row.cardMaxDiscount??null,cardBenefitText:row.cardBenefitText||''});
-  if(row.cardBenefitStatus==='none'&&(row.cardDiscount==null||row.cardDiscount===0))return {...o,confidence:'A',collectionStatus:null,status:'현재가 직접 확인',finalPrice:pre+shipping,cardDiscount:0,cardBenefitStatus:'none',alertEligible:true};
+  if(row.cardBenefitStatus==='none'&&(row.cardDiscount==null||row.cardDiscount===0))return {...o,confidence:'A',collectionStatus:null,collectionIssue:null,status:'현재가 직접 확인',finalPrice:pre+shipping,cardDiscount:0,cardBenefitStatus:'none',alertEligible:true};
   const terms=row.cardTerms;
-  if(!/^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$/.test(row.cardEvidenceSource||'')||row.cardBenefitStatus!=='captured'||!Array.isArray(terms)||!terms.length||terms.some(t=>!Number.isFinite(t.rate)||t.rate<=0||t.rate>100||(t.maxDiscount!==null&&(!Number.isSafeInteger(t.maxDiscount)||t.maxDiscount<=0))||!Array.isArray(t.providers)||!t.providers.length||t.providers.some(p=>typeof p!=='string'||!p.trim())))return {...o,collectionStatus:null,status:'카드할인 재확인 필요',finalPrice:pre+shipping,cardDiscount:null,cardBenefitStatus:'review-needed',publishedPriceBasis:'pre-card'};
+  if(!/^(?:dom|dom-snapshot|accessibility)(?:\+(?:dom|dom-snapshot|accessibility))*$/.test(row.cardEvidenceSource||'')||row.cardBenefitStatus!=='captured'||!Array.isArray(terms)||!terms.length||terms.some(t=>!Number.isFinite(t.rate)||t.rate<=0||t.rate>100||(t.maxDiscount!==null&&(!Number.isSafeInteger(t.maxDiscount)||t.maxDiscount<=0))||!Array.isArray(t.providers)||!t.providers.length||t.providers.some(p=>typeof p!=='string'||!p.trim())))return {...o,collectionStatus:null,collectionIssue:'card-unconfirmed',status:'카드할인 재확인 필요',finalPrice:pre+shipping,cardDiscount:null,cardBenefitStatus:'review-needed',publishedPriceBasis:'pre-card'};
   const observedBest=Math.max(...terms.map(t=>Math.min(Math.floor(row.price*t.rate/100),t.maxDiscount??Infinity)));
-  if(row.cardDiscount!==observedBest)return {...o,collectionStatus:null,status:'카드할인 재확인 필요',finalPrice:pre+shipping,cardDiscount:null,cardBenefitStatus:'review-needed',publishedPriceBasis:'pre-card'};
+  if(row.cardDiscount!==observedBest)return {...o,collectionStatus:null,collectionIssue:'card-unconfirmed',status:'카드할인 재확인 필요',finalPrice:pre+shipping,cardDiscount:null,cardBenefitStatus:'review-needed',publishedPriceBasis:'pre-card'};
   const best=terms.map(t=>({...t,amount:Math.min(Math.floor(pre*t.rate/100),t.maxDiscount??Infinity)})).sort((a,b)=>b.amount-a.amount)[0];
-  return {...o,confidence:'A',collectionStatus:null,status:'현재가 직접 확인',finalPrice:pre+shipping-best.amount,cardDiscount:best.amount,cardBenefitStatus:'captured',cardRate:best.rate,cardMaxDiscount:best.maxDiscount,cardProviders:best.providers,alertEligible:true};
+  return {...o,confidence:'A',collectionStatus:null,collectionIssue:null,status:'현재가 직접 확인',finalPrice:pre+shipping-best.amount,cardDiscount:best.amount,cardBenefitStatus:'captured',cardRate:best.rate,cardMaxDiscount:best.maxDiscount,cardProviders:best.providers,alertEligible:true};
 }
 export function readHistory(repo,{allowRetired=false}={}){
   const p=path.join(repo,'dist/competitor-price-history.js');
@@ -47,6 +47,14 @@ export function writeHistory(repo,h){
   const cell=v=>'"'+String(v??'').replaceAll('"','""')+'"';
   fs.writeFileSync(path.join(repo,'reports/competitor-price-history.csv'),'\uFEFF'+[h.headers,...h.rows].map(r=>r.map(cell).join(',')).join('\r\n')+'\r\n');
 }
+export function assertCurrentSource(repo,catalog,queue){
+  if(!/^[a-f0-9]{32}$/.test(queue?.sourceRunId||''))throw Error('Competitor source identity missing');
+  for(const entry of fs.readdirSync(path.join(repo,'brand'),{withFileTypes:true}).filter(e=>e.isDirectory())){
+    const file=path.join(repo,'brand',entry.name,'market-data.js');if(!fs.existsSync(file))continue;
+    const d=readData(file),active=d.products.some(p=>catalog.products.some(x=>x.enabled!==false&&x.brand===d.meta.brand&&['mtm','productId','itemId','vendorItemId'].every(k=>x[k]===p[k])));
+    if(active&&(d.meta.collectionEvidence?.scanSlot!==queue.scanSlot||(d.meta.collectionEvidence?.sourceRunId||d.meta.collectionEvidence?.runId)!==queue.sourceRunId))throw Error('Competitor publication superseded');
+  }
+}
 export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={}){
   if(!catalog||!Array.isArray(catalog.products))throw Error('Competitor catalog products missing');
   const ownerKeys=new Set();for(const p of catalog.products){const key=[p.brand,p.mtm,p.productId,p.itemId,p.vendorItemId].join('|');if(!p.brand||!p.mtm||!['productId','itemId','vendorItemId'].every(k=>/^\d+$/.test(p[k]||''))||ownerKeys.has(key))throw Error('Competitor owner catalog invalid');ownerKeys.add(key);}
@@ -54,7 +62,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
   const historyKey=r=>[r[1],r[2],r[4],r[5],r[6]].join('|');
   const h=readHistory(repo,{allowRetired:migrate}),historyKeys=new Set(h.rows.map(historyKey)),writes=[];
   if(result){
-    if(!queue||result.version!==1||result.scope!=='competitors'||result.sourceRunId!==queue.sourceRunId||result.scanSlot!==queue.scanSlot||result.terminal!==true||result.requestId!==queue.requestId||result.browser!==queue.browser||result.deadlineAt!==queue.deadlineAt||!Array.isArray(result.results)||result.total!==queue.targets.length)throw Error('Competitor result identity mismatch');
+    if(!queue||!/^[a-f0-9]{32}$/.test(queue.sourceRunId||'')||!/^[a-f0-9]{32}$/.test(queue.requestId||'')||result.version!==1||result.scope!=='competitors'||result.sourceRunId!==queue.sourceRunId||result.scanSlot!==queue.scanSlot||result.terminal!==true||result.requestId!==queue.requestId||result.browser!==queue.browser||result.deadlineAt!==queue.deadlineAt||!Array.isArray(result.results)||result.total!==queue.targets.length)throw Error('Competitor result identity mismatch');
     if([result.startedAt,result.completedAt,queue.firstPublishedAt,queue.deadlineAt,queue.publicationDeadline].some(t=>!Number.isFinite(Date.parse(t))))throw Error('Competitor result time missing/invalid');
     if(!Array.isArray(queue.targets)||new Set(queue.targets.map(t=>t.competitorKey)).size!==queue.targets.length)throw Error('Competitor queue targets malformed');
     for(const t of queue.targets){const id=models.identity(t.url);if(t.competitorKey!==id.key||['productId','itemId','vendorItemId'].some(k=>t[k]!==id[k]))throw Error('Competitor queue identity mismatch');}
@@ -73,7 +81,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
       return [{...entry,source:'Coupang own price archive',products}];
     });
 
-    if(queue&&d.meta.collectionEvidence?.scanSlot!==queue.scanSlot){
+    if(queue&&(d.meta.collectionEvidence?.scanSlot!==queue.scanSlot||(d.meta.collectionEvidence?.sourceRunId||d.meta.collectionEvidence?.runId)!==queue.sourceRunId)){
       if(d.products.some(p=>products.some(x=>x.enabled!==false&&x.brand===brand&&x.itemId===p.itemId)))throw Error('Competitor publication superseded');
       continue;
     }
@@ -84,7 +92,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
       p.competitorModels=links.map(c=>{
         const old=previous.find(o=>o.competitorKey===c.key),target=lookup.get(c.key);
         const row=result?.results.find(r=>r.competitorKey===c.key);
-        const retain=!queue&&old?.phaseState==='collected'&&old.comparisonSlot===d.meta.collectionEvidence?.scanSlot;
+        const retain=!queue&&old?.phaseState==='collected'&&old.comparisonSlot===d.meta.collectionEvidence?.scanSlot&&old.collectionEvidence?.sourceRunId===(d.meta.collectionEvidence?.sourceRunId||d.meta.collectionEvidence?.runId);
         let o=retain?{...old}:row?offerFor(row,{...target,model:c.model}):{...(old||offerFor(null,{...target,model:c.model})),status:queue?'시간 내 미수집':'경쟁모델 업데이트 중',alertEligible:false,collectionStatus:'review-needed',collectionIssue:'competitor-pending',finalPrice:null,observedListPrice:null,preCardPrice:null,couponDiscount:null,checkoutCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountStatus:'missing',cardBenefitStatus:'unverified',cardDiscount:null};
         if(row)o.collectionEvidence={browser:result.browser,extensionVersion:result.extensionVersion||null,requestId:queue.requestId,sourceRunId:queue.sourceRunId,checkedAt:row.checkedAt};
         o={...o,model:c.model,seller:c.model,note:c.note,comparisonSlot:d.meta.collectionEvidence?.scanSlot||null,phaseState:retain||row?'collected':queue?'not-collected':'pending'};
@@ -107,6 +115,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
 if(process.argv[1]===new URL(import.meta.url).pathname||process.argv[1]?.endsWith('competitor-data.mjs')){
   const [mode,repo,catalogPath,queuePath,resultPath]=process.argv.slice(2),catalog=readJSON(catalogPath);
   if(mode==='plan')console.log(JSON.stringify({targets:models.targets(catalog.products),capacity:models.capacity(catalog.products)}));
+  else if(mode==='verify-source')assertCurrentSource(repo,catalog,readJSON(queuePath));
   else if(['prepare','migrate','merge'].includes(mode))syncData(repo,catalog,{migrate:mode==='migrate',queue:queuePath?readJSON(queuePath):null,result:resultPath?readJSON(resultPath):null});
   else throw Error('Unknown competitor-data mode');
 }
