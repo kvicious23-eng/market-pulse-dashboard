@@ -1983,8 +1983,8 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
       const firstAt=prior?.firstRequestedAt||message.requestedAt||slot;
       if(!Number.isFinite(Date.parse(firstAt))||Date.parse(firstAt)<Date.parse(slot)||Date.parse(firstAt)>Date.parse(slot)+75*60000||Date.parse(firstAt)>Date.now()+120000)return {ok:false,reason:'invalid-request-time'};
       const deadlineAt=prior?.deadlineAt||new Date(primaryScanDeadline(firstAt,slot)).toISOString();
-      await chrome.storage.local.set({products:message.products,primaryRequest:{targets:JSON.parse(JSON.stringify(message.products)),catalogSignature:primaryCatalogSignature(message.products),browser:/Whale\//.test(navigator.userAgent)?'whale':'chrome',primaryProtocolId:windowsPrimaryProtocol(slot),targetCount:message.products.length,scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,attemptStartedAt:new Date().toISOString(),retryCount:prior?1:0,handoff:false}});
-      return requestScan(slot,null,requestId)?{ok:true,reason:prior?'retry-started':'started'}:{ok:false,reason:'already-running'};
+      await chrome.storage.local.set({primaryRequest:{targets:JSON.parse(JSON.stringify(message.products)),catalogSignature:primaryCatalogSignature(message.products),browser:/Whale\//.test(navigator.userAgent)?'whale':'chrome',primaryProtocolId:windowsPrimaryProtocol(slot),targetCount:message.products.length,scanSlot:slot,requestId,policyId:scanPolicyForSlot(slot).id,firstRequestedAt:firstAt,deadlineAt,attemptStartedAt:new Date().toISOString(),retryCount:prior?1:0,handoff:false}});
+      return requestScan(slot,null,requestId,message.products)?{ok:true,reason:prior?'retry-started':'started'}:{ok:false,reason:'already-running'};
     }).then(sendResponse).catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
     return true;
   }
@@ -2027,8 +2027,10 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
           !Number.isFinite(Date.parse(recovery.deadlineAt))||Date.now()>=Date.parse(recovery.deadlineAt))throw Error('invalid-whale-recovery-budget');
       } catch {fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-whale-recovery-budget'});return;}
     }
-    chrome.storage.local.set({products:message.products}).then(()=>sendResponse(requestScan(message.scanSlot||null,recovery,null,message.products)?{ok:true}:{ok:false,reason:'already-running'}))
-      .catch(error=>sendResponse({ok:false,reason:String(error)})).finally(()=>{fallbackCatalogPending=false;});
+    // Collection targets are transient. Only SAVE_PRODUCTS owns the management catalogue.
+    try{sendResponse(requestScan(message.scanSlot||null,recovery,null,message.products)?{ok:true}:{ok:false,reason:'already-running'});}
+    catch(error){sendResponse({ok:false,reason:String(error)});}
+    finally{fallbackCatalogPending=false;}
     return true;
   }
   if (message?.type==='RUN_SCAN') {

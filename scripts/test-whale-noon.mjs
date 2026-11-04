@@ -4,7 +4,7 @@ import {readTestFile} from './test-source.mjs';
 const source=readTestFile('chrome-extension/background.js','utf8');
 const fixed=Date.parse('2026-10-21T12:01:00+09:00');
 class Clock extends Date {constructor(...a){super(...(a.length?a:[fixed]));}static now(){return fixed;}}
-const created=[],cleared=[],state={},starts=[];
+const created=[],cleared=[],state={products:[{mtm:'SAVED',skuId:'001',competitors:[{model:'Saved competitor'}]}]},starts=[];
 const slot='2026-10-21T12:00+09:00',requestId='a'.repeat(32);
 let handler;
 const ctx={WORKER_INSTANCE_ID:'d'.repeat(32),Date:Clock,Intl,navigator:{userAgent:'Chrome/150 Whale/5'},isEdgeBrowser:false,activeScanPromise:null,primaryPendingOperations:new Set(),activeScanSlot:null,activeScanRequestId:null,primaryStopRequestId:null,
@@ -26,7 +26,7 @@ ctx.navigator.userAgent='Chrome/150';assert.equal((await send()).ok,false);ctx.n
 ctx.activeScanPromise={};assert.equal((await send()).reason,'busy-unrelated');ctx.activeScanPromise=null;
 assert.equal((await send({type:'CHECK_PRIMARY_TRANSPORT'})).ok,true);assert.equal(starts.length,0);
 assert.equal((await send()).ok,true);await new Promise(r=>setTimeout(r,0));
-assert.deepEqual(starts,[[slot,null,requestId]]);assert.equal(state.products.length,1);
+assert.deepEqual(starts,[[slot,null,requestId,[{mtm:'A'}]]]);assert.equal(state.products[0].skuId,'001');assert.equal(state.products[0].competitors[0].model,'Saved competitor');
 assert.equal((await send()).reason,'interrupted-retry-required');await new Promise(r=>setTimeout(r,0));assert.equal(starts.length,1);
 assert.equal((await send({retry:true})).reason,'retry-started');await new Promise(r=>setTimeout(r,0));assert.equal(starts.length,2);
 assert.equal((await send({retry:true})).reason,'retry-exhausted');await new Promise(r=>setTimeout(r,0));assert.equal(starts.length,2);
