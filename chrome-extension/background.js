@@ -1005,7 +1005,7 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
 async function scanCoupangTab(tabId,target) {
   const viewport=/Whale\//.test(globalThis.navigator?.userAgent||'')?await ensureWhaleTabViewport(tabId):null;
   const injected=await chrome.scripting.executeScript({
-    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp,target.minimumPrice]
+    target:{tabId},func:readDisplayedPrice,args:[target.productId,target.itemId,target.vendorItemId,target.srp??null,target.minimumPrice??null]
   });
   const scan=injected?.[0]?.result;
   if (!scan||typeof scan!=='object') throw new Error('scan-script-no-result');

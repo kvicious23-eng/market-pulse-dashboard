@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';import vm from 'node:vm';import {readTestFile} from './test-source.mjs';
+const s=readTestFile('chrome-extension/background.js','utf8'),a=s.indexOf('async function scanCoupangTab('),b=s.indexOf('async function scanAll(',a);
+for(const browser of ['Chrome/157','Edg/157','Whale/5'])for(const target of [{productId:'1',itemId:'2',vendorItemId:'3',srp:1500000},{productId:'1',itemId:'2',vendorItemId:'3'},{productId:'1',itemId:'2',vendorItemId:'3',srp:null,minimumPrice:10000}]){
+ let calls=0;const c={navigator:{userAgent:browser},ensureWhaleTabViewport:async()=>({ok:true}),readDisplayedPrice(){},accessDiagnosticTabs:new Map(),classifyAccessFailure(){},chrome:{scripting:{executeScript:async options=>{calls++;assert(options.args.every(v=>v!==undefined),'Chrome rejects undefined args before invoking the reader');assert.deepEqual(JSON.parse(JSON.stringify(options.args)),Array.from(options.args));assert.equal(options.args[3],target.srp??null);assert.equal(options.args[4],target.minimumPrice??null);return [{result:{ok:true,price:100000,cardBenefitStatus:'none'}}];}}}};
+ vm.runInNewContext(s.slice(a,b)+';this.scan=scanCoupangTab;',c);const result=await c.scan(1,target);assert.equal(result.ok,true);assert.equal(calls,1);
+}
+console.log('Production scanCoupangTab injection boundary: JSON-safe optional args for own/absent SRP/competitor minimum across Chrome, Edge and Whale passed.');
