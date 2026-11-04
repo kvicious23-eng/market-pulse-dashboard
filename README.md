@@ -6,7 +6,7 @@ Lenovo, Acer, Godox 및 사용자 등록 브랜드의 가격 모니터링 대시
 
 | 구분 | 현재 기준 |
 |---|---|
-| 가격 확장 | Chrome·Edge·Whale 1.9.67. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
+| 가격 확장 | Chrome·Edge·Whale 1.9.68. 실제 실행 버전은 브라우저별 maintenance verify로 확인 |
 | Supplier Connector | Chrome의 독립 0.1.23. 가격 성공을 CSV 시작 조건으로 사용하지 않음 |
 | 정기 수집 | 한국시간 매일 08·12·16·20시. Chrome 08/16, Whale 12/20 |
 | 실행 주체 | Windows가 공통 요청을 전달하고 감시. 공통 프로토콜 적용 이후 세 가격 확장의 자체 정기 알람은 0개 |
@@ -48,4 +48,4 @@ CI는 Ubuntu와 Windows에서 JavaScript LF/CRLF 검사를 수행하고 Windows 
 
 ## 지정 쿠팡 경쟁모델
 
-상품관리의 각 내 상품에서 경쟁모델명·쿠팡 URL·메모·활성을 등록한다. 동일 상품·옵션·판매자는 공유 수집하며 미등록도 허용한다. 내 상품 Pages 성공 후 별도 경쟁단계가 원래 예산 안에서 실행된다. SELLER COMPARISON과 Excel은 지정 경쟁모델만 사용하며 다나와·에누리 비교는 폐기했다. 상세 기준은 PROJECT_RULES.md의 1.9.67 절을 따른다.
+상품관리의 각 내 상품에서 경쟁모델명·쿠팡 URL·메모·활성을 등록한다. 동일 상품·옵션·판매자는 공유 수집하며 미등록도 허용한다. 내 상품 Pages 성공 후 별도 경쟁단계가 원래 예산 안에서 실행된다. SELLER COMPARISON과 Excel은 지정 경쟁모델만 사용하며 다나와·에누리 비교는 폐기했다. 상세 기준은 PROJECT_RULES.md의 1.9.68 절을 따른다.

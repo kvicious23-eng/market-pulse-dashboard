@@ -2,10 +2,10 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Pulse 상품 관리</title><link rel="stylesheet" href="options.css"></head>
 <body><main>
   <header><div><p class="eyebrow">MARKET PULSE</p><h1>상품 관리</h1><p class="desc">기존 상품을 수정하거나 신규 상품을 등록해. SRP는 가격 판정의 기준값으로 사용돼.</p></div><div class="summary"><b id="activeCount">0</b><span>사용 상품</span></div></header>
-  <section class="toolbar"><div><button id="add">+ 신규 상품</button><button id="save" class="primary">변경사항 저장</button></div><label>검색 <input id="search" placeholder="브랜드, MTM"></label></section>
-  <p id="capacity" role="status"></p><div id="notice" role="status"></div>
+  <section class="toolbar"><div><button id="add">+ 신규 상품</button><button id="save" class="primary" disabled>변경사항 저장</button></div><label>검색 <input id="search" placeholder="브랜드, MTM"></label><div class="save-feedback"><div id="notice" role="status" aria-live="polite"></div><a id="draftBackup" hidden download="market-pulse-unsaved-catalog.json">입력내용 백업 다운로드</a></div></section>
+  <p id="capacity" role="status"></p>
   <section id="cards" aria-label="등록 상품 목록"></section>
-  <footer><button id="saveBottom" class="primary">변경사항 저장</button><p>저장 후 다음 정기 수집부터 적용돼. 경쟁모델은 내 상품 게시 완료 뒤 자동으로 수집돼.</p></footer>
+  <footer><button id="saveBottom" class="primary" disabled>변경사항 저장</button><p>저장 후 다음 정기 수집부터 적용돼. 경쟁모델은 내 상품 게시 완료 뒤 자동으로 수집돼.</p></footer>
 </main><template id="cardTemplate"><article class="card">
   <div class="cardHead"><div><span class="brandBadge"></span><strong class="title"></strong></div><label class="toggle"><input class="enabled" type="checkbox"><span>사용</span></label></div>
   <div class="grid">

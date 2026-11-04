@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';import vm from 'node:vm';import {readTestFile} from './test-source.mjs';
-const source=readTestFile('chrome-extension/options.js','utf8'),a=source.indexOf('async function saveCatalogDownload('),b=source.indexOf('async function save(){',a);
+const source=readTestFile('chrome-extension/options.js','utf8'),a=source.indexOf('function saveTimeout('),b=source.indexOf('async function save(){',a);
 async function save(states,userAgent='Chrome/150'){
- let calls=0;const files=[];const c={navigator:{userAgent},setTimeout:fn=>fn(),chrome:{downloads:{download:async options=>{files.push(options);return 1;},search:async()=>[states[Math.min(calls++,states.length-1)]]}}};
- vm.runInNewContext(source.slice(a,b)+';this.save=saveCatalogDownload;',c);
+ let calls=0;const files=[];const c={navigator:{userAgent},setTimeout:(fn,ms)=>{if(ms===500)fn();return 1;},clearTimeout:()=>{},chrome:{downloads:{download:async options=>{files.push(options);return 1;},search:async()=>[states[Math.min(calls++,states.length-1)]]}}};
+ vm.runInNewContext(source.slice(a,source.indexOf('function keepDraft(',a))+source.slice(source.indexOf('async function saveCatalogDownload('),b)+';this.save=saveCatalogDownload;',c);
  let error;try{await c.save({version:1,products:[{skuId:'001',competitors:[]}]});}catch(e){error=e;}
  return {calls,files,error};
 }
