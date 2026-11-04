@@ -233,7 +233,7 @@
   }
 
   function effectiveCompetitorPrice(offer, mine) {
-    if(offer?.kind!=='coupang-model'||offer.phaseState!=='collected'||offer.comparisonSlot!==data.meta.collectionEvidence?.scanSlot||cardReviewRequired(offer))return null;
+    if(offer?.kind!=='coupang-model'||offer.phaseState!=='collected'||offer.comparisonSlot!==data.meta.collectionEvidence?.scanSlot||offer.collectionEvidence?.sourceRunId!==(data.meta.collectionEvidence?.sourceRunId||data.meta.collectionEvidence?.runId)||cardReviewRequired(offer))return null;
     return effectiveFinalPrice(offer);
   }
 

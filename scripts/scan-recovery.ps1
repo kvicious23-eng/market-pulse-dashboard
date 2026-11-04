@@ -166,7 +166,7 @@ function Get-EdgeRecoveryResultPath([string]$RepoPath,[string]$ResultFolder,[str
 
 function Get-ScanCollectionEvidence($Payload) {
   [pscustomobject]@{browser=[string]$Payload.browser;extensionVersion=[string]$Payload.extensionVersion;
-    scanSlot=$Payload.scanSlot;policyId=$Payload.policyId;runId=$Payload.runId;startedAt=$Payload.startedAt;completedAt=$Payload.completedAt;
+    scanSlot=$Payload.scanSlot;policyId=$Payload.policyId;runId=$Payload.runId;sourceRunId=$(if($Payload.modelRecovery.scope -ceq 'models'){$Payload.modelRecovery.sourceRunId}else{$Payload.runId});startedAt=$Payload.startedAt;completedAt=$Payload.completedAt;
     targetCount=[int]$Payload.targetCount;resultCount=[int]$Payload.resultCount}
 }
 
