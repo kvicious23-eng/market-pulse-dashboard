@@ -10,7 +10,7 @@
       const end=api.now()+25000;
       async function call(factory,label,limit=5000){
         const remaining=end-api.now();if(remaining<=0)throw Error('catalog-save-timeout');let timer;
-        try{const task=Promise.resolve().then(factory);unsettled.add(task);task.then(()=>unsettled.delete(task),()=>unsettled.delete(task));return await Promise.race([task,new Promise((_,reject)=>{timer=api.setTimeout(()=>reject(Error(label+'-timeout')),Math.min(remaining,limit));})]);}finally{api.clearTimeout(timer);}
+        try{const task=Promise.resolve().then(factory);unsettled.add(task);task.then(()=>unsettled.delete(task),()=>unsettled.delete(task));return await Promise.race([task,new Promise((_,reject)=>{timer=api.setTimeout.call(root,()=>reject(Error(label+'-timeout')),Math.min(remaining,limit));})]);}finally{api.clearTimeout.call(root,timer);}
       }
       const validPath=item=>String(item?.filename||'').replaceAll('\\','/').endsWith('/'+filename(api.agent));
       try{
