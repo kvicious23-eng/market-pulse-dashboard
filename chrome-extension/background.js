@@ -1,4 +1,4 @@
-importScripts('scan-policy.js','checkout-diagnostics.js','competitor-models.js','competitor-worker.js');
+importScripts('scan-policy.js','checkout-diagnostics.js','competitor-models.js','competitor-worker.js','catalog-commit.js');
 const WORKER_INSTANCE_ID=(globalThis.crypto?.randomUUID?.()||String(Date.now())+'-'+Math.random()).replaceAll('-','');
 const TARGETS = [
   {brand:'Lenovo',category:'Notebook',mtm:'83N30037KR',productId:'9235110727',itemId:'27303279355',vendorItemId:'95415897534',srp:1109000,enabled:true,url:'https://www.coupang.com/vp/products/9235110727?itemId=27303279355&vendorItemId=95415897534'},
@@ -1927,9 +1927,10 @@ async function primaryRecoveryState(message) {
     progress:exists?state.scanProgress:null,lastError:exists?state.lastScanError:null};
 }
 let fallbackCatalogPending=false;
+let catalogWriter=null;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({competitorPhasePolicy:'own-pages-then-competitors-v1',productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({catalogSavePolicy:'serialized-commit-v1',competitorResultPolicy:'durable-save-v1',competitorPhasePolicy:'own-pages-then-competitors-v1',productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if(message?.type==='COMPETITOR_PHASE'){handleCompetitorPhase(message,_sender,sendResponse);return true;}
@@ -1938,11 +1939,10 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     return true;
   }
   if (message?.type==='SAVE_PRODUCTS') {
-    let errors=validateProductCatalog(message.products);
-    try{message.products=message.products.map(CompetitorModels.clean);}catch(e){errors.push(String(e.message));}
-    if(errors.length) sendResponse({ok:false,error:`product-catalog-invalid:${errors.join(',')}`});
-    else chrome.storage.local.set({products:message.products}).then(()=>sendResponse({ok:true})).catch(error=>sendResponse({ok:false,error:String(error)}));
-    return true;
+    if(_sender?.url?.split('?')[0]!==chrome.runtime.getURL('options.html')){sendResponse({ok:false,error:'invalid-catalog-sender'});return;}
+    if(!catalogWriter)catalogWriter=CatalogCommit.create({getProducts:getTargets,validate:validateProductCatalog,clean:CompetitorModels.clean,
+      storage:chrome.storage.local,downloads:chrome.downloads,agent:navigator.userAgent,now:()=>Date.now(),wait,setTimeout,clearTimeout});
+    catalogWriter.save(message).then(sendResponse).catch(error=>sendResponse({ok:false,error:String(error)}));return true;
   }
   if(['GET_PRIMARY_STATE','STOP_PRIMARY_SCAN','PREPARE_PRIMARY_HANDOFF'].includes(message?.type)) {
     if(!isPrimarySender(_sender,message.scanSlot)||!validPrimaryIdentity(message)){sendResponse({ok:false,reason:'invalid-primary-request'});return;}
@@ -2070,14 +2070,15 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     }).then(sendResponse).catch(()=>sendResponse({status:'unconfirmed'}));return true;
   }
   if (message?.type==='GET_SCAN_STATUS') {
-    chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult']).then(async state=>{
+    chrome.storage.local.get(['running','scanProgress','lastScanError','lastScanErrorAt','lastResult','catalogCommit']).then(async state=>{
+      const catalogRecoveryPending=Boolean(state.catalogCommit);delete state.catalogCommit;
       if(state.running&&!activeScanPromise&&!fallbackCatalogPending&&!primaryPendingOperations.size) {
         state.running=false;
         state.lastScanError='scan-interrupted-by-worker-restart';
         state.lastScanErrorAt=new Date().toISOString();
         await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:state.lastScanError,lastScanErrorAt:state.lastScanErrorAt});
       }
-      sendResponse({...state,running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size)});
+      sendResponse({...state,catalogRecoveryPending,catalogSaving:typeof catalogWriter!=='undefined'&&Boolean(catalogWriter?.isBusy()),running:Boolean(activeScanPromise||fallbackCatalogPending||primaryPendingOperations.size)});
     }).catch(error=>sendResponse({lastScanError:String(error)}));
     return true;
   }

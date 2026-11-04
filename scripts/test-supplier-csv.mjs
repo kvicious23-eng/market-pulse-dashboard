@@ -125,3 +125,6 @@ console.log('Supplier CSV checks passed: official one-click request, local decod
   rows.push(row('another','2026-10-08 01:24:36 PM'));result=await supplierExportFile('basic_operation_rocket_2026100120261007','2026-10-08T04:24:37.187Z');assert.equal(result.reason,'export_request_ambiguous');assert.equal(fileClicks,1);
  }finally{Object.assign(global,saved);}
 }
+
+const parseSrp=vm.runInNewContext(editor.slice(editor.indexOf('function money('),editor.indexOf('function isSkuKey('))+';parseManagedSrp;');
+assert.equal(parseSrp('1,109,000원'),1109000);assert.equal(parseSrp('₩ 1,109,000'),1109000);assert.equal(parseSrp(''),null);for(const text of ['-1000','1e6','1,2','1000.5','0'])assert(Number.isNaN(parseSrp(text)),'Invalid SRP must not silently become a different price');

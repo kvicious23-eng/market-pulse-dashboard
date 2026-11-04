@@ -125,6 +125,7 @@ jobs:
         run: |
           node --check dist/app.js
           node --check dist/xlsx-export.js
+          node --check chrome-extension/catalog-commit.js
           node --check chrome-extension/competitor-models.js
           node --check chrome-extension/competitor-worker.js
           node --check chrome-extension/competitor.js

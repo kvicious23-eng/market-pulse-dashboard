@@ -25,7 +25,7 @@ try{
  $qp=Join-Path $repo 'reports\queue.json';Write-ScanRecoveryJson $qp $q
  $row=$target|ConvertTo-Json|ConvertFrom-Json
  foreach($kv in @{ok=$true;checkedAt='2026-11-04T08:40:00+09:00';price=600000;basisPrice=700000;strikePrice=700000;basisEvidence=@{text='700000'};priceBasisSource='visible-product-price';priceBasisType='top-visible';strikeReliable=$true;strikeAnchorVerified=$true;checkoutDiscountStatus='captured';checkoutCouponSource='checkout';checkoutCouponDiscount=100000;wowInstantDiscount=0;wowCouponDiscount=0;checkoutDiscountTotal=100000;checkoutShipping=0;cardBenefitStatus='none';cardDiscount=0}.GetEnumerator()){$row|Add-Member $kv.Key $kv.Value}
- $result=[pscustomobject]@{scope='competitors';sourceRunId=$id;requestId=$nonce;browser='chrome';scanSlot=$slot;deadlineAt=$q.deadlineAt;terminal=$true;total=1;startedAt='2026-11-04T08:35:00+09:00';completedAt='2026-11-04T08:41:00+09:00';results=@($row)}
+ $result=[pscustomobject]@{version=1;scope='competitors';sourceRunId=$id;requestId=$nonce;browser='chrome';scanSlot=$slot;deadlineAt=$q.deadlineAt;terminal=$true;total=1;startedAt='2026-11-04T08:35:00+09:00';completedAt='2026-11-04T08:41:00+09:00';results=@($row)}
  $rp=Join-Path $repo 'reports\result.json';Write-ScanRecoveryJson $rp $result
  $before=(Get-FileHash $file -Algorithm SHA256).Hash
  $script:realData=(Get-Command Invoke-CompetitorData).ScriptBlock

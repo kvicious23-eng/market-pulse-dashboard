@@ -9,7 +9,7 @@ const catalog={products:[own,{...own,mtm:'A2',itemId:'21'}]};
 const target={competitorKey:key,model:'Comp',productId:'1',itemId:'2',vendorItemId:'3',url};
 const q={sourceRunId:'a'.repeat(32),requestId:'b'.repeat(32),browser:'chrome',scanSlot:slot,deadlineAt:'2026-11-04T10:00:00+09:00',publicationDeadline:'2026-11-04T10:30:00+09:00',firstPublishedAt:'2026-11-04T08:34:00+09:00',targets:[target]};
 const row={...target,ok:true,checkedAt:'2026-11-04T08:40:00+09:00',basisPrice:1500000,strikePrice:1500000,basisEvidence:{text:'1,500,000원'},price:1259000,priceBasisType:'crossed-out',priceBasisSource:'visible-product-price',strikeReliable:true,strikeAnchorVerified:true,checkoutDiscountStatus:'captured',checkoutCouponSource:'checkout',checkoutCouponDiscount:241000,wowInstantDiscount:0,wowCouponDiscount:0,checkoutDiscountTotal:241000,cardBenefitStatus:'captured',cardEvidenceSource:'dom',cardDiscount:20000,checkoutShipping:0,cardTerms:[{rate:2,maxDiscount:20000,providers:['A']} ]};
-const result={...q,scope:'competitors',terminal:true,startedAt:'2026-11-04T08:35:00+09:00',completedAt:'2026-11-04T08:41:00+09:00',total:1,results:[row]};
+const result={version:1,...q,scope:'competitors',terminal:true,startedAt:'2026-11-04T08:35:00+09:00',completedAt:'2026-11-04T08:41:00+09:00',total:1,results:[row]};
 try{
  fs.mkdirSync(path.join(root,'brand/acer'),{recursive:true});fs.mkdirSync(path.join(root,'dist'));
  const file=path.join(root,'brand/acer/market-data.js');
@@ -40,5 +40,13 @@ try{
  const pending=read();const last=pending.products[1].competitorModels[0];last.lastVerifiedFinalPrice=last.finalPrice;last.lastVerifiedPriceCheckedAt=last.priceCheckedAt;last.finalPrice=null;last.alertEligible=false;last.phaseState='pending';fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(pending)+';');
  syncData(root,changed,{queue:{...q,requestId:'e'.repeat(32)},result:{...result,requestId:'e'.repeat(32),results:[{...row,ok:false}]}});assert.equal(read().products[1].competitorModels[0].lastVerifiedFinalPrice,1239000,'Failure after a pending update must retain the dated prior reference');
  syncData(root,changed,{queue:q,result:{...result,results:[],stoppedReason:'budget'}});assert.equal(read().products[1].competitorModels[0].phaseState,'not-collected');assert.equal(read().products[1].competitorModels[0].alertEligible,false);
+ assert.throws(()=>syncData(root,{}, {queue:q,result}),/catalog/);
+ // Invalid/missing timestamps must fail closed before any public/history write.
+ for(const patch of [{startedAt:'bad'},{completedAt:null},{results:[],stoppedReason:null}]){const prior=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,...patch}}));assert.equal(fs.readFileSync(file,'utf8'),prior);}
+ assert.equal(offerFor({...row,checkoutCouponDiscount:0.5},target).alertEligible,false);
+ const evidence=offerFor({...row,checkoutDiscountEvidence:['일반 쿠폰할인 241000원','배송지 수령인 전화번호 일반 쿠폰할인','일반 쿠폰할인 241000원']},target);assert.deepEqual(evidence.checkoutDiscountEvidence,['일반 쿠폰할인 241000원']);
+ // Removing every owner still removes stale competitor links without changing own prices.
+ syncData(root,{products:[]},{queue:q,result});assert(read().products.every(p=>p.competitorModels.length===0));assert.deepEqual(read().products[0].offers[0],mine);
+ const hp=path.join(root,'dist/competitor-price-history.js'),historyBefore=fs.readFileSync(hp,'utf8');fs.writeFileSync(hp,'window.MARKET_PULSE_COMPETITOR_HISTORY = {"schema":99,"headers":[],"rows":[]};');assert.throws(()=>readHistory(root),/schema/);assert.equal(readHistory(root,{allowRetired:true}).rows.length,0);fs.writeFileSync(hp,historyBefore);
  console.log('Separate publication, coupon-first card caps, shared results, own price/inventory preservation, idempotent history, deletion races, malformed/late evidence and partial budgets passed.');
 }finally{fs.rmSync(root,{recursive:true,force:true});}

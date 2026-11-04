@@ -1,15 +1,13 @@
-import assert from 'node:assert/strict';import vm from 'node:vm';import {readTestFile} from './test-source.mjs';
-const source=readTestFile('chrome-extension/options.js','utf8'),a=source.indexOf('function saveTimeout('),b=source.indexOf('async function save(){',a);
-async function save(states,userAgent='Chrome/150'){
- let calls=0;const files=[];const c={navigator:{userAgent},setTimeout:(fn,ms)=>{if(ms===500)fn();return 1;},clearTimeout:()=>{},chrome:{downloads:{download:async options=>{files.push(options);return 1;},search:async()=>[states[Math.min(calls++,states.length-1)]]}}};
- vm.runInNewContext(source.slice(a,source.indexOf('function keepDraft(',a))+source.slice(source.indexOf('async function saveCatalogDownload('),b)+';this.save=saveCatalogDownload;',c);
- let error;try{await c.save({version:1,products:[{skuId:'001',competitors:[]}]});}catch(e){error=e;}
- return {calls,files,error};
-}
-let r=await save([{state:'in_progress'},{state:'complete',filename:'C:\\Downloads\\MarketPulse\\product-catalog.json'}]);assert.equal(r.error,undefined);assert.equal(r.calls,2);
-assert.equal(JSON.parse(decodeURIComponent(r.files[0].url.split(',')[1])).products[0].skuId,'001');
-assert.match((await save([{state:'interrupted'}])).error.message,/failed/);
-assert.match((await save([{state:'complete',filename:'C:\\Downloads\\wrong.json'}])).error.message,/path/);
-r=await save([{state:'in_progress'}]);assert.match(r.error.message,/timeout/);assert.equal(r.calls,30);
-assert.equal((await save([{state:'complete',filename:'/Downloads/MarketPulse/whale-product-catalog.json'}],'Whale/5')).error,undefined);
-console.log('Catalogue save acknowledgement requires completed exact-path download; rejects interruption, renamed files and bounded timeout; SKU preserved.');
+import assert from 'node:assert/strict';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),commit=require('../chrome-extension/catalog-commit.js');
+const old=[{brand:'Test',mtm:'OWN',skuId:'001',competitors:[]}],next=[{...old[0],srp:10000}];
+function harness({state='complete',wrongPath=false,silent=false}={}){const data={products:structuredClone(old)},timers=new Map();let timer=0,downloads=0,resolve;const api={agent:'Chrome/150',now:()=>Date.parse('2026-11-04T08:00:00Z'),setTimeout:function(fn,ms){assert.equal(this,globalThis,'Native timer receiver must be the global scope');timers.set(++timer,{fn,ms});return timer;},clearTimeout:function(id){assert.equal(this,globalThis);timers.delete(id);},wait:async()=>{},getProducts:async()=>structuredClone(data.products),clean:p=>p,validate:()=>[],storage:{get:async k=>({[k]:data[k]}),set:async o=>Object.assign(data,o),remove:async k=>delete data[k]},downloads:{download:async()=>{downloads++;if(silent)return new Promise(r=>resolve=r);return 1;},search:async()=>[{state,filename:wrongPath?'C:/Downloads/wrong.json':'C:/Downloads/MarketPulse/product-catalog.json'}]}};return {store:commit.create(api),api,data,timers,get downloads(){return downloads;},settle:()=>resolve?.(1)};}
+const request={products:next,baseSignature:commit.signature(old)};
+let h=harness();let r=await h.store.save(request);assert.equal(r.ok,true);assert.equal(r.persisted,true);assert.equal(h.data.products[0].skuId,'001');assert.equal(h.data.catalogCommit,undefined);
+h=harness();h.data.products=[{...old[0],srp:20000}];r=await h.store.save(request);assert.equal(r.error,'catalog-conflict');assert.equal(h.downloads,0);assert.equal(h.data.products[0].srp,20000);
+h=harness({state:'interrupted'});r=await h.store.save(request);assert.equal(r.ok,false);assert.equal(r.settingsSaved,true);assert.equal(h.data.catalogCommit.downloadId,1);h.api.downloads.search=async()=>[{state:'complete',filename:'C:/Downloads/MarketPulse/product-catalog.json'}];r=await h.store.save(request);assert.equal(r.recovered,true);assert.equal(h.downloads,1,'Recover completed download without rewriting the file');
+h=harness({wrongPath:true});r=await h.store.save(request);assert.equal(r.ok,false);assert.equal(r.error,'catalog-save-path-mismatch');
+h=harness({silent:true});const pending=h.store.save(request);for(let i=0;i<50&&!h.downloads;i++)await Promise.resolve();assert.equal(h.downloads,1);const blocked=await h.store.save(request);assert.equal(blocked.error,'catalog-save-busy');[...h.timers.values()].find(t=>t.ms===10000).fn();r=await pending;assert.equal(r.ok,false);assert.equal(r.recoveryPending,true);assert.equal((await h.store.save(request)).error,'catalog-save-busy','Native operation still pending');h.settle();for(let i=0;i<10;i++)await Promise.resolve();assert.equal((await h.store.save(request)).error,'catalog-file-unresolved','Lost download ID must not launch another overwrite');assert.equal(h.downloads,1);
+h=harness();h.data.catalogCommit={version:1,stage:'settings',downloadId:null,productsSignature:'previous',filename:'MarketPulse/product-catalog.json',at:new Date().toISOString()};r=await h.store.save(request);assert.equal(r.ok,true,'Interrupted pre-file stage is safe to retry');
+assert.equal(commit.filename('Edg/150'),'MarketPulse/edge-product-catalog.json');assert.equal(commit.filename('Chrome Whale/5'),'MarketPulse/whale-product-catalog.json');
+console.log('Catalogue transaction: stale-tab rejection, storage/file serialization, completed recovery, wrong path, late API/no duplicate overwrite, interrupted settings and isolated Edge/Whale files passed.');

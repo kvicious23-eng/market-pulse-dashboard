@@ -11,11 +11,13 @@ async function maintainExtension() {
   if(!state||typeof state.running!=='boolean')throw Error('scan-state-unavailable');
   const browser=/Whale\//.test(navigator.userAgent)?'whale':/Edg\//.test(navigator.userAgent)?'edge':'chrome';
   const version=chrome.runtime.getManifest().version;
-  const receipt={nonce,browser,mode,expected,version,at:new Date().toISOString(),status:state.running?'busy':mode==='reload'?'reload-requested':'verification-failed'};
-  if(mode==='verify'&&!state.running) {
+  const busy=state.running||state.catalogSaving===true||state.catalogRecoveryPending===true;
+  const receipt={nonce,browser,mode,expected,version,at:new Date().toISOString(),status:busy?'busy':mode==='reload'?'reload-requested':'verification-failed'};
+  if(mode==='verify'&&!busy) {
     const health=await maintenanceTimeout(chrome.runtime.sendMessage({type:'GET_EXTENSION_HEALTH'}));
     const permission=await maintenanceTimeout(chrome.permissions.contains({permissions:['webRequest']}));
     receipt.workerVersion=health?.version||null;
+    receipt.catalogSavePolicy=health?.catalogSavePolicy||null;receipt.competitorResultPolicy=health?.competitorResultPolicy||null;
     receipt.competitorPhasePolicy=health?.competitorPhasePolicy||null;
     receipt.productVisitPolicy=health?.productVisitPolicy||null;
     receipt.workerInstanceId=health?.workerInstanceId||null;
