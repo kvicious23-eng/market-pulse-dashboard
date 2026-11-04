@@ -48,6 +48,7 @@ export function writeHistory(repo,h){
   fs.writeFileSync(path.join(repo,'reports/competitor-price-history.csv'),'\uFEFF'+[h.headers,...h.rows].map(r=>r.map(cell).join(',')).join('\r\n')+'\r\n');
 }
 export function assertCurrentSource(repo,catalog,queue){
+  if(!/^[a-f0-9]{32}$/.test(queue?.sourceRunId||''))throw Error('Competitor source identity missing');
   for(const entry of fs.readdirSync(path.join(repo,'brand'),{withFileTypes:true}).filter(e=>e.isDirectory())){
     const file=path.join(repo,'brand',entry.name,'market-data.js');if(!fs.existsSync(file))continue;
     const d=readData(file),active=d.products.some(p=>catalog.products.some(x=>x.enabled!==false&&x.brand===d.meta.brand&&['mtm','productId','itemId','vendorItemId'].every(k=>x[k]===p[k])));
@@ -61,7 +62,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
   const historyKey=r=>[r[1],r[2],r[4],r[5],r[6]].join('|');
   const h=readHistory(repo,{allowRetired:migrate}),historyKeys=new Set(h.rows.map(historyKey)),writes=[];
   if(result){
-    if(!queue||result.version!==1||result.scope!=='competitors'||result.sourceRunId!==queue.sourceRunId||result.scanSlot!==queue.scanSlot||result.terminal!==true||result.requestId!==queue.requestId||result.browser!==queue.browser||result.deadlineAt!==queue.deadlineAt||!Array.isArray(result.results)||result.total!==queue.targets.length)throw Error('Competitor result identity mismatch');
+    if(!queue||!/^[a-f0-9]{32}$/.test(queue.sourceRunId||'')||!/^[a-f0-9]{32}$/.test(queue.requestId||'')||result.version!==1||result.scope!=='competitors'||result.sourceRunId!==queue.sourceRunId||result.scanSlot!==queue.scanSlot||result.terminal!==true||result.requestId!==queue.requestId||result.browser!==queue.browser||result.deadlineAt!==queue.deadlineAt||!Array.isArray(result.results)||result.total!==queue.targets.length)throw Error('Competitor result identity mismatch');
     if([result.startedAt,result.completedAt,queue.firstPublishedAt,queue.deadlineAt,queue.publicationDeadline].some(t=>!Number.isFinite(Date.parse(t))))throw Error('Competitor result time missing/invalid');
     if(!Array.isArray(queue.targets)||new Set(queue.targets.map(t=>t.competitorKey)).size!==queue.targets.length)throw Error('Competitor queue targets malformed');
     for(const t of queue.targets){const id=models.identity(t.url);if(t.competitorKey!==id.key||['productId','itemId','vendorItemId'].some(k=>t[k]!==id[k]))throw Error('Competitor queue identity mismatch');}

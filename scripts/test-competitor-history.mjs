@@ -52,6 +52,7 @@ try{
  assert.throws(()=>syncData(root,{}, {queue:q,result}),/catalog/);
  // Invalid/missing timestamps must fail closed before any public/history write.
  for(const patch of [{startedAt:'bad'},{completedAt:null},{results:[],stoppedReason:null}]){const prior=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:q,result:{...result,...patch}}));assert.equal(fs.readFileSync(file,'utf8'),prior);}
+ const missingSourceBefore=fs.readFileSync(file,'utf8');assert.throws(()=>syncData(root,catalog,{queue:{...q,sourceRunId:null},result:{...result,sourceRunId:null}}));assert.equal(fs.readFileSync(file,'utf8'),missingSourceBefore);
  assert.equal(offerFor({...row,checkoutCouponDiscount:0.5},target).alertEligible,false);
  const evidence=offerFor({...row,checkoutDiscountEvidence:['일반 쿠폰할인 241000원','배송지 수령인 전화번호 일반 쿠폰할인','일반 쿠폰할인 241000원']},target);assert.deepEqual(evidence.checkoutDiscountEvidence,['일반 쿠폰할인 241000원']);
  // Removing every owner still removes stale competitor links without changing own prices.
@@ -62,7 +63,10 @@ try{
 
 // The actual UI also rejects stale source identities within the same slot.
 const ui=readTestFile('dist/app.js','utf8'),ua=ui.indexOf('  function effectiveCompetitorPrice('),ub=ui.indexOf('\n\n  function isSoldOut(',ua);
-const uc={data:{meta:{collectionEvidence:{scanSlot:slot,runId:'new'}}},cardReviewRequired:()=>false,effectiveFinalPrice:o=>o.finalPrice};
+const uc={data:{meta:{collectionEvidence:{scanSlot:slot,runId:'f'.repeat(32)}}},cardReviewRequired:()=>false,effectiveFinalPrice:o=>o.finalPrice};
 vm.runInNewContext(ui.slice(ua,ub)+';this.price=effectiveCompetitorPrice;',uc);
-const o={kind:'coupang-model',phaseState:'collected',comparisonSlot:slot,finalPrice:100,collectionEvidence:{sourceRunId:'old'}};
-assert.equal(uc.price(o),null);uc.data.meta.collectionEvidence.sourceRunId='old';assert.equal(uc.price(o),100);
+const o={kind:'coupang-model',phaseState:'collected',comparisonSlot:slot,finalPrice:100,collectionEvidence:{sourceRunId:'a'.repeat(32)}};
+assert.equal(uc.price(o),null);uc.data.meta.collectionEvidence.sourceRunId='a'.repeat(32);assert.equal(uc.price(o),100);
+
+uc.data.meta.collectionEvidence={scanSlot:slot};const missing={...o,collectionEvidence:{}};assert.equal(uc.price(missing),null,'Two missing source IDs cannot establish identity');
+assert.throws(()=>assertCurrentSource(root,{products:[]},{sourceRunId:null}),/identity/);
