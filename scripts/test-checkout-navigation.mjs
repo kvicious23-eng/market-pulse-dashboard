@@ -22,6 +22,7 @@ async function scan({child,confirmed,busyFailures=0,createError,entryTimeout=fal
     withScanTimeout:async (promise,ms,stage)=>{if(entryTimeout&&stage==='checkout-entry')throw Error('scan-timeout:'+stage);return promise;},
 
     enterCheckoutDiagnostic(){},
+    settleBuyButton(){},
     prepareProductForCheckout(){},
     prepareWhaleScanWindow:async()=>{},
     ensureWhaleTabViewport:async()=>({width:1200,height:800}),
@@ -42,6 +43,7 @@ async function scan({child,confirmed,busyFailures=0,createError,entryTimeout=fal
       scripting:{async executeScript({target,func}){
         if(/innerWidth/.test(String(func)))return [{result:{width:1200,height:800}}];
         if(func.name==='prepareProductForCheckout'){preparedCalls++;return [{result:prepareError?{ok:false,reason:prepareError}:{ok:true}}];}
+        if(func.name==='settleBuyButton')return [{result:{ok:true}}];
         if(func.name==='enterCheckoutDiagnostic'){entryCalls++;if(entryTimeout)return new Promise(()=>{});if(confirmed&&!child&&!entryError)original.url=checkout.url;return [{result:entryError?{ok:false,reason:entryError}:{ok:true,buttonEvidence:'바로구매'}}];}
         assert.equal(target.tabId,child?11:10);
         return [{result:confirmed?{

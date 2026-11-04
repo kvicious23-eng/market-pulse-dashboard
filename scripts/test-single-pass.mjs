@@ -34,7 +34,7 @@ function fixture({popup=false,close=true,ambiguous=false,stuck=false,unrelated=f
 let f=fixture({popup:true});
 assert.equal((await f.context.prepare('1','2','3')).ok,true);
 assert.equal(f.count().closes,1);assert.equal(f.count().buys,0);
-assert.equal(f.context.enter('1','2','3').ok,true);assert.equal(f.count().buys,1);assert.equal(f.count().scrolls,1);
+assert.equal(f.context.enter('1','2','3').ok,true);assert.equal(f.count().buys,1);assert.equal(f.count().scrolls,0);
 for(const options of [{},{popup:true,unrelated:true},{popup:true,preexisting:true},{popup:true,noCardClick:true}]) {
   f=fixture(options);assert.equal((await f.context.prepare('1','2','3')).ok,true);assert.equal(f.count().closes,0,'Unrelated dialogs cannot supply a close control');
 }
