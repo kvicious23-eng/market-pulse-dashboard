@@ -7,14 +7,15 @@ const start=source.indexOf('async function prepareProductForCheckout(');
 const end=source.indexOf('\n\nfunction readCheckoutDiscounts(',start);
 assert.ok(start>=0&&end>start);
 
-function fixture({popup=false,close=true,ambiguous=false,stuck=false,unrelated=false,mismatch=false,obscured=false,quantity=1,care=false,disabled=false,preexisting=false,noCardClick=false}={}) {
+function fixture({popup=false,close=true,ambiguous=false,stuck=false,unrelated=false,mismatch=false,obscured=false,quantity=1,care=false,disabled=false,preexisting=false,noCardClick=false,iframe=false}={}) {
   let closes=0,buys=0,shown=popup,scrolls=0;
   const rect={left:20,top:20,width:100,height:30};
   const closeButton={innerText:'',className:'card-close',getAttribute:key=>key==='aria-label'?'닫기':null,getBoundingClientRect:()=>rect,contains:()=>false,
     click(){closes++;if(!stuck)shown=false;}};
   const otherClose={...closeButton,className:'other-close'};
-  const root={innerText:unrelated?'배송 안내':'카드 할인한도 최대 20,000원',getBoundingClientRect:()=>rect,matches:()=>true,
-    querySelectorAll:()=>close?(ambiguous?[closeButton,otherClose]:[closeButton]):[]};
+  const frame={src:'https://payment.coupang.com/payments/card-benefit'};
+  const root={id:iframe?'creditCardBenefitPopup':'',innerText:iframe?'카드 혜택':unrelated?'배송 안내':'카드 할인한도 최대 20,000원',getBoundingClientRect:()=>rect,matches:()=>true,
+    querySelectorAll:selector=>selector.startsWith('iframe')?(iframe?[frame]:[]):close?(ambiguous?[closeButton,otherClose]:[closeButton]):[]};
   const buy={innerText:'바로구매',className:'buy',disabled,getAttribute:()=>null,getBoundingClientRect:()=>rect,
     scrollIntoView(){scrolls++;},contains:()=>false,click(){buys++;}};
   const context={URL,Date,Promise,__marketPulseBeforeCard:noCardClick?undefined:new WeakSet(preexisting?[root]:[]),location:{href:'https://www.coupang.com/vp/products/1?itemId='+(mismatch?'9':'2')+'&vendorItemId=3'},
@@ -50,3 +51,5 @@ assert.equal((await f.context.prepare('1','2','3')).ok,false);assert.equal(f.con
 assert.match(source,/collectCheckoutDiscountsForTarget\(target,scanWindowState,trace,tab\)/);
 assert.match(source,/collectCheckoutDiscountsForTarget\(result,scanWindowState,trace,retryTab\)/);
 console.log('Real injected preparation: card-scoped single dismissal, no/other popup, ambiguity/stuck/identity rejection, and buy visibility/quantity/care/sold-out/origin checks passed.');
+
+f=fixture({popup:true,iframe:true});assert.equal((await f.context.prepare('1','2','3')).ok,true);assert.equal(f.count().closes,1);assert.equal(f.count().buys,0);
