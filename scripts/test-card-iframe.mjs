@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';import vm from 'node:vm';import {readTestFile} from './test-source.mjs';
+const s=readTestFile('chrome-extension/background.js','utf8'),ctx={URL};
+vm.runInNewContext(s.slice(s.indexOf('function debuggerCardRows('),s.indexOf('function debuggerSnapshotStrings('))+s.slice(s.indexOf('function parseDebuggerCardEvidence('),s.indexOf('async function scanCoupangTab('))+';this.rows=debuggerCardRows;this.parse=parseDebuggerCardEvidence;',ctx);
+const strings=['https://payment.coupang.com/payments/card-benefit','TR','IMG','#text','alt','BC카드','5% 할인 / 최대 1만원 할인','하나카드','5% 할인 / 최대 2만원 할인'];
+const doc={documentURL:0,nodes:{nodeName:[1,2,3,1,2,3],nodeValue:[-1,-1,6,-1,-1,8],parentIndex:[-1,0,0,-1,3,3],attributes:[[],[4,5],[],[],[4,7],[]]},layout:{nodeIndex:[0,1,2,3,4,5]}};
+const rows=ctx.rows({strings,documents:[doc]});assert.equal(rows.length,2);
+const capture={before:{cardRows:[]},after:{cardRows:rows}};
+const parsed=ctx.parse(1000000,'최대 5% 카드 즉시할인',['BC','하나'],capture);
+assert.equal(parsed.captured,true);assert.equal(parsed.cardDiscount,20000);assert.equal(parsed.cardTerms.length,2);assert.equal(parsed.cardProviders[0],'하나');
+assert.equal(ctx.parse(1000000,'5%',['BC','하나','우리'],capture).captured,false);
+assert.equal(ctx.parse(1000000,'5%',['BC','하나'],{before:{cardRows:rows},after:{cardRows:rows}}).captured,false);
+assert.equal(ctx.rows({strings:['https://evil.test/payments/card-benefit',...strings.slice(1)],documents:[doc]}).length,0);
+assert.equal(ctx.rows({strings,documents:[{...doc,layout:{nodeIndex:[]}}]}).length,0);
+console.log('Rendered card iframe rows: same-row alt/provider mapping, distinct caps, full provider coverage, stale/hidden/wrong-origin rejection passed.');

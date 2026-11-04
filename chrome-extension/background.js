@@ -778,6 +778,26 @@ function readCardPopup(expectedProductId,expectedItemId,expectedVendorItemId,pre
   };
 }
 
+function debuggerCardRows(snapshot) {
+  const strings=snapshot?.strings||[],rows=[];
+  for(const doc of snapshot?.documents||[]) {
+    let u;try{u=new URL(strings[doc.documentURL]);}catch{continue;}
+    if(u.origin!=='https://payment.coupang.com'||u.pathname!=='/payments/card-benefit')continue;
+    const n=doc.nodes,laidOut=new Set(doc.layout?.nodeIndex||[]),byRow=new Map();
+    for(let i=0;i<n.nodeName.length;i++) {
+      if(!laidOut.has(i))continue;
+      let parent=i;while(parent>=0&&strings[n.nodeName[parent]]!=='TR')parent=n.parentIndex[parent];
+      if(parent<0)continue;
+      const row=byRow.get(parent)||{text:[],labels:[]};byRow.set(parent,row);
+      const tag=strings[n.nodeName[i]];
+      if(tag==='#text')row.text.push(strings[n.nodeValue[i]]||'');
+      if(tag==='IMG'){const a=n.attributes[i]||[];for(let j=0;j<a.length;j+=2)if(strings[a[j]]==='alt')row.labels.push(strings[a[j+1]]||'');}
+    }
+    for(const row of byRow.values()){const text=row.text.join(' ').replace(/\s+/g,' ').trim();if(/%/.test(text)&&row.labels.length)rows.push({text,labels:row.labels});}
+  }
+  return rows;
+}
+
 function debuggerSnapshotStrings(snapshot) {
   const strings=snapshot?.strings||[];
   const values=[],seen=new Set();
@@ -851,6 +871,7 @@ async function captureDebuggerText(target) {
       computedStyles:[],includeDOMRects:false,includePaintOrder:false
     }),15000,'card-dom-snapshot');
     result.domSnapshot=debuggerSnapshotStrings(snapshot);
+    result.cardRows=debuggerCardRows(snapshot);
     result.status.domSnapshot=result.domSnapshot.length?'captured':'empty';
   } catch (error) {
     result.status.domSnapshot='error';
@@ -931,6 +952,19 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
     return [...new Set(caps)];
   };
   const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
+  const priorRows=new Set((capture?.before?.cardRows||[]).map(row=>JSON.stringify(row)));
+  const frameTerms=[];
+  for(const row of capture?.after?.cardRows||[]) {
+    if(priorRows.has(JSON.stringify(row)))continue;
+    const rates=[...new Set(parseRates(row.text))],caps=parseCaps(row.text);
+    const providers=summaryProviders.filter(provider=>row.labels.some(label=>label.replace(/\s|카드/g,'').includes(provider.replace(/\s|카드/g,''))));
+    if(rates.length!==1||rates[0]!==expectedRate||caps.length!==1||providers.length!==1)continue;
+    frameTerms.push({rate:rates[0],maxDiscount:caps[0],providers});
+  }
+  if(frameTerms.length&&summaryProviders.every(p=>frameTerms.some(t=>t.providers.includes(p)))) {
+    const best=frameTerms.map(t=>({...t,amount:Math.min(Math.floor(preCardPrice*t.rate/100),t.maxDiscount)})).sort((a,b)=>b.amount-a.amount)[0];
+    return {captured:true,cardBenefitStatus:'captured',cardInteractionStatus:'captured',cardEvidenceSource:'dom-snapshot',cardTerms:frameTerms,cardRate:best.rate,cardMaxDiscount:best.maxDiscount,cardDiscount:best.amount,cardProviders:best.providers,cardBenefitText:summaryText,cardDebug:{...cardDebug,frameRows:frameTerms}};
+  }
   const candidates=[];
   for (const [source,afterValues,beforeValues] of [
     ['accessibility',cleanValues(capture?.after?.accessibility),cleanValues(capture?.before?.accessibility)],
@@ -1360,6 +1394,10 @@ async function prepareProductForCheckout(expectedProductId,expectedItemId,expect
   const text=node=>(node.innerText||node.textContent||'').replace(/\s+/g,' ').trim();
   const overlays=()=>[...document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"],div,section')].filter(node=>{
     if(before.has(node)||!visible(node))return false;
+    if(node.id==='creditCardBenefitPopup'){
+      const frames=[...node.querySelectorAll('iframe.card-benefit-popup__content-iframe')];
+      if(frames.length===1&&!before.has(frames[0])){try{const u=new URL(frames[0].src);if(u.origin==='https://payment.coupang.com'&&u.pathname==='/payments/card-benefit')return true;}catch{}}
+    }
     const value=text(node),style=getComputedStyle(node);
     const overlay=node.matches('[role="dialog"],[aria-modal="true"],[class*="modal"],[class*="layer"],[class*="popover"],[class*="tooltip"]')||['fixed','absolute'].includes(style.position);
     return overlay&&value.length>=5&&value.length<5000&&/카드/.test(value)&&/할인|한도/.test(value);
@@ -1369,7 +1407,7 @@ async function prepareProductForCheckout(expectedProductId,expectedItemId,expect
   {
     const roots=overlays();
     if(!roots.length)return {ok:true,cardPopupClosed:false};
-    const controls=[...new Set(roots.flatMap(root=>[...root.querySelectorAll('button,a,[role="button"],[class*="close"],[class*="Close"]')]))].filter(node=>{
+    const controls=[...new Set(roots.flatMap(root=>[...root.querySelectorAll('button,a,[role="button"],[class*="close"],[class*="Close"],.card-benefit-popup__header-close')]))].filter(node=>{
       if(!visible(node)||node.disabled||node.getAttribute('aria-disabled')==='true')return false;
       const label=[node.getAttribute('aria-label'),node.getAttribute('title'),node.className?.baseVal||node.className,text(node)].filter(Boolean).join(' ');
       return /닫기|close|dismiss|^[×✕✖xX]$/i.test(label)&&! /구매|결제|주문|장바구니/.test(label);
