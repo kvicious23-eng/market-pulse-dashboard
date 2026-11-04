@@ -5,7 +5,13 @@ if(/Whale\//.test(navigator.userAgent)){
   const help=document.querySelector('footer p');
   if(help)help.textContent='이 목록은 웨일 수동 검증용이야. 정기 자동수집은 Chrome에서 저장한 공용 관리 목록을 동기화해.';
 }
-let products=[];
+let products=[],catalogBase='',saving=false,catalogLoaded=false;
+const draftKey='market-pulse-catalog-draft-v1';
+const signature=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+function saveStatus(text,kind='info'){notice.textContent=text;notice.dataset.state=kind;notice.setAttribute('role',kind==='error'?'alert':'status');}
+function saveTimeout(promise,label,ms=10000){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+'-timeout')),ms);})]).finally(()=>clearTimeout(timer));}
+function keepDraft(){const draft={base:catalogBase,products,at:new Date().toISOString()};try{sessionStorage.setItem(draftKey,JSON.stringify(draft));}catch{}const link=document.querySelector('#draftBackup');link.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({version:1,products},null,2));link.hidden=false;}
+
 
 function parseCoupangUrl(value){
   try{
@@ -78,9 +84,9 @@ function render(){
 }
 async function saveCatalogDownload(payload){
   const filename=/Whale\//.test(navigator.userAgent)?'MarketPulse/whale-product-catalog.json':'MarketPulse/product-catalog.json';
-  const id=await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2)),filename,conflictAction:'overwrite',saveAs:false});
+  const id=await saveTimeout(chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload,null,2)),filename,conflictAction:'overwrite',saveAs:false}),'catalog-download');
   for(let i=0;i<30;i++){
-    const [item]=await chrome.downloads.search({id});
+    const [item]=await saveTimeout(chrome.downloads.search({id}),'catalog-download-check',2000);
     if(!item||item.state==='interrupted')throw Error('catalog-save-failed');
     if(item.state==='complete'){
       if(!String(item.filename||'').replaceAll('\\','/').endsWith('/'+filename))throw Error('catalog-save-path-mismatch');
@@ -91,19 +97,53 @@ async function saveCatalogDownload(payload){
   throw Error('catalog-save-timeout');
 }
 async function save(){
-  document.querySelectorAll('.card').forEach(card=>syncCard(card,Number(card.dataset.index)));
-  const allErrors=products.flatMap((p,i)=>validate(p,i));
-  if(allErrors.length){notice.textContent='저장하지 못했어. 빨간색 오류를 먼저 확인해.';return;}
-  products=products.map(CompetitorModels.clean);
-  const result=await chrome.runtime.sendMessage({type:'SAVE_PRODUCTS',products});
-  if(!result?.ok){notice.textContent='저장 중 오류가 발생했어.';return;}
-  const payload={version:1,savedAt:new Date().toISOString(),products};
-  try{await saveCatalogDownload(payload);}catch{notice.textContent='설정은 확장에 저장됐지만 자동수집용 목록 파일 저장을 확인하지 못했어. 변경사항 저장을 다시 눌러줘.';return;}
-  notice.textContent=/Whale\//.test(navigator.userAgent)?'저장 완료. 수동 검증에 적용돼. 정기 자동수집은 공용 관리 목록을 사용해.':'저장 완료. 다음 자동수집부터 변경사항이 적용돼.';
+  if(!catalogLoaded){saveStatus('상품 목록이 아직 준비되지 않았어. 새로고침 후 다시 시도해줘.','error');return;}
+  if(saving)return;
+  saving=true;
+  const buttons=['#save','#saveBottom'].map(id=>document.querySelector(id));
+  buttons.forEach(button=>{button.disabled=true;button.textContent='저장 중…';});
+  saveStatus('입력값 확인 중…');
+  let locked=[],extensionSaved=false;
+  try{
+    document.querySelectorAll('.card').forEach(card=>syncCard(card,Number(card.dataset.index)));
+    keepDraft();
+    const errors=products.flatMap((p,i)=>validate(p,i).map(error=>`${p.mtm||'신규 상품'}: ${error}`));
+    if(errors.length){saveStatus('저장하지 못했어. '+errors.slice(0,3).join(' · '),'error');document.querySelector('.validation.error')?.scrollIntoView({block:'center'});return;}
+    const payload={version:1,savedAt:new Date().toISOString(),products:products.map(CompetitorModels.clean)};
+    locked=[...document.querySelectorAll('input,button')].map(el=>[el,el.disabled]);locked.forEach(([el])=>el.disabled=true);
+    saveStatus('확장 설정 저장 중…');
+    const result=await saveTimeout(chrome.runtime.sendMessage({type:'SAVE_PRODUCTS',products:payload.products}),'extension-save');
+    if(!result?.ok)throw Error(result?.error||'extension-save-rejected');
+    extensionSaved=true;
+    saveStatus('자동수집용 목록 파일 저장 확인 중…');
+    await saveTimeout(saveCatalogDownload(payload),'catalog-file',20000);
+    products=payload.products;catalogBase=signature(products);
+    try{sessionStorage.removeItem(draftKey);}catch{}
+    document.querySelector('#draftBackup').hidden=true;
+    saveStatus(/Whale\//.test(navigator.userAgent)?'저장 완료. 웨일 수동 검증용 목록에 적용됐어. 정기 자동수집 목록은 Chrome에서 저장해줘.':'저장 완료. 다음 자동수집부터 변경사항이 적용돼.','success');
+  }catch(error){
+    const invalid=/context invalidated|receiving end|message port|extension.*unavailable/i.test(String(error?.message));
+    saveStatus(extensionSaved?'확장 설정은 저장됐지만 자동수집용 파일 저장을 확인하지 못했어. 입력내용 백업을 보관하고 변경사항 저장을 다시 눌러줘.':invalid?'확장이 업데이트되어 이 화면의 연결이 끊겼어. 입력내용 백업을 내려받은 뒤 새로고침해줘. 같은 탭의 미저장 입력은 복원돼.':/timeout/.test(String(error?.message))?'저장 확인 응답이 지연되고 있어. 성공 여부를 확인하지 못했어. 입력내용 백업을 보관하고 다시 저장해줘.':'저장하지 못했어. 입력내용 백업을 보관하고 다시 시도해줘.','error');
+  }finally{
+    locked.forEach(([el,disabled])=>el.disabled=disabled);
+    buttons.forEach(button=>{button.disabled=false;button.textContent='변경사항 저장';});
+    saving=false;
+  }
 }
 document.querySelector('#add').addEventListener('click',()=>{products.unshift({brand:'Acer',category:'Notebook',mtm:'',srp:null,enabled:true,url:'',competitors:[],productId:'',itemId:'',vendorItemId:''});render();window.scrollTo({top:0,behavior:'smooth'});});
 document.querySelector('#save').addEventListener('click',save);document.querySelector('#saveBottom').addEventListener('click',save);document.querySelector('#search').addEventListener('input',render);
-chrome.runtime.sendMessage({type:'GET_PRODUCTS'},response=>{
-  products=response?.products||[];
-  render();
-});
+async function loadCatalog(){
+  try{
+    const response=await saveTimeout(chrome.runtime.sendMessage({type:'GET_PRODUCTS'}),'catalog-load');
+    if(!response?.ok||!Array.isArray(response.products))throw Error('catalog-load-failed');
+    products=response.products;catalogBase=signature(products);
+    let draft;try{draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');}catch{}
+    if(draft&&Array.isArray(draft.products)){
+      if(draft.base===catalogBase||signature(draft.products)===catalogBase){products=draft.products;saveStatus('미저장 입력을 복원했어. 변경사항 저장을 눌러 파일 저장까지 완료해줘.');}
+      else saveStatus('저장 목록에 다른 변경이 있어 미저장 입력을 자동으로 덮어쓰지 않았어. 입력내용 백업을 내려받아 확인해줘.','error');
+      const link=document.querySelector('#draftBackup');link.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({version:1,products:draft.products},null,2));link.hidden=false;
+    }
+    render();catalogLoaded=true;['#save','#saveBottom'].forEach(id=>document.querySelector(id).disabled=false);
+  }catch{saveStatus('상품 목록을 불러오지 못했어. 이 화면을 새로고침해줘.','error');}
+}
+loadCatalog();
