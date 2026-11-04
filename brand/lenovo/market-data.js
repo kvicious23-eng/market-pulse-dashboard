@@ -21,8 +21,8 @@ window.MARKET_DATA = {
       "scanSlot": "2026-11-04T16:00+09:00",
       "state": "complete",
       "count": 3,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "cf1560b7c0e846ca86aadf5f511b56f8",
+      "completedAt": "2026-11-04T08:39:14.858Z"
     },
     "brand": "Lenovo",
     "collectionEvidence": {
@@ -138,15 +138,15 @@ window.MARKET_DATA = {
           "status": "수집 미확인",
           "collectionStatus": "review-needed",
           "collectionIssue": "checkout-unconfirmed",
-          "priceCheckedAt": "2026-11-04 16:34:22",
-          "checkedAt": "2026-11-04 16:34:22",
+          "priceCheckedAt": "2026-11-04 17:36:23",
+          "checkedAt": "2026-11-04 17:36:23",
           "priceBasisType": "crossed-out",
           "collectionEvidence": {
             "browser": "chrome",
-            "extensionVersion": "1.9.69",
-            "requestId": "fc6041f808ea4fe1921c18fbfac54161",
-            "sourceRunId": "757a89f8ca054dff99af26fd7bb0973a",
-            "checkedAt": "2026-11-04T07:34:22.698Z"
+            "extensionVersion": "1.9.71",
+            "requestId": "79acd9f373994c07be28a189ce3f74de",
+            "sourceRunId": "cf1560b7c0e846ca86aadf5f511b56f8",
+            "checkedAt": "2026-11-04T08:36:23.432Z"
           },
           "note": "ASUS/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-04T16:00+09:00",
@@ -173,8 +173,8 @@ window.MARKET_DATA = {
           "status": "현재가 직접 확인",
           "collectionStatus": null,
           "collectionIssue": "product-unavailable",
-          "priceCheckedAt": "2026-11-04 16:35:28",
-          "checkedAt": "2026-11-04 16:35:28",
+          "priceCheckedAt": "2026-11-04 17:37:28",
+          "checkedAt": "2026-11-04 17:37:28",
           "priceBasisType": "crossed-out",
           "couponDiscount": 447450,
           "checkoutCouponDiscount": 177450,
@@ -198,10 +198,10 @@ window.MARKET_DATA = {
           "cardDiscount": 0,
           "collectionEvidence": {
             "browser": "chrome",
-            "extensionVersion": "1.9.69",
-            "requestId": "fc6041f808ea4fe1921c18fbfac54161",
-            "sourceRunId": "757a89f8ca054dff99af26fd7bb0973a",
-            "checkedAt": "2026-11-04T07:35:28.145Z"
+            "extensionVersion": "1.9.71",
+            "requestId": "79acd9f373994c07be28a189ce3f74de",
+            "sourceRunId": "cf1560b7c0e846ca86aadf5f511b56f8",
+            "checkedAt": "2026-11-04T08:37:28.580Z"
           },
           "note": "HP/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-04T16:00+09:00",
@@ -228,8 +228,8 @@ window.MARKET_DATA = {
           "status": "현재가 직접 확인",
           "collectionStatus": null,
           "collectionIssue": "product-unavailable",
-          "priceCheckedAt": "2026-11-04 16:36:33",
-          "checkedAt": "2026-11-04 16:36:33",
+          "priceCheckedAt": "2026-11-04 17:38:34",
+          "checkedAt": "2026-11-04 17:38:34",
           "priceBasisType": "top-visible",
           "couponDiscount": 0,
           "checkoutCouponDiscount": 0,
@@ -246,10 +246,10 @@ window.MARKET_DATA = {
           "cardDiscount": 0,
           "collectionEvidence": {
             "browser": "chrome",
-            "extensionVersion": "1.9.69",
-            "requestId": "fc6041f808ea4fe1921c18fbfac54161",
-            "sourceRunId": "757a89f8ca054dff99af26fd7bb0973a",
-            "checkedAt": "2026-11-04T07:36:33.530Z"
+            "extensionVersion": "1.9.71",
+            "requestId": "79acd9f373994c07be28a189ce3f74de",
+            "sourceRunId": "cf1560b7c0e846ca86aadf5f511b56f8",
+            "checkedAt": "2026-11-04T08:38:34.728Z"
           },
           "note": "ASUS/비보북/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-04T16:00+09:00",
