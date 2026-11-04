@@ -22,5 +22,6 @@ assert.equal(send({...request,recovery:{...request.recovery,deadlineAt:new Date(
 assert.equal(send({...request,recovery:{...request.recovery,targets:[]}}).ok,false);
 assert.equal(scans.length,1,'Invalid/expired/busy requests must not collect');
 assert.equal(send({...request,type:'CHECK_FALLBACK_TRANSPORT'}).ok,true);assert.equal(scans.length,1,'Verify must not collect');
+assert.equal(send({...request,recovery:null}).ok,true);assert.equal(writes.length,0,'Full Edge recovery must also preserve the management catalogue');assert.equal(scans.at(-1)[3],products);
 const f=readTestFile('chrome-extension/fallback.js','utf8');assert.match(f,/runtime\/model-edge-/);assert.match(f,/model-edge-transport-check-/);
 console.log('Selective Edge transient catalogue, strict local sender/source binding, budget/pending guard and read-only transport tests passed.');
