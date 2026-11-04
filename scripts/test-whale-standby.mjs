@@ -19,7 +19,7 @@ assert.ok(files.at(-1).endsWith('-saved.json'));assert.ok(files.every(x=>x.inclu
 assert.match(source,/browser:\/Whale/);
 assert.match(source,/!isEdgeBrowser&&!\/Whale/,'Whale must not write a Chrome start witness');
 assert.match(source,/whale-access-diagnostic/);
-assert.match(readTestFile('chrome-extension/options.js','utf8'),/whale-product-catalog\.json/);
+assert.match(readTestFile('chrome-extension/catalog-commit.js','utf8'),/whale-product-catalog\.json/);
 assert.match(readTestFile('chrome-extension/maintenance.js','utf8'),/\?'whale':/);
 assert.match(readTestFile('scripts/import-extension-results.ps1','utf8'),/Assert-PrimaryScanSource/);
 console.log('Whale has no automatic alarms/startup scan, isolated canonical/unique results, catalog and diagnostics, distinct identity and scheduled-request-only production admission.');

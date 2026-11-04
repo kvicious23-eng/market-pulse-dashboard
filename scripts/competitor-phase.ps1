@@ -18,7 +18,7 @@ function Add-CompetitorPhase($Payload,[string]$RepoPath,[string]$Folder){
  $deadline=[DateTimeOffset]::Parse($Payload.deadlineAt)
  $cap=([DateTimeOffset]::Parse($Payload.startedAt)).AddHours(2);if($cap -lt $deadline){$deadline=$cap}
  $budget=Read-ScanRecoveryJson (Join-Path $RepoPath 'reports\scheduled-upload-budget.json')
- if(-not $budget -or $budget.scanSlot -cne $Payload.scanSlot){throw 'Original publication budget missing'}
+ if(-not $budget -or [DateTimeOffset]::Parse($budget.scanSlot) -ne [DateTimeOffset]::Parse($Payload.scanSlot)){throw 'Original publication budget missing'}
  $pub=[DateTimeOffset]::Parse($budget.deadlineAt)
  $q=[pscustomobject]@{version=1;scope='competitors';state='waiting-deployment';scanSlot=$Payload.scanSlot;sourceRunId=$Payload.runId;sourceStartedAt=$Payload.startedAt;
    initialCommit=([string]@($r.Output)[0]);deadlineAt=$deadline.ToString('o');publicationDeadline=$pub.ToString('o');targets=@($plan.targets);
@@ -63,6 +63,21 @@ function Publish-CompetitorResult($Queue,[string]$QueuePath,[string]$ResultPath,
   }catch{$failure=$_;try{Repair-PricePublication $RepoPath}catch{};throw $failure}
  }finally{$lock.ReleaseMutex();$lock.Dispose()}
 }
+function Test-CompetitorOwnRecoveryReady([string]$RepoPath,[string]$Slot){
+ foreach($file in @(Get-ChildItem (Join-Path $RepoPath 'reports') -Filter 'blue-recovery-*.json' -File -ErrorAction SilentlyContinue)){
+  $own=Read-ScanRecoveryJson $file.FullName
+  if(-not $own){throw 'Unreadable own recovery queue; competitor start deferred'}
+  if($own.scanSlot -and [DateTimeOffset]::Parse($own.scanSlot) -eq [DateTimeOffset]::Parse($Slot) -and
+     $own.state -cnotin @('complete','partial','unresolved','deferred','expired','superseded','integrity-failed') -and
+     [DateTimeOffset]::UtcNow -lt [DateTimeOffset]::Parse($own.publicationDeadline)){return $false}
+ }
+ return $true
+}
+function Test-CompetitorIdleAck($Ack,$Queue){
+ if(-not $Ack -or $Ack.requestId -cne $Queue.requestId -or $Ack.action -cne 'status' -or $Ack.ok -ne $true -or $Ack.busy -ne $false -or
+    $Ack.sourceRunId -cne $Queue.sourceRunId -or $Ack.scanSlot -cne $Queue.scanSlot -or $Ack.browser -cne $Queue.browser -or $Ack.state.requestId -cne $Queue.requestId){return $false}
+ try{$at=[DateTimeOffset]::Parse($Ack.at);$start=[DateTimeOffset]::Parse($(if($Queue.startRequestedAt){$Queue.startRequestedAt}else{$Queue.firstPublishedAt}));return $at -ge $start -and $at -le [DateTimeOffset]::UtcNow.AddSeconds(30) -and ([DateTimeOffset]::UtcNow-$at).TotalSeconds -le 180}catch{return $false}
+}
 function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
  $slot=Get-ScanRecoverySlot;if(-not $slot){return}
  $path=Get-CompetitorQueuePath $RepoPath $slot;$q=Read-ScanRecoveryJson $path
@@ -72,10 +87,10 @@ function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
  if($q.state -cin @('complete','expired','superseded','integrity-failed')){return}
  if($q.nextCheckAt -and $now -lt [DateTimeOffset]::Parse($q.nextCheckAt)){return}
  try{
-  if($now -ge [DateTimeOffset]::Parse($q.publicationDeadline)){$q.state='expired';return}
   if($q.state -eq 'uploaded'){
    if(Get-BlueDeploymentSuccess $q.finalCommit){$q.state='complete'};return
   }
+  if($now -ge [DateTimeOffset]::Parse($q.publicationDeadline)){$q.state='expired';return}
   if($q.state -eq 'waiting-deployment'){
    $published=Get-BlueDeploymentSuccess $q.initialCommit;if(-not $published){return}
    $q.firstPublishedAt=$published.at;$q.state='ready'
@@ -84,33 +99,43 @@ function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
   if($q.state -in @('starting','collecting','publishing') -and (Test-Path $resultPath)){
    $r=Read-ScanRecoveryJson $resultPath
    if(-not $r -or $r.scope -ne 'competitors' -or $r.requestId -cne $q.requestId -or $r.sourceRunId -cne $q.sourceRunId -or $r.scanSlot -cne $q.scanSlot -or $r.terminal -ne $true){$q.state='integrity-failed';throw 'Invalid competitor result'}
-   if($r.stoppedReason -eq 'access-check' -and $q.attempt -eq 'primary'){
+   if($r.stoppedReason -in @('access-check','worker-error') -and $q.attempt -eq 'primary' -and $now.AddSeconds(75) -lt [DateTimeOffset]::Parse($q.deadlineAt)){
     # The stopped worker must be idle before a different browser takes ownership.
     $ack=Read-ScanRecoveryJson (Join-Path $Folder ('competitor-'+$q.requestId+'-status-ack.json'))
-    if(-not $ack -or $ack.busy -ne $false -or $ack.state.requestId -cne $q.requestId){Start-CompetitorPage $q $RepoPath 'status';return}
-    $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q.state='ready';return
+    if(-not (Test-CompetitorIdleAck $ack $q)){Start-CompetitorPage $q $RepoPath 'status';return}
+    $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q|Add-Member saveAttempts 0 -Force;$q.state='ready';return
    }
    $q.state='publishing';Write-ScanRecoveryJson $path $q
    Publish-CompetitorResult $q $path $resultPath $RepoPath $Folder;$q.state='uploaded';return
   }
-  if($now -ge [DateTimeOffset]::Parse($q.deadlineAt)){
+  $ack=Read-ScanRecoveryJson (Join-Path $Folder ('competitor-'+$q.requestId+'-status-ack.json'))
+  if($q.state -in @('starting','collecting') -and (Test-CompetitorIdleAck $ack $q) -and $ack.state.resultAvailable -eq $true){
+   $attempts=if($q.saveAttempts){[int]$q.saveAttempts}else{0}
+   if($attempts -lt 2){$q|Add-Member saveAttempts ($attempts+1) -Force;Write-ScanRecoveryJson $path $q;Start-CompetitorPage $q $RepoPath 'save-result';return}
+  }
+  if($q.noTargets -eq $true -or $now -ge [DateTimeOffset]::Parse($q.deadlineAt) -or ($q.state -eq 'ready' -and $now.AddSeconds(75) -ge [DateTimeOffset]::Parse($q.deadlineAt))){
    $empty=Join-Path $RepoPath ('reports\competitor-expired-'+$q.requestId+'.json')
    Write-ScanRecoveryJson $empty ([pscustomobject]@{version=1;scope='competitors';requestId=$q.requestId;sourceRunId=$q.sourceRunId;scanSlot=$q.scanSlot;browser=$q.browser;deadlineAt=$q.deadlineAt;terminal=$true;total=$q.targets.Count;startedAt=$q.firstPublishedAt;completedAt=$now.ToString('o');stoppedReason='budget';results=@()})
    Publish-CompetitorResult $q $path $empty $RepoPath $Folder;$q.state='uploaded';return
   }
   if($q.state -eq 'ready'){
-   if(($now.AddSeconds(75)) -ge [DateTimeOffset]::Parse($q.deadlineAt)){$q.state='expired';return}
+   if(-not (Test-CompetitorOwnRecoveryReady $RepoPath $slot)){return}
+   $plan=Invoke-CompetitorData $RepoPath 'plan' (Join-Path $Folder 'product-catalog.json');$keys=@($plan.targets|ForEach-Object {$_.competitorKey})
+   $q.targets=@($q.targets|Where-Object {$_.competitorKey -cin $keys})
+   if(-not $q.targets.Count){$q|Add-Member noTargets $true -Force;Write-ScanRecoveryJson $path $q;return}
+   $q|Add-Member startRequestedAt $now.ToString('o') -Force
    $q.state='starting';Write-ScanRecoveryJson $path $q
    Start-CompetitorPage $q $RepoPath 'start';return
   }
   if($q.state -in @('starting','collecting')){
-   $ack=Read-ScanRecoveryJson (Join-Path $Folder ('competitor-'+$q.requestId+'-status-ack.json'))
-   if($ack -and $ack.requestId -ceq $q.requestId -and $ack.action -eq 'status' -and $ack.ok -eq $true -and $ack.busy -eq $false -and ($ack.workerRestarted -eq $true -or $ack.state.error) -and $q.attempt -eq 'primary'){
-    $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q.state='ready';return
+   if((Test-CompetitorIdleAck $ack $q) -and $ack.workerRestarted -eq $true -and $q.attempt -eq 'primary'){
+    $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q|Add-Member saveAttempts 0 -Force;$q.state='ready';return
    }
    # A busy preflight is safe to repeat; an unacknowledged start is not.
    $started=Read-ScanRecoveryJson (Join-Path $Folder ('competitor-'+$q.requestId+'-start-ack.json'))
-   if($started -and $started.requestId -ceq $q.requestId -and $started.ok -eq $false -and $started.reason -eq 'busy'){$q.state='ready';return}
+   if($started -and $started.requestId -ceq $q.requestId -and $started.action -ceq 'start' -and $started.ok -eq $false -and $started.reason -eq 'busy' -and $q.startRequestedAt){
+    try{if([DateTimeOffset]::Parse($started.at) -ge [DateTimeOffset]::Parse($q.startRequestedAt)){$q.state='ready';return}}catch{}
+   }
    Start-CompetitorPage $q $RepoPath 'status';$q.state='collecting'
   }
  }catch{$q.lastError=$_.Exception.Message;if($q.lastError -match 'superseded'){$q.state='superseded'};Add-Content (Join-Path $RepoPath 'reports\competitor-phase.log') -Encoding UTF8 -Value ($now.ToString('o')+' '+$q.lastError)}
