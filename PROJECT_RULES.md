@@ -10,6 +10,15 @@
 - 추가 실측: Edge 경쟁 시작 영수증은 12:39:04/1.9.74이며, 별도 1.9.75 적용 영수증은 12:39:24 새 Edge 워커·12:39:26 적용 완료를 기록했다. 수집 시작과 운영 업데이트가 겹쳤다. 최초 Whale 종료의 정확한 내부 원인은 이 기록으로 확정하지 않는다. 앞으로 가격 업데이트는 `Local\MarketPulse.BlueRecoveryPoll` 공유 mutex를 확보해 후속 수집 시작과 직렬화하고, 기본/선별/경쟁 수집의 실제 비실행과 대기열을 재확인한 뒤 재로드한다. starting/collecting/publishing 경쟁 대기열을 무시하고 가격 기본수집 완료만으로 업데이트하지 않는다. 중단된 최종 Edge는 신원이 검증된 기존 중단 근거로 미수집 게시를 끝내고 새 수집을 만들지 않는다.
 - 검사 증거: 코드 8a7dcb539518f4b916bcc6eb161d46059d41ab3d의 LF/CRLF 각44개 JavaScript 검사, 운영PC와 분리한 worktree의 WindowsPS5.1 경쟁 대기열/실제 게시·롤백·중복방지 검사, [PR55 CI41967119903](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41967119903)의 update/windows_history가 성공했다. 이는 수정본 검사 증거이며 main 병합·운영PC 활성화·자연 경쟁수집 성공이 아니다.
 
+### 1.9.76 승인 적용·경쟁모델 추가 수집 완료 — 2026-11-05
+
+- 사용자는 PR55의 배포와 경쟁모델 추가 수집을 명시 승인했다. PR55 최종5c272ba5를 main c4a8bed7로 병합했고 [main 검사·Pages41967925852](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41967925852)의 update/windows_history/deploy 성공 후 PC에 적용했다.
+- 실제 적용은 Local\\MarketPulse.BlueRecoveryPoll과 저장소 게시 잠금을 확보하고, 세브라우저 공식maintenance verify·최종Edge의 정확한 요청/원본/회차/최근idle·workerRestarted 근거를 확인한 후 수행했다. 13:30:05~06KST 세브라우저manifest/worker1.9.76·17개 전체식별자·관측권한·알람/슬롯 소유권을 별도verify했다. 카탈로그·내가격·재고·기존이력 보호파일의 해시가 일치했고 Supplier는 재로드하지 않았다.
+- 기존 실패 요청7c5a25c38e4042ccab7f73648d11223c의 대기열은 변경 전 그대로 PC reports/competitor-before-approved-retry-7c5a25c38e4042ccab7f73648d11223c.json에 보관했다. 사용자 승인 1회 추가요청cf185ebf643d48b0824c8295d299d57d에 userApprovedRetry/이전요청 연결을 기록했다. 자동 3번째 시도를 일반 허용한 변경이 아니다. 원래12시원본11a353a828b948e280d5a4f629ace74b와 수집마감14:00:03/게시마감14:30을 유지했다.
+- Edge1.9.76은13:30:42~13:32:58KST에 경쟁3개 전체를 동일워커249ebb7465934c12aad0893a9ff755a7에서 완료했다. 3개모두상품·주문서검증성공이며 UX3407QA-SB296W는 카드혜택확인, 14-hz0013QU/X1607QA-MB076W는 카드혜택없음이다. 검증된 최종가는각1,338,640/871,550/1,098,000원이다. 이 값은해당수집시각의결과이며미래가격을보증하지않는다.
+- 경쟁게시13da83d3의 [검사·Pages41968581616](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41968581616) update/windows_history/deploy 모두성공했다. 13:37대기열complete와 실제Lenovo공개데이터HTTP200·3개모델현재가/최종가/요청ID/원본연결일치를확인했다. 별도검사로내상품offers·Supplier합계·내수집근거/시각·가격이력의정확한보존을확인했다. 증거는PC reports/competitor176-rollout.json 및competitor176-preservation.json에있다.
+- 이번성공은사용자승인추가수집·게시의실측이다. 다음정기회차의전체무인경쟁수집성공과자연워커중단즉시게시성공은별도실측대상이다. 16시Chrome/16:30업로드예약은유지했다.
+
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
 
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
