@@ -1,0 +1,75 @@
+name: Market Pulse External Dashboard
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Market Pulse Update]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/public-dashboard.yml
+      - scripts/build-public-dashboard.mjs
+      - scripts/test-public-dashboard.mjs
+      - scripts/verify-public-dashboard.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-pulse-external
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: node scripts/test-public-dashboard.mjs
+
+  publish:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: d3e534928c9ef350bb0b435d689bb4c0
+    steps:
+      - name: Require deployment configuration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::External publishing is not connected: add CLOUDFLARE_API_TOKEN to repository Actions secrets.'
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Validate external exporter
+        run: node scripts/test-public-dashboard.mjs
+      - name: Build from the currently published internal dashboard
+        run: node scripts/build-public-dashboard.mjs publicmp
+      - name: Publish external dashboard
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy publicmp --project-name=market-pulse-public --branch=main --commit-dirty=true
+      - name: Verify public files match the exported snapshot
+        run: node scripts/verify-public-dashboard.mjs publicmp
