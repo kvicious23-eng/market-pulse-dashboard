@@ -106,6 +106,8 @@ function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
    $q.firstPublishedAt=$published.at;$q.state='ready'
   }
   $resultPath=Join-Path $Folder ('competitor-'+$q.requestId+'-result.json')
+  $interruptedPath=Join-Path $RepoPath ('reports\competitor-interrupted-'+$q.requestId+'.json')
+  if($q.state -eq 'publishing' -and $q.interruptionEvidence -and (Test-Path $interruptedPath)){$resultPath=$interruptedPath}
   if($q.state -in @('starting','collecting','publishing') -and (Test-Path $resultPath)){
    $r=Read-ScanRecoveryJson $resultPath
    if(-not $r -or $r.scope -ne 'competitors' -or $r.requestId -cne $q.requestId -or $r.sourceRunId -cne $q.sourceRunId -or $r.scanSlot -cne $q.scanSlot -or $r.terminal -ne $true){$q.state='integrity-failed';throw 'Invalid competitor result'}
@@ -139,8 +141,18 @@ function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
    Start-CompetitorPage $q $RepoPath 'start';return
   }
   if($q.state -in @('starting','collecting')){
-   if((Test-CompetitorIdleAck $ack $q) -and $ack.workerRestarted -eq $true -and $q.attempt -eq 'primary'){
-    $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q|Add-Member saveAttempts 0 -Force;$q.state='ready';return
+   if((Test-CompetitorIdleAck $ack $q) -and $ack.workerRestarted -eq $true){
+    if($q.attempt -eq 'primary'){
+     $q.requestId=[guid]::NewGuid().ToString('N');$q.browser='edge';$q.attempt='edge';$q|Add-Member saveAttempts 0 -Force;$q.state='ready';return
+    }
+    # Edge is the final attempt. Its bound idle/restarted proof is terminal,
+    # not ongoing collection. Preserve the proof and publish not-collected now.
+    $q|Add-Member interruptionEvidence $ack -Force
+    $q.lastError='competitor-edge-worker-restarted'
+    $terminal=Join-Path $RepoPath ('reports\competitor-interrupted-'+$q.requestId+'.json')
+    Write-ScanRecoveryJson $terminal ([pscustomobject]@{version=1;scope='competitors';requestId=$q.requestId;sourceRunId=$q.sourceRunId;scanSlot=$q.scanSlot;browser=$q.browser;deadlineAt=$q.deadlineAt;terminal=$true;total=$q.targets.Count;startedAt=$q.startRequestedAt;completedAt=$now.ToString('o');stoppedReason='worker-error';results=@()})
+    $q.state='publishing';Write-ScanRecoveryJson $path $q
+    Publish-CompetitorResult $q $path $terminal $RepoPath $Folder;$q.state='uploaded';return
    }
    # A busy preflight is safe to repeat; an unacknowledged start is not.
    $started=Read-ScanRecoveryJson (Join-Path $Folder ('competitor-'+$q.requestId+'-start-ack.json'))
