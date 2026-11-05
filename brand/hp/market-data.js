@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-05T20:13:13+09:00",
+    "snapshotAt": "2026-11-06T08:19:00+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,58 +9,40 @@ window.MARKET_DATA = {
       "quickWatch": "매일 08:00 · 12:00 · 16:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-05T20:13:13+09:00",
+      "lastAttemptAt": "2026-11-06T08:19:00+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 0, 품절 1, 일부 0 / 전체 1",
-      "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
+    "competitorPhase": {
+      "scanSlot": "2026-11-06T08:00+09:00",
+      "state": "complete",
+      "count": 0,
+      "sourceRunId": null,
+      "completedAt": null
+    },
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "edge",
+      "browser": "chrome",
       "extensionVersion": "1.9.76",
-      "scanSlot": "2026-11-05T20:00+09:00",
+      "scanSlot": "2026-11-06T08:00+09:00",
       "policyId": "whale-noon-evening-v1",
-      "runId": "dbafad929b0c4016bd537a85ef9f9575",
-      "sourceRunId": "dbafad929b0c4016bd537a85ef9f9575",
-      "startedAt": "2026-11-05T11:00:29.895Z",
-      "completedAt": "2026-11-05T11:13:13.519Z",
+      "runId": "eec4a8c666ee46e9a6931e43a20caeb5",
+      "sourceRunId": "eec4a8c666ee46e9a6931e43a20caeb5",
+      "startedAt": "2026-11-05T23:00:03.996Z",
+      "completedAt": "2026-11-05T23:19:00.647Z",
       "targetCount": 18,
       "resultCount": 18
     },
-    "recoveryEvidence": {
-      "reason": "whale-process-exit",
-      "exitCause": "unknown",
-      "primaryBrowser": "whale",
-      "scanSlot": "2026-11-05T20:00+09:00",
-      "chromeRunId": "2746154f6af94306a1fe64f561a996ca",
-      "edgeRunId": "dbafad929b0c4016bd537a85ef9f9575",
-      "chromeStartedAt": "2026-11-05T11:00:07.170Z",
-      "chromeExtensionVersion": "1.9.76",
-      "edgeExtensionVersion": "1.9.76",
-      "chromeCompletedAt": null,
-      "accessCheckCount": null,
-      "processObservedAt": "2026-11-05T11:00:28.7957640+00:00",
-      "absentChecks": 2,
-      "edgeStartedAt": "2026-11-05T11:00:29.895Z",
-      "targetCount": 18,
-      "resultCount": 18,
-      "listMatched": true
-    },
+    "recoveryEvidence": null,
     "historyBrands": [
       "HP"
     ],
     "lifecycleStatus": "active",
     "renamedTo": null,
-    "publishedAt": "2026-11-05T20:30:06+09:00",
-    "competitorPhase": {
-      "scanSlot": "2026-11-05T20:00+09:00",
-      "state": "complete",
-      "count": 0,
-      "sourceRunId": "dbafad929b0c4016bd537a85ef9f9575",
-      "completedAt": "2026-11-05T11:36:24.505Z"
-    }
+    "publishedAt": "2026-11-06T08:19:11+09:00"
   },
   "products": [
     {
@@ -81,17 +63,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-05 20:00",
+          "checkedAt": "2026-11-06 08:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.76",
-            "runId": "dbafad929b0c4016bd537a85ef9f9575",
-            "checkedAt": "2026-11-05T11:00:45.026Z"
+            "runId": "eec4a8c666ee46e9a6931e43a20caeb5",
+            "checkedAt": "2026-11-05T23:00:17.215Z"
           },
-          "availabilityCheckedAt": "2026-11-05 20:00",
+          "availabilityCheckedAt": "2026-11-06 08:00",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2189000,
@@ -106,7 +88,6 @@ window.MARKET_DATA = {
             "와우카드(KB)",
             "KB국민",
             "신한",
-            "우리",
             "롯데",
             "하나",
             "삼성",
@@ -120,7 +101,6 @@ window.MARKET_DATA = {
                 "와우카드(KB)",
                 "KB국민",
                 "신한",
-                "우리",
                 "롯데",
                 "하나",
                 "삼성",
@@ -143,9 +123,10 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "",
-          "priceCheckedAt": "2026-11-05 20:00"
+          "priceCheckedAt": "2026-11-06 08:00"
         }
       ],
+      "competitorModels": [],
       "mtm": "15-GB0139AX",
       "productId": "9641812639",
       "itemId": "28810435903",
@@ -160,14 +141,13 @@ window.MARKET_DATA = {
         "stockStatus": "sku-not-found",
         "dailySalesStatus": "sku-not-found",
         "monthSalesStatus": "sku-not-found",
-        "asOfDate": "2026-11-04",
+        "asOfDate": "2026-11-05",
         "month": "2026-11",
-        "monthThrough": "2026-11-04",
-        "sourceDate": "2026-11-04",
+        "monthThrough": "2026-11-05",
+        "sourceDate": "2026-11-05",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      },
-      "competitorModels": []
+      }
     }
   ]
 };
