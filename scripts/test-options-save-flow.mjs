@@ -18,3 +18,11 @@ h=harness({send:()=>new Promise(()=>{})});const pending=h.c.save();await h.c.sav
 h=harness({send:async()=>({ok:true,products:[structuredClone(own)]})});const base=JSON.stringify([own],(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);h.memory.set('market-pulse-catalog-draft-v1',JSON.stringify({base,products:[{...own,mtm:'DRAFT'}]}));await h.c.load();assert.equal(h.c.get()[0].mtm,'DRAFT');assert.match(h.notice.textContent,/복원/);
 h=harness({send:async()=>({ok:true,products:[{...own,mtm:'NEWER'}]})});h.memory.set('market-pulse-catalog-draft-v1',JSON.stringify({base,products:[{...own,mtm:'DRAFT'}]}));await h.c.load();assert.equal(h.c.get()[0].mtm,'NEWER');assert.equal(h.backup.hidden,false);assert.equal(h.notice.dataset.state,'error');
 console.log('Actual save flow: success, invalidated context, validation, interrupted file, bounded silence, duplicate click, draft reload and concurrent-catalogue protection passed.');
+
+// Exercise the real editor reader: display metadata survives alongside SKU and own brand.
+const editorContext={URL,products:[{...own,registrationNote:'keep'}]};
+vm.runInNewContext(source.slice(source.indexOf('function parseCoupangUrl('),source.indexOf('function syncCard('))+';this.read=readCard;',editorContext);
+const inputs={brand:'Test',category:'Notebook',mtm:'OWN',srp:'10,000',skuId:'001',url:'https://www.coupang.com/vp/products/10?itemId=20&vendorItemId=30'};
+const comp={'.competitor-brand':{value:' ASUS '},'.competitor-model':{value:'MODEL'},'.competitor-url':{value:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'},'.competitor-note':{value:'16GB'},'.competitor-enabled':{checked:false}};
+const edited=editorContext.read({dataset:{index:'0'},querySelector:s=>s==='.enabled'?{checked:true}:{value:inputs[s.slice(1)]},querySelectorAll:()=>[{querySelector:s=>comp[s]}]});
+assert.equal(edited.brand,'Test');assert.equal(edited.skuId,'001');assert.equal(edited.registrationNote,'keep');assert.equal(edited.competitors[0].brand,'ASUS');assert.equal(edited.competitors[0].model,'MODEL');assert.equal(edited.competitors[0].note,'16GB');assert.equal(edited.competitors[0].enabled,false);

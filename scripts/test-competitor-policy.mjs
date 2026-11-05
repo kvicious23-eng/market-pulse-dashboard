@@ -16,3 +16,9 @@ const cleaned=m.clean({...a,skuId:'0123',srp:100,danawaUrl:'old',enuriUrl:'old',
 assert.equal(cleaned.skuId,'0123');assert.equal(cleaned.srp,100);assert.equal('danawaUrl' in cleaned,false);
 assert.equal(m.capacity([a]).total,2);
 console.log('Coupang identity, shared-target dedup, seller/option separation, optional/disabled links, metadata preservation and capacity passed.');
+
+const branded={...a,competitors:[{...a.competitors[0],brand:' ASUS '}]};
+assert.equal(m.clean(branded).competitors[0].brand,'ASUS');
+assert.equal(m.clean(a).competitors[0].brand,'','Legacy links remain valid without an inferred brand');
+assert.throws(()=>m.links({...a,competitors:[{...a.competitors[0],brand:'x'.repeat(81)}]}),/80/);
+assert.deepEqual(m.targets([branded]),m.targets([a]),'Display brand must not change shared collection identities or request payloads');
