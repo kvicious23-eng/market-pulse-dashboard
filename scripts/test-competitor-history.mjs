@@ -5,7 +5,7 @@ import {offerFor,syncData,readHistory,assertCurrentSource} from './competitor-da
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'mp-competitor-'));
 const url='https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3',key='1-2-3',slot='2026-11-04T08:00+09:00';
 const mine={role:'mine',finalPrice:12345,priceChange:-100,collectionEvidence:{runId:'a'.repeat(32)},supplierPrivateMarker:'preserve'};
-const own={brand:'Acer',mtm:'A1',productId:'10',itemId:'20',vendorItemId:'30',enabled:true,competitors:[{model:'Comp',url,note:'spec'}]};
+const own={brand:'Acer',mtm:'A1',productId:'10',itemId:'20',vendorItemId:'30',enabled:true,competitors:[{brand:'Brand A',model:'Comp',url,note:'spec'}]};
 const catalog={products:[own,{...own,mtm:'A2',itemId:'21'}]};
 const target={competitorKey:key,model:'Comp',productId:'1',itemId:'2',vendorItemId:'3',url};
 const q={sourceRunId:'a'.repeat(32),requestId:'b'.repeat(32),browser:'chrome',scanSlot:slot,deadlineAt:'2026-11-04T10:00:00+09:00',publicationDeadline:'2026-11-04T10:30:00+09:00',firstPublishedAt:'2026-11-04T08:34:00+09:00',targets:[target]};
@@ -18,10 +18,11 @@ try{
  fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(initial)+';');
  const read=()=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^window.MARKET_DATA\s*=\s*/,'').replace(/;\s*$/,''));
  syncData(root,catalog);let d=read();assert.equal(d.products[0].competitorModels[0].phaseState,'pending');assert.equal(d.products[0].offers.length,1);assert.equal(d.products[0].references.length,0);
- syncData(root,catalog,{queue:q,result});d=read();const c=d.products[0].competitorModels[0];assert.equal(c.finalPrice,1239000);assert.equal(c.cardDiscount,20000);assert.equal(c.srp,null);assert.equal(c.alertEligible,true);assert.equal(c.comparisonSlot,slot);
+ syncData(root,catalog,{queue:q,result});d=read();const c=d.products[0].competitorModels[0];assert.equal(c.brand,'Brand A');assert.equal(c.finalPrice,1239000);assert.equal(c.cardDiscount,20000);assert.equal(c.srp,null);assert.equal(c.alertEligible,true);assert.equal(c.comparisonSlot,slot);
  for(const p of d.products){assert.deepEqual(p.offers[0],mine);assert.deepEqual(p.supplierMetrics,{stock:17});}
  assert.equal(d.meta.snapshotAt,slot);assert.deepEqual(d.meta.collectionEvidence,initial.meta.collectionEvidence);
  assert.equal(readHistory(root).rows.length,2,'One physical result can serve two owner links');
+ const relabeled=structuredClone(catalog);relabeled.products[0].competitors[0].brand='Brand B';syncData(root,relabeled);assert.equal(read().products[0].competitorModels[0].brand,'Brand B');assert.equal(read().products[0].competitorModels[0].finalPrice,1239000,'Metadata refresh must retain verified prices');assert.equal(readHistory(root).rows.length,2,'Brand edits do not rewrite price history');
  assert.equal(c.collectionIssue,null,'A valid price cannot carry a product-unavailable marker');
  const composite=read();composite.meta.collectionEvidence.runId='e'.repeat(32);composite.meta.collectionEvidence.sourceRunId=q.sourceRunId;fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(composite)+';');syncData(root,catalog,{queue:q,result});assert.equal(read().products[0].competitorModels[0].alertEligible,true,'A model-only Edge composite must retain its proven source lineage');
  const sameSlotNewOwn=read();sameSlotNewOwn.meta.collectionEvidence.runId='f'.repeat(32);delete sameSlotNewOwn.meta.collectionEvidence.sourceRunId;fs.writeFileSync(file,'window.MARKET_DATA = '+JSON.stringify(sameSlotNewOwn)+';');

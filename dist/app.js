@@ -363,9 +363,9 @@
     return String(value).toLowerCase().replace("/", "");
   }
 
-  function initials(seller, mine) {
+  function initials(brand, mine) {
     if (mine) return "MY";
-    return seller.replace(/[^A-Za-z가-힣]/g, "").slice(0, 2).toUpperCase() || "₩";
+    return String(brand || "").trim() || "—";
   }
 
   function renderHeader() {
@@ -588,7 +588,7 @@
         <tr class="${rowClass}" data-index="${index}">
           <td>
             <span class="seller">
-              <span class="seller__mark">${escapeHtml(initials(offer.seller, mine))}</span>
+              <span class="seller__mark">${escapeHtml(initials(offer.brand, mine))}</span>
               <span><strong>${escapeHtml(offer.seller)}</strong><small>${escapeHtml(offer.channel)} · ${escapeHtml(offer.priceCheckedAt||'확인 전')}${best ? " · 경쟁 최저" : ""}</small>${offer.note ? `<small>${escapeHtml(offer.note)}</small>` : ""}</span>
             </span>
           </td>

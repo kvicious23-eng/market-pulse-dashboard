@@ -54,7 +54,7 @@ function readCard(card){
   const previous={...products[Number(card.dataset.index)]},skuId=card.querySelector('.skuId').value.trim();
   // A single editor updates existing aliases too, preserving unrelated metadata.
   for(const key of Object.keys(previous))if(isSkuKey(key))previous[key]=skuId;
-  return {...previous,skuId,brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:parseManagedSrp(card.querySelector('.srp').value),enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),competitors:card.querySelectorAll?[...card.querySelectorAll('.competitor-row')].map(row=>({model:row.querySelector('.competitor-model').value.trim(),url:row.querySelector('.competitor-url').value.trim(),note:row.querySelector('.competitor-note').value.trim(),enabled:row.querySelector('.competitor-enabled').checked})):(previous.competitors||[]),...ids};
+  return {...previous,skuId,brand:card.querySelector('.brand').value.trim(),category:card.querySelector('.category').value.trim(),mtm:card.querySelector('.mtm').value.trim().toUpperCase(),srp:parseManagedSrp(card.querySelector('.srp').value),enabled:card.querySelector('.enabled').checked,url:card.querySelector('.url').value.trim(),competitors:card.querySelectorAll?[...card.querySelectorAll('.competitor-row')].map(row=>({brand:row.querySelector('.competitor-brand').value.trim(),model:row.querySelector('.competitor-model').value.trim(),url:row.querySelector('.competitor-url').value.trim(),note:row.querySelector('.competitor-note').value.trim(),enabled:row.querySelector('.competitor-enabled').checked})):(previous.competitors||[]),...ids};
 }
 function syncCard(card,index){
   const p=readCard(card); products[index]=p;
@@ -66,8 +66,8 @@ function syncCard(card,index){
 }
 function appendCompetitor(card,c,index){
   const row=document.createElement('div');row.className='competitor-row';
-  row.innerHTML='<label>경쟁모델명<input class="competitor-model" maxlength="160"></label><label>쿠팡 URL<input class="competitor-url" type="url"></label><label>비교 메모<input class="competitor-note" maxlength="500"></label><label class="competitor-use"><input type="checkbox" class="competitor-enabled">수집 사용</label><button class="remove-competitor" type="button">연결 삭제</button>';
-  row.querySelector('.competitor-model').value=c.model||'';row.querySelector('.competitor-url').value=c.url||'';row.querySelector('.competitor-note').value=c.note||'';row.querySelector('.competitor-enabled').checked=c.enabled!==false;
+  row.innerHTML='<label>브랜드<input class="competitor-brand" maxlength="80" placeholder="예: ASUS, HP"></label><label>경쟁모델명<input class="competitor-model" maxlength="160"></label><label class="competitor-url-field">쿠팡 URL<input class="competitor-url" type="url"></label><label>비교 메모<input class="competitor-note" maxlength="500"></label><label class="competitor-use"><input type="checkbox" class="competitor-enabled">수집 사용</label><button class="remove-competitor" type="button">연결 삭제</button>';
+  row.querySelector('.competitor-brand').value=c.brand||'';row.querySelector('.competitor-model').value=c.model||'';row.querySelector('.competitor-url').value=c.url||'';row.querySelector('.competitor-note').value=c.note||'';row.querySelector('.competitor-enabled').checked=c.enabled!==false;
   row.querySelectorAll('input').forEach(input=>input.addEventListener('input',()=>syncCard(card,index)));
   row.querySelector('.remove-competitor').addEventListener('click',()=>{row.remove();syncCard(card,index);});card.querySelector('.competitorRows').append(row);
 }

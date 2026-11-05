@@ -11,10 +11,11 @@
     if(product.competitors!=null&&!Array.isArray(product.competitors))throw Error('경쟁모델 목록 형식 오류');
     const seen=new Set();
     return (product.competitors||[]).map(c=>{
-      const id=identity(c.url),model=String(c.model||'').trim(),note=String(c.note||'').trim();
+      const id=identity(c.url),brand=String(c.brand||'').trim(),model=String(c.model||'').trim(),note=String(c.note||'').trim();
+      if(brand.length>80)throw Error('경쟁모델 브랜드는 80자 이내로 입력해.');
       if(!model||model.length>160||note.length>500)throw Error('경쟁모델명 또는 비교 메모를 확인해.');
       if(seen.has(id.key))throw Error('같은 상품에 동일 경쟁모델이 중복 등록됐어.');seen.add(id.key);
-      return {...id,model,note,enabled:c.enabled!==false};
+      return {...id,brand,model,note,enabled:c.enabled!==false};
     });
   }
   function clean(product){const {danawaUrl,enuriUrl,naverUrl,...p}=product;return {...p,competitors:links(p)};}
