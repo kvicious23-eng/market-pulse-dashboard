@@ -2,14 +2,36 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-const brands=['acer','lenovo','godox'];
+const validSlug=slug=>typeof slug==='string'&&/^[\p{L}\p{Nd}]+(?:-[\p{L}\p{Nd}]+)*$/u.test(slug)&&slug===slug.toLowerCase();
+const brandSlug=brand=>brand.trim().toLowerCase().replace(/[^\p{L}\p{Nd}]+/gu,'-').replace(/^-+|-+$/g,'');
+export function snapshotBrands(sources){
+ const brands=[...new Set([...sources.keys()].filter(p=>p.startsWith('brand/')).map(p=>p.split('/')[1]))].sort();
+ if(!brands.length)throw Error('No published brand dashboards');
+ for(const brand of brands){
+  if(!validSlug(brand))throw Error('Unsupported public brand');
+  for(const file of ['index.html','market-data.js'])if(typeof sources.get('brand/'+brand+'/'+file)!=='string')throw Error('Incomplete published brand: '+brand);
+ }
+ return brands;
+}
+export async function discoverBrands(root=new URL('../brand/',import.meta.url)){
+ const brands=[];
+ for(const entry of await fs.readdir(root,{withFileTypes:true})){
+  if(!entry.isDirectory())continue;
+  const files=await fs.readdir(new URL(encodeURIComponent(entry.name)+'/',root));
+  if(!files.includes('index.html')&&!files.includes('market-data.js'))continue;
+  if(!validSlug(entry.name)||!files.includes('index.html')||!files.includes('market-data.js'))throw Error('Incomplete or unsupported brand dashboard: '+entry.name);
+  brands.push(entry.name);
+ }
+ if(!brands.length)throw Error('No brand dashboards');
+ return brands.sort();
+}
 const shared=['styles.css','app.js','xlsx-export.js','price-history.js','competitor-price-history.js'];
 const marker=/github(?:usercontent)?\.(?:com|io)|github\s*pages|kvicious23-eng|market-pulse-dashboard/i;
 const clean=text=>text.replace(/GitHub Pages/gi,'대시보드');
 const digest=text=>createHash('sha256').update(text).digest('hex');
 export const assetBase='https://ecimg.cafe24img.com/pg1690b26461132088/redwolfcorp/web/upload/publicmp/';
 export function shellFor(brand){
- if(!brands.includes(brand))throw Error('Unsupported public brand');
+ if(!validSlug(brand))throw Error('Unsupported public brand');
  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Pulse</title></head><body><p id="publicStatus">대시보드를 불러오고 있습니다.</p><script>document.write('<script src="${assetBase}${brand}-page.js?view='+Date.now()+'"></'+'script>');</script></body></html>`;
 }
 export function publicApp(source){
@@ -39,12 +61,13 @@ export function publicApp(source){
 `+source.slice(end);
 }
 export function buildPublicSnapshot(sources){
+ const brands=snapshotBrands(sources);
  const files=new Map();
  for(const file of shared)files.set('upload/'+file,clean(file==='app.js'?publicApp(sources.get('dist/'+file)):sources.get('dist/'+file)));
  for(const brand of brands){
   const data=clean(sources.get('brand/'+brand+'/market-data.js'));
   const parsed=JSON.parse(data.replace(/^\s*window\.MARKET_DATA\s*=\s*/,'').replace(/;\s*$/,''));
-  if(parsed.meta.brand.toLowerCase()!==brand||!Array.isArray(parsed.products))throw Error('Published brand mismatch');
+  if(typeof parsed.meta?.brand!=='string'||brandSlug(parsed.meta.brand)!==brand||!Array.isArray(parsed.products))throw Error('Published brand mismatch');
   parsed.meta.monitoring=parsed.meta.monitoring||{};parsed.meta.monitoring.dashboardSync='외부 게시본 · 자동 동기화 연결 대기';
   files.set('upload/'+brand+'-market-data.js','window.MARKET_DATA = '+JSON.stringify(parsed,null,2)+';\n');
   const html=clean(sources.get('brand/'+brand+'/index.html')).replace(/<head>/i,'<head><base href="/publicmp/'+brand+'/">').replaceAll('../../dist/',assetBase).replaceAll('./market-data.js',assetBase+brand+'-market-data.js').replace(/app\.js\?v=[^"']+/g,'app.js?v=public-'+digest(files.get('upload/app.js')).slice(0,12));
@@ -54,7 +77,9 @@ export function buildPublicSnapshot(sources){
  for(const [name,text] of files){if(typeof text!=='string'||marker.test(text))throw Error('Public source reference rejected: '+name);if(Buffer.byteLength(text)>9500000)throw Error('Cafe24 file size exceeded');}
  return files;
 }
-export async function readPublishedSnapshot(fetcher=fetch){
+export async function readPublishedSnapshot(fetcher=fetch,brands){
+ brands=brands??await discoverBrands();
+ if(!Array.isArray(brands)||!brands.length||brands.some(b=>!validSlug(b))||new Set(brands).size!==brands.length)throw Error('Unsupported public brand list');
  const origin='https://kvicious23-eng.github.io/market-pulse-dashboard/';
  const paths=[...shared.map(f=>'dist/'+f),...brands.flatMap(b=>['brand/'+b+'/index.html','brand/'+b+'/market-data.js'])];
  const read=async p=>{const r=await fetcher(new URL(p+'?externalSnapshot='+Date.now(),origin),{redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(15000)});if(r.status!==200)throw Error('Published source unavailable: '+p);return r.text();};
