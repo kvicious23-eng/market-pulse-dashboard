@@ -77,7 +77,7 @@ Register-ScheduledTask `
   -Action $uploadAction `
   -Trigger $uploadTriggers `
   -Settings $uploadTaskSettings `
-  -Description "Upload Market Pulse scans at 08:30, 12:30, 16:30 and 20:30 KST" `
+  -Description "Fallback upload at 08:30, 12:30, 16:30 and 20:30 KST; verified completed scans upload through the one-minute recovery poll" `
   -Force | Out-Null
 
 # Poll durable post-publication queues; never delay or duplicate the primary scan.
