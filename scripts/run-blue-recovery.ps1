@@ -7,10 +7,14 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'blue-recovery-queue.ps1')
 $folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
 . (Join-Path $PSScriptRoot 'competitor-phase.ps1')
+. (Join-Path $PSScriptRoot 'completion-upload.ps1')
 $log=Join-Path $RepoPath 'reports\blue-recovery.log'
 $mutex=New-Object Threading.Mutex($false,'Local\MarketPulse.BlueRecoveryPoll');$held=$false
 try {
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true};if(-not $held){return}
+  # The same one-minute poll starts verified own publication before its :30 backup.
+  try{if(Invoke-CompletionUpload $RepoPath $folder (Get-ScanRecoverySlot)){return}}
+  catch{Add-Content $log -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) Completion upload deferred: $($_.Exception.Message)"}
   try {Confirm-BlueIssueLedger $RepoPath $folder}catch{Add-Content $log -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) Issue ledger awaiting a matching public snapshot: $($_.Exception.Message)"}
   $competitorSlot=Get-ScanRecoverySlot
   $cq=if($competitorSlot){Read-ScanRecoveryJson (Get-CompetitorQueuePath $RepoPath $competitorSlot)}else{$null}

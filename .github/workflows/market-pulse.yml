@@ -214,6 +214,7 @@ jobs:
           }
           ./scripts/test-competitor-publication.ps1
           ./scripts/test-competitor-phase.ps1
+          ./scripts/test-completion-upload.ps1
           ./scripts/test-price-publication.ps1
           ./scripts/test-publication-flow.ps1
           ./scripts/test-common-primary.ps1

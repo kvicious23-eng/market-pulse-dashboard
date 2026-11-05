@@ -10,7 +10,7 @@ try {
   New-Item -ItemType Directory (Join-Path $temp 'scripts'),(Join-Path $temp 'chrome-extension'),(Join-Path $temp 'Downloads') -Force|Out-Null
   $global:ModelTestRepo=$temp;$global:ModelTestFolder=Join-Path $temp 'Downloads'
   Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $temp 'chrome-extension\scan-policy.js')
-  foreach($name in @('scan-recovery.ps1','model-edge-recovery.ps1','blue-recovery-queue.ps1','blue-retry-policy.ps1','run-blue-recovery.ps1','competitor-phase.ps1','git-timeout.ps1','brand-lifecycle.ps1')){
+  foreach($name in @('scan-recovery.ps1','model-edge-recovery.ps1','blue-recovery-queue.ps1','blue-retry-policy.ps1','run-blue-recovery.ps1','completion-upload.ps1','competitor-phase.ps1','git-timeout.ps1','brand-lifecycle.ps1')){
     $s=Get-Content (Join-Path $PSScriptRoot $name) -Raw -Encoding UTF8
     $s=$s.Replace('[DateTimeOffset]::UtcNow','$global:ModelTestNow')
     $s=$s.Replace("`$folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'",'$folder=$global:ModelTestFolder')

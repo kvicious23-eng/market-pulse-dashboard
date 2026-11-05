@@ -2,11 +2,13 @@ param(
   [string]$RepoPath = "C:\MarketPulse",
   [ValidateRange(1,7200)][int]$TimeoutSeconds=7200,
   [switch]$Worker,
+  [switch]$CompletedOnly,
   [string]$ExpectedSlotStart='',
   [string]$BlueRecoveryQueue=''
 )
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'supplier-daily.ps1')
+. (Join-Path $PSScriptRoot 'completion-upload.ps1')
 $reportsPath=Join-Path $RepoPath 'reports'
 New-Item -ItemType Directory $reportsPath -Force | Out-Null
 $logPath=Join-Path $reportsPath 'scheduled-upload.log'
@@ -49,6 +51,16 @@ try {
   try {$held=$supervisor.WaitOne(0)}catch [Threading.AbandonedMutexException]{$held=$true}
   if(-not $held){Write-UploadLog 'Upload supervisor already running; skipped duplicate.';exit 1}
   $budget=Read-SupplierLocalState $budgetPath
+  $candidate=$null
+  if(-not $BlueRecoveryQueue){
+    $folder=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads\MarketPulse'
+    # Missing/incomplete results never become an early upload or a success receipt.
+    $candidate=Get-CompletedUploadCandidate $RepoPath $folder $ExpectedSlotStart
+    if($CompletedOnly -and -not $candidate){Write-UploadLog 'Completed-only source not ready; scheduled fallback retained.';exit 0}
+    if($budget -and (Test-CompletedUploadReceipt $budget.publicationReceipt $candidate $RepoPath)){
+      Write-UploadLog ("Slot="+$ExpectedSlotStart+'; exact own result already pushed; duplicate import skipped.');exit 0
+    }
+  }
   if($BlueRecoveryQueue -and (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart)){throw 'Deferred recovery cannot create a new upload budget.'}
   if (-not $budget -or $budget.scanSlot -cne $ExpectedSlotStart) {
     $now=[DateTimeOffset]::UtcNow
@@ -88,6 +100,15 @@ try {
   }
   $code=$child.ExitCode
   $budget.status=if($code -eq 0){'completed'}else{'failed'}
+  if($code -eq 0 -and $candidate -and -not $BlueRecoveryQueue){
+    $after=Get-CompletedUploadCandidate $RepoPath $folder $ExpectedSlotStart
+    if($after -and $after.runId -ceq $candidate.runId -and $after.resultHash -ceq $candidate.resultHash -and $after.catalogHash -ceq $candidate.catalogHash){
+      $head=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments @('rev-parse','HEAD')
+      if($head.Code){throw 'Cannot record successful publication identity'}
+      $receipt=[pscustomobject]@{version=1;scanSlot=$ExpectedSlotStart;runId=$candidate.runId;resultHash=$candidate.resultHash;catalogHash=$candidate.catalogHash;commit=[string]@($head.Output)[0];pushedAt=[DateTimeOffset]::UtcNow.ToString('o')}
+      $budget|Add-Member publicationReceipt $receipt -Force
+    }
+  }
   Save-SupplierLocalState $budgetPath $budget
   exit $code
 } catch {
