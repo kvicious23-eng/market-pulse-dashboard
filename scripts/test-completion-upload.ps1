@@ -56,7 +56,7 @@ function Get-CompletedUploadCandidate([string]$RepoPath,[string]$Folder,[string]
  $p=Join-Path $RepoPath 'reports\candidate.json';if(Test-Path $p){return Get-Content $p -Raw|ConvertFrom-Json};return $null
 }
 '@
- $helper=$stub+$helper.Substring($helper.IndexOf('function Test-CompletedUploadReceipt'))
+ $helper=$stub+$helper.Substring($helper.IndexOf('function Get-CompletedOwnFingerprint'))
  Set-Content (Join-Path $scripts 'completion-upload.ps1') $helper -Encoding UTF8
  $import=@'
 param([string]$RepoPath,[switch]$WaitForToday,[string]$ExpectedSlotStart)
