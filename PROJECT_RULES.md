@@ -44,6 +44,13 @@
 - 읽기전용으로실제12시Whale완료원본11a353a828b948e280d5a4f629ace74b의선택·신원검증과기존시도회차의재실행생략을확인했다. 새수집/추가가격게시/새경쟁수집은없었다. 기존1분감시PT1M·다음16:00수집/16:30복구예약을확인했으며증거는PC reports/completion-upload-rollout.json에보존했다.
 - 적용/합성검사성공과다음자연16시의완료후조기게시·경쟁후속·16:30중복생략실측은별개다. 정기완료파일검출후최대약1분의감시지연과기존검증/CI/Pages시간은필요하다.
 
+### 전체 감사 보완 승인·운영 적용 완료 — 2026-11-05 14:43KST
+
+- 사용자가PR58의main병합·배포·PC적용을명시승인했다. 최종94663c94의 [PR검사41974745422](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41974745422) update/windows_history 성공후main97aa5874로병합했고 [main검사·Pages41975425605](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41975425605) update/windows_history/deploy모두성공했다. LF/CRLF각46개JS검사와WindowsPS5.1전체회귀를통과했다.
+- 운영파일을건드리지않은격리환경에서기존감시기의supervisor종료대기와현재게시원본이달라도중복생략할수있는두상황을재현했다. 수정후비동기1회dispatch/예산생성전중복방지·실제supervisor/자식/로컬Git·현재own원본/목록/가격/이력지문·경쟁/Supplier후속보존검사를통과했다. 운영에서가격오게시가발생했다는의미가아니다.
+- 14:43:31KST 공유후속감시mutex·저장소잠금·수집/업로드비실행·경쟁대기열complete·깨끗한작업폴더확인후검증된main97aa5874로fast-forward했다. 보호40파일과세예약trigger가유지됐고가격확장1.9.76은재로드하지않았다. 실제12시원본11a353a828b948e280d5a4f629ace74b의선택/신원과현재공개own원본/가격/이력지문검증을확인했으며이미시도한12시회차는다시실행하지않았다.
+- 증거는PC reports/process-audit-rollout.json(ownFingerprintVerified/sourceBindingVerified/preservationVerified/triggerPreservationVerified/noonReplaySkipped=true)에보존했다. 1분감시PT1M과다음16:00수집/16:30복구예약을확인했다. 새실수집·강제차단·재로그인·브라우저종료를수행하지않았다. 다음정기자연회차에서완료후조기게시·경쟁후속·16:30중복생략의실측은별도다.
+
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
 
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
