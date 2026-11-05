@@ -1,5 +1,13 @@
 # Market Pulse 운영·계산 기준
 
+## 외부 대시보드 자동 배포 연결 확인 — 2026-11-05 15:32 KST
+
+- 사용자 브라우저에서 Cloudflare Pages Write 계정 토큰을 생성하고 GitHub Actions secret CLOUDFLARE_API_TOKEN으로 직접 저장했다. 비밀값은 채팅·작업 파일·저장소에서 읽거나 수집하지 않았다.
+- PR60을 main 8a8d735285bdefae2ea7797f729b2024db7776d9로 반영했다. 내부 Actions 41980688971의 update/windows_history/deploy가 모두 성공한 뒤 workflow_run으로 외부 Actions 41980987397이 자동 시작되었다. 설정 확인·검증·현재 게시본 추출·Cloudflare 전송·공개 파일 일치 검사 모두 성공했고 2026-11-05T06:32:06Z에 완료됐다. 실제 배포 URL은 https://b5524b6b.market-pulse-public.pages.dev 이며 고정 외부 주소는 https://market-pulse-public.pages.dev/ 이다.
+- 이번 자동 게시에서 공개 파일 13개는 첫 수동 게시와 내용이 동일하여 Cloudflare가 기존 업로드를 재사용했다(Uploaded 0 files, 13 already uploaded). 새 배포는 생성되었고 고정 외부 주소의 공개 파일 13개 비교까지 통과했다. 향후 가격이 바뀌는 자연 회차의 실제 변경값 반영은 그 회차 후 별도로 확인한다.
+- 현재 외부 경로는 /acer/, /lenovo/, /godox/ 이며 내부 GitHub Pages URL은 보존한다. 신규 운영 브랜드는 내부 브랜드 대시보드 생성·정상 게시 후 자동 발견하여 같은 외부 배포에 포함한다. 한글 신규 브랜드의 파일·경로 생성은 격리 검사로 검증했고 실제 신규 운영 브랜드가 등록되는 자연 사례는 아직 발생하지 않았다. 경쟁모델의 표시용 브랜드를 운영 브랜드로 간주하지 않는다.
+- 아래 준비 단계의 ‘미연결/미완료’ 기록은 해당 시점 이력이다. 현재 자동 연결은 위 성공 실행으로 확인되었으며 신규 가격 자연 갱신과 신규 브랜드 자연 생성은 관측 전 성공으로 확정하지 않는다. 카페24 전용 확장안 PR59는 Cloudflare 전환으로 종료했다.
+
 ## 전체 프로세스 감사 보완 — 2026-11-05
 
 [PROCESS_AUDIT_2026-11-05.md](PROCESS_AUDIT_2026-11-05.md)의 재현·수정·검증 경계를 따른다.
