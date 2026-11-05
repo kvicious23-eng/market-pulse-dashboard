@@ -82,6 +82,7 @@ on:
       - "scripts/run-supplier-metrics-upload.ps1"
       - "scripts/test-supplier-daily.*"
       - "PROJECT_RULES.md"
+      - "scripts/build-cafe24-public.mjs"
 permissions:
   contents: write
   pages: write
