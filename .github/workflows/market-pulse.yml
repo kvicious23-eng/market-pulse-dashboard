@@ -17,6 +17,7 @@ on:
       # All Windows entry points, shared helpers and PS regression tests are gates.
       - "scripts/*.ps1"
       - "scripts/competitor-*.mjs"
+      - "scripts/completion-*.mjs"
       - ".github/workflows/market-pulse.yml"
       - "scripts/update-market-data.mjs"
       - "index.html"
