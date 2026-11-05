@@ -28,6 +28,14 @@
 - 경쟁게시13da83d3의 [검사·Pages41968581616](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41968581616) update/windows_history/deploy 모두성공했다. 13:37대기열complete와 실제Lenovo공개데이터HTTP200·3개모델현재가/최종가/요청ID/원본연결일치를확인했다. 별도검사로내상품offers·Supplier합계·내수집근거/시각·가격이력의정확한보존을확인했다. 증거는PC reports/competitor176-rollout.json 및competitor176-preservation.json에있다.
 - 이번성공은사용자승인추가수집·게시의실측이다. 다음정기회차의전체무인경쟁수집성공과자연워커중단즉시게시성공은별도실측대상이다. 16시Chrome/16:30업로드예약은유지했다.
 
+### 완료 즉시 업로드 적용·검사 증거 — 2026-11-05 14:14KST
+
+- [PR57](https://github.com/kvicious23-eng/market-pulse-dashboard/pull/57)의 최종979152d7과 [PR 검사41972091374](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41972091374) update/windows_history 성공을 확인했다. 첫 검사41971722108은 기존파란모델격리fixture가새completion-upload.ps1을복사하지않아실패했고fixture의의존성을보완한뒤성공했다. main58699332의 [검사·Pages41972381052](https://github.com/kvicious23-eng/market-pulse-dashboard/actions/runs/41972381052) update/windows_history/deploy가모두성공했다.
+- LF/CRLF각45개JavaScript검사와WindowsPS5.1전체회귀가통과했다. 실제PC와분리한worktree에서가짜16:18완료→실제supervisor/자식importer/로컬bareGitpush→성공영수증→정시복구중복생략을검사했다. 후속경쟁커밋보존·새source허용·실패시성공영수증없음·정시복구재시도·최초시작/마감불변을확인했고기존파란모델전체회귀도통과했다. 실제쿠팡수집이나운영가격을이검사로생성하지않았다.
+- 14:14:32KST에공유후속감시mutex와저장소잠금·수집/업로드비실행·경쟁대기열complete·깨끗한작업폴더를확인하고검증된main58699332로fast-forward했다. 브랜드데이터/이력/카탈로그/가격확장/Supplier/기존업로드예산등보호40파일해시와세예약trigger가유지됐다. 가격확장1.9.76은변경/재로드하지않았다.
+- 읽기전용으로실제12시Whale완료원본11a353a828b948e280d5a4f629ace74b의선택·신원검증과기존시도회차의재실행생략을확인했다. 새수집/추가가격게시/새경쟁수집은없었다. 기존1분감시PT1M·다음16:00수집/16:30복구예약을확인했으며증거는PC reports/completion-upload-rollout.json에보존했다.
+- 적용/합성검사성공과다음자연16시의완료후조기게시·경쟁후속·16:30중복생략실측은별개다. 정기완료파일검출후최대약1분의감시지연과기존검증/CI/Pages시간은필요하다.
+
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
 
 이 문서는 Market Pulse의 단일 기준 문서(Single Source of Truth)다. 새 작업은 이 문서를 먼저 확인하고, 문서와 코드·화면·수집 결과가 충돌하면 임의로 해석하지 말고 충돌 사실과 영향을 먼저 보고한다. 요구사항이 바뀌면 코드와 함께 이 문서도 갱신한다.
