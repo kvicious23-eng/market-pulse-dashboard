@@ -103,10 +103,24 @@ try {
   if($code -eq 0 -and $candidate -and -not $BlueRecoveryQueue){
     $after=Get-CompletedUploadCandidate $RepoPath $folder $ExpectedSlotStart
     if($after -and $after.runId -ceq $candidate.runId -and $after.resultHash -ceq $candidate.resultHash -and $after.catalogHash -ceq $candidate.catalogHash){
-      $head=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments @('rev-parse','HEAD')
-      if($head.Code){throw 'Cannot record successful publication identity'}
-      $receipt=[pscustomobject]@{version=1;scanSlot=$ExpectedSlotStart;runId=$candidate.runId;resultHash=$candidate.resultHash;catalogHash=$candidate.catalogHash;commit=[string]@($head.Output)[0];pushedAt=[DateTimeOffset]::UtcNow.ToString('o')}
-      $budget|Add-Member publicationReceipt $receipt -Force
+      $receiptLock=$null
+      try{
+        $left=[int][math]::Floor(($deadline-[DateTimeOffset]::UtcNow).TotalSeconds)
+        if($left -gt 1){
+          $receiptLock=Enter-MarketPulseRepositoryLock $RepoPath ([math]::Min(5,$left))
+          if(-not(Test-Path (Join-Path $RepoPath 'reports\price-publication-transaction.json'))){
+            $fingerprint=Get-CompletedOwnFingerprint $after $RepoPath
+            $left=[int][math]::Floor(($deadline-[DateTimeOffset]::UtcNow).TotalSeconds)
+            if($fingerprint -and $left -gt 0){
+              $head=Invoke-MarketPulseGit -RepoPath $RepoPath -Arguments @('rev-parse','HEAD') -TimeoutSeconds ([math]::Min(5,$left))
+              if($head.Code -or [string]@($head.Output)[0] -cnotmatch '^[a-f0-9]{40}$'){throw 'Cannot verify pushed publication identity'}
+              $receipt=[pscustomobject]@{version=2;scanSlot=$ExpectedSlotStart;runId=$candidate.runId;resultHash=$candidate.resultHash;catalogHash=$candidate.catalogHash;ownFingerprint=$fingerprint;commit=[string]@($head.Output)[0];pushedAt=[DateTimeOffset]::UtcNow.ToString('o')}
+              $budget|Add-Member publicationReceipt $receipt -Force
+            }
+          }
+        }
+      }catch{Write-UploadLog 'Own upload pushed; skip receipt unavailable, scheduled fallback may revalidate.'}
+      finally{if($receiptLock){$receiptLock.ReleaseMutex();$receiptLock.Dispose()}}
     }
   }
   Save-SupplierLocalState $budgetPath $budget
