@@ -23,10 +23,24 @@ async function persistCompetitorResult(q,value){
   try{await saveCompetitorReceipt(q,'result',value);await chrome.storage.local.set({competitorPhaseState:{...value,saveStatus:'saved'}});}
   catch(error){await chrome.storage.local.set({competitorPhaseState:{...value,saveStatus:'failed',saveError:String(error)}});}
 }
+// The start page closes after its receipt. A pending JS promise is not a
+// service-worker lifetime guarantee during long page/script waits.
+function startCompetitorLiveness(q){
+  let stopped=false,pending=false;
+  const timer=setInterval(async()=>{
+    if(stopped||Date.now()>=Date.parse(q.deadlineAt)+30000){clearInterval(timer);return;}
+    if(pending)return;
+    pending=true;
+    try{await withScanTimeout(chrome.runtime.getPlatformInfo(),10000,'competitor-liveness');}
+    catch{}finally{pending=false;}
+  },20000);
+  return ()=>{stopped=true;clearInterval(timer);};
+}
 async function runCompetitorCollection(q){
   const state={version:1,scope:'competitors',requestId:q.requestId,sourceRunId:q.sourceRunId,scanSlot:q.scanSlot,browser:q.browser,attempt:q.attempt,workerInstanceId:WORKER_INSTANCE_ID,
     extensionVersion:chrome.runtime.getManifest().version,deadlineAt:q.deadlineAt,startedAt:new Date().toISOString(),running:true,completed:0,total:q.targets.length};
   const results=[],windowState={windowId:null,anchorTabIds:[]};let stoppedReason=null;
+  const stopLiveness=startCompetitorLiveness(q);
   const expired=()=>Date.now()>=Date.parse(q.deadlineAt);
   try{
     await chrome.storage.local.set({competitorPhaseState:state});await saveCompetitorReceipt(q,'start',state);
@@ -61,7 +75,10 @@ async function runCompetitorCollection(q){
     const value={...state,running:false,terminal:true,completed:results.length,completedAt:new Date().toISOString(),stoppedReason,results};
     await persistCompetitorResult(q,value);
   }
-  finally{for(const id of windowState.anchorTabIds)await withScanTimeout(chrome.tabs.remove(id),5000,'competitor-anchor-close').catch(()=>{});}
+  finally{
+    stopLiveness();
+    for(const id of windowState.anchorTabIds)await withScanTimeout(chrome.tabs.remove(id),5000,'competitor-anchor-close').catch(()=>{});
+  }
 }
 function handleCompetitorPhase(message,sender,reply){
   if(sender?.url?.split('?')[0]!==chrome.runtime.getURL('competitor.html')){reply({ok:false,reason:'invalid-phase-sender'});return;}

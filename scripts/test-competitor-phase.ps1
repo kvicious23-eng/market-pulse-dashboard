@@ -10,7 +10,7 @@ function Get-ScanRecoverySlot {return $slot}
 function Start-CompetitorPage($Queue,[string]$RepoPath,[string]$Action){$script:starts+=@($Action+'|'+$Queue.browser+'|'+$Queue.requestId)}
 function Get-BlueDeploymentSuccess([string]$Commit){if($script:deployed){return [pscustomobject]@{at=[DateTimeOffset]::UtcNow.AddMinutes(-5).ToString('o')}};return $null}
 function Invoke-CompetitorData([string]$RepoPath,[string]$Mode,[string]$CatalogPath,[string]$QueuePath='',[string]$ResultPath=''){if($Mode -eq 'plan'){return [pscustomobject]@{targets=@([pscustomobject]@{competitorKey='1-2-3'})}}}
-function Publish-CompetitorResult($Queue,[string]$QueuePath,[string]$ResultPath,[string]$RepoPath,[string]$Folder){$script:published++;$Queue.finalCommit=('d'*40)}
+function Publish-CompetitorResult($Queue,[string]$QueuePath,[string]$ResultPath,[string]$RepoPath,[string]$Folder){if($script:publishFails){throw 'synthetic-publish-failure'};$script:published++;$Queue.finalCommit=('d'*40)}
 function Check($v,$m){if(-not $v){throw $m}}
 try{
  New-Item -ItemType Directory (Join-Path $root 'reports'),(Join-Path $root 'downloads') -Force|Out-Null
@@ -45,6 +45,18 @@ try{
  Write-ScanRecoveryJson (Join-Path $folder ('competitor-'+$q.requestId+'-status-ack.json')) $ack;Tick
  Check ($script:starts[-1] -like 'save-result|chrome|*') 'Completed results were not re-exported'
  $ack.sourceRunId=('f'*32);Check (-not (Test-CompetitorIdleAck $ack $q)) 'Unrelated idle acknowledgement accepted'
+ # Edge worker loss is terminal immediately, with no extra start or budget wait.
+ $q.browser='edge';$q.attempt='edge';$q.requestId=('9'*32);$q.state='collecting';Write-ScanRecoveryJson $path $q
+ $ack.sourceRunId=$q.sourceRunId;$ack.requestId=$q.requestId;$ack.browser='edge';$ack.state=[pscustomobject]@{requestId=$q.requestId;resultAvailable=$false};$ack|Add-Member workerRestarted $true -Force
+ Write-ScanRecoveryJson (Join-Path $folder ('competitor-'+$q.requestId+'-status-ack.json')) $ack
+ $beforeStarts=$script:starts.Count;$beforePublish=$script:published;$script:publishFails=$true;Tick
+ Check ((Read-ScanRecoveryJson $path).state -eq 'publishing') 'Interrupted Edge publication failure lost retry state'
+ $terminal=Read-ScanRecoveryJson (Join-Path $root ('reports\competitor-interrupted-'+$q.requestId+'.json'))
+ Check ($terminal.stoppedReason -eq 'worker-error' -and $terminal.results.Count -eq 0 -and $terminal.requestId -ceq $q.requestId) 'Interruption invented prices or lost identity'
+ $script:publishFails=$false;Tick
+ Check ($script:published -eq $beforePublish+1 -and (Read-ScanRecoveryJson $path).state -eq 'uploaded') 'Interrupted Edge remained collecting until deadline'
+ Check ($script:starts.Count -eq $beforeStarts) 'Interrupted Edge launched another collection'
+ Tick;Tick;Check ($script:published -eq $beforePublish+1) 'Interrupted Edge published twice'
  # Real uploader budget uses seconds while extension slots omit them.
  function Invoke-MarketPulseGit {return [pscustomobject]@{Code=0;Output=@(('d'*40))}}
  $addRoot=Join-Path $root 'add';New-Item -ItemType Directory (Join-Path $addRoot 'reports') -Force|Out-Null
