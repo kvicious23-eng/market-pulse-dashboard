@@ -19,10 +19,10 @@ window.MARKET_DATA = {
     "updatedAt": "2026-09-14T19:42:57+09:00",
     "competitorPhase": {
       "scanSlot": "2026-11-06T08:00+09:00",
-      "state": "waiting",
+      "state": "partial",
       "count": 3,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "eec4a8c666ee46e9a6931e43a20caeb5",
+      "completedAt": "2026-11-05T23:42:03.5305949+00:00"
     },
     "brand": "Lenovo",
     "collectionEvidence": {
@@ -136,7 +136,7 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
+          "status": "시간 내 미수집",
           "collectionStatus": "review-needed",
           "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-05 20:34:36",
@@ -196,7 +196,7 @@ window.MARKET_DATA = {
           "brand": "ASUS",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-06T08:00+09:00",
-          "phaseState": "pending",
+          "phaseState": "not-collected",
           "lastVerifiedFinalPrice": 1338640,
           "lastVerifiedPriceCheckedAt": "2026-11-05 20:34:36"
         },
@@ -218,7 +218,7 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
+          "status": "시간 내 미수집",
           "collectionStatus": "review-needed",
           "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-05 20:35:20",
@@ -254,7 +254,7 @@ window.MARKET_DATA = {
           "brand": "HP",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-06T08:00+09:00",
-          "phaseState": "pending",
+          "phaseState": "not-collected",
           "lastVerifiedFinalPrice": 846450,
           "lastVerifiedPriceCheckedAt": "2026-11-05 20:35:20"
         },
@@ -276,7 +276,7 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
+          "status": "시간 내 미수집",
           "collectionStatus": "review-needed",
           "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-05 20:36:04",
@@ -305,7 +305,7 @@ window.MARKET_DATA = {
           "brand": "ASUS",
           "note": "비보북/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-06T08:00+09:00",
-          "phaseState": "pending",
+          "phaseState": "not-collected",
           "lastVerifiedFinalPrice": 1098000,
           "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04"
         }

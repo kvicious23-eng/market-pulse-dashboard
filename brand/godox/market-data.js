@@ -18,10 +18,10 @@ window.MARKET_DATA = {
     },
     "competitorPhase": {
       "scanSlot": "2026-11-06T08:00+09:00",
-      "state": "complete",
+      "state": "partial",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "eec4a8c666ee46e9a6931e43a20caeb5",
+      "completedAt": "2026-11-05T23:42:03.5305949+00:00"
     },
     "brand": "Godox",
     "collectionEvidence": {
