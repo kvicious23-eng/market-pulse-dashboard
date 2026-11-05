@@ -2,6 +2,7 @@ $ErrorActionPreference='Stop'
 $root=Join-Path ([IO.Path]::GetTempPath()) ('MPCompletion-'+[guid]::NewGuid().ToString('N'))
 function Check($ok,[string]$message){if(-not $ok){throw $message}}
 . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+. (Join-Path $PSScriptRoot 'git-timeout.ps1')
 . (Join-Path $PSScriptRoot 'completion-upload.ps1')
 try{
  New-Item -ItemType Directory $root -Force|Out-Null
