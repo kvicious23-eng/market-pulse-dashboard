@@ -30,7 +30,7 @@ function Get-SupplierInventorySignal([DateTimeOffset]$Now) {
 }
 function Get-SupplierMorningSignal([string]$Folder,[datetime]$Day,[DateTimeOffset]$Now,[string]$RepoPath='') {
   try {
-    $slot=$Day.ToString('yyyy-MM-dd')+'T08:00+09:00'
+    $slot=@(Get-ScheduledSlotsForDay $Day.ToString('yyyy-MM-dd'))[0]
     $common=Get-CommonProtocolId $slot
     if($common -and -not $RepoPath){return $null}
     $receipt=if ($RepoPath) {Read-EdgeOwnership $RepoPath $slot} else {$null}

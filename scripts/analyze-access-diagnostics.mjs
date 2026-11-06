@@ -8,9 +8,9 @@ const policySource=fs.readFileSync(new URL('../chrome-extension/scan-policy.js',
 const routing=JSON.parse(policySource.match(/\/\* ROUTING_JSON_BEGIN \*\/([\s\S]*?)\/\* ROUTING_JSON_END \*\//)?.[1]||'null');
 function primaryBrowserForSlot(slot) {
   if(routing?.version!==1||routing.slots.join(',')!=='08:00,12:00,16:00,20:00')throw Error('invalid-routing-policy');
-  const position=routing.slots.indexOf(slot.slice(11,16));
-  if(position<0)return 'chrome'; // Older, non-current schedule logs.
   const policy=routing.changes.filter(row=>row.from<=slot).at(-1);
+  const position=(policy?.slots||routing.slots).indexOf(slot.slice(11,16));
+  if(position<0)return 'chrome'; // Older, non-current schedule logs.
   if(!policy||!['chrome','whale'].includes(policy.owners[position]))throw Error('missing-routing-policy');
   return policy.owners[position];
 }

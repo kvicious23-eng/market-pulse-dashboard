@@ -206,7 +206,7 @@ try {
     Write-ScanRecoveryJson $receiptPath $receipt
     Write-Host "Edge $($receipt.reason) recovery saved and list-matched: $($candidateData.resultCount) product(s). Publication validation is next."
     # Supplier errors must not turn a valid price recovery into a failed receipt.
-    if ($receipt.scanSlot -match 'T08:00\+09:00$') {
+    if ($receipt.scanSlot -ceq @(Get-ScheduledSlotsForDay ([DateTimeOffset]::Parse($receipt.scanSlot)).ToString('yyyy-MM-dd'))[0]) {
       try { & (Join-Path $PSScriptRoot 'supplier-after-edge.ps1') -RepoPath $RepoPath -ResultFolder $resultFolder }
       catch { Write-Warning 'Supplier Hub morning resume failed; inspect supplier-edge-resume.log. Price recovery remains ready.' }
     }

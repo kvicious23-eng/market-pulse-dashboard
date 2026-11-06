@@ -13,6 +13,7 @@ function fixture(failures=0,initial={},error='FILE_ACCESS_DENIED') {
   chrome:{storage:{local:{get:async key=>({[key]:state[key]}),set:async v=>Object.assign(state,v)}},downloads:{download:async o=>{
    assert.ok(state.pendingScanResult,'Complete source is persisted before every write');files.push({filename:o.filename,payload:JSON.parse(decodeURIComponent(o.url.split(',')[1]))});events.push('write:'+files.length);return files.length;
   }}}};
+ vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),context);
  vm.runInNewContext('let queuedSaveRetry=null;'+helpers+';this.save=saveCompletedScan;this.queued=()=>queuedSaveRetry;this.deadline=scanSaveDeadline;',context);
  return {context,state,files,events};
 }

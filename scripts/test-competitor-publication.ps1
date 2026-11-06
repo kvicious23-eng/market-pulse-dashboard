@@ -6,6 +6,7 @@ try{
  Copy-Item (Join-Path $PSScriptRoot '*.ps1') (Join-Path $repo 'scripts')
  Copy-Item (Join-Path $PSScriptRoot 'competitor-data.mjs') (Join-Path $repo 'scripts')
  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\competitor-models.js') (Join-Path $repo 'chrome-extension')
+ Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $repo 'chrome-extension')
  . (Join-Path $repo 'scripts\scan-recovery.ps1');. (Join-Path $repo 'scripts\git-timeout.ps1');. (Join-Path $repo 'scripts\brand-lifecycle.ps1');. (Join-Path $repo 'scripts\competitor-phase.ps1')
  function Git-Comp([string[]]$a){$r=Invoke-MarketPulseGit -RepoPath $repo -Arguments $a;if($r.Code){throw ($a -join ' ')};$r.Output}
  function Check($v,$s){if(-not $v){throw $s}}

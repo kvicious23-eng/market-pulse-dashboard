@@ -14,9 +14,8 @@ New-Item -ItemType Directory $reportsPath -Force | Out-Null
 $logPath=Join-Path $reportsPath 'scheduled-upload.log'
 $kstZone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
 $kstNow=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$kstZone)
-$slotHour=@(8,12,16,20 | Where-Object { $_ -le $kstNow.Hour } | Select-Object -Last 1)
-$slotHour=if ($slotHour.Count) { $slotHour[0] } else { $null }
-$expectedSlotStart=if ($ExpectedSlotStart) {$ExpectedSlotStart} elseif($null -ne $slotHour){"{0}T{1:00}:00:00+09:00" -f $kstNow.ToString('yyyy-MM-dd'),$slotHour}else{''}
+$currentSlot=Get-ScanRecoverySlot
+$expectedSlotStart=if ($ExpectedSlotStart) {$ExpectedSlotStart} elseif($currentSlot){([DateTimeOffset]::Parse($currentSlot)).ToString('yyyy-MM-ddTHH:mm:sszzz')}else{''}
 function Write-UploadLog([string]$Message) {
   Add-Content $logPath -Encoding UTF8 -Value ("[$([DateTimeOffset]::Now.ToString('o'))] $Message")
 }
@@ -39,10 +38,7 @@ if ($Worker) {
 if (-not $ExpectedSlotStart) { Write-UploadLog 'No current upload slot; skipped.';exit 0 }
 # A delayed start must also finish before the next collection slot.
 $slotTime=[DateTimeOffset]::Parse($ExpectedSlotStart).ToOffset([TimeSpan]::FromHours(9))
-$nextHour=@(8,12,16,20 | Where-Object {$_ -gt $slotTime.Hour} | Select-Object -First 1)
-$nextDate=$slotTime.Date
-if($nextHour.Count){$nextDate=$nextDate.AddHours($nextHour[0])}else{$nextDate=$nextDate.AddDays(1).AddHours(8)}
-$nextSlotDeadline=New-Object DateTimeOffset($nextDate,[TimeSpan]::FromHours(9))
+$nextSlotDeadline=Get-NextScanTime $slotTime.ToString('yyyy-MM-ddTHH:mmzzz')
 $budgetPath=Join-Path $reportsPath 'scheduled-upload-budget.json'
 $key=([IO.Path]::GetFullPath($RepoPath) -replace '[^a-zA-Z0-9]','')
 $supervisor=New-Object Threading.Mutex($false,('Local\MarketPulse.UploadSupervisor.'+$key))

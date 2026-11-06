@@ -10,6 +10,7 @@ function Invoke-CompetitorData([string]$RepoPath,[string]$Mode,[string]$CatalogP
 }
 function Add-CompetitorPhase($Payload,[string]$RepoPath,[string]$Folder){
  if(-not $Payload.scanSlot -or [version]$Payload.extensionVersion -lt [version]'1.9.66'){return}
+ if(-not (Test-CompetitorScanDue $Payload.scanSlot)){return}
  $path=Get-CompetitorQueuePath $RepoPath $Payload.scanSlot
  $sourceRunId=if($Payload.modelRecovery.scope -ceq 'models'){$Payload.modelRecovery.sourceRunId}else{$Payload.runId}
  $competitorBrowser=if($Payload.browser -ceq 'edge' -or $Payload.modelRecovery.sourceBrowser -ceq 'edge'){'edge'}else{Get-PrimaryScanBrowser $Payload.scanSlot}
@@ -89,7 +90,7 @@ function Test-CompetitorIdleAck($Ack,$Queue){
  try{$at=[DateTimeOffset]::Parse($Ack.at);$start=[DateTimeOffset]::Parse($(if($Queue.startRequestedAt){$Queue.startRequestedAt}else{$Queue.firstPublishedAt}));return $at -ge $start -and $at -le [DateTimeOffset]::UtcNow.AddSeconds(30) -and ([DateTimeOffset]::UtcNow-$at).TotalSeconds -le 180}catch{return $false}
 }
 function Invoke-CompetitorPhase([string]$RepoPath,[string]$Folder){
- $slot=Get-ScanRecoverySlot;if(-not $slot){return}
+ $slot=Get-ScanRecoverySlot;if(-not $slot -or -not (Test-CompetitorScanDue $slot)){return}
  $path=Get-CompetitorQueuePath $RepoPath $slot;$q=Read-ScanRecoveryJson $path
  if(-not $q){return}
  if($q.version -ne 1 -or $q.scope -ne 'competitors' -or $q.scanSlot -cne $slot -or $q.requestId -cnotmatch '^[a-f0-9]{32}$' -or $q.sourceRunId -cnotmatch '^[a-f0-9]{32}$' -or $q.initialCommit -cnotmatch '^[a-f0-9]{40}$' -or $q.attempt -cnotin @('primary','edge') -or $q.browser -cnotin @('chrome','whale','edge') -or $q.targets -isnot [array]){throw 'Invalid competitor queue'}

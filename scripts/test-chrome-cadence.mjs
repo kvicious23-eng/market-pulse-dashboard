@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import {readTestFile} from './test-source.mjs';
 const c={};vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8')+';this.policy=chromeCadencePolicy;',c);
 for(const [day,arm] of [['02',null],['03','B'],['04','B'],['05','B'],['06','B'],['07','B'],['08','B'],['09','B'],['10',null]]) {
- for(const hour of ['08','16']) {
+ for(const hour of day<'06'?['08','16']:day==='06'?['08','15']:['07','15']) {
   const slot=`2026-11-${day}T${hour}:00+09:00`;
   const p=c.policy(slot,'chrome');assert.equal(p.arm,arm);assert.equal(p.experimentId,arm?'chrome-cadence-week-20261103':null);assert.equal(p.delayMs,arm==='B'?40000:20000);
   for(const args of [[slot,'whale'],[slot,'edge'],[slot,'chrome',{}],[slot,'chrome',null,null,[]]])assert.equal(c.policy(...args).experimentId,null);

@@ -223,6 +223,7 @@
   }
 
   function publishedPrice(offer) {
+    if(offer?.phaseState==='scheduled-reference')return offer.lastVerifiedFinalPrice??offer.finalPrice;
     return collectionReviewRequired(offer) ? offer.lastVerifiedFinalPrice : cardReviewRequired(offer) ? offer.preCardPrice : effectiveFinalPrice(offer);
   }
 
@@ -412,11 +413,10 @@
       : null;
     // The first import after updating a PC may still run the already-loaded
     // importer script. Keep the displayed schedule correct for that cycle.
-    const quickWatch = monitoring?.quickWatch === "매일 08:00 KST"
-      ? "매일 08:00 · 14:00 KST" : monitoring?.quickWatch;
+    const quickWatch = "매일 07:00 · 12:00 · 15:00 · 20:00 KST";
     $("#automationStrip").innerHTML = monitoring?.enabled ? `
       <span><i></i>가격 감시 <b>${escapeHtml(quickWatch)}</b></span>
-      <span><i></i>전체 조사 <b>${escapeHtml(monitoring.fullResearch)}</b></span>
+      <span><i></i>경쟁 조사 <b>07·15시 내 상품 게시 후</b></span>
       <span><i></i><b>${escapeHtml(monitoring.dashboardSync)}</b></span>
       ${monitoring.competitionValidationStatus === 'awaiting-1.9.27-scan' ? '<span class="is-partial"><i></i>경쟁가 <b>새 수집으로 재검증 대기</b></span>' : monitoring.competitionValidationStatus === 'no-verified-listings' ? '<span class="is-partial"><i></i>경쟁가 <b>확인된 판매처 없음</b></span>' : ''}
       ${attemptTime ? `<span class="is-partial" title="${escapeHtml(monitoring.lastAttemptText)}"><i></i>최근 자동 확인 <b>${attemptTime} · ${monitoring.lastAttemptStatus === "success" ? "완료" : "일부 제한"}</b></span>` : ""}` : "";
@@ -572,16 +572,19 @@
       const alert = current && !mine && difference < 0;
       const rowClass = mine ? (reviewRequired(offer) ? "is-mine is-card-review" : "is-mine") : alert ? "is-alert" : best ? "is-best" : "";
       const soldOut = current && isSoldOut(offer);
-      const statusClass = current
+      const scheduledReference=offer.phaseState==='scheduled-reference';
+      const statusClass = scheduledReference ? "stale" : current
         ? ((mine ? offerStatus(offer) === "현재가 직접 확인" : offer.alertEligible === true) && !soldOut ? "active" : "soldout")
         : "stale";
-      const finalCell = current
+      const finalCell = scheduledReference
+        ? `<strong class="price">${formatWon(offer.lastVerifiedFinalPrice??offer.finalPrice)}</strong><small>직전 경쟁 조사 참고 ${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>`
+        : current
         ? `<strong class="price">${formatWon(mine?offerFinalPrice:cardReviewRequired(offer)?offer.preCardPrice:collectionReviewRequired(offer)?offer.lastVerifiedFinalPrice:offerFinalPrice)}</strong>${collectionReviewRequired(offer) ? `<small class="card-review-label">미확인 · 이전 가격 참고 ${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>` : cardReviewRequired(offer) ? '<small class="card-review-label">카드 적용 전 금액 · 카드할인 재확인 필요</small>' : ""}`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
       const diffCell = mine
         ? `<span class="diff diff--base">${collectionReviewRequired(offer) ? "계산 제외" : "비교 기준"}</span>`
         : current
-          ? (Number.isFinite(difference) ? `<span class="diff diff--${difference < 0 ? "bad" : "good"}">${formatDiff(difference)}</span>` : '<span class="unknown">기준가 미확인</span>')
+          ? (Number.isFinite(difference) ? `<span class="diff diff--${difference < 0 ? "bad" : "good"}">${formatDiff(difference)}</span>` : `<span class="unknown">${scheduledReference?'이번 회차 비교 제외':'기준가 미확인'}</span>`)
           : '<span class="unknown">계산 제외</span>';
 
       return `

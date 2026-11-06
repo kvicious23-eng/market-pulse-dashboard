@@ -222,6 +222,7 @@ jobs:
           ./scripts/test-worker-probe.ps1
           ./scripts/test-access-stop.ps1
           ./scripts/test-local-schedule.ps1
+          ./scripts/test-schedule-transition.ps1
           ./scripts/test-whale-noon.ps1
           ./scripts/test-whale-noon.ps1 -FlowSlot "2026-10-26T20:00+09:00"
           ./scripts/test-upload-timeout.ps1

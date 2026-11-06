@@ -27,6 +27,7 @@ async function maintainExtension() {
     receipt.cadenceExperimentId=health?.cadenceExperimentId||null;
     receipt.policyId=health?.policyId||null;
     receipt.slotOwners=health?.slotOwners||null;
+    receipt.scanSlots=health?.scanSlots||null;receipt.competitorSchedule=health?.competitorSchedule||null;
     receipt.observerStatus=health?.observerStatus||null;
     receipt.checkoutObserverStatus=health?.checkoutObserverStatus||null;
     receipt.webRequestGranted=permission;
