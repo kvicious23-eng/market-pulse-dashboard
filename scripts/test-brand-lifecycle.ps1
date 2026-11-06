@@ -39,6 +39,18 @@ try {
   if (@($oldData.products).Count -ne 0 -or $oldData.meta.lifecycleStatus -ne 'archived') {throw 'Old brand retained current products.'}
   Write-Data (Join-Path $RepoPath $old.Path) $oldData
   if (-not (Test-Path (Join-Path $RepoPath 'brand\new-brand\index.html'))) {throw 'New route missing.'}
+  # New brands get their own persistent favicon instead of inheriting Acer's.
+  $newPage=Join-Path $RepoPath 'brand\new-brand\index.html'
+  $newHtml=[IO.File]::ReadAllText($newPage)
+  if($newHtml -notmatch '<title>New Brand Price Dashboard</title>' -or $newHtml -notmatch 'data-brand-color="(#[a-f0-9]{6})"'){throw 'New brand browser identity missing'}
+  $newColor=$Matches[1]
+  if($newColor -in @('#009b3a','#c8202f','#1769c2','#946b00')){throw 'New brand reused a reserved color'}
+  if([Uri]::UnescapeDataString($newHtml) -notmatch 'fill="white">N</text>'){throw 'New brand initial is not uppercase white N'}
+  New-BrandDashboard 'New Brand' (Join-Path $RepoPath 'brand\new-brand\market-data.js') 'Camera'
+  if([IO.File]::ReadAllText($newPage) -notmatch ('data-brand-color="'+$newColor+'"')){throw 'Brand color changed on regeneration'}
+  New-BrandDashboard 'Another Brand' (Join-Path $RepoPath 'brand\another-brand\market-data.js') 'Camera'
+  $anotherHtml=[IO.File]::ReadAllText((Join-Path $RepoPath 'brand\another-brand\index.html'))
+  if($anotherHtml -notmatch 'data-brand-color="(#[a-f0-9]{6})"' -or $Matches[1] -eq $newColor){throw 'New brands share the same color'}
   $again=@(Get-BrandSpecs $catalog $RepoPath) | Where-Object {$_.Brand -eq 'Old Brand'}
   if ($again.RenamedTo.slug -ne 'new-brand') {throw 'Rename destination lost on next scan.'}
   # Same slug, different display name: keep both history labels at the same URL.
