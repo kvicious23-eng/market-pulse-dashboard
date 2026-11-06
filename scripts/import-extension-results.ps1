@@ -367,6 +367,45 @@ function Get-BrandSlug([string]$brand) {
   return $slug
 }
 
+function Get-BrandBrowserIcon([string]$brand,[string]$indexPath) {
+  $fixed=@{acer='#009b3a';lenovo='#c8202f';godox='#1769c2';hp='#946b00'}
+  $color=$fixed[$brand.Trim().ToLowerInvariant()]
+  if (-not $color -and (Test-Path $indexPath)) {
+    $existing=[IO.File]::ReadAllText($indexPath,[Text.Encoding]::UTF8)
+    if ($existing -match 'data-brand-color="(#[a-fA-F0-9]{6})"') {$color=$Matches[1].ToLowerInvariant()}
+  }
+  if (-not $color) {
+    $used=@($fixed.Values)
+    foreach ($file in @(Get-ChildItem (Join-Path $RepoPath 'brand') -Filter index.html -Recurse -File)) {
+      $html=[IO.File]::ReadAllText($file.FullName,[Text.Encoding]::UTF8)
+      if ($html -match 'data-brand-color="(#[a-fA-F0-9]{6})"') {$used+=$Matches[1].ToLowerInvariant()}
+    }
+    for ($attempt=0; $attempt -lt 10000; $attempt++) {
+      $rgb=@(Get-Random -Minimum 0 -Maximum 167; Get-Random -Minimum 0 -Maximum 167; Get-Random -Minimum 0 -Maximum 167)
+      $candidate='#'+(('{0:x2}{1:x2}{2:x2}' -f $rgb[0],$rgb[1],$rgb[2]))
+      if ($candidate -in $used) {continue}
+      $luminance=0.0
+      $weights=@(0.2126,0.7152,0.0722)
+      for ($i=0;$i -lt 3;$i++) {$v=$rgb[$i]/255.0; $linear=if($v -le 0.04045){$v/12.92}else{[Math]::Pow(($v+0.055)/1.055,2.4)}; $luminance+=$weights[$i]*$linear}
+      if (1.05/($luminance+0.05) -lt 4.5) {continue}
+      $near=$false
+      if ($attempt -lt 500) {
+        foreach ($prior in $used) {
+          $distance=0
+          for ($i=0;$i -lt 3;$i++) {$delta=$rgb[$i]-[Convert]::ToInt32($prior.Substring(1+2*$i,2),16);$distance+=$delta*$delta}
+          if ($distance -lt 4096) {$near=$true;break}
+        }
+      }
+      if (-not $near) {$color=$candidate;break}
+    }
+    if (-not $color) {throw 'Unable to allocate a unique dark brand color'}
+  }
+  $initial=if($brand -match '[A-Za-z]'){$Matches[0].ToUpperInvariant()}else{[Globalization.StringInfo]::GetNextTextElement($brand.Trim()).ToUpperInvariant()}
+  $letter=[Net.WebUtility]::HtmlEncode($initial)
+  $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="'+$color+'"/><text x="32" y="33" dy=".35em" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="44" font-weight="700" fill="white">'+$letter+'</text></svg>'
+  return '<link rel="icon" type="image/svg+xml" data-brand-color="'+$color+'" href="data:image/svg+xml,'+[Uri]::EscapeDataString($svg)+'" />'
+}
+
 function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) {
   $directory=Split-Path -Parent $dataPath
   New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -375,7 +414,9 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
   $safeCategory=[Net.WebUtility]::HtmlEncode($(if ($category) {$category} else {'Products'}))
   $html=[IO.File]::ReadAllText((Join-Path $RepoPath 'brand\acer\index.html'),[Text.Encoding]::UTF8)
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
-  $html=$html -replace '<title>.*?</title>',("<title>$safeBrand price dashboard</title>")
+  $html=$html -replace '<title>.*?</title>',("<title>$safeBrand Price Dashboard</title>")
+  $icon=Get-BrandBrowserIcon $brand $indexPath
+  $html=[regex]::Replace($html,'<link\s+rel="icon"[^>]*>',[Text.RegularExpressions.MatchEvaluator]{param($match) $icon})
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand $safeCategory · Korea</small>")
   $html=$html -replace '<h1 id="pageTitle">.*?</h1>','<h1 id="pageTitle">가격 현황<br /><em>확인 중.</em></h1>'
   $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'

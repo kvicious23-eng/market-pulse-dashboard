@@ -3,6 +3,7 @@
 
   const data = window.MARKET_DATA;
   if (!data || !Array.isArray(data.products)) throw new Error("가격 데이터 형식이 올바르지 않습니다.");
+  document.title = `${data.meta.brand} Price Dashboard`;
 
   const $ = (selector) => document.querySelector(selector);
   const refs = {
@@ -30,7 +31,6 @@
   };
 
   if (!data.products.length) {
-    document.title = `${data.meta.brand} · 과거 기록 | Market Pulse`;
     refs.totalCount.textContent = "0";
     refs.winCount.textContent = "0";
     refs.overviewEyebrow.textContent = "0 MTM OVERVIEW";
