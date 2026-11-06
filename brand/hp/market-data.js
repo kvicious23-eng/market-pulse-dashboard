@@ -18,10 +18,10 @@ window.MARKET_DATA = {
     },
     "competitorPhase": {
       "scanSlot": "2026-11-06T12:00+09:00",
-      "state": "complete",
+      "state": "partial",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "74daac18632947d79867c0a71a3a774f",
+      "completedAt": "2026-11-06T03:26:03.8840828+00:00"
     },
     "brand": "HP",
     "collectionEvidence": {
