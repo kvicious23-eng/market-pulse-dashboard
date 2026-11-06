@@ -13,8 +13,8 @@ function Write-ScanRecoveryJson([string]$Path,$Data) {
 }
 function Get-ScanRecoverySlot([DateTimeOffset]$Now=[DateTimeOffset]::UtcNow) {
   $kst=[TimeZoneInfo]::ConvertTime($Now,[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time'))
-  $hour=@(8,12,16,20 | Where-Object {$_ -le $kst.Hour} | Select-Object -Last 1)
-  if ($hour.Count) { '{0}T{1:00}:00+09:00' -f $kst.ToString('yyyy-MM-dd'),$hour[0] }
+  $slots=@(Get-ScheduledSlotsForDay $kst.ToString('yyyy-MM-dd') | Where-Object {[DateTimeOffset]::Parse($_) -le $Now})
+  if($slots.Count){$slots[-1]}
 }
 function Assert-ScanStartWitness($Witness,[string]$Slot,$Catalog,[string]$Browser='chrome',[string]$LatestStart='',[switch]$AllowEmpty) {
   if (-not $Witness -or $Witness.version -ne 1 -or $Witness.browser -cne $Browser -or
@@ -55,7 +55,7 @@ function Assert-AccessStop($Stop,[string]$Slot,$Catalog,$Witness,[string]$RepoPa
   $start=[DateTimeOffset]::Parse($Stop.startedAt);$end=[DateTimeOffset]::Parse($Stop.stoppedAt)
   $deadline=[DateTimeOffset]::Parse($Stop.deadlineAt);$slotStart=[DateTimeOffset]::Parse($Slot)
   $observed=[DateTimeOffset]::Parse($Stop.attempt.diagnostic.observedAt)
-  $next=$slotStart.AddHours($(if($slotStart.Hour -eq 20){12}else{4}))
+  $next=(Get-NextScanTime $Slot)
   if($end -lt $start -or $observed -lt $start -or $observed -gt $end -or $end -gt $Now.AddSeconds(5) -or
       $deadline -le $Now -or $end -gt $deadline -or $deadline -gt $start.AddHours(2) -or
       $deadline -gt $slotStart.AddMinutes(140) -or $deadline -gt $next) {throw 'Access stop is stale or outside its original budget.'}
@@ -193,7 +193,7 @@ function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]
   if (-not $Failure -or $Failure.version -ne 1 -or $Failure.browser -cne (Get-PrimaryScanBrowser $Slot) -or
       $Failure.scanSlot -cne $Slot -or $Failure.reason -ne 'file-save-error' -or $Failure.error -ne 'FILE_ACCESS_DENIED' -or
       $Failure.stage -ne 'edge-ready' -or [int]$Failure.chromeRetries -ne 1 -or [int]$Failure.saveAttempts -ne 2 -or
-      $Failure.runId -notmatch '^[a-f0-9]{32}$' -or $Slot -notmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$') { throw 'Unconfirmed Chrome save failure.' }
+      $Failure.runId -notmatch '^[a-f0-9]{32}$' -or $Slot -notmatch '^\d{4}-\d{2}-\d{2}T(07|08|12|15|16|20):00\+09:00$') { throw 'Unconfirmed Chrome save failure.' }
   if(Get-CommonProtocolId $Slot) {
     $q=Read-CommonRequest $RepoPath $Slot;Assert-CommonRequest $q $Slot $Catalog $Now
     if($Failure.primaryRequestId -cne $q.requestId -or [DateTimeOffset]::Parse($Failure.deadlineAt) -gt (Get-CommonDeadline $q)){throw 'Common save proof mismatch'}
@@ -208,7 +208,7 @@ function Assert-ScanSaveFailure($Failure,[string]$Slot,$Catalog,[DateTimeOffset]
   $start=[DateTimeOffset]::Parse([string]$Failure.startedAt)
   $end=[DateTimeOffset]::Parse([string]$Failure.completedAt)
   $deadline=[DateTimeOffset]::Parse([string]$Failure.deadlineAt)
-  $next=$slotStart.AddHours($(if($slotStart.Hour -eq 20){12}else{4}))
+  $next=(Get-NextScanTime $Slot)
   if ($first -lt $slotStart -or $start -lt $first -or $end -lt $start -or $end -gt $Now.AddMinutes(1) -or
       $deadline -gt $first.AddHours(2) -or $deadline -gt $next -or $deadline -le $Now) { throw 'Save recovery is stale or outside its budget.' }
   $targets=@($Failure.targets)
@@ -252,24 +252,48 @@ function Invoke-ScanSaveRecovery([string]$RepoPath,[string]$Folder,[string]$Slot
   } finally {if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }
 
-function Get-ScanSlotPolicy([string]$Slot) {
-  if($Slot -cnotmatch '^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$'){throw 'Invalid scan slot.'}
-  $at=[DateTimeOffset]::ParseExact($Slot,'yyyy-MM-ddTHH:mmzzz',[Globalization.CultureInfo]::InvariantCulture)
+function Read-ScanRoutingPolicy {
   $source=Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') -Raw -Encoding UTF8
   if($source -cnotmatch '(?s)/\* ROUTING_JSON_BEGIN \*/(.*?)/\* ROUTING_JSON_END \*/'){throw 'Routing policy is missing.'}
   $policy=$Matches[1]|ConvertFrom-Json -ErrorAction Stop
   if($policy.version -ne 1 -or ($policy.slots -join ',') -cne '08:00,12:00,16:00,20:00'){throw 'Invalid routing policy.'}
+  return $policy
+}
+function Get-ScanSlotPolicy([string]$Slot) {
+  if($Slot -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:00\+09:00$'){throw 'Invalid scan slot.'}
+  $at=[DateTimeOffset]::ParseExact($Slot,'yyyy-MM-ddTHH:mmzzz',[Globalization.CultureInfo]::InvariantCulture)
+  $policy=Read-ScanRoutingPolicy
   $selected=$null;$previous=''
   foreach($row in $policy.changes) {
-    if($row.from -cle $previous -or -not $row.id -or @($row.owners).Count -ne 4 -or @($row.owners|Where-Object {$_ -cnotin @('chrome','whale')}).Count){throw 'Invalid routing policy.'}
+    $slots=if($row.slots){@($row.slots)}else{@($policy.slots)}
+    if($row.from -cle $previous -or -not $row.id -or @($row.owners).Count -ne 4 -or $slots.Count -ne 4 -or @($slots|Sort-Object -Unique).Count -ne 4 -or @($row.owners|Where-Object {$_ -cnotin @('chrome','whale')}).Count){throw 'Invalid routing policy.'}
     $previous=$row.from;if($row.from -cle $Slot){$selected=$row}
   }
   if(-not $selected){throw 'Missing routing policy.'}
-  [pscustomobject]@{id=$selected.id;browser=$selected.owners[[array]::IndexOf($policy.slots,$Slot.Substring(11,5))]}
+  $slots=if($selected.slots){@($selected.slots)}else{@($policy.slots)}
+  $index=[array]::IndexOf($slots,$Slot.Substring(11,5));if($index -lt 0){throw 'Invalid scan slot.'}
+  [pscustomobject]@{id=$selected.id;browser=$selected.owners[$index]}
+}
+function Get-ScheduledSlotsForDay([string]$Day) {
+  $policy=Read-ScanRoutingPolicy
+  $times=@($policy.slots)+@($policy.changes | ForEach-Object {$_.slots})
+  foreach($time in @($times | Where-Object {$_} | Sort-Object -Unique)){
+    $slot=$Day+'T'+$time+'+09:00'
+    try{Get-ScanSlotPolicy $slot|Out-Null;$slot}catch{if($_.Exception.Message -cne 'Invalid scan slot.'){throw}}
+  }
+}
+function Test-CompetitorScanDue([string]$Slot) {
+  Get-ScanSlotPolicy $Slot|Out-Null
+  $policy=Read-ScanRoutingPolicy;$p=$policy.competitorSchedule
+  return (-not $p -or $Slot -clt $p.from -or $Slot.Substring(11,5) -cin @($p.slots))
 }
 function Get-PrimaryScanBrowser([string]$Slot) {if(-not $Slot){return 'chrome'};(Get-ScanSlotPolicy $Slot).browser}
 function Get-ScanSlotKey([string]$Slot) {Get-ScanSlotPolicy $Slot|Out-Null;$Slot.Substring(0,16) -replace '[^0-9]',''}
-function Get-NextScanTime([string]$Slot) {Get-ScanSlotPolicy $Slot|Out-Null;([DateTimeOffset]::Parse($Slot)).AddHours($(if($Slot.Substring(11,2) -eq '20'){12}else{4}))}
+function Get-NextScanTime([string]$Slot) {
+  Get-ScanSlotPolicy $Slot|Out-Null;$at=[DateTimeOffset]::Parse($Slot)
+  foreach($day in 0..2){foreach($candidate in @(Get-ScheduledSlotsForDay $at.AddDays($day).ToString('yyyy-MM-dd'))){if($candidate -cgt $Slot){return [DateTimeOffset]::Parse($candidate)}}}
+  throw 'Missing next scan slot.'
+}
 function Get-WhaleDeadline($Request) {
   $deadline=[DateTimeOffset]::Parse($Request.requestedAt).AddHours(2)
   $next=Get-NextScanTime $Request.scanSlot;if($deadline -gt $next){$deadline=$next}

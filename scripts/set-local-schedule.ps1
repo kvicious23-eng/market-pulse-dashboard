@@ -8,7 +8,7 @@ $uploadTaskName = "Market Pulse Result Upload"
 $powershell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
 $localTimeZone = (Get-TimeZone).Id
 if ($localTimeZone -ne "Korea Standard Time") {
-  Write-Warning "The Windows time zone is '$localTimeZone'. The tasks will run at 08:00, 12:00, 16:00, 20:00 and uploads 30 minutes later in this local time zone; use '(UTC+09:00) Seoul' for KST operation."
+  Write-Warning "The Windows time zone is '$localTimeZone'. The tasks will run at 07:00, 12:00, 15:00, 20:00 and uploads 30 minutes later in this local time zone; use '(UTC+09:00) Seoul' for KST operation."
 }
 
 $chromeCandidates = @(
@@ -28,7 +28,7 @@ $reportsPath = Join-Path $InstallPath "reports"
 New-Item -ItemType Directory -Path $reportsPath -Force | Out-Null
 
 # The scanner runs inside a normal signed-in Chrome session. Starting Chrome at
-# 08:00, 12:00, 16:00 and 20:00 also fire the extension's onStartup catch-up logic when Chrome was closed.
+# 07:00, 12:00, 15:00 and 20:00 also fire the extension's onStartup catch-up logic when Chrome was closed.
 $scanTaskSettings = New-ScheduledTaskSettingsSet `
   -StartWhenAvailable `
   -WakeToRun `
@@ -42,9 +42,9 @@ if (-not (Test-Path $scanRunner)) {throw 'The scan watchdog runner is missing.'}
 $scanArguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$scanRunner+'" -RepoPath "'+$InstallPath+'"'
 $scanAction = New-ScheduledTaskAction -Execute $powershell -Argument $scanArguments
 $scanTriggers = @(
-  New-ScheduledTaskTrigger -Daily -At "08:00"
+  New-ScheduledTaskTrigger -Daily -At "07:00"
   New-ScheduledTaskTrigger -Daily -At "12:00"
-  New-ScheduledTaskTrigger -Daily -At "16:00"
+  New-ScheduledTaskTrigger -Daily -At "15:00"
   New-ScheduledTaskTrigger -Daily -At "20:00"
 )
 Register-ScheduledTask `
@@ -52,7 +52,7 @@ Register-ScheduledTask `
   -Action $scanAction `
   -Trigger $scanTriggers `
   -Settings $scanTaskSettings `
-  -Description "Start policy-selected browser; Chrome08/16 and Whale12/20 from 2026-10-26 20:00 KST" `
+  -Description "Start policy-selected browser; Chrome07/15 and Whale12/20 from 2026-11-06 15:00 KST" `
   -Force | Out-Null
 
 $uploadTaskSettings = New-ScheduledTaskSettingsSet `
@@ -67,9 +67,9 @@ $uploadTaskSettings = New-ScheduledTaskSettingsSet `
 $uploadArguments = '-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $uploadRunner + '" -RepoPath "' + $InstallPath + '"'
 $uploadAction = New-ScheduledTaskAction -Execute $powershell -Argument $uploadArguments
 $uploadTriggers = @(
-  New-ScheduledTaskTrigger -Daily -At "08:30"
+  New-ScheduledTaskTrigger -Daily -At "07:30"
   New-ScheduledTaskTrigger -Daily -At "12:30"
-  New-ScheduledTaskTrigger -Daily -At "16:30"
+  New-ScheduledTaskTrigger -Daily -At "15:30"
   New-ScheduledTaskTrigger -Daily -At "20:30"
 )
 Register-ScheduledTask `
@@ -77,15 +77,15 @@ Register-ScheduledTask `
   -Action $uploadAction `
   -Trigger $uploadTriggers `
   -Settings $uploadTaskSettings `
-  -Description "Fallback upload at 08:30, 12:30, 16:30 and 20:30 KST; verified completed scans upload through the one-minute recovery poll" `
+  -Description "Fallback upload at 07:30, 12:30, 15:30 and 20:30 KST; verified completed scans upload through the one-minute recovery poll" `
   -Force | Out-Null
 
 # Poll durable post-publication queues; never delay or duplicate the primary scan.
 $blueRunner=Join-Path $InstallPath 'scripts\run-blue-recovery.ps1'
 if(-not(Test-Path $blueRunner)){throw 'Blue recovery runner is missing.'}
 $blueAction=New-ScheduledTaskAction -Execute $powershell -Argument ('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$blueRunner+'" -RepoPath "'+$InstallPath+'"')
-$blueTrigger=New-ScheduledTaskTrigger -Daily -At '08:00'
-$bluePattern=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Hours 15)
+$blueTrigger=New-ScheduledTaskTrigger -Daily -At '07:00'
+$bluePattern=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Hours 16)
 $blueTrigger.Repetition=$bluePattern.Repetition
 $blueSettings=New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName 'Market Pulse Blue Model Recovery' -Action $blueAction -Trigger $blueTrigger -Settings $blueSettings -Description 'After full Edge Pages publication +10 minutes, retry only still-blue models once within the original slot budget' -Force|Out-Null
@@ -97,7 +97,7 @@ $uploadTime = @($uploadTask.Triggers | ForEach-Object { $_.StartBoundary }) -joi
 
 Write-Host "Market Pulse local schedule updated."
 Write-Host "  Automatic scan (slot routing): $scanTime"
-Write-Host "  Browser routing:               Chrome 08/16; Whale 12/20 from 2026-10-26 20:00; Edge full recovery, then post-publication blue-model retry"
+Write-Host "  Browser routing:               Chrome 07/15; Whale 12/20 from 2026-11-06 15:00; Edge full recovery, then post-publication blue-model retry"
 Write-Host "  Result upload:                 $uploadTime"
 Write-Host "  Upload console:                Hidden (logs remain in reports\scheduled-upload.log)"
 Write-Host "  Upload retry:                  3 retries, every 15 minutes within the slot budget"

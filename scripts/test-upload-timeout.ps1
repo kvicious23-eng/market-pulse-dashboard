@@ -67,12 +67,12 @@ public class FakeGit {
   $env:MARKET_PULSE_UPLOAD_DEADLINE=$originalDeadline
   $zone=[TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
   $kst=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$zone)
-  $hour=@(8,12,16,20 | Where-Object {$_ -le $kst.Hour} | Select-Object -Last 1)
-  if(-not $hour.Count){$hour=@(20);$date=$kst.Date.AddDays(-1)}else{$date=$kst.Date}
-  $slotTime=New-Object DateTimeOffset($date.AddHours($hour[0]),[TimeSpan]::FromHours(9))
+  . (Join-Path $PSScriptRoot 'scan-recovery.ps1')
+  $current=Get-ScanRecoverySlot $kst
+  if(-not $current){$current=@(Get-ScheduledSlotsForDay $kst.AddDays(-1).ToString('yyyy-MM-dd'))[-1]}
+  $slotTime=[DateTimeOffset]::Parse($current)
   $slot=$slotTime.ToString('yyyy-MM-ddTHH:mm:sszzz')
-  $nextHour=@(8,12,16,20 | Where-Object {$_ -gt $hour[0]} | Select-Object -First 1)
-  $next=if($nextHour.Count){(New-Object DateTimeOffset($date.AddHours($nextHour[0]),[TimeSpan]::FromHours(9))).ToString('yyyy-MM-ddTHH:mm:sszzz')}else{(New-Object DateTimeOffset($date.AddDays(1).AddHours(8),[TimeSpan]::FromHours(9))).ToString('yyyy-MM-ddTHH:mm:sszzz')}
+  $next=(Get-NextScanTime $current).ToString('yyyy-MM-ddTHH:mm:sszzz')
   $fixture=Join-Path $root 'fixture';$scripts=Join-Path $fixture 'scripts'
   New-Item -ItemType Directory $scripts -Force | Out-Null
   Copy-Item (Join-Path $repo 'scripts\*.ps1') $scripts

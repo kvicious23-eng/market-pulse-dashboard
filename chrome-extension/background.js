@@ -285,8 +285,7 @@ function scanSaveTargets(results) {
 }
 function scanSaveDeadline(startedAt,slot) {
   const start=Date.parse(startedAt),base=Date.parse(slot);
-  const hour=Number(slot?.match(/T(08|12|16|20):00\+09:00$/)?.[1]);
-  const next=base+(hour===20?12:4)*3600000;
+  const next=nextScheduledScanTime(slot);
   return Math.min(start+120*60000,next);
 }
 async function downloadScanPayload(payload,filename) {
@@ -1333,12 +1332,7 @@ async function scanAll(scanSlot, recovery=null, primaryRequestId=null, transient
   }
 }
 
-const SCHEDULED_SCAN_TIMES = [
-  {alarm:'daily-scan-0800',hour:8,minute:0,slot:'08:00'},
-  {alarm:'daily-scan-1200',hour:12,minute:0,slot:'12:00'},
-  {alarm:'daily-scan-1600',hour:16,minute:0,slot:'16:00'},
-  {alarm:'daily-scan-2000',hour:20,minute:0,slot:'20:00'}
-];
+const SCHEDULED_SCAN_TIMES = scanScheduleEntries(new Date(Date.now()+86400000));
 const isEdgeBrowser=/Edg\//.test(navigator.userAgent);
 
 // First production noon is 2026-10-21. Whale is launched by Windows with a pinned catalog.
@@ -1353,8 +1347,8 @@ function chromeOwnsSlot(slot) {return Boolean(slot&&scanPolicyForSlot(slot).brow
 function currentScheduledScanSlot(date=new Date()) {
   const p=kstDateTimeParts(date);
   const minuteOfDay=(+p.hour*60)+(+p.minute);
-  const due=[...SCHEDULED_SCAN_TIMES].reverse().find(entry=>minuteOfDay>=(entry.hour*60+entry.minute));
-  return due ? `${p.year}-${p.month}-${p.day}T${due.slot}+09:00` : null;
+  const due=scheduledSlotsForDay(`${p.year}-${p.month}-${p.day}`).filter(slot=>Date.parse(slot)<=date.getTime()).at(-1);
+  return due||null;
 }
 
 async function scheduleEntry(entry) {
@@ -1369,7 +1363,7 @@ async function scheduleEntry(entry) {
 }
 
 async function schedule() {
-  await chrome.alarms.clear('daily-scan-1400');
+  for(const alarm of ['daily-scan-0700','daily-scan-0800','daily-scan-1400','daily-scan-1500','daily-scan-1600']) await chrome.alarms.clear(alarm);
   for(const entry of SCHEDULED_SCAN_TIMES) await scheduleEntry(entry);
 }
 
@@ -1912,7 +1906,7 @@ const SUPPLIER_EXTENSION_ID='djmlkkflbncanonpjhkdhghjmcompjnp';
 async function acknowledgeRecoveredMorning(message,sender) {
   if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')||sender.id!==SUPPLIER_EXTENSION_ID||!sender.url?.startsWith(`chrome-extension://${SUPPLIER_EXTENSION_ID}/daily-resume.html?`)||
     message?.type!=='MARK_MORNING_RECOVERED'||message.source!=='edge'||message.version!==2||
-    !/^[a-f0-9]{32}$/.test(message.runId||'')||message.scanSlot!==`${localDay()}T08:00+09:00`||
+    !/^[a-f0-9]{32}$/.test(message.runId||'')||message.scanSlot!==morningScanSlot()||
     !Number.isFinite(Date.parse(message.completedAt))||Date.parse(message.completedAt)<Date.parse(message.scanSlot)||Date.parse(message.completedAt)>Date.now()+60000) return {ok:false,reason:'invalid-recovery-acknowledgement'};
   if(activeScanPromise)return {ok:false,reason:'price-scan-active'};
   await chrome.storage.local.set({lastRunSlot:message.scanSlot,lastRunDay:localDay(),morningRecoveryAcknowledgement:{runId:message.runId,scanSlot:message.scanSlot,completedAt:message.completedAt}});
@@ -1922,7 +1916,7 @@ chrome.runtime.onMessageExternal.addListener((message,sender,reply)=>{
   acknowledgeRecoveredMorning(message,sender).then(reply).catch(()=>reply({ok:false,reason:'recovery-acknowledgement-error'}));return true;
 });
 async function waitForSupplierResume(slot) {
-  if(!slot?.endsWith('T08:00+09:00'))return;
+  if(slot!==morningScanSlot())return;
   let pending=false;
   // Chrome may emit startup before its requested internal tab is registered.
   for(let i=0;i<3;i++) {
@@ -1943,7 +1937,7 @@ async function waitForSupplierResume(slot) {
 chrome.runtime.onInstalled.addListener(async()=>{
   await chrome.storage.local.set({running:false,runningStartedAt:null});
   if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')) {
-    for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
+    for(const name of ['daily-scan-0700','daily-scan-0800','daily-scan-1200','daily-scan-1400','daily-scan-1500','daily-scan-1600','daily-scan-2000']) await chrome.alarms.clear(name);
   } else await schedule();
 });
 chrome.runtime.onStartup.addListener(async()=>{
@@ -1951,7 +1945,7 @@ chrome.runtime.onStartup.addListener(async()=>{
   const previous=await chrome.storage.local.get('running');
   if(previous.running) await chrome.storage.local.set({running:false,runningStartedAt:null,lastScanError:'scan-interrupted-by-browser-restart',lastScanErrorAt:new Date().toISOString()});
   if(isEdgeBrowser||/Whale\//.test(globalThis.navigator?.userAgent||'')) {
-    for(const name of ['daily-scan-1400',...SCHEDULED_SCAN_TIMES.map(entry=>entry.alarm)]) await chrome.alarms.clear(name);
+    for(const name of ['daily-scan-0700','daily-scan-0800','daily-scan-1200','daily-scan-1400','daily-scan-1500','daily-scan-1600','daily-scan-2000']) await chrome.alarms.clear(name);
     return;
   }
   await schedule();
@@ -2004,7 +1998,7 @@ let fallbackCatalogPending=false;
 let catalogWriter=null;
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
   if (message?.type==='GET_EXTENSION_HEALTH') {
-    sendResponse({catalogSavePolicy:'serialized-commit-v1',competitorResultPolicy:'durable-save-v1',competitorPhasePolicy:'own-pages-then-competitors-v1',productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T08:00+09:00').id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
+    sendResponse({competitorSchedule:SCAN_ROUTING_POLICY.competitorSchedule,scanSlots:SCHEDULED_SCAN_TIMES.map(e=>e.slot),catalogSavePolicy:'serialized-commit-v1',competitorResultPolicy:'durable-save-v1',competitorPhasePolicy:'own-pages-then-competitors-v1',productVisitPolicy:'single-pass-v1',workerFailurePolicy:'edge-direct',windowsPrimaryFrom:SCAN_ROUTING_POLICY.windowsPrimary?.from||null,primaryProtocolId:windowsPrimaryProtocol(currentScheduledScanSlot()),workerInstanceId:WORKER_INSTANCE_ID,cadenceExperimentId:'chrome-cadence-week-20261103',version:chrome.runtime.getManifest().version,observerStatus:accessObserverStatus,checkoutObserverStatus,policyId:scanPolicyForSlot(currentScheduledScanSlot()||morningScanSlot()).id,slotOwners:Object.fromEntries(SCHEDULED_SCAN_TIMES.map(entry=>[entry.slot,scanPolicyForSlot(new Date(Date.now()+86400000+9*3600000).toISOString().slice(0,10)+'T'+entry.slot+'+09:00').browser]))});
     return;
   }
   if(message?.type==='COMPETITOR_PHASE'){handleCompetitorPhase(message,_sender,sendResponse);return true;}
@@ -2074,7 +2068,7 @@ chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
     const recovery=message.recovery||null;
     if(recovery&&(!/^[a-f0-9]{32}$/.test(recovery.runId||'')||
       !['primary-worker-failed','chrome-worker-interrupted','chrome-process-exit','whale-process-exit','whale-primary-failed','access-check','file-save-error','model-errors'].includes(recovery.reason)||
-      !/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(message.scanSlot||'')||
+      !/^\d{4}-\d{2}-\d{2}T(07|08|12|15|16|20):00\+09:00$/.test(message.scanSlot||'')||
       !Number.isFinite(Date.parse(recovery.triggeredAt)))) {
       fallbackCatalogPending=false;sendResponse({ok:false,reason:'invalid-recovery-context'});return;
     }

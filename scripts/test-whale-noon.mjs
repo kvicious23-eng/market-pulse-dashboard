@@ -40,6 +40,7 @@ assert.equal((await send({type:'CHECK_PRIMARY_TRANSPORT',products:[]})).targetCo
 // Production save is distinct from manual validation and preserves the request through save retries.
 const files=[],saved={};let count=0;
 const io={Date:Clock,Math,Number,Object,JSON,encodeURIComponent,withScanTimeout:async p=>p,waitForScanDownload:async()=>{},chrome:{storage:{local:{get:async k=>({[k]:saved[k]}),set:async v=>Object.assign(saved,v)}},downloads:{download:async o=>{files.push(o.filename);return ++count;}}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),io);
 vm.runInNewContext('let queuedSaveRetry=null;'+source.slice(source.indexOf('function scanSaveTargets('),source.indexOf('function localDay('))+';this.save=saveCompletedScan;this.retry=()=>queuedSaveRetry;this.clearRetry=()=>{queuedSaveRetry=null;};',io);
 const payload={browser:'whale',primaryRequestId:requestId,runId:'b'.repeat(32),scanSlot:slot,startedAt:'2026-10-21T12:00:01+09:00',completedAt:'2026-10-21T12:01:00+09:00',targetCount:1,results:[]};
 await io.save(payload);assert.equal(files[0],`MarketPulse/whale-scan-${payload.runId}.json`);

@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url),models=require('../chrome-extension/competitor-models.js');
+const routing=JSON.parse(fs.readFileSync(new URL('../chrome-extension/scan-policy.js',import.meta.url),'utf8').match(/\/\* ROUTING_JSON_BEGIN \*\/([\s\S]*?)\/\* ROUTING_JSON_END \*\//)[1]);
+export function competitorScanDue(slot){const p=routing.competitorSchedule;return !p||!slot||slot<p.from||p.slots.includes(slot.slice(11,16));}
 export const headers=['수집시각','브랜드','MTM','경쟁모델','상품식별자','회차','요청ID','상태','기준가격','일반쿠폰','와우즉시','와우쿠폰','카드할인','최종가','확인시각','상품URL','배송비'];
 const readJSON=p=>JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,''));
 const readData=p=>JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF?\s*window\.MARKET_DATA\s*=\s*/,'').replace(/;\s*$/,''));
@@ -74,6 +76,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
   for(const entry of fs.readdirSync(path.join(repo,'brand'),{withFileTypes:true}).filter(e=>e.isDirectory())){
     const file=path.join(repo,'brand',entry.name,'market-data.js');if(!fs.existsSync(file))continue;
     const d=readData(file),brand=d.meta.brand;let touched=false;
+    const skipped=!queue&&!competitorScanDue(d.meta.collectionEvidence?.scanSlot);
     if(Array.isArray(d.history))d.history=d.history.flatMap(entry=>{
       if(!/danawa|enuri|naver|다나와|에누리|네이버|competitorBest|competitorSeller/i.test(JSON.stringify(entry)))return [entry];
       if(!entry.products)return [];
@@ -94,8 +97,9 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
         const row=result?.results.find(r=>r.competitorKey===c.key);
         const retain=!queue&&old?.phaseState==='collected'&&old.comparisonSlot===d.meta.collectionEvidence?.scanSlot&&old.collectionEvidence?.sourceRunId===(d.meta.collectionEvidence?.sourceRunId||d.meta.collectionEvidence?.runId);
         let o=retain?{...old}:row?offerFor(row,{...target,model:c.model}):{...(old||offerFor(null,{...target,model:c.model})),status:queue?'시간 내 미수집':'경쟁모델 업데이트 중',alertEligible:false,collectionStatus:'review-needed',collectionIssue:'competitor-pending',finalPrice:null,observedListPrice:null,preCardPrice:null,couponDiscount:null,checkoutCouponDiscount:null,wowInstantDiscount:null,wowCouponDiscount:null,checkoutDiscountStatus:'missing',cardBenefitStatus:'unverified',cardDiscount:null};
+        if(skipped)o={...(old||offerFor(null,{...target,model:c.model})),status:old?.priceCheckedAt?'직전 경쟁 조사 참고':'경쟁 조사 예정',alertEligible:false,collectionStatus:null,collectionIssue:null};
         if(row)o.collectionEvidence={browser:result.browser,extensionVersion:result.extensionVersion||null,requestId:queue.requestId,sourceRunId:queue.sourceRunId,checkedAt:row.checkedAt};
-        o={...o,brand:c.brand,model:c.model,seller:c.model,note:c.note,comparisonSlot:d.meta.collectionEvidence?.scanSlot||null,phaseState:retain||row?'collected':queue?'not-collected':'pending'};
+        o={...o,brand:c.brand,model:c.model,seller:c.model,note:c.note,comparisonSlot:skipped?(old?.comparisonSlot||null):(d.meta.collectionEvidence?.scanSlot||null),phaseState:skipped?'scheduled-reference':retain||row?'collected':queue?'not-collected':'pending'};
         if(old&&!o.alertEligible){const last=old.alertEligible?old.finalPrice:old.lastVerifiedFinalPrice;if(Number.isFinite(last)){o.lastVerifiedFinalPrice=last;o.lastVerifiedPriceCheckedAt=old.alertEligible?old.priceCheckedAt:old.lastVerifiedPriceCheckedAt;}}
         if(row||queue){
           const values=[result.completedAt,brand,p.mtm,c.model,c.key,queue.scanSlot,queue.requestId,o.status,o.observedListPrice,o.checkoutCouponDiscount,o.wowInstantDiscount,o.wowCouponDiscount,o.cardDiscount,o.alertEligible?o.finalPrice:null,o.priceCheckedAt,c.url,o.shipping],key=historyKey(values);
@@ -106,7 +110,7 @@ export function syncData(repo,catalog,{queue=null,result=null,migrate=false}={})
       // The retired comparison channels can never be restored by an old scan.
       p.offers=(p.offers||[]).filter(o=>o.role==='mine');p.references=[];touched=true;
     }
-    if(touched){if(migrate)d.meta.publishedAt=new Date().toISOString();delete d.meta.monitoring.competitionLastAttemptAt;delete d.meta.monitoring.competitionConfigurationStatus;d.meta.comparisonBasis='사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교';d.meta.exclusions='품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.';d.meta.monitoring.competitionValidationStatus='coupang-models';d.meta.competitorPhase={scanSlot:d.meta.collectionEvidence?.scanSlot||null,state:queue?(result?.stoppedReason?'partial':'complete'):(d.products.some(p=>p.competitorModels.some(o=>o.phaseState==='pending'))?'waiting':'complete'),count:d.products.reduce((n,p)=>n+p.competitorModels.length,0),sourceRunId:queue?.sourceRunId||null,completedAt:result?.completedAt||null};writes.push([file,d]);}
+    if(touched){if(migrate)d.meta.publishedAt=new Date().toISOString();delete d.meta.monitoring.competitionLastAttemptAt;delete d.meta.monitoring.competitionConfigurationStatus;d.meta.comparisonBasis='사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교';d.meta.exclusions='품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.';d.meta.monitoring.competitionValidationStatus='coupang-models';d.meta.competitorPhase={scanSlot:d.meta.collectionEvidence?.scanSlot||null,state:skipped?'scheduled-skip':queue?(result?.stoppedReason?'partial':'complete'):(d.products.some(p=>p.competitorModels.some(o=>o.phaseState==='pending'))?'waiting':'complete'),count:d.products.reduce((n,p)=>n+p.competitorModels.length,0),sourceRunId:queue?.sourceRunId||null,completedAt:result?.completedAt||null};writes.push([file,d]);}
   }
   // All identity, time, catalogue and history validation precedes writes.
   for(const [file,d] of writes)writeData(file,d);writeHistory(repo,h);

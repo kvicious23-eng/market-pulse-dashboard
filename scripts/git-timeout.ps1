@@ -54,7 +54,7 @@ function Invoke-MarketPulseGit {
 # Absolute per-slot upload cutoff. A delayed/restarted supervisor cannot move it.
 function Get-MarketPulseUploadDeadline([string]$Slot,[DateTimeOffset]$StartedAt,[int]$TimeoutSeconds=7200) {
   $at=[DateTimeOffset]::Parse($Slot).ToOffset([TimeSpan]::FromHours(9))
-  if($at.Hour -notin @(8,12,16,20) -or $at.Minute -ne 0 -or $at.Second -ne 0){throw 'Invalid upload slot.'}
+  if($at.Hour -notin @(7,8,12,15,16,20) -or $at.Minute -ne 0 -or $at.Second -ne 0){throw 'Invalid upload slot.'}
   $end=$StartedAt.AddSeconds($TimeoutSeconds)
   $absolute=$at.AddMinutes(150)
   if($end -gt $absolute){$end=$absolute}

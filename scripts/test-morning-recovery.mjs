@@ -18,9 +18,10 @@ assert.equal((await resumeAfterEdge(msg,io)).ok,true);
 assert.equal(saved.scanBrowser,'edge');assert.equal(saved.scanRunId,runId);
 await resumeAfterEdge(msg,io);assert.equal(clicks,1,'Repeated resume must not click again');
 const state={};const context={isEdgeBrowser:false,activeScanPromise:null,localDay:()=>signal.day,Date,URL,wait:async()=>{},chrome:{runtime:{onMessageExternal:{addListener:()=>{}}},tabs:{query:async()=>[]},storage:{local:{get:async()=>state,set:async p=>Object.assign(state,p)}}}};
+vm.runInNewContext(readTestFile('chrome-extension/scan-policy.js','utf8'),context);
 vm.runInNewContext(source.slice(source.indexOf("const SUPPLIER_EXTENSION_ID="),source.indexOf('chrome.runtime.onInstalled.addListener(async()=>{'))+';this.ack=acknowledgeRecoveredMorning;this.gate=waitForSupplierResume;',context);
 // Fixed Date.now; accept only local-validated acknowledgement from the signed-in connector.
-context.Date={...Date,now:()=>Date.parse('2026-10-08T08:36:00+09:00'),parse:Date.parse};
+context.Date=class extends Date{constructor(...a){super(...(a.length?a:[Date.parse('2026-10-08T08:36:00+09:00')]));}static now(){return Date.parse('2026-10-08T08:36:00+09:00');}};
 const sender={id:trusted,url:`chrome-extension://${trusted}/daily-resume.html?slot=x`};
 assert.equal((await context.ack({type:'MARK_MORNING_RECOVERED',...signal},{...sender,id:priceId})).ok,false);
 assert.equal((await context.ack({type:'MARK_MORNING_RECOVERED',...signal},{...sender,url:'https://supplier.coupang.com/'})).ok,false);

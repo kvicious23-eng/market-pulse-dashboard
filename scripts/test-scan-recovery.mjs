@@ -84,7 +84,7 @@ console.log('A transient stop-proof write failure uses one unique fallback witho
 
 // The real collector, including success summaries and immediate 403 stop, uses the seven-day 40-second window.
 for(const [day,arm,ms] of [['03','B',40000],['04','B',40000],['05','B',40000],['06','B',40000],['07','B',40000],['08','B',40000],['09','B',40000]]) {
- for(const hour of ['08','16']) {
+ for(const hour of day<'06'?['08','16']:day==='06'?['08','15']:['07','15']) {
   const slot=`2026-11-${day}T${hour}:00+09:00`;
   for(let restart=0;restart<2;restart++) {
    const x=await run(false,null,false,slot);

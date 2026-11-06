@@ -2,30 +2,107 @@
 const SCAN_ROUTING_POLICY = /* ROUTING_JSON_BEGIN */
 {
   "version": 1,
-  "windowsPrimary": {"from":"2026-11-03T16:00+09:00","id":"windows-primary-v2"},
-  "slots": ["08:00", "12:00", "16:00", "20:00"],
+  "windowsPrimary": {
+    "from": "2026-11-03T16:00+09:00",
+    "id": "windows-primary-v2"
+  },
+  "slots": [
+    "08:00",
+    "12:00",
+    "16:00",
+    "20:00"
+  ],
   "changes": [
-    {"from":"1970-01-01T08:00+09:00","id":"chrome-four-v1","owners":["chrome","chrome","chrome","chrome"]},
-    {"from":"2026-10-21T12:00+09:00","id":"whale-noon-v1","owners":["chrome","whale","chrome","chrome"]},
-    {"from":"2026-10-26T20:00+09:00","id":"whale-noon-evening-v1","owners":["chrome","whale","chrome","whale"]}
-  ]
+    {
+      "from": "1970-01-01T08:00+09:00",
+      "id": "chrome-four-v1",
+      "owners": [
+        "chrome",
+        "chrome",
+        "chrome",
+        "chrome"
+      ]
+    },
+    {
+      "from": "2026-10-21T12:00+09:00",
+      "id": "whale-noon-v1",
+      "owners": [
+        "chrome",
+        "whale",
+        "chrome",
+        "chrome"
+      ]
+    },
+    {
+      "from": "2026-10-26T20:00+09:00",
+      "id": "whale-noon-evening-v1",
+      "owners": [
+        "chrome",
+        "whale",
+        "chrome",
+        "whale"
+      ]
+    },
+    {
+      "from": "2026-11-06T15:00+09:00",
+      "id": "chrome-07-15-whale-12-20-v1",
+      "slots": [
+        "07:00",
+        "12:00",
+        "15:00",
+        "20:00"
+      ],
+      "owners": [
+        "chrome",
+        "whale",
+        "chrome",
+        "whale"
+      ]
+    }
+  ],
+  "competitorSchedule": {
+    "from": "2026-11-06T15:00+09:00",
+    "slots": [
+      "07:00",
+      "15:00"
+    ]
+  }
 }
 /* ROUTING_JSON_END */;
 function scanPolicyForSlot(slot) {
-  if(!/^\d{4}-\d{2}-\d{2}T(08|12|16|20):00\+09:00$/.test(slot||''))throw Error('invalid-scan-slot');
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:00\+09:00$/.test(slot||''))throw Error('invalid-scan-slot');
   const at=Date.parse(slot);
   if(!Number.isFinite(at)||new Date(at+9*3600000).toISOString().slice(0,16)!==slot.slice(0,16))throw Error('invalid-scan-slot-date');
   if(SCAN_ROUTING_POLICY.version!==1||SCAN_ROUTING_POLICY.slots.join(',')!=='08:00,12:00,16:00,20:00')throw Error('invalid-routing-policy');
   let previous='',policy=null;
   for(const row of SCAN_ROUTING_POLICY.changes) {
-    if(row.from<=previous||!row.id||row.owners.length!==4||row.owners.some(x=>!['chrome','whale'].includes(x)))throw Error('invalid-routing-policy');
+    const slots=row.slots||SCAN_ROUTING_POLICY.slots;
+    if(row.from<=previous||!row.id||row.owners.length!==4||slots.length!==4||new Set(slots).size!==4||slots.some(s=>!/^\d{2}:00$/.test(s)||Number(s.slice(0,2))>23)||row.owners.some(x=>!['chrome','whale'].includes(x)))throw Error('invalid-routing-policy');
     previous=row.from;if(row.from<=slot)policy=row;
   }
   if(!policy)throw Error('missing-routing-policy');
-  return {id:policy.id,browser:policy.owners[SCAN_ROUTING_POLICY.slots.indexOf(slot.slice(11,16))]};
+  const slots=policy.slots||SCAN_ROUTING_POLICY.slots,index=slots.indexOf(slot.slice(11,16));
+  if(index<0)throw Error('invalid-scan-slot');
+  return {id:policy.id,browser:policy.owners[index]};
 }
+function allScanSlotTimes(){return [...new Set([SCAN_ROUTING_POLICY.slots,...SCAN_ROUTING_POLICY.changes.map(r=>r.slots||[])].flat())].sort();}
+function scheduledSlotsForDay(day){return allScanSlotTimes().map(t=>day+'T'+t+'+09:00').filter(s=>{try{scanPolicyForSlot(s);return true;}catch{return false;}});}
+function scanScheduleEntries(date=new Date()){
+  const stamp=new Date(date.getTime()+9*3600000).toISOString().slice(0,16)+'+09:00';
+  const row=SCAN_ROUTING_POLICY.changes.filter(r=>r.from<=stamp).at(-1);
+  return (row?.slots||SCAN_ROUTING_POLICY.slots).map(slot=>({alarm:'daily-scan-'+slot.replace(':',''),hour:Number(slot.slice(0,2)),minute:0,slot}));
+}
+function morningScanSlot(date=new Date()){return scheduledSlotsForDay(new Date(date.getTime()+9*3600000).toISOString().slice(0,10))[0];}
+function competitorScanDue(slot){scanPolicyForSlot(slot);const p=SCAN_ROUTING_POLICY.competitorSchedule;return !p||slot<p.from||p.slots.includes(slot.slice(11,16));}
 function scanSlotKey(slot) {scanPolicyForSlot(slot);return slot.slice(0,16).replace(/\D/g,'');}
-function nextScheduledScanTime(slot) {scanPolicyForSlot(slot);return Date.parse(slot)+(slot.slice(11,13)==='20'?12:4)*3600000;}
+function nextScheduledScanTime(slot) {
+  scanPolicyForSlot(slot);
+  for(let day=0;day<3;day++){
+    const stamp=new Date(Date.parse(slot)+day*86400000+9*3600000).toISOString().slice(0,10);
+    for(const candidate of scheduledSlotsForDay(stamp))if(candidate>slot)return Date.parse(candidate);
+  }
+  throw Error('missing-next-scan-slot');
+}
 function primaryScanDeadline(requestedAt,slot) {
   const start=Date.parse(requestedAt);
   if(!Number.isFinite(start))throw Error('invalid-request-time');
@@ -47,7 +124,7 @@ function chromeCadencePolicy(slot,browser,recovery=null,primaryRequestId=null,tr
   const base={experimentId:null,arm:null,delayMs:20000};
   if(browser!=='chrome'||recovery||(primaryRequestId&&!windowsPrimaryProtocol(slot))||transientTargets||!slot)return base;
   try {if(scanPolicyForSlot(slot).browser!=='chrome')return base;} catch {return base;}
-  if(!['08:00','16:00'].includes(slot.slice(11,16)))return base;
+  if(!['07:00','08:00','15:00','16:00'].includes(slot.slice(11,16)))return base;
   const arms={'2026-11-03':'B','2026-11-04':'B','2026-11-05':'B','2026-11-06':'B','2026-11-07':'B','2026-11-08':'B','2026-11-09':'B'};
   const arm=arms[slot.slice(0,10)];
   return arm?{experimentId:'chrome-cadence-week-20261103',arm,delayMs:arm==='B'?40000:20000}:base;

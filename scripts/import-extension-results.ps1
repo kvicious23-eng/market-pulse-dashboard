@@ -312,7 +312,7 @@ $text = @{
   SellerCondition = Decode-Utf8 '64uk64KY7JmAIOuwsOyGoeu5hCDtj6ztlagg6rO16rCcIO2MkOunpOqwgC4g7LaU6rCAIOy/oO2PsMK37Lm065Oc7ZWg7J247J2AIOuvuO2ZleyduC4='
   SellerSource = Decode-Utf8 '64uk64KY7JmAIOqwgOqyqeu5hOq1kCDtjJDrp6Tsspgg66qp66Gd'
   SellerDetail = Decode-Utf8 '7KCV7ZmV7ZWcIE1UTeydmCDsh7ztlZHrqrDrs4Qg7YyQ66ek6rCA66W8IOydvOuwmCBDaHJvbWXsl5DshJwg7ZmV7J24'
-  Schedule = '매일 08:00 · 12:00 · 16:00 · 20:00 KST'
+  Schedule = '매일 07:00 · 12:00 · 15:00 · 20:00 KST'
   Route = Decode-Utf8 'V2luZG93cyBQQyDCtyDsnbzrsJggQ2hyb21lIO2Zleyepe2UhOuhnOq3uOueqA=='
   MarketplacePattern = Decode-Utf8 'MTHrsojqsIB87Jil7IWYfEfrp4jsvJN866Gv642wT0587L+g7YyhfFNTR3zrhKTsnbTrsoQ='
   AcerPattern = Decode-Utf8 'QWNlcnzsl5DsnbTshJw='
@@ -389,7 +389,7 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
         comparisonBasis='Exact model and item price comparison'
         exclusions='Personal rewards and unverified benefits are excluded'
         monitoring=[pscustomobject]@{
-          enabled=$true; quickWatch='Daily 08:00, 12:00, 16:00 and 20:00 KST'; fullResearch='Basic and precision scan'
+          enabled=$true; quickWatch='Daily 07:00, 12:00, 15:00 and 20:00 KST'; fullResearch='Basic and precision scan'
           dashboardSync='GitHub Pages automatic deployment'; lastAttemptAt=$scanKst
           lastAttemptStatus='pending'; lastAttemptText='Waiting for first scan'
           collectionRoute='Windows PC and Chrome extension'

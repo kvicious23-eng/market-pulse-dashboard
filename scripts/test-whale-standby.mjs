@@ -7,7 +7,7 @@ const context={isEdgeBrowser:false,navigator:{userAgent:'Chrome/1 Whale/5'},SCHE
  chrome:{runtime:{onInstalled:{addListener:f=>handlers.install=f},onStartup:{addListener:f=>handlers.startup=f}},alarms:{clear:async n=>cleared.push(n),onAlarm:{addListener:f=>handlers.alarm=f}},storage:{local:{set:async()=>{},get:async()=>({})}}},
  schedule:()=>assert.fail('Whale scheduled an automatic scan'),requestScan:()=>assert.fail('Whale started automatically')};
 vm.runInNewContext(source.slice(source.indexOf('chrome.runtime.onInstalled.addListener('),source.indexOf('chrome.action.onClicked.addListener(')),context);
-await handlers.install();await handlers.startup();await handlers.alarm({name:'daily-scan-1600'});assert.equal(cleared.length,10);
+await handlers.install();await handlers.startup();await handlers.alarm({name:'daily-scan-1600'});assert.equal(cleared.length,14);
 const helpers=source.slice(source.indexOf('function scanSaveTargets('),source.indexOf('function localDay('));
 const files=[],saved={};let writes=0;
 const io={Date,Math,Number,Object,JSON,encodeURIComponent,withScanTimeout:async p=>p,waitForScanDownload:async()=>{},chrome:{storage:{local:{get:async k=>({[k]:saved[k]}),set:async v=>Object.assign(saved,v)}},downloads:{download:async x=>{files.push(x.filename);return ++writes;}}}};
