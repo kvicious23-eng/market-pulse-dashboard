@@ -8,7 +8,8 @@ let csvClickRunning=false;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function native(operation,payload={}) {
   let timer;
-  try { return await Promise.race([chrome.runtime.sendNativeMessage(HOST,{operation,...payload}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('native_timeout')),15000);})]); }
+  try { return await Promise.race([chrome.runtime.sendNativeMessage(HOST,{operation,...payload}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('native_timeout'),{code:'supplier_native_timeout'})),15000);})]); }
+  catch(error) {throw Object.assign(new Error('supplier_native_failed'),{code:error?.code==='supplier_native_timeout'?'supplier_native_timeout':'supplier_native_transport'});}
   finally { clearTimeout(timer); }
 }
 async function tab(id) { if(id==null) return null; try { return await chrome.tabs.get(id); } catch { return null; } }

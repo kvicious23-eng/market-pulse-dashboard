@@ -55,6 +55,60 @@ f=fixture(['authenticated']);f.io.tab=async()=>({id:7,url:'https://evil.test/'})
 // Concurrent manual/alarm invocations cannot submit a second password.
 f=fixture(['login_form','authenticated']);await Promise.all([f.connector.check(),f.connector.check()]);assert.equal(f.get().submits,1);
 
+// A broken existing tab is replaced once before any credential submission.
+f=fixture(['authenticated']);f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('test-secret test-user');};
+assert.equal((await f.connector.check()).status,'connected');assert.equal(f.get().opens,1);assert.equal(f.get().reads,0);
+assert.equal(f.get().saved.tabRecoveryUsed,false);assert.equal(f.get().saved.failure,null);
+assert.equal(f.get().saved.events.find(e=>e.reason==='recovering_supplier_tab').failure.stage,'tab_refresh');
+assert.equal(JSON.stringify(f.get().saved).includes('test-secret'),false);
+f=fixture(['login_form','authenticated']);f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('reload failed');};
+assert.equal((await f.connector.check()).reason,'relogin_confirmed');assert.equal(f.get().opens,1);assert.equal(f.get().submits,1);assert.equal(f.get().saved.tabRecoveryUsed,false);
+// Persist the single-recovery budget even across worker instances.
+f=fixture(['unverified']);f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('reload failed');};
+await f.connector.check();assert.equal(f.get().opens,1);assert.equal(f.get().saved.tabRecoveryUsed,true);
+assert.equal((await new SupplierConnector(f.io).check()).reason,'supplier_tab_error');assert.equal(f.get().opens,1);
+assert.equal(f.get().saved.failure.stage,'tab_refresh');
+// Recovery must retain pending-attempt, cooldown and credential-version barriers.
+f=fixture(['login_form','authenticated'],{pendingAttempt:true,blockedVersion:'v1'});f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('reload failed');};
+assert.equal((await f.connector.check()).reason,'supplier_tab_error');assert.equal(f.get().opens,0);assert.equal(f.get().submits,0);assert.equal(f.get().saved.pendingAttempt,true);
+await f.connector.check({manualRetry:true});assert.equal(f.get().saved.pendingAttempt,true);assert.equal(f.get().submits,0);
+f=fixture(['login_form'],{blockedVersion:'v1'});f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('reload failed');};
+assert.equal((await f.connector.check()).reason,'retry_blocked_until_credentials_updated');assert.equal(f.get().opens,1);assert.equal(f.get().reads,0);
+f=fixture(['login_form'],{lastAutoAt:RETRY_INTERVAL*2-10});f.io.tab=async()=>dashboardTab;f.io.refresh=async()=>{throw Error('reload failed');};
+assert.equal((await f.connector.check()).reason,'retry_cooldown');assert.equal(f.get().submits,0);
+// Closed/unreadable pages can recover; challenges and server errors cannot.
+for(const probe of ['script_error','tab_missing']) {
+ f=fixture(['unverified','authenticated']);let calls=0;
+ f.io.probe=async()=>++calls===1?{state:'unverified',diagnostic:{probe}}:{state:'authenticated'};
+ assert.equal((await f.connector.check()).status,'connected');assert.equal(f.get().opens,1);assert.equal(f.get().reads,0);
+}
+for(const state of ['verification','access_blocked','credential_error','password_reminder_unresolved']) {
+ f=fixture([state]);await f.connector.check();assert.equal(f.get().opens,0);assert.equal(f.get().submits,0);
+}
+// Native and submit failures identify the operation and do not create new tabs.
+f=fixture(['login_form']);f.io.native=async()=>{throw Error('test-secret test-user');};
+assert.equal((await f.connector.check()).reason,'native_status_error');assert.equal(f.get().saved.failure.stage,'native_status');assert.equal(f.get().opens,0);
+assert.equal(JSON.stringify(f.get().saved).includes('test-secret'),false);
+f=fixture(['login_form']);const nativeRead=f.io.native;f.io.native=async op=>{if(op==='read')throw Error('secret');return nativeRead(op);};
+assert.equal((await f.connector.check()).reason,'native_read_error');assert.equal(f.get().saved.blockedVersion,'');assert.equal(f.get().submits,0);
+f=fixture(['login_form']);f.io.submit=async()=>{throw Error('secret');};
+assert.equal((await f.connector.check()).reason,'login_submit_error');assert.equal(f.get().saved.blockedVersion,'v1');
+f.advance(RETRY_INTERVAL*2);assert.equal((await f.connector.check()).reason,'retry_blocked_until_credentials_updated');assert.equal(f.get().opens,0);
+
+for(const [code,kind] of [['supplier_native_timeout','native_timeout'],['supplier_native_transport','native_transport_error']]) {
+ f=fixture(['login_form']);f.io.native=async()=>{throw Object.assign(new Error('test-secret'),{code});};
+ await f.connector.check();assert.equal(f.get().saved.failure.kind,kind);assert.equal(f.get().opens,0);
+}
+f=fixture(['authenticated']);const originalSave=f.io.save;let saveFails=true;
+f.io.save=async value=>{if(saveFails){saveFails=false;throw Error('test-secret');}return originalSave(value);};
+assert.equal((await f.connector.check()).reason,'supplier_state_error');assert.equal(f.get().saved.failure.stage,'state_save');
+
+// A failed initial storage read cannot clear an unknown pending submission.
+f=fixture(['login_form'],{pendingAttempt:true,blockedVersion:'v1'});const originalLoad=f.io.load;let loadFails=true;
+f.io.load=async()=>{if(loadFails){loadFails=false;throw Error('test-secret');}return originalLoad();};
+assert.equal((await f.connector.check()).reason,'supplier_state_error');assert.equal(f.get().saved.failure.stage,'state_load');
+assert.equal(f.get().saved.pendingAttempt,true);assert.equal(f.get().submits,0);
+
 // Explicit retry, cooldown and pending-operation barriers are independent.
 f=fixture(['login_form','authenticated'],{blockedVersion:'v1',reason:'retry_blocked_until_credentials_updated',lastAutoAt:RETRY_INTERVAL*2-100});
 assert.equal((await f.connector.check({manualRetry:true})).status,'connected');assert.equal(f.get().submits,1);
