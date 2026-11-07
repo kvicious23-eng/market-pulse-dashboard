@@ -1,7 +1,7 @@
 export const ENTRY = 'https://supplier.coupang.com/';
 export const CHECK_ALARM = 'supplier-session-check';
 export const RETRY_INTERVAL = 60 * 60 * 1000;
-export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId:null,checkedAt:'',lastAutoAt:0,blockedVersion:'',pendingAttempt:false,events:[],diagnostic:null};
+export const DEFAULT_STATE = {enabled:false,status:'not_checked',reason:'',tabId:null,checkedAt:'',lastAutoAt:0,blockedVersion:'',pendingAttempt:false,tabRecoveryUsed:false,events:[],diagnostic:null};
 
 // Allow only fixed labels, boolean observations and bounded counts into saved diagnostics.
 export function safeDiagnostic(raw={}) {
@@ -56,31 +56,57 @@ export async function probeSupplierTab(io,id) {
 // Never persist page text, account names, URLs, cookies, tokens, or credentials.
 export class SupplierConnector {
   constructor(io) { this.io=io; this.running=false; }
-  async read() { return {...DEFAULT_STATE,...await this.io.load()}; }
-  async noteProbe(p) { await this.io.save({...await this.read(),diagnostic:safeDiagnostic(p.diagnostic)}); }
+  async read() {
+    try {return {...DEFAULT_STATE,...await this.io.load()};}
+    catch {throw Object.assign(new Error('supplier_storage_failed'),{supplierStage:'state_load'});}
+  }
+  async save(value) {
+    try {return await this.io.save(value);}
+    catch {throw Object.assign(new Error('supplier_storage_failed'),{supplierStage:'state_save'});}
+  }
+  async noteProbe(p) { await this.save({...await this.read(),diagnostic:safeDiagnostic(p.diagnostic)}); }
   async state(status,reason,extra={}) {
     const old=await this.read(); const at=new Date(this.io.now()).toISOString();
     const next={...old,...extra,status,reason,checkedAt:at};
-    next.events=[...(old.events||[]),{at,status,reason}].slice(-50);
-    await this.io.save(next); return next;
+    next.events=[...(old.events||[]),{at,status,reason,...(extra.failure?{failure:extra.failure}:{})}].slice(-50);
+    await this.save(next); return next;
   }
   async check({manualRetry=false}={}) {
     if(this.running) return this.read();
     this.running=true;
-    let attemptArmed=false,submissionPossible=false;
+    let attemptArmed=false,submissionPossible=false,pendingAtStart=false,phase='state_load';
     try {
       let s=await this.read();
+      pendingAtStart=s.pendingAttempt===true;
+      phase='tab_lookup';
       let tab=await this.io.tab(s.tabId);
       let opened=false;
       // A replaced or navigated tab is not used as a credential destination.
       if(!officialOrPending(tab)) {
+        phase='tab_open';
         tab=await this.io.open(ENTRY);
         opened=true;
         s=await this.state('checking','opening_supplier',{tabId:tab.id});
       }
       // Verify a fresh Supplier response, rather than an old authenticated DOM.
       // Only the connector's own tab is refreshed; xauth challenge/login pages are left in place.
-      if(!opened && !tab.pendingUrl && tab.status!=='loading' && permittedUrl(tab.url) && new URL(tab.url).hostname==='supplier.coupang.com') await this.io.refresh(tab.id);
+      // Replace a broken connector tab at most once per disconnected episode.
+      // Persist before opening so worker restarts cannot multiply recovery tabs.
+      const recoverTab=async reason=>{
+        if(opened || s.tabRecoveryUsed || s.pendingAttempt)return false;
+        phase='tab_recovery';
+        s=await this.state('checking','recovering_supplier_tab',{tabRecoveryUsed:true,failure:{stage:reason==='reload_failed'?'tab_refresh':'page_probe',kind:reason}});
+        phase='tab_open';
+        tab=await this.io.open(ENTRY);
+        opened=true;
+        s=await this.state('checking','supplier_recovery_tab_opened',{tabId:tab.id});
+        return true;
+      };
+      if(!opened && !tab.pendingUrl && tab.status!=='loading' && permittedUrl(tab.url) && new URL(tab.url).hostname==='supplier.coupang.com') {
+        phase='tab_refresh';
+        try {await this.io.refresh(tab.id);}
+        catch {if(!await recoverTab('reload_failed'))throw new Error('supplier_refresh_failed');}
+      }
       // One optional reminder action per check, including the post-login loop.
       // Dismissal is never positive authentication evidence by itself.
       let reminderAttempted=false;
@@ -90,6 +116,7 @@ export class SupplierConnector {
         await this.noteProbe(result);
         if(reminderAttempted)return {...result,state:'password_reminder_unresolved'};
         reminderAttempted=true;
+        phase='password_reminder';
         const action=await this.io.postponePassword?.(tab.id);
         if(action?.clicked!==true)return {...result,state:'password_reminder_unresolved'};
         await this.state('checking','password_reminder_postponed');
@@ -97,17 +124,22 @@ export class SupplierConnector {
         result=await this.io.probe(tab.id);
         return result.state==='password_reminder'?{...result,state:'password_reminder_unresolved'}:result;
       };
+      phase='page_probe';
       let p=await probe();
       await this.noteProbe(p);
+      if(p.state==='unverified' && ['script_error','tab_missing'].includes(p.diagnostic?.probe) && await recoverTab(p.diagnostic.probe)) {
+        phase='page_probe';p=await probe();await this.noteProbe(p);
+      }
       if(p.state==='password_reminder_unresolved')return this.state('unverified','password_reminder_not_confirmed');
-      if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:''});
+      if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'supplier_dashboard_confirmed':'supplier_session_confirmed',{pendingAttempt:false,blockedVersion:'',tabRecoveryUsed:false,failure:null});
       if(p.state==='verification') return this.state('verification_required','additional_verification');
       if(p.state==='access_blocked') return this.state('access_blocked','access_message');
       if(p.state==='credential_error') return this.state('login_failed','credential_error');
       if(p.state!=='login_form') return this.state('unverified',({loading:'page_still_loading',unsupported_page:'unsupported_target_page',script_error:'page_probe_error',tab_missing:'target_tab_closed'})[p.diagnostic?.probe]||'page_not_confirmed');
       if(s.pendingAttempt) return this.state('login_failed','interrupted_attempt_requires_review',{pendingAttempt:false});
+      phase='native_status';
       const info=await this.io.native('status');
-      if(info?.ok===false) return this.state('connection_error','local_host_or_browser_error');
+      if(info?.ok===false) return this.state('connection_error','native_status_error',{failure:{stage:phase,kind:'native_rejected'}});
       if(!info?.configured) return this.state('credentials_required','local_credentials_missing');
       if(!s.enabled) return this.state('login_required','automatic_login_disabled');
       // Only an explicit options-page action can authorize one more submission.
@@ -119,27 +151,34 @@ export class SupplierConnector {
       attemptArmed=true;
       let credential=null;
       try {
+        phase='credential_read';
         credential=await this.io.native('read');
         if(!credential?.configured || credential.version!==info.version) return this.state('credentials_required','credentials_changed_during_attempt',{pendingAttempt:false,blockedVersion:''});
         submissionPossible=true;
+        phase='login_submit';
         const result=await this.io.submit(tab.id,credential.username,credential.password);
         const reason=['login_input_changed','login_form_invalid','login_submit_not_observed'].includes(result?.reason)?result.reason:'login_form_changed';
         const submission={accountMatched:result?.accountMatched===true,submitObserved:result?.submitObserved===true};
         if(!result?.submitted) return this.state('login_failed',reason,{pendingAttempt:false,submission});
-        await this.io.save({...await this.read(),submission});
+        await this.save({...await this.read(),submission});
       } finally { if(credential) { credential.password=''; credential.username=''; } credential=null; }
       for(let i=0;i<15;i++) {
+        phase='post_login_probe';
         await this.io.sleep(2000); p=await probe();
         await this.noteProbe(p);
         if(p.state==='password_reminder_unresolved')return this.state('unverified','password_reminder_not_confirmed',{pendingAttempt:false});
-        if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'relogin_dashboard_confirmed':'relogin_confirmed',{blockedVersion:'',pendingAttempt:false});
+        if(p.state==='authenticated') return this.state('connected',p.evidence==='supplier_dashboard_widgets'?'relogin_dashboard_confirmed':'relogin_confirmed',{blockedVersion:'',pendingAttempt:false,tabRecoveryUsed:false,failure:null});
         if(p.state==='verification') return this.state('verification_required','additional_verification',{pendingAttempt:false});
         if(p.state==='access_blocked') return this.state('access_blocked','access_message',{pendingAttempt:false});
         if(p.state==='credential_error') return this.state('login_failed','credential_error',{pendingAttempt:false});
       }
       return this.state('login_failed','login_not_confirmed',{pendingAttempt:false});
-    } catch {
-      return this.state('connection_error','local_host_or_browser_error',{pendingAttempt:false,...attemptArmed&&!submissionPossible?{blockedVersion:''}:{}});
+    } catch(error) {
+      if(['state_load','state_save'].includes(error?.supplierStage))phase=error.supplierStage;
+      const kind=error?.code==='supplier_native_timeout'?'native_timeout':error?.code==='supplier_native_transport'?'native_transport_error':'operation_failed';
+      // Fixed operation labels only; never retain exception text or secret values.
+      const reason=({tab_lookup:'supplier_tab_error',tab_open:'supplier_tab_error',tab_refresh:'supplier_tab_error',tab_recovery:'supplier_tab_error',native_status:'native_status_error',credential_read:'native_read_error',login_submit:'login_submit_error',page_probe:'supplier_probe_error',post_login_probe:'supplier_probe_error',password_reminder:'supplier_reminder_error'})[phase]||'supplier_state_error';
+      return this.state('connection_error',reason,{failure:{stage:phase,kind},pendingAttempt:pendingAtStart,...attemptArmed&&!submissionPossible?{blockedVersion:''}:{}});
     } finally { this.running=false; }
   }
 }
