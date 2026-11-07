@@ -103,6 +103,12 @@ f=fixture(['authenticated']);const originalSave=f.io.save;let saveFails=true;
 f.io.save=async value=>{if(saveFails){saveFails=false;throw Error('test-secret');}return originalSave(value);};
 assert.equal((await f.connector.check()).reason,'supplier_state_error');assert.equal(f.get().saved.failure.stage,'state_save');
 
+// A failed initial storage read cannot clear an unknown pending submission.
+f=fixture(['login_form'],{pendingAttempt:true,blockedVersion:'v1'});const originalLoad=f.io.load;let loadFails=true;
+f.io.load=async()=>{if(loadFails){loadFails=false;throw Error('test-secret');}return originalLoad();};
+assert.equal((await f.connector.check()).reason,'supplier_state_error');assert.equal(f.get().saved.failure.stage,'state_load');
+assert.equal(f.get().saved.pendingAttempt,true);assert.equal(f.get().submits,0);
+
 // Explicit retry, cooldown and pending-operation barriers are independent.
 f=fixture(['login_form','authenticated'],{blockedVersion:'v1',reason:'retry_blocked_until_credentials_updated',lastAutoAt:RETRY_INTERVAL*2-100});
 assert.equal((await f.connector.check({manualRetry:true})).status,'connected');assert.equal(f.get().submits,1);

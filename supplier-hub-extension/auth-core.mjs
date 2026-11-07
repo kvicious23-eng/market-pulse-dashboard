@@ -178,7 +178,7 @@ export class SupplierConnector {
       const kind=error?.code==='supplier_native_timeout'?'native_timeout':error?.code==='supplier_native_transport'?'native_transport_error':'operation_failed';
       // Fixed operation labels only; never retain exception text or secret values.
       const reason=({tab_lookup:'supplier_tab_error',tab_open:'supplier_tab_error',tab_refresh:'supplier_tab_error',tab_recovery:'supplier_tab_error',native_status:'native_status_error',credential_read:'native_read_error',login_submit:'login_submit_error',page_probe:'supplier_probe_error',post_login_probe:'supplier_probe_error',password_reminder:'supplier_reminder_error'})[phase]||'supplier_state_error';
-      return this.state('connection_error',reason,{failure:{stage:phase,kind},pendingAttempt:pendingAtStart,...attemptArmed&&!submissionPossible?{blockedVersion:''}:{}});
+      return this.state('connection_error',reason,{failure:{stage:phase,kind},...(pendingAtStart?{pendingAttempt:true}:attemptArmed?{pendingAttempt:false}:{}),...attemptArmed&&!submissionPossible?{blockedVersion:''}:{}});
     } finally { this.running=false; }
   }
 }
