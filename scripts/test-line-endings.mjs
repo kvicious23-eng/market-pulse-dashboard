@@ -21,7 +21,7 @@ function copyText(from,to,eol) {
     else if(entry.isFile()&&textExtensions.has(path.extname(entry.name))) {
       const text=fs.readFileSync(src,'utf8').replace(/\r\n?/g,'\n');
       fs.writeFileSync(dest,text.replace(/\n/g,eol),'utf8');
-    }
+    } else if(entry.isFile()) fs.copyFileSync(src,dest);
   }
 }
 try {

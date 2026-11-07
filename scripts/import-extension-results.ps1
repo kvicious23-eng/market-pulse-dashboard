@@ -367,6 +367,29 @@ function Get-BrandSlug([string]$brand) {
   return $slug
 }
 
+function Write-BrandTouchIcon([string]$initial,[string]$color,[string]$indexPath) {
+  Add-Type -AssemblyName System.Drawing
+  $bitmap=New-Object System.Drawing.Bitmap(180,180)
+  $graphics=$null;$font=$null;$format=$null
+  $destination=Join-Path (Split-Path -Parent $indexPath) 'apple-touch-icon-v2.png'
+  $temporary=$destination+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+  try {
+    $graphics=[System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.Clear([System.Drawing.ColorTranslator]::FromHtml($color))
+    $graphics.TextRenderingHint=[System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $font=New-Object System.Drawing.Font('Arial',128,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
+    $format=New-Object System.Drawing.StringFormat
+    $format.Alignment=[System.Drawing.StringAlignment]::Center
+    $format.LineAlignment=[System.Drawing.StringAlignment]::Center
+    $graphics.DrawString($initial,$font,[System.Drawing.Brushes]::White,(New-Object System.Drawing.RectangleF(0,0,180,180)),$format)
+    $bitmap.Save($temporary,[System.Drawing.Imaging.ImageFormat]::Png)
+    Move-Item -LiteralPath $temporary -Destination $destination -Force
+  } finally {
+    if($format){$format.Dispose()};if($font){$font.Dispose()};if($graphics){$graphics.Dispose()};$bitmap.Dispose()
+    if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}
+  }
+}
+
 function Get-BrandBrowserIcon([string]$brand,[string]$indexPath) {
   $fixed=@{acer='#009b3a';lenovo='#c8202f';godox='#1769c2';hp='#946b00'}
   $color=$fixed[$brand.Trim().ToLowerInvariant()]
@@ -401,6 +424,7 @@ function Get-BrandBrowserIcon([string]$brand,[string]$indexPath) {
     if (-not $color) {throw 'Unable to allocate a unique dark brand color'}
   }
   $initial=if($brand -match '[A-Za-z]'){$Matches[0].ToUpperInvariant()}else{[Globalization.StringInfo]::GetNextTextElement($brand.Trim()).ToUpperInvariant()}
+  Write-BrandTouchIcon $initial $color $indexPath
   $letter=[Net.WebUtility]::HtmlEncode($initial)
   $svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="'+$color+'"/><text x="32" y="33" dy=".35em" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="44" font-weight="700" fill="white">'+$letter+'</text></svg>'
   return '<link rel="icon" type="image/svg+xml" data-brand-color="'+$color+'" href="data:image/svg+xml,'+[Uri]::EscapeDataString($svg)+'" />'
@@ -416,7 +440,9 @@ function New-BrandDashboard([string]$brand,[string]$dataPath,[string]$category) 
   $html=$html -replace '<meta name="description" content="[^"]*" />',("<meta name=`"description`" content=`"$safeBrand online price dashboard`" />")
   $html=$html -replace '<title>.*?</title>',("<title>$safeBrand Price Dashboard</title>")
   $icon=Get-BrandBrowserIcon $brand $indexPath
+  $html=[regex]::Replace($html,'<link\s+rel="apple-touch-icon"[^>]*>','')
   $html=[regex]::Replace($html,'<link\s+rel="icon"[^>]*>',[Text.RegularExpressions.MatchEvaluator]{param($match) $icon})
+  $html=$html.Replace($icon,$icon+"`n    <link rel=`"apple-touch-icon`" sizes=`"180x180`" href=`"apple-touch-icon-v2.png`" />")
   $html=$html -replace '<small id="brandSubtitle">.*?</small>',("<small id=`"brandSubtitle`">$safeBrand $safeCategory · Korea</small>")
   $html=$html -replace '<h1 id="pageTitle">.*?</h1>','<h1 id="pageTitle">가격 현황<br /><em>확인 중.</em></h1>'
   $html=$html -replace 'href="(?:\.\.\/dist\/|\.\/)styles\.css([^\"]*)"','href="../../dist/styles.css$1"'
