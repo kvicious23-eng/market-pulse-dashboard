@@ -14,6 +14,11 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/public-dashboard.yml"
+      - "scripts/public-brand-hosts.mjs"
+      - "scripts/brand-public-sites.mjs"
+      - "scripts/build-public-dashboard.mjs"
+      - "scripts/verify-public-dashboard.mjs"
       # All Windows entry points, shared helpers and PS regression tests are gates.
       - "scripts/*.ps1"
       - "scripts/competitor-*.mjs"

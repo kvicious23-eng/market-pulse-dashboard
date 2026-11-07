@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import {brandOrigin} from './public-brand-hosts.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -50,7 +51,7 @@ export function buildPublicDashboard(sources){
   files.set(brand+'/market-data.js',clean('window.MARKET_DATA = '+JSON.stringify(data,null,2)+';\n'));
   files.set(brand+'/index.html',clean(html).replaceAll('../../dist/','/assets/').replace(/app\.js\?v=[^"']+/g,'app.js?v='+sha(files.get('assets/app.js')).slice(0,12)).replace(/styles\.css\?v=[^"']+/g,'styles.css?v='+sha(files.get('assets/styles.css')).slice(0,12)));
  }
- const links=brands.map(b=>`<li><a href="/${encodeURIComponent(b)}/">${escape(labels.get(b))}</a></li>`).join('');
+ const links=brands.map(b=>`<li><a href="${brandOrigin(b)}">${escape(labels.get(b))}</a></li>`).join('');
  files.set('index.html',`<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Pulse</title><style>body{font:18px system-ui;max-width:680px;margin:64px auto;padding:24px;background:#eef5f1;color:#12392a}li{margin:20px 0}a{color:#007d4a}</style><h1>Market Pulse</h1><p>브랜드별 가격 현황</p><ul>${links}</ul></html>`);
  files.set('404.html','<!doctype html><html lang="ko"><meta charset="utf-8"><title>페이지 없음</title><h1>대시보드를 찾을 수 없습니다.</h1><a href="/">브랜드 목록</a></html>');
  files.set('_headers','/*\n  Cache-Control: no-cache\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n');

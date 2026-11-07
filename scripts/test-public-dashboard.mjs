@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {buildPublicDashboard,readPublicSources} from './build-public-dashboard.mjs';
+import {brandOrigin} from './public-brand-hosts.mjs';
 import {verifyPublicDashboard} from './verify-public-dashboard.mjs';
 const sources=new Map();
 for(const f of ['styles.css','app.js','xlsx-export.js','price-history.js','competitor-price-history.js'])sources.set('dist/'+f,fs.readFileSync('dist/'+f,'utf8'));
@@ -14,14 +15,14 @@ assert.equal(files.size,17);assert.equal(JSON.stringify([...sources]),original);
 for(const b of ['acer','lenovo','godox']){
  assert.deepEqual(parse(files.get(b+'/market-data.js')).products,parse(sources.get('brand/'+b+'/market-data.js')).products);
  assert(files.get(b+'/index.html').includes('/assets/app.js'));
- assert(files.get('index.html').includes('/'+b+'/'));
+ assert(files.get('index.html').includes(brandOrigin(b)));
 }
 for(const [p,s] of files){assert(!/github|kvicious|cafe24|\.\.\/\.\.\/dist/i.test(s),p);assert(!p.includes('scripts/')&&!p.includes('.github/'));}
 const extra=new Map(sources),newData=parse(sources.get('brand/acer/market-data.js'));newData.meta.brand='새 브랜드';
 extra.set('brand/새-브랜드/index.html',sources.get('brand/acer/index.html'));
 extra.set('brand/새-브랜드/apple-touch-icon-v2.png',sources.get('brand/acer/apple-touch-icon-v2.png'));
 extra.set('brand/새-브랜드/market-data.js','window.MARKET_DATA = '+JSON.stringify(newData)+';');
-const expanded=buildPublicDashboard(extra);assert.equal(expanded.size,20);assert(expanded.has('새-브랜드/index.html'));assert(expanded.get('index.html').includes(encodeURIComponent('새-브랜드')));
+const expanded=buildPublicDashboard(extra);assert.equal(expanded.size,20);assert(expanded.has('새-브랜드/index.html'));assert(expanded.get('index.html').includes(brandOrigin('새-브랜드')));
 extra.delete('brand/새-브랜드/index.html');assert.throws(()=>buildPublicDashboard(extra),/Incomplete/);
 const noIcon=new Map(sources);noIcon.delete('brand/acer/apple-touch-icon-v2.png');assert.throws(()=>buildPublicDashboard(noIcon),/touch icon/);
 assert.notDeepEqual(files.get('acer/apple-touch-icon-v2.png'),files.get('lenovo/apple-touch-icon-v2.png'));

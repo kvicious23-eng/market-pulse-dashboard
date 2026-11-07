@@ -10,6 +10,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/public-dashboard.yml
+      - scripts/public-brand-hosts.mjs
+      - scripts/brand-public-sites.mjs
+      - scripts/test-brand-public-sites.mjs
       - scripts/build-public-dashboard.mjs
       - scripts/test-public-dashboard.mjs
       - scripts/verify-public-dashboard.mjs
@@ -30,7 +33,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - run: node scripts/test-public-dashboard.mjs
+      - run: |
+          node scripts/test-public-dashboard.mjs
+          node scripts/test-brand-public-sites.mjs
 
   publish:
     if: >-
@@ -41,7 +46,7 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository &&
        github.event.workflow_run.event != 'pull_request')
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       CLOUDFLARE_ACCOUNT_ID: d3e534928c9ef350bb0b435d689bb4c0
     steps:
@@ -62,14 +67,33 @@ jobs:
         with:
           node-version: '22'
       - name: Validate external exporter
-        run: node scripts/test-public-dashboard.mjs
+        run: |
+          node scripts/test-public-dashboard.mjs
+          node scripts/test-brand-public-sites.mjs
       - name: Build from the currently published internal dashboard
         run: node scripts/build-public-dashboard.mjs publicmp
-      - name: Publish external dashboard
+      - name: Build independent brand sites
+        run: node scripts/brand-public-sites.mjs build publicmp brand-publicmp
+      - name: Install Cloudflare deploy CLI
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy publicmp --project-name=market-pulse-public --branch=main --commit-dirty=true
+          command: --version
+      - name: Publish and verify independent brand sites
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/brand-public-sites.mjs publish brand-publicmp
+      - name: Publish external overview and legacy paths
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --no-install wrangler pages deploy publicmp --project-name=market-pulse-public --branch=main --commit-dirty=true
       - name: Verify public files match the exported snapshot
         run: node scripts/verify-public-dashboard.mjs publicmp
+      - name: Preserve brand deployment verification receipt
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-brand-sites-verification
+          path: brand-publicmp/deployment-receipt.json
+          if-no-files-found: ignore
