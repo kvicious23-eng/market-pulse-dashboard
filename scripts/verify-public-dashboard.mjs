@@ -19,7 +19,7 @@ export async function verifyPublicDashboard(root,fetcher=fetch){
   const url=new URL(route.split('/').map(encodeURIComponent).join('/'),origin);url.searchParams.set('verify',Date.now());
   const response=await fetcher(url,{cache:'no-store',redirect:'manual',signal:AbortSignal.timeout(20000)});
   if(response.status!==(name==='404.html'?404:200))throw Error('External file unavailable: '+name);
-  if(await response.text()!==await fs.readFile(path.join(root,name),'utf8'))throw Error('External snapshot mismatch: '+name);
+  if(!Buffer.from(await response.arrayBuffer()).equals(await fs.readFile(path.join(root,name))))throw Error('External snapshot mismatch: '+name);
  }
  return files.length;
 }

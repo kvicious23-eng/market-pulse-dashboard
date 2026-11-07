@@ -46,7 +46,14 @@ try {
   $newColor=$Matches[1]
   if($newColor -in @('#009b3a','#c8202f','#1769c2','#946b00')){throw 'New brand reused a reserved color'}
   if([Uri]::UnescapeDataString($newHtml) -notmatch 'fill="white">N</text>'){throw 'New brand initial is not uppercase white N'}
+  if(@([regex]::Matches($newHtml,'rel="apple-touch-icon"')).Count -ne 1){throw 'Touch icon link missing or duplicated'}
+  $touch=Join-Path (Split-Path -Parent $newPage) 'apple-touch-icon-v2.png'
+  $image=[System.Drawing.Image]::FromFile($touch)
+  try {if($image.Width -ne 180 -or $image.Height -ne 180){throw 'Touch icon dimensions invalid'}} finally {$image.Dispose()}
+  $touchHash=(Get-FileHash -LiteralPath $touch -Algorithm SHA256).Hash
   New-BrandDashboard 'New Brand' (Join-Path $RepoPath 'brand\new-brand\market-data.js') 'Camera'
+  if((Get-FileHash -LiteralPath $touch -Algorithm SHA256).Hash -cne $touchHash){throw 'Touch icon changed on regeneration'}
+  if(@([regex]::Matches([IO.File]::ReadAllText($newPage),'rel="apple-touch-icon"')).Count -ne 1){throw 'Touch icon link multiplied'}
   if([IO.File]::ReadAllText($newPage) -notmatch ('data-brand-color="'+$newColor+'"')){throw 'Brand color changed on regeneration'}
   New-BrandDashboard 'Another Brand' (Join-Path $RepoPath 'brand\another-brand\market-data.js') 'Camera'
   $anotherHtml=[IO.File]::ReadAllText((Join-Path $RepoPath 'brand\another-brand\index.html'))
