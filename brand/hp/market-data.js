@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-08T07:16:00+09:00",
+    "snapshotAt": "2026-11-08T12:10:55+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,40 +9,40 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-08T07:16:00+09:00",
+      "lastAttemptAt": "2026-11-08T12:10:55+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
-      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-08T07:00+09:00",
-      "state": "complete",
+      "scanSlot": "2026-11-08T12:00+09:00",
+      "state": "scheduled-skip",
       "count": 0,
-      "sourceRunId": "7aff9a322e5c4d2f8489040c06b18669",
-      "completedAt": "2026-11-07T22:23:11.050Z"
+      "sourceRunId": null,
+      "completedAt": null
     },
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "chrome",
+      "browser": "whale",
       "extensionVersion": "1.9.77",
-      "scanSlot": "2026-11-08T07:00+09:00",
+      "scanSlot": "2026-11-08T12:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "7aff9a322e5c4d2f8489040c06b18669",
-      "sourceRunId": "7aff9a322e5c4d2f8489040c06b18669",
-      "startedAt": "2026-11-07T22:00:03.698Z",
-      "completedAt": "2026-11-07T22:16:00.886Z",
+      "runId": "34010df5110540248d49fad8d35fa03c",
+      "sourceRunId": "34010df5110540248d49fad8d35fa03c",
+      "startedAt": "2026-11-08T03:00:12.502Z",
+      "completedAt": "2026-11-08T03:10:55.429Z",
       "targetCount": 15,
       "resultCount": 15
     },
     "recoveryEvidence": null,
+    "publishedAt": "2026-11-08T12:10:55+09:00",
     "historyBrands": [
       "HP"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null,
-    "publishedAt": "2026-11-08T07:16:12+09:00"
+    "renamedTo": null
   },
   "products": [
     {
@@ -63,17 +63,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-08 07:00",
+          "checkedAt": "2026-11-08 12:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "chrome",
+            "browser": "whale",
             "extensionVersion": "1.9.77",
-            "runId": "7aff9a322e5c4d2f8489040c06b18669",
-            "checkedAt": "2026-11-07T22:00:16.352Z"
+            "runId": "34010df5110540248d49fad8d35fa03c",
+            "checkedAt": "2026-11-08T03:00:26.731Z"
           },
-          "availabilityCheckedAt": "2026-11-08 07:00",
+          "availabilityCheckedAt": "2026-11-08 12:00",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2189000,
@@ -115,7 +115,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 390000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-07T22:00:32.413Z",
+          "checkoutDiscountCheckedAt": "2026-11-08T03:00:42.282Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -129,10 +129,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-07 20:00",
+          "priceComparisonAt": "2026-11-08 07:00",
           "lastVerifiedFinalPrice": 2049000,
-          "lastVerifiedPriceCheckedAt": "2026-11-08 07:00",
-          "priceCheckedAt": "2026-11-08 07:00"
+          "lastVerifiedPriceCheckedAt": "2026-11-08 12:00",
+          "priceCheckedAt": "2026-11-08 12:00"
         }
       ],
       "competitorModels": [],
