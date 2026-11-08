@@ -81,6 +81,10 @@ export class SupplierConnector {
       phase='tab_lookup';
       let tab=await this.io.tab(s.tabId);
       let opened=false;
+      if(!officialOrPending(tab)&&this.io.findExisting) {
+        tab=await this.io.findExisting();
+        if(officialOrPending(tab))s=await this.state('checking','existing_supplier_tab_found',{tabId:tab.id});
+      }
       // A replaced or navigated tab is not used as a credential destination.
       if(!officialOrPending(tab)) {
         phase='tab_open';

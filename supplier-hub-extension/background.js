@@ -3,6 +3,8 @@ import {PremiumViewer, inspectPremiumPage} from './premium-core.mjs';
 import {clickSupplierCsvDownload,supplierExportForm,supplierExportFile} from './csv-core.mjs';
 import {resumeAfterEdge} from './edge-resume-core.mjs';
 import {DailyCsv,DAILY_CSV_ALARM,kstDay,csvName,supplierDownload,supplierCsvNames} from './daily-csv-core.mjs';
+import {dismissSupplierNotice} from './popup-core.mjs';
+import {findSupplierDashboard,openSupplierTab} from './tab-core.mjs';
 const HOST='com.marketpulse.supplierhub';
 let csvClickRunning=false;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -13,14 +15,27 @@ async function native(operation,payload={}) {
   finally { clearTimeout(timer); }
 }
 async function tab(id) { if(id==null) return null; try { return await chrome.tabs.get(id); } catch { return null; } }
+const tabIO={windows:()=>chrome.windows.getAll(),createTab:options=>chrome.tabs.create(options),createWindow:options=>chrome.windows.create(options)};
+const open=(url,active=false)=>openSupplierTab(tabIO,url,active);
+async function supplierAction(tabId,func,args=[]) {
+  const t=await tab(tabId);
+  if(!t||!permittedUrl(t.url)||new URL(t.url).origin!=='https://supplier.coupang.com')return {ok:false,phase:'waiting',reason:'csv_page_not_ready'};
+  const notice=(await chrome.scripting.executeScript({target:{tabId},func:dismissSupplierNotice}))[0]?.result;
+  if(notice?.ok!==true)return {ok:false,phase:'waiting',reason:notice?.reason||'supplier_popup_check_failed'};
+  return (await chrome.scripting.executeScript({target:{tabId},func,args}))[0]?.result;
+}
 async function probe(id) {
-  return probeSupplierTab({extensionVersion:chrome.runtime.getManifest().version,tab,sleep:delay,inspect:async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:inspectSupplierPage}))[0]?.result},id);
+  return probeSupplierTab({extensionVersion:chrome.runtime.getManifest().version,tab,sleep:delay,inspect:async tabId=>{
+    const result=(await chrome.scripting.executeScript({target:{tabId},func:inspectSupplierPage}))[0]?.result;
+    if(result?.state==='authenticated')await chrome.scripting.executeScript({target:{tabId},func:dismissSupplierNotice});
+    return result;
+  }},id);
 }
 const premium=new PremiumViewer({
   extensionVersion:chrome.runtime.getManifest().version,now:()=>Date.now(),tab,sleep:delay,
   load:async()=> (await chrome.storage.local.get('premium')).premium,
   save:async value=>chrome.storage.local.set({premium:value}),
-  open:url=>chrome.tabs.create({url,active:true}),activate:id=>chrome.tabs.update(id,{active:true}),
+  open:url=>open(url,true),activate:id=>chrome.tabs.update(id,{active:true}),
   inspect:async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:inspectPremiumPage}))[0]?.result
 });
 const connector=new SupplierConnector({
@@ -28,7 +43,7 @@ const connector=new SupplierConnector({
   save:async connection=>chrome.storage.local.set({connection}),
   now:()=>Date.now(),sleep:delay,native,tab,probe,
   refresh:async id=>{await chrome.tabs.reload(id,{bypassCache:true});await delay(750);},
-  open:url=>chrome.tabs.create({url,active:false}),
+  open:url=>open(url),findExisting:()=>findSupplierDashboard({query:options=>chrome.tabs.query(options),probe}),
   postponePassword:async id=>{
     const t=await tab(id);
     if(!t||!permittedUrl(t.url)||new URL(t.url).origin!=='https://supplier.coupang.com'||new URL(t.url).pathname!=='/password-expiring')return {clicked:false};
@@ -49,7 +64,7 @@ const daily=new DailyCsv({
     if(!await tab(id))return {ok:false,reason:'csv_page_not_ready'};
     let result;
     for(let i=0;i<20;i++){
-      result=(await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload,args:[true]}))[0]?.result;
+      result=await supplierAction(id,clickSupplierCsvDownload,[true]);
       if(result?.ok||!['csv_button_missing','csv_page_not_ready'].includes(result?.reason))return result;
       await delay(1000);
     }
@@ -64,12 +79,12 @@ const daily=new DailyCsv({
     if(csvClickRunning)return {ok:false,reason:'csv_busy'};
     csvClickRunning=true;
     try {const id=(await chrome.storage.local.get('premium')).premium?.tabId;
-      return (await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload}))[0]?.result;
+      return await supplierAction(id,clickSupplierCsvDownload);
     }finally{csvClickRunning=false;}
   },
   exportForm:async(job,submit=false)=>{
     const id=(await chrome.storage.local.get('premium')).premium?.tabId;
-    return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportForm,args:['',submit]}))[0]?.result;
+    return supplierAction(id,supplierExportForm,['',submit]);
   },
   receiveFile:async(job,click=false)=>{
     let id=(await chrome.storage.local.get('premium')).premium?.tabId;
@@ -82,7 +97,7 @@ const daily=new DailyCsv({
       id=(await chrome.storage.local.get('premium')).premium?.tabId;
     }
     const name=supplierCsvNames(job.day);
-    return (await chrome.scripting.executeScript({target:{tabId:id},func:supplierExportFile,args:[name,job.exportRequestAt,job.exportRequestId||'',click]}))[0]?.result;
+    return supplierAction(id,supplierExportFile,[name,job.exportRequestAt,job.exportRequestId||'',click]);
   },
   downloads:job=>chrome.downloads.search({startedAfter:new Date(kstDay(Date.parse(job.requestedAt))+'T00:00:00+09:00').toISOString(),filenameRegex:'basic_operation_rocket_.*\\.csv$'}),
   validate:payload=>native('csv_complete',payload),publishStatus:()=>native('daily_status')
@@ -140,13 +155,13 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
         if((await premium.check())?.status!=='page_opened')return {ok:false,reason:'csv_page_not_ready'};
         const id=(await chrome.storage.local.get('premium')).premium?.tabId;
         if(id==null)return {ok:false,reason:'csv_wrong_page'};
-        return (await chrome.scripting.executeScript({target:{tabId:id},func:clickSupplierCsvDownload}))[0]?.result||{ok:false,reason:'csv_click_error'};
+        return await supplierAction(id,clickSupplierCsvDownload)||{ok:false,reason:'csv_click_error'};
       }catch{return {ok:false,reason:'csv_click_error'};}finally{csvClickRunning=false;}
     }
     if(message.type==='ENABLE') {await chrome.storage.local.set({connection:{...await connector.read(),enabled:message.enabled===true}});await schedule();return connector.read();}
     if(message.type==='CONFIGURE') return native('configure');
     if(message.type==='FORGET') {const r=await native('delete');if(!r.ok) return r;await chrome.storage.local.set({connection:{...await connector.read(),enabled:false,blockedVersion:'',lastAutoAt:0,pendingAttempt:false}});await schedule();return connector.state('credentials_required','credentials_removed');}
-    if(message.type==='OPEN') {const s=await connector.read();let t=await tab(s.tabId);if(!officialOrPending(t)) {t=await chrome.tabs.create({url:'https://supplier.coupang.com/',active:true});await chrome.storage.local.set({connection:{...s,tabId:t.id}});}else await chrome.tabs.update(t.id,{active:true});return {ok:true};}
+    if(message.type==='OPEN') {const s=await connector.read();let t=await tab(s.tabId);if(!officialOrPending(t)) {t=await open('https://supplier.coupang.com/',true);await chrome.storage.local.set({connection:{...s,tabId:t.id}});}else await chrome.tabs.update(t.id,{active:true});return {ok:true};}
     return {ok:false};
   };
   run().then(reply).catch(()=>reply({ok:false,reason:'local_connection_error'}));return true;
