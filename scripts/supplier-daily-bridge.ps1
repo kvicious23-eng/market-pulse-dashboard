@@ -8,7 +8,8 @@ $now=[TimeZoneInfo]::ConvertTime([DateTimeOffset]::UtcNow,$zone);$day=$now.Date;
 $queuePath=Join-Path $RepoPath 'reports\supplier-daily-queue.json'
 function Start-PendingSupplierPublication($Queue) {
   if ($Queue -and $Queue.PSObject.Properties['nextAttemptAt'] -and $Queue.nextAttemptAt -and $now -lt [DateTimeOffset]::Parse($Queue.nextAttemptAt)) { return }
-  if ($Queue -and $Queue.day -eq $date -and $Queue.status -ne 'published' -and [int]$Queue.attempts -lt 4 -and $now.Hour -ge 8 -and ($now.Hour -gt 8 -or $now.Minute -ge 30)) {
+  # A validated current-day queue is ready immediately; 08:31 is backup only.
+  if ($Queue -and $Queue.day -eq $date -and $Queue.status -ne 'published' -and [int]$Queue.attempts -lt 4) {
     $task=Get-ScheduledTask -TaskName 'Market Pulse Supplier Metrics' -ErrorAction SilentlyContinue
     if ($task -and $task.State -ne 'Running') { Start-ScheduledTask -InputObject $task }
   }
