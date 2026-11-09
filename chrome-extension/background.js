@@ -353,7 +353,7 @@ async function waitForComplete(tabId) {
   return false;
 }
 
-async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId,expectedSrp,expectedMinimum=null) {
+async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendorItemId,expectedSrp,expectedMinimum=null,cardAction=null) {
   const currentUrl = new URL(location.href);
   const params = currentUrl.searchParams;
   const actualProductId = currentUrl.pathname.match(/\/vp\/products\/(\d+)/)?.[1]||null;
@@ -467,7 +467,7 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
   const strike=uppermost?{price:uppermost.price,selector:'visible-product-price',basisType:crossedOut?'crossed-out':'top-visible'}:null;
   const basisEvidence=uppermost?{top:uppermost.top,left:uppermost.left,text:uppermost.text,
     activePriceTop:primary.top,titleTop:title.rect.top+scrollY,priceBlockCount:priceBlock.length}:null;
-  async function locateCardBenefitControl(mainPriceTop) {
+  async function locateCardBenefitControl(mainPriceTop,center=false,allowScroll=true) {
     const textOf=node=>(node?.innerText||node?.textContent||'').replace(/\s+/g,' ').trim();
     const shown=node=>{
       const r=node.getBoundingClientRect(),s=getComputedStyle(node);
@@ -508,8 +508,8 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
       row=parent;
     }
     const before=row.getBoundingClientRect();
-    if(before.top<20||before.bottom>innerHeight-20) {
-      row.scrollIntoView({block:'center',inline:'nearest'});
+    if(allowScroll&&(center||before.top<20||before.bottom>innerHeight-20)) {
+      row.scrollIntoView({block:'center',inline:'center',behavior:'instant'});
       await new Promise(resolve=>setTimeout(resolve,350));
     }
     const rowRect=row.getBoundingClientRect();
@@ -571,6 +571,31 @@ async function readDisplayedPrice(expectedProductId,expectedItemId,expectedVendo
     return {summaryText:textOf(row),point,debug};
   }
 
+  // Used after debugger attachment/activation, then once more immediately before
+  // dispatch. Reuse the same isolated-row locator as the initial price scan.
+  async function settleCardBenefitControl(mainPriceTop,verifyOnly=false) {
+    let previous=null,last=null;
+    for(let attempt=0;attempt<(verifyOnly?1:8);attempt++) {
+      const located=await locateCardBenefitControl(mainPriceTop,!verifyOnly&&attempt===0,!verifyOnly);
+      const point=located.point,width=innerWidth,height=innerHeight;
+      const viewport={width,height,point,attempt:attempt+1,reason:located.debug.reason};
+      last={ok:false,reason:located.debug.reason,viewport};
+      if(point&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&point.x>=0&&point.y>=0&&point.x<width&&point.y<height) {
+        const current={point,width,height,label:located.debug.selected?.label||'',row:located.debug.rowRect};
+        const stable=previous&&previous.width===width&&previous.height===height&&previous.label===current.label&&
+          Math.abs(previous.point.x-point.x)<=1&&Math.abs(previous.point.y-point.y)<=1;
+        if(verifyOnly||stable)return {ok:true,point,viewport,identity:current.label};
+        previous=current;last.reason='card-control-layout-moving';
+      } else {previous=null;if(point)last.reason='card-control-outside-viewport';}
+      if(!verifyOnly)await new Promise(resolve=>setTimeout(resolve,250));
+    }
+    return last;
+  }
+  if(typeof cardAction==='string'&&['prepare-card','verify-card'].includes(cardAction)) {
+    if(currentUrl.origin!=='https://www.coupang.com'||!preferred)return {ok:false,reason:'card-product-not-confirmed'};
+    const mainPriceTop=positionedPrices.filter(entry=>entry.price===preferred.price).reduce((top,entry)=>Math.min(top,entry.top),Infinity);
+    return settleCardBenefitControl(mainPriceTop,cardAction==='verify-card');
+  }
   let cardDiscount=null;
   let cardRate=null;
   let cardMaxDiscount=null;
@@ -879,23 +904,45 @@ async function captureDebuggerText(target) {
   return result;
 }
 
-async function dispatchTrustedClickAndCapture(tabId,point) {
+async function dispatchTrustedClickAndCapture(tabId,product) {
   const target={tabId};
-  let attached=false;
+  let attached=false,targetDiagnostic={stage:'attach',prepared:null,verified:null,clicked:false};
   try {
     await withScanTimeout(chrome.debugger.attach(target,'1.3'),15000,'card-debugger-attach');
     attached=true;
+    targetDiagnostic.stage='activate';
     await withScanTimeout(chrome.debugger.sendCommand(target,'Page.bringToFront'),15000,'card-bring-to-front');
     await withScanTimeout(chrome.debugger.sendCommand(target,'Accessibility.enable'),15000,'card-accessibility-enable').catch(()=>{});
+    const locate=async action=>(await withScanTimeout(chrome.scripting.executeScript({target:{tabId},func:readDisplayedPrice,
+      args:[product.productId,product.itemId,product.vendorItemId,product.srp??null,product.minimumPrice??null,action]}),10000,'card-target-'+action))?.[0]?.result;
+    targetDiagnostic.stage='prepare';
+    const prepared=await locate('prepare-card');
+    targetDiagnostic.prepared=prepared?.viewport||null;
+    if(!prepared?.ok)return {ok:false,reason:prepared?.reason||'card-control-preparation-failed',targetDiagnostic};
+    targetDiagnostic.stage='hover';
+    await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:prepared.point.x,y:prepared.point.y}),15000,'card-mouse-move');
+    targetDiagnostic.stage='before-snapshot';
     const before=await captureDebuggerText(target);
-    await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseMoved',x:point.x,y:point.y}),15000,'card-mouse-move');
+    targetDiagnostic.stage='verify';
+    const verified=await locate('verify-card');
+    targetDiagnostic.verified=verified?.viewport||null;
+    if(!verified?.ok)return {ok:false,reason:verified?.reason||'card-control-verification-failed',targetDiagnostic};
+    if(prepared.identity!==verified.identity||prepared.viewport.width!==verified.viewport.width||prepared.viewport.height!==verified.viewport.height||
+      Math.abs(prepared.point.x-verified.point.x)>1||Math.abs(prepared.point.y-verified.point.y)>1)return {ok:false,reason:'card-control-layout-changed',targetDiagnostic};
+    const point=verified.point;
+    targetDiagnostic.stage='press';
+    targetDiagnostic.pressAttempted=true;
     await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',buttons:1,clickCount:1}),15000,'card-mouse-press');
+    targetDiagnostic.stage='release';
     await withScanTimeout(chrome.debugger.sendCommand(target,'Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',buttons:0,clickCount:1}),15000,'card-mouse-release');
+    targetDiagnostic.clicked=true;
     await wait(1200);
+    targetDiagnostic.stage='after-snapshot';
     const after=await captureDebuggerText(target);
-    return {ok:true,before,after};
+    targetDiagnostic.stage='complete';
+    return {ok:true,before,after,point,targetDiagnostic};
   } catch (error) {
-    return {ok:false,reason:String(error)};
+    return {ok:false,reason:'card-click-operation-failed',targetDiagnostic};
   } finally {
     if (attached) await withScanTimeout(chrome.debugger.detach(target),15000,'card-debugger-detach').catch(()=>{});
   }
@@ -1046,16 +1093,14 @@ async function scanCoupangTab(tabId,target) {
   if(accessDiagnosticTabs.has(tabId))scan.accessDiagnostic=await captureAccessDiagnostic(tabId);
   classifyAccessFailure(scan);
   if (!scan.ok||scan.cardBenefitStatus!=='partial') return scan;
-  if (!scan.cardClickPoint) {
-    scan.cardInteractionStatus='card-click-target-not-found';
-    return scan;
-  }
   const beforePopup=await chrome.scripting.executeScript({
     target:{tabId,allFrames:true},func:snapshotCardDetailText,args:[target.productId,target.itemId,target.vendorItemId]
   });
   const beforeTexts=[...new Set((beforePopup||[]).flatMap(frame=>frame?.result?.texts||[]))];
   const beforeUrl=(await chrome.tabs.get(tabId)).url;
-  const click=await dispatchTrustedClickAndCapture(tabId,scan.cardClickPoint);
+  const click=await dispatchTrustedClickAndCapture(tabId,target);
+  scan.cardTargetDiagnostic=click.targetDiagnostic||null;
+  if(click.point)scan.cardClickPoint=click.point;
   scan.cardInteractionStatus=click.ok?'clicked':click.reason;
   if (!click.ok) return scan;
   const afterUrl=(await chrome.tabs.get(tabId)).url;
