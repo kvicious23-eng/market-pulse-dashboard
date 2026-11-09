@@ -11,6 +11,52 @@ try {
   $inventory=Get-SupplierInventorySignal ([DateTimeOffset]'2026-10-03T23:00:00Z')
   Check ($inventory.ready -and $inventory.day -eq '2026-10-04' -and $inventory.source -eq 'independent') 'Inventory did not start independently at 08 KST.'
   Check (-not (Get-SupplierInventorySignal ([DateTimeOffset]'2026-10-04T15:00:00Z')).ready) 'Yesterday readiness crossed KST midnight.'
+  # Execute the production dispatch function with only in-memory task mocks.
+  # This must never start an actual scheduled task or submit another CSV request.
+  & {
+    $tokens=$null;$errors=$null
+    $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'supplier-daily-bridge.ps1'),[ref]$tokens,[ref]$errors)
+    Check (-not $errors.Count) 'Supplier bridge syntax failed.'
+    $definition=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Start-PendingSupplierPublication'},$true)
+    Check ($null -ne $definition) 'Supplier dispatch function missing.'
+    . ([scriptblock]::Create($definition.Extent.Text))
+    $mock=[pscustomobject]@{state='Ready';starts=0;missing=$false}
+    function Get-ScheduledTask {
+      [CmdletBinding()]param([string]$TaskName)
+      Check ($TaskName -eq 'Market Pulse Supplier Metrics') 'Unexpected task selected.'
+      if(-not $mock.missing){[pscustomobject]@{State=$mock.state}}
+    }
+    function Start-ScheduledTask {
+      [CmdletBinding()]param($InputObject)
+      $mock.starts++;$mock.state='Running'
+    }
+    $date='2026-11-10'
+    foreach($stamp in @('07:59:59','08:00:36','08:29:59','09:10:00')) {
+      $now=[DateTimeOffset]($date+'T'+$stamp+'+09:00');$mock.state='Ready';$mock.starts=0
+      $queue=[pscustomobject]@{day=$date;status='queued';attempts=0}
+      Start-PendingSupplierPublication $queue
+      Check ($mock.starts -eq 1) ('Validated CSV did not dispatch immediately at '+$stamp)
+      Start-PendingSupplierPublication $queue
+      Check ($mock.starts -eq 1) 'Running task was started twice.'
+      $queue.status='published';$mock.state='Ready'
+      Start-PendingSupplierPublication $queue
+      Check ($mock.starts -eq 1) 'Already-published queue dispatched again.'
+    }
+    $now=[DateTimeOffset]'2026-11-10T08:00:36+09:00'
+    foreach($queue in @($null,[pscustomobject]@{day='2026-11-09';status='queued';attempts=0},[pscustomobject]@{day=$date;status='queued';attempts=4})) {
+      $mock.state='Ready';$mock.starts=0;Start-PendingSupplierPublication $queue
+      Check ($mock.starts -eq 0) 'Absent, stale or exhausted queue was dispatched.'
+    }
+    $queue=[pscustomobject]@{day=$date;status='failed';attempts=1;nextAttemptAt=$now.AddMinutes(15).ToString('o')}
+    $mock.state='Ready';$mock.starts=0;Start-PendingSupplierPublication $queue
+    Check ($mock.starts -eq 0) 'Publication retry ignored its backoff.'
+    $now=$now.AddMinutes(15);Start-PendingSupplierPublication $queue
+    Check ($mock.starts -eq 1) 'Eligible failed publication did not resume.'
+    $mock.starts=0;$mock.state='Ready';$mock.missing=$true
+    Start-PendingSupplierPublication $queue
+    Check ($mock.starts -eq 0) 'Missing publication task was treated as started.'
+    Write-Host 'Validated Supplier CSV dispatches ASAP before 08:30; task-running/published/stale/exhausted/backoff guards passed.'
+  }
   $day=[datetime]'2026-10-04';$request=[DateTimeOffset]'2026-10-04T08:15:00+09:00'
   $csv=Join-Path $folder 'basic_operation_rocket_2026100120261003.csv'
   $rows=@((Row '20261001' '0001' 'FC' '90' '2'),(Row '20261002' '0001' 'FC' '80' '1'),(Row '20261003' '0001' 'FC' '10' '3'),(Row '20261003' '0001' 'RC' '4' '2'),(Row '20261001' '2' 'FC' '99' '9'))
