@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readTestFile} from './test-source.mjs';
 const source=readTestFile('chrome-extension/background.js','utf8');
-const start=source.indexOf('  async function locateCardBenefitControl('),end=source.indexOf('\n  let cardDiscount=null;',start);
+const start=source.indexOf('  async function locateCardBenefitControl('),end=source.indexOf('\n  // Used after debugger attachment',start);
 assert.ok(start>0&&end>start);
 const rect=(left,top,width,height)=>({left,top,width,height,right:left+width,bottom:top+height});
 class Element {
