@@ -2,6 +2,11 @@ name: Market Pulse External Dashboard
 
 on:
   workflow_dispatch:
+    inputs:
+      retire_legacy:
+        description: Refresh the redirect-only legacy project once
+        type: boolean
+        default: false
   workflow_run:
     workflows: [Market Pulse Update]
     types: [completed]
@@ -10,6 +15,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/public-dashboard.yml
+      - config/legacy-public-retirement.json
+      - scripts/retire-legacy-public.mjs
+      - scripts/test-legacy-retirement.mjs
       - scripts/public-brand-hosts.mjs
       - scripts/brand-public-sites.mjs
       - scripts/test-brand-public-sites.mjs
@@ -36,6 +44,7 @@ jobs:
       - run: |
           node scripts/test-public-dashboard.mjs
           node scripts/test-brand-public-sites.mjs
+          node scripts/test-legacy-retirement.mjs
 
   publish:
     if: >-
@@ -61,7 +70,8 @@ jobs:
           fi
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -70,6 +80,7 @@ jobs:
         run: |
           node scripts/test-public-dashboard.mjs
           node scripts/test-brand-public-sites.mjs
+          node scripts/test-legacy-retirement.mjs
       - name: Build from the currently published internal dashboard
         run: node scripts/build-public-dashboard.mjs publicmp
       - name: Build independent brand sites
@@ -84,12 +95,23 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/brand-public-sites.mjs publish brand-publicmp
-      - name: Publish external overview and legacy paths
+      - name: Detect explicitly requested legacy transition
+        id: legacy
+        env:
+          MANUAL_RETIRE: ${{ inputs.retire_legacy }}
+        shell: bash
+        run: |
+          changed="$(git diff --name-only HEAD^ HEAD -- config/legacy-public-retirement.json)"
+          if [ "$MANUAL_RETIRE" = "true" ] || [ "$changed" = "config/legacy-public-retirement.json" ]; then
+            echo 'required=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'required=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Replace legacy dashboards with redirects once
+        if: steps.legacy.outputs.required == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx --no-install wrangler pages deploy publicmp --project-name=market-pulse-public --branch=main --commit-dirty=true
-      - name: Verify public files match the exported snapshot
-        run: node scripts/verify-public-dashboard.mjs publicmp
+        run: node scripts/retire-legacy-public.mjs
       - name: Preserve brand deployment verification receipt
         if: always()
         uses: actions/upload-artifact@v7
