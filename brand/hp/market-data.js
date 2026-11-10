@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-10T12:10:46+09:00",
+    "snapshotAt": "2026-11-10T15:10:43+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,35 +9,35 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-10T12:10:46+09:00",
+      "lastAttemptAt": "2026-11-10T15:10:43+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
-      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-10T12:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-10T15:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
     },
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "whale",
+      "browser": "chrome",
       "extensionVersion": "1.9.78",
-      "scanSlot": "2026-11-10T12:00+09:00",
+      "scanSlot": "2026-11-10T15:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "b15bf659556d4b49b4497a77f6691cc2",
-      "sourceRunId": "b15bf659556d4b49b4497a77f6691cc2",
-      "startedAt": "2026-11-10T03:00:08.805Z",
-      "completedAt": "2026-11-10T03:10:46.399Z",
+      "runId": "4302d3705554474b9d0c4d250ab78cba",
+      "sourceRunId": "4302d3705554474b9d0c4d250ab78cba",
+      "startedAt": "2026-11-10T06:00:04.417Z",
+      "completedAt": "2026-11-10T06:10:43.509Z",
       "targetCount": 15,
       "resultCount": 15
     },
     "recoveryEvidence": null,
-    "publishedAt": "2026-11-10T12:10:46+09:00",
+    "publishedAt": "2026-11-10T15:10:43+09:00",
     "historyBrands": [
       "HP"
     ],
@@ -63,17 +63,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-10 12:00",
+          "checkedAt": "2026-11-10 15:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "b15bf659556d4b49b4497a77f6691cc2",
-            "checkedAt": "2026-11-10T03:00:24.949Z"
+            "runId": "4302d3705554474b9d0c4d250ab78cba",
+            "checkedAt": "2026-11-10T06:00:20.528Z"
           },
-          "availabilityCheckedAt": "2026-11-10 12:00",
+          "availabilityCheckedAt": "2026-11-10 15:00",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2259000,
@@ -89,7 +89,6 @@ window.MARKET_DATA = {
             "KB국민",
             "NH농협",
             "신한",
-            "BC",
             "롯데",
             "하나",
             "삼성",
@@ -104,7 +103,6 @@ window.MARKET_DATA = {
                 "KB국민",
                 "NH농협",
                 "신한",
-                "BC",
                 "롯데",
                 "하나",
                 "삼성",
@@ -119,7 +117,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 390000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-10T03:00:40.951Z",
+          "checkoutDiscountCheckedAt": "2026-11-10T06:00:36.464Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -133,10 +131,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-10 07:00",
+          "priceComparisonAt": "2026-11-10 12:00",
           "lastVerifiedFinalPrice": 2119000,
-          "lastVerifiedPriceCheckedAt": "2026-11-10 12:00",
-          "priceCheckedAt": "2026-11-10 12:00"
+          "lastVerifiedPriceCheckedAt": "2026-11-10 15:00",
+          "priceCheckedAt": "2026-11-10 15:00"
         }
       ],
       "competitorModels": [],
