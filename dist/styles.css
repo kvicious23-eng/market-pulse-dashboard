@@ -345,3 +345,6 @@ td:first-child { min-width: 0; text-align: left; }
   .topbar__meta { gap: 4px; }
   .topbar__meta .monitoring, .topbar__meta .privacy { font-size: 9px; padding: 5px; }
 }
+
+/* Keep the previous observation time below its reference price at every width. */
+.offer-table .price-checked-at { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
