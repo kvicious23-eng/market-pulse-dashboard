@@ -577,7 +577,7 @@
         ? ((mine ? offerStatus(offer) === "현재가 직접 확인" : offer.alertEligible === true) && !soldOut ? "active" : "soldout")
         : "stale";
       const finalCell = scheduledReference
-        ? `<strong class="price">${formatWon(offer.lastVerifiedFinalPrice??offer.finalPrice)}</strong><small>${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>`
+        ? `<strong class="price">${formatWon(offer.lastVerifiedFinalPrice??offer.finalPrice)}</strong><small class="price-checked-at">${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>`
         : current
         ? `<strong class="price">${formatWon(mine?offerFinalPrice:cardReviewRequired(offer)?offer.preCardPrice:collectionReviewRequired(offer)?offer.lastVerifiedFinalPrice:offerFinalPrice)}</strong>${collectionReviewRequired(offer) ? `<small class="card-review-label">미확인 · 이전 가격 참고 ${escapeHtml(offer.lastVerifiedPriceCheckedAt||offer.priceCheckedAt||'')}</small>` : cardReviewRequired(offer) ? '<small class="card-review-label">카드 적용 전 금액 · 카드할인 재확인 필요</small>' : ""}`
         : `<span class="unknown">현재가 미확인</span><span class="conditional">참고 ${formatWon(price)}</span>`;
