@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-11T20:10:28+09:00",
+    "snapshotAt": "2026-11-12T07:10:11+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,58 +9,40 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-11T20:10:28+09:00",
+      "lastAttemptAt": "2026-11-12T07:10:11+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
-      "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-11T20:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-12T07:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
     },
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "edge",
+      "browser": "chrome",
       "extensionVersion": "1.9.78",
-      "scanSlot": "2026-11-11T20:00+09:00",
+      "scanSlot": "2026-11-12T07:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "24c8c68fc10e4729a86e123b6650b408",
-      "sourceRunId": "24c8c68fc10e4729a86e123b6650b408",
-      "startedAt": "2026-11-11T11:00:35.959Z",
-      "completedAt": "2026-11-11T11:10:28.052Z",
+      "runId": "7dcd8295487d4891aa94163adfa212a9",
+      "sourceRunId": "7dcd8295487d4891aa94163adfa212a9",
+      "startedAt": "2026-11-11T22:00:04.942Z",
+      "completedAt": "2026-11-11T22:10:11.415Z",
       "targetCount": 15,
       "resultCount": 15
     },
-    "recoveryEvidence": {
-      "reason": "whale-process-exit",
-      "exitCause": "unknown",
-      "primaryBrowser": "whale",
-      "scanSlot": "2026-11-11T20:00+09:00",
-      "chromeRunId": "5be0c7f6a13d491dbfc79b1395dabfb1",
-      "edgeRunId": "24c8c68fc10e4729a86e123b6650b408",
-      "chromeStartedAt": "2026-11-11T11:00:11.170Z",
-      "chromeExtensionVersion": "1.9.78",
-      "edgeExtensionVersion": "1.9.78",
-      "chromeCompletedAt": null,
-      "accessCheckCount": null,
-      "processObservedAt": "2026-11-11T11:00:34.3224825+00:00",
-      "absentChecks": 2,
-      "edgeStartedAt": "2026-11-11T11:00:35.959Z",
-      "targetCount": 15,
-      "resultCount": 15,
-      "listMatched": true
-    },
-    "publishedAt": "2026-11-11T20:10:28+09:00",
+    "recoveryEvidence": null,
     "historyBrands": [
       "HP"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "publishedAt": "2026-11-12T07:11:12+09:00"
   },
   "products": [
     {
@@ -81,17 +63,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-11 20:00",
+          "checkedAt": "2026-11-12 07:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "24c8c68fc10e4729a86e123b6650b408",
-            "checkedAt": "2026-11-11T11:00:49.901Z"
+            "runId": "7dcd8295487d4891aa94163adfa212a9",
+            "checkedAt": "2026-11-11T22:00:18.491Z"
           },
-          "availabilityCheckedAt": "2026-11-11 20:01",
+          "availabilityCheckedAt": "2026-11-12 07:00",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2259000,
@@ -105,7 +87,6 @@ window.MARKET_DATA = {
           "cardProviders": [
             "와우카드(KB)",
             "KB국민",
-            "NH농협",
             "신한",
             "롯데",
             "하나",
@@ -119,7 +100,6 @@ window.MARKET_DATA = {
               "providers": [
                 "와우카드(KB)",
                 "KB국민",
-                "NH농협",
                 "신한",
                 "롯데",
                 "하나",
@@ -135,7 +115,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 390000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-11T11:01:04.877Z",
+          "checkoutDiscountCheckedAt": "2026-11-11T22:00:32.941Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -149,10 +129,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-11 15:00",
+          "priceComparisonAt": "2026-11-11 20:00",
           "lastVerifiedFinalPrice": 2119000,
-          "lastVerifiedPriceCheckedAt": "2026-11-11 20:00",
-          "priceCheckedAt": "2026-11-11 20:00"
+          "lastVerifiedPriceCheckedAt": "2026-11-12 07:00",
+          "priceCheckedAt": "2026-11-12 07:00"
         }
       ],
       "competitorModels": [],
@@ -164,16 +144,16 @@ window.MARKET_DATA = {
       "srp": 2699000,
       "references": [],
       "supplierMetrics": {
-        "stock": 150,
-        "dailySales": 0,
-        "monthSales": 0,
-        "stockStatus": "confirmed",
-        "dailySalesStatus": "confirmed",
-        "monthSalesStatus": "confirmed",
-        "asOfDate": "2026-11-10",
+        "stock": null,
+        "dailySales": null,
+        "monthSales": null,
+        "stockStatus": "csv-invalid",
+        "dailySalesStatus": "csv-invalid",
+        "monthSalesStatus": "csv-invalid",
+        "asOfDate": "2026-11-11",
         "month": "2026-11",
-        "monthThrough": "2026-11-10",
-        "sourceDate": "2026-11-10",
+        "monthThrough": "2026-11-11",
+        "sourceDate": null,
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
       }
