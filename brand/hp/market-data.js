@@ -20,8 +20,8 @@ window.MARKET_DATA = {
       "scanSlot": "2026-11-11T15:00+09:00",
       "state": "complete",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "83cba3a8803c44d9a5682124d003911b",
+      "completedAt": "2026-11-11T06:16:52.500Z"
     },
     "brand": "HP",
     "collectionEvidence": {
