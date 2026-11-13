@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-13T12:10:52+09:00",
+    "snapshotAt": "2026-11-13T15:10:42+09:00",
     "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,53 +9,35 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-11-13T12:10:52+09:00",
+      "lastAttemptAt": "2026-11-13T15:10:42+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "Acer 수집 결과: 검증 6, 품절 2, 일부 0 / 전체 8",
-      "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-13T12:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-13T15:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
     },
     "brand": "Acer",
     "collectionEvidence": {
-      "browser": "edge",
+      "browser": "chrome",
       "extensionVersion": "1.9.78",
-      "scanSlot": "2026-11-13T12:00+09:00",
+      "scanSlot": "2026-11-13T15:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "353ac4ed820d4a8eb90246c35fb60498",
-      "sourceRunId": "353ac4ed820d4a8eb90246c35fb60498",
-      "startedAt": "2026-11-13T03:00:33.650Z",
-      "completedAt": "2026-11-13T03:10:52.009Z",
+      "runId": "61a75c91df274536b098d08a4733d9c7",
+      "sourceRunId": "61a75c91df274536b098d08a4733d9c7",
+      "startedAt": "2026-11-13T06:00:04.564Z",
+      "completedAt": "2026-11-13T06:10:42.576Z",
       "targetCount": 15,
       "resultCount": 15
     },
-    "recoveryEvidence": {
-      "reason": "whale-process-exit",
-      "exitCause": "unknown",
-      "primaryBrowser": "whale",
-      "scanSlot": "2026-11-13T12:00+09:00",
-      "chromeRunId": "127c3aa3d4144f95ab579880ad25d877",
-      "edgeRunId": "353ac4ed820d4a8eb90246c35fb60498",
-      "chromeStartedAt": "2026-11-13T03:00:09.240Z",
-      "chromeExtensionVersion": "1.9.78",
-      "edgeExtensionVersion": "1.9.78",
-      "chromeCompletedAt": null,
-      "accessCheckCount": null,
-      "processObservedAt": "2026-11-13T03:00:31.8303092+00:00",
-      "absentChecks": 2,
-      "edgeStartedAt": "2026-11-13T03:00:33.650Z",
-      "targetCount": 15,
-      "resultCount": 15,
-      "listMatched": true
-    },
-    "publishedAt": "2026-11-13T12:10:52+09:00",
+    "recoveryEvidence": null,
+    "publishedAt": "2026-11-13T15:10:42+09:00",
     "historyBrands": [
       "Acer"
     ],
@@ -76,7 +58,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514",
-          "checkedAt": "2026-11-13 12:07",
+          "checkedAt": "2026-11-13 15:07",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 29370,
           "finalPrice": 1149620,
@@ -84,14 +66,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:07:33.589Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:07:21.193Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:07",
+          "availabilityCheckedAt": "2026-11-13 15:07",
           "srp": 1419000,
           "observedListPrice": 1389630,
           "productPagePrice": 1149620,
@@ -111,7 +93,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 140000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:07:48.811Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:07:36.352Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -125,10 +107,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:07",
+          "priceComparisonAt": "2026-11-13 12:07",
           "lastVerifiedFinalPrice": 1149620,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:07",
-          "priceCheckedAt": "2026-11-13 12:07"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:07",
+          "priceCheckedAt": "2026-11-13 15:07"
         }
       ],
       "competitorModels": [],
@@ -167,7 +149,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515",
-          "checkedAt": "2026-11-13 12:08",
+          "checkedAt": "2026-11-13 15:08",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 1289000,
@@ -175,14 +157,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:08:18.014Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:08:07.559Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:08",
+          "availabilityCheckedAt": "2026-11-13 15:08",
           "srp": 1559000,
           "observedListPrice": 1559000,
           "productPagePrice": 1289000,
@@ -202,7 +184,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 140000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:08:32.700Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:08:22.212Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -216,10 +198,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:07",
+          "priceComparisonAt": "2026-11-13 12:08",
           "lastVerifiedFinalPrice": 1289000,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:08",
-          "priceCheckedAt": "2026-11-13 12:08"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:08",
+          "priceCheckedAt": "2026-11-13 15:08"
         }
       ],
       "competitorModels": [],
@@ -258,7 +240,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922",
-          "checkedAt": "2026-11-13 12:09",
+          "checkedAt": "2026-11-13 15:08",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 790100,
           "finalPrice": 2768890,
@@ -266,14 +248,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 50000,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:09:07.386Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:08:58.537Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:09",
+          "availabilityCheckedAt": "2026-11-13 15:09",
           "srp": 4099000,
           "observedListPrice": 3308900,
           "productPagePrice": 2818890,
@@ -331,7 +313,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 100000,
           "wowCouponDiscount": 290000,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:09:14.786Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:09:05.942Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -348,10 +330,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:08",
+          "priceComparisonAt": "2026-11-13 12:09",
           "lastVerifiedFinalPrice": 2768890,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:09",
-          "priceCheckedAt": "2026-11-13 12:09"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:08",
+          "priceCheckedAt": "2026-11-13 15:08"
         }
       ],
       "competitorModels": [],
@@ -390,7 +372,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667",
-          "checkedAt": "2026-11-13 12:09",
+          "checkedAt": "2026-11-13 15:09",
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "instantDiscount": 0,
           "finalPrice": 1529000,
@@ -398,16 +380,16 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": null,
           "status": "품절",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:09:45.986Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:09:36.124Z"
           },
           "lastVerifiedFinalPrice": 1529000,
           "lastVerifiedPriceCheckedAt": "2026-11-12 12:09",
-          "availabilityCheckedAt": "2026-11-13 12:09",
+          "availabilityCheckedAt": "2026-11-13 15:09",
           "srp": 1689000,
           "observedListPrice": 1689000,
           "productPagePrice": 1529000,
@@ -435,7 +417,7 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-11-12 12:09",
-          "priceCheckedAt": "2026-11-13 12:09"
+          "priceCheckedAt": "2026-11-13 15:09"
         }
       ],
       "competitorModels": [],
@@ -474,7 +456,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668",
-          "checkedAt": "2026-11-13 12:10",
+          "checkedAt": "2026-11-13 15:10",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 1289000,
@@ -482,14 +464,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:10:17.254Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:10:07.334Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:10",
+          "availabilityCheckedAt": "2026-11-13 15:10",
           "srp": 1439000,
           "observedListPrice": 1439000,
           "productPagePrice": 1409000,
@@ -509,7 +491,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 30000,
           "wowCouponDiscount": 120000,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:10:31.956Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:10:22.517Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -524,10 +506,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:09",
+          "priceComparisonAt": "2026-11-13 12:10",
           "lastVerifiedFinalPrice": 1289000,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:10",
-          "priceCheckedAt": "2026-11-13 12:10"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:10",
+          "priceCheckedAt": "2026-11-13 15:10"
         }
       ],
       "competitorModels": [],
@@ -566,7 +548,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9738841025?itemId=29147260106&vendorItemId=96070559959",
-          "checkedAt": "2026-11-13 12:04",
+          "checkedAt": "2026-11-13 15:04",
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "instantDiscount": 150000,
           "finalPrice": 1829000,
@@ -574,16 +556,16 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": null,
           "status": "품절",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:04:18.436Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:04:00.956Z"
           },
           "lastVerifiedFinalPrice": 1829000,
           "lastVerifiedPriceCheckedAt": "2026-11-11 07:03",
-          "availabilityCheckedAt": "2026-11-13 12:04",
+          "availabilityCheckedAt": "2026-11-13 15:04",
           "srp": 2299000,
           "observedListPrice": 2149000,
           "productPagePrice": 1909000,
@@ -611,7 +593,7 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-11-11 07:03",
-          "priceCheckedAt": "2026-11-13 12:04"
+          "priceCheckedAt": "2026-11-13 15:04"
         }
       ],
       "competitorModels": [],
@@ -650,7 +632,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/8880549624?itemId=25917327376&vendorItemId=92902882925",
-          "checkedAt": "2026-11-13 12:03",
+          "checkedAt": "2026-11-13 15:03",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 460000,
           "finalPrice": 2989000,
@@ -658,14 +640,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:03:41.129Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:03:22.149Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:03",
+          "availabilityCheckedAt": "2026-11-13 15:03",
           "srp": 4129000,
           "observedListPrice": 3669000,
           "productPagePrice": 2989000,
@@ -685,7 +667,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 100000,
           "wowCouponDiscount": 310000,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:03:48.240Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:03:29.781Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -702,10 +684,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:03",
+          "priceComparisonAt": "2026-11-13 12:03",
           "lastVerifiedFinalPrice": 2989000,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:03",
-          "priceCheckedAt": "2026-11-13 12:03"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:03",
+          "priceCheckedAt": "2026-11-13 15:03"
         }
       ],
       "competitorModels": [],
@@ -744,7 +726,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/8906279054?itemId=26011692765&vendorItemId=92993600715",
-          "checkedAt": "2026-11-13 12:03",
+          "checkedAt": "2026-11-13 15:02",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 520000,
           "finalPrice": 2909000,
@@ -752,14 +734,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "chrome",
             "extensionVersion": "1.9.78",
-            "runId": "353ac4ed820d4a8eb90246c35fb60498",
-            "checkedAt": "2026-11-13T03:03:03.791Z"
+            "runId": "61a75c91df274536b098d08a4733d9c7",
+            "checkedAt": "2026-11-13T06:02:38.682Z"
           },
-          "availabilityCheckedAt": "2026-11-13 12:03",
+          "availabilityCheckedAt": "2026-11-13 15:02",
           "srp": 4319000,
           "observedListPrice": 3799000,
           "productPagePrice": 3139000,
@@ -779,7 +761,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 280000,
           "wowCouponDiscount": 310000,
-          "checkoutDiscountCheckedAt": "2026-11-13T03:03:10.933Z",
+          "checkoutDiscountCheckedAt": "2026-11-13T06:02:50.910Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -796,10 +778,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-13 07:02",
+          "priceComparisonAt": "2026-11-13 12:03",
           "lastVerifiedFinalPrice": 2909000,
-          "lastVerifiedPriceCheckedAt": "2026-11-13 12:03",
-          "priceCheckedAt": "2026-11-13 12:03"
+          "lastVerifiedPriceCheckedAt": "2026-11-13 15:02",
+          "priceCheckedAt": "2026-11-13 15:02"
         }
       ],
       "competitorModels": [],
