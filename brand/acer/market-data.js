@@ -20,8 +20,8 @@ window.MARKET_DATA = {
       "scanSlot": "2026-11-14T15:00+09:00",
       "state": "complete",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "f2464d5007e84bbd8c8c7dd5cbaf8861",
+      "completedAt": "2026-11-14T06:18:10.613Z"
     },
     "brand": "Acer",
     "collectionEvidence": {
