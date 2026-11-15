@@ -20,8 +20,8 @@ window.MARKET_DATA = {
       "scanSlot": "2026-11-15T15:00+09:00",
       "state": "complete",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "6bb6c661da43416693cfae217d97a108",
+      "completedAt": "2026-11-15T06:18:03.361Z"
     },
     "brand": "Godox",
     "collectionEvidence": {
