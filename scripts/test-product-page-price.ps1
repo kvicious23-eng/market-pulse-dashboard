@@ -16,14 +16,19 @@ function Check-PagePrice([long]$Page,[long]$Wow,[long]$Shipping=0,[switch]$Card,
  . $loop
  $actual=$data.products[0].offers[0];$discount=if($Card){[math]::Min([math]::Floor($Page*0.03),50000)}else{0}
  if(-not $actual.alertEligible -or $actual.finalPrice -ne ($Page+$Shipping-$discount) -or $actual.preCardPrice -ne ($Page+$Shipping)){throw 'Product-page final/card basis mismatch'}
- if($actual.wowCouponDiscount -ne 0 -or $actual.excludedWowCouponDiscount -ne $Wow -or $actual.couponDiscount -ne (2149000-$Page)){throw 'WOW exclusion or page discount total mismatch'}
- if($historyRows[0].'와우 전용 쿠폰할인' -ne 0 -or $historyRows[0].'최종 실구매가' -ne $actual.finalPrice){throw 'History does not follow product-page policy'}
+ $checkout=2149000-240000-$Wow
+ $treatment=if($Wow -eq 0){'none'}elseif($checkout -eq $Page){'included'}elseif($checkout -lt $Page){'excluded'}else{'unverified'}
+ $applied=if($treatment -in @('included','none')){$Wow}elseif($treatment -eq 'excluded'){0}else{$null}
+ if($actual.wowCouponTreatment -ne $treatment -or $actual.wowCouponDiscount -ne $applied -or $actual.observedWowCouponDiscount -ne $Wow -or $actual.checkoutPreCardItemPrice -ne $checkout -or $actual.couponDiscount -ne (2149000-$Page)){throw 'Conditional WOW comparison mismatch'}
+ if($historyRows[0].'와우 전용 쿠폰할인' -ne $applied -or $historyRows[0].'최종 실구매가' -ne $actual.finalPrice){throw 'History does not follow product-page policy'}
  if(-not $SamePolicy -and $null -ne $actual.priceChange){throw 'Policy migration was reported as a real price change'}
  if($SamePolicy -and $actual.priceChange -ne ($actual.finalPrice-1829000)){throw 'Same-policy comparison was lost'}
 }
 Check-PagePrice 1909000 80000
 Check-PagePrice 1829000 80000
+Check-PagePrice 1809000 80000
 Check-PagePrice 1909000 0
 Check-PagePrice 1909000 80000 3000 -Card
+Check-PagePrice 1829000 80000 3000 -Card
 Check-PagePrice 1909000 80000 0 -SamePolicy
 Write-Host 'Product-page policy: account coupon exclusion, embedded coupon, card caps, shipping, history and policy baseline passed.'

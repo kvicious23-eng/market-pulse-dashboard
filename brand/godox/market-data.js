@@ -62,7 +62,9 @@ window.MARKET_DATA = {
       "Godox"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "wowCouponDisplayPolicy": "checkout-match-v1",
+    "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.177Z"
   },
   "products": [
     {
@@ -114,7 +116,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 0,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:04:47.681Z",
           "checkoutUnparsedFields": [],
@@ -126,7 +128,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:04",
           "lastVerifiedFinalPrice": 41000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:04",
-          "priceCheckedAt": "2026-11-16 15:04"
+          "priceCheckedAt": "2026-11-16 15:04",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 41000,
+          "wowCouponTreatment": "none"
         }
       ],
       "competitorModels": [],
@@ -200,7 +205,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 0,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:01:32.175Z",
           "checkoutUnparsedFields": [],
@@ -212,7 +217,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:01",
           "lastVerifiedFinalPrice": 165000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:01",
-          "priceCheckedAt": "2026-11-16 15:01"
+          "priceCheckedAt": "2026-11-16 15:01",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 165000,
+          "wowCouponTreatment": "none"
         }
       ],
       "competitorModels": [],
@@ -286,7 +294,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 0,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:02:16.019Z",
           "checkoutUnparsedFields": [],
@@ -298,7 +306,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:01",
           "lastVerifiedFinalPrice": 17000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:02",
-          "priceCheckedAt": "2026-11-16 15:02"
+          "priceCheckedAt": "2026-11-16 15:02",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 17000,
+          "wowCouponTreatment": "none"
         }
       ],
       "competitorModels": [],

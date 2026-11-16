@@ -23,6 +23,7 @@ on:
       - "scripts/verify-public-dashboard.mjs"
       # All Windows entry points, shared helpers and PS regression tests are gates.
       - "scripts/*.ps1"
+      - "scripts/wow-coupon-policy.mjs"
       - "scripts/competitor-*.mjs"
       - "scripts/completion-*.mjs"
       - ".github/workflows/market-pulse.yml"

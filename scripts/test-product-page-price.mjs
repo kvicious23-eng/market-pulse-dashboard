@@ -4,12 +4,20 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {offerFor} from './competitor-data.mjs';
+import {wowCouponDetails} from './wow-coupon-policy.mjs';
 const target={competitorKey:'1-2-3',model:'Fixture',url:'https://www.coupang.com/vp/products/1?itemId=2&vendorItemId=3'};
 const row={ok:true,checkedAt:'2026-11-16T06:03:00Z',price:1909000,basisPrice:2149000,strikePrice:2149000,basisEvidence:{text:'2,149,000원'},priceBasisType:'crossed-out',priceBasisSource:'visible-product-price',strikeReliable:true,strikeAnchorVerified:true,checkoutDiscountStatus:'captured',checkoutCouponSource:'checkout',checkoutCouponDiscount:150000,wowInstantDiscount:90000,wowCouponDiscount:80000,checkoutDiscountTotal:320000,checkoutShipping:0,cardBenefitStatus:'none',cardDiscount:0};
 const normal=offerFor(row,target);
 assert.equal(normal.finalPrice,1909000);assert.equal(normal.preCardPrice,1909000);assert.equal(normal.couponDiscount,240000);
 assert.equal(normal.wowCouponDiscount,0);assert.equal(normal.excludedWowCouponDiscount,80000);assert.equal(normal.priceCalculationPolicy,'product-page-v1');
-assert.equal(offerFor({...row,price:1829000},target).finalPrice,1829000,'An embedded product-page coupon must not be added back');
+const included=offerFor({...row,price:1829000},target);
+assert.equal(included.finalPrice,1829000,'An embedded product-page coupon must not be added back');
+assert.equal(included.wowCouponDiscount,80000);assert.equal(included.wowCouponTreatment,'included');assert.equal(included.excludedWowCouponDiscount,null);
+const higher=offerFor({...row,price:1809000},target);
+assert.equal(higher.wowCouponTreatment,'unverified');assert.equal(higher.wowCouponDiscount,null);assert.equal(higher.finalPrice,1809000);
+assert.equal(wowCouponDetails(2149000,1909000,150000,90000,null).wowCouponTreatment,'unverified');
+assert.equal(wowCouponDetails(2149000,1909000,150000,90000,0).wowCouponTreatment,'none');
+assert.equal(wowCouponDetails(2149000,1909000,150000,90000,80000).checkoutPreCardItemPrice,1829000);
 assert.equal(offerFor({...row,wowCouponDiscount:0,checkoutDiscountTotal:240000},target).finalPrice,1909000);
 const terms=[{rate:2,maxDiscount:20000,providers:['A']},{rate:3,maxDiscount:50000,providers:['B']}];
 const card=offerFor({...row,checkoutShipping:3000,cardBenefitStatus:'captured',cardEvidenceSource:'dom',cardTerms:terms,cardDiscount:50000},target);
@@ -19,6 +27,6 @@ const root=fs.mkdtempSync(path.join(os.tmpdir(),'mp-page-price-'));const dir=pat
 try{
  const validator=path.resolve('scripts/validate-market-data.mjs');
  const verify=(o,valid)=>{fs.writeFileSync(path.join(dir,'market-data.js'),'window.MARKET_DATA = '+JSON.stringify({products:[{mtm:'Fixture',itemId:'2',offers:[{...o,role:'mine'}]}]})+';');const r=spawnSync(process.execPath,[validator],{cwd:root,encoding:'utf8'});assert.equal(r.status===0,valid,r.stderr||r.stdout);};
- verify(normal,true);verify({...normal,preCardPrice:1829000,finalPrice:1829000},false);verify({...normal,wowCouponDiscount:80000},false);verify({...normal,couponDiscount:320000},false);
+ verify(normal,true);verify(included,true);verify(higher,true);verify({...included,wowCouponDiscount:0},false);verify({...higher,wowCouponDiscount:80000},false);verify({...normal,preCardPrice:1829000,finalPrice:1829000},false);verify({...normal,wowCouponDiscount:80000},false);verify({...normal,couponDiscount:320000},false);
 }finally{fs.rmSync(root,{recursive:true,force:true});}
 console.log('Product-page price: excluded account coupon, embedded discounts, shipping, best capped card, partial evidence and validation passed.');

@@ -63,7 +63,9 @@ window.MARKET_DATA = {
       "Lenovo"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "wowCouponDisplayPolicy": "checkout-match-v1",
+    "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.182Z"
   },
   "products": [
     {
@@ -116,7 +118,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 160000,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:05:31.512Z",
           "checkoutUnparsedFields": [],
@@ -135,7 +137,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:05",
           "lastVerifiedFinalPrice": 789000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:05",
-          "priceCheckedAt": "2026-11-16 15:05"
+          "priceCheckedAt": "2026-11-16 15:05",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 789000,
+          "wowCouponTreatment": "none"
         }
       ],
       "sourceSellerCount": 6,
@@ -167,7 +172,7 @@ window.MARKET_DATA = {
           "priceCalculationPolicy": "product-page-v1",
           "productPagePrice": 1399000,
           "checkoutCouponSource": "checkout",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "couponDiscount": 300000,
           "checkoutCouponDiscount": 300000,
           "wowInstantDiscount": 0,
@@ -195,7 +200,10 @@ window.MARKET_DATA = {
           "brand": "ASUS",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-16T15:00+09:00",
-          "phaseState": "collected"
+          "phaseState": "collected",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 1399000,
+          "wowCouponTreatment": "none"
         },
         {
           "role": "competitor",
@@ -224,7 +232,7 @@ window.MARKET_DATA = {
           "priceCalculationPolicy": "product-page-v1",
           "productPagePrice": 849000,
           "checkoutCouponSource": "checkout",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "couponDiscount": 499990,
           "checkoutCouponDiscount": 199990,
           "wowInstantDiscount": 300000,
@@ -255,7 +263,10 @@ window.MARKET_DATA = {
           "brand": "HP",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-16T15:00+09:00",
-          "phaseState": "collected"
+          "phaseState": "collected",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 849000,
+          "wowCouponTreatment": "none"
         },
         {
           "role": "competitor",
@@ -369,7 +380,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 160000,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:06:16.413Z",
           "checkoutUnparsedFields": [],
@@ -388,7 +399,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:06",
           "lastVerifiedFinalPrice": 839000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:06",
-          "priceCheckedAt": "2026-11-16 15:06"
+          "priceCheckedAt": "2026-11-16 15:06",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 839000,
+          "wowCouponTreatment": "none"
         }
       ],
       "sourceSellerCount": 6,
@@ -465,7 +479,7 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 160000,
           "priceCalculationPolicy": "product-page-v1",
-          "excludedWowCouponDiscount": 0,
+          "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T06:07:01.261Z",
           "checkoutUnparsedFields": [],
@@ -484,7 +498,10 @@ window.MARKET_DATA = {
           "priceComparisonAt": "2026-11-16 12:06",
           "lastVerifiedFinalPrice": 879000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 15:06",
-          "priceCheckedAt": "2026-11-16 15:06"
+          "priceCheckedAt": "2026-11-16 15:06",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 879000,
+          "wowCouponTreatment": "none"
         }
       ],
       "sourceSellerCount": 6,

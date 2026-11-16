@@ -1,3 +1,4 @@
+import {wowCouponDetails} from './wow-coupon-policy.mjs';
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
@@ -47,6 +48,10 @@ for(const file of [...new Set(files)]){
     if(!mine){fail(file,`${label}: mine offer is missing`);continue;}
     if((product.offers||[]).some(o=>o.role!=='mine')||(product.references||[]).length)fail(file,`${label}: retired seller listings must be removed`);
     for(const c of product.competitorModels||[]){
+      if(c.wowCouponTreatment&&c.checkoutDiscountStatus==='captured'&&finite(c.preCardPrice)){
+        const expectedWow=wowCouponDetails(c.observedListPrice,c.productPagePrice,c.checkoutCouponDiscount,c.wowInstantDiscount,c.observedWowCouponDiscount);
+        for(const [key,value] of Object.entries(expectedWow))if(c[key]!==value)fail(file,`${label}: competitor WOW coupon mismatch: ${key}`);
+      }
       if(c.kind!=='coupang-model'||c.srp!==null||!/^\d+-\d+-\d+$/.test(c.competitorKey||'')||typeof c.alertEligible!=='boolean')fail(file,`${label}: competitor model identity/status invalid`);
       if(c.alertEligible&&(!finite(c.shipping)||c.shipping<0||!finite(c.finalPrice)||c.phaseState!=='collected'||c.comparisonSlot!==data.meta.collectionEvidence?.scanSlot||c.checkoutDiscountStatus!=='captured'||!['none','captured'].includes(c.cardBenefitStatus)))fail(file,`${label}: competitor needs current checkout/card evidence`);
     }
@@ -77,12 +82,15 @@ for(const file of [...new Set(files)]){
     if(mine.checkoutDiscountStatus==="captured"){
       if(mine.checkoutCouponSource!=="checkout") fail(file,`${label}: available-product coupons must come from checkout`);
       const layers=[mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.wowCouponDiscount];
-      if(!layers.every(value=>finite(value)&&value>=0)) fail(file,`${label}: captured checkout layers are incomplete`);
+      if(!(mine.wowCouponTreatment?layers.slice(0,2):layers).every(value=>finite(value)&&value>=0)) fail(file,`${label}: captured checkout layers are incomplete`);
       if(finite(mine.observedListPrice)&&finite(mine.preCardPrice)){
         const expected=mine.observedListPrice-(mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0));
         const total=layers.reduce((sum,value)=>sum+value,0);
         if(mine.priceCalculationPolicy==='product-page-v1'){
-          if(mine.wowCouponDiscount!==0) fail(file,`${label}: account-bound WOW coupon must be excluded`);
+          if(mine.wowCouponTreatment){
+            const expectedWow=wowCouponDetails(mine.observedListPrice,mine.productPagePrice,mine.checkoutCouponDiscount,mine.wowInstantDiscount,mine.observedWowCouponDiscount);
+            for(const [key,value] of Object.entries(expectedWow))if(mine[key]!==value)fail(file,`${label}: conditional WOW coupon mismatch: ${key}`);
+          }else if(mine.wowCouponDiscount!==0) fail(file,`${label}: account-bound WOW coupon must be excluded`);
           if(!finite(mine.productPagePrice)||mine.preCardPrice!==mine.productPagePrice+(finite(mine.shipping)?mine.shipping:0)) fail(file,`${label}: pre-card price must equal product-page price plus shipping`);
           if(mine.couponDiscount!==expected||expected<0) fail(file,`${label}: product-page discount total mismatch`);
           if(mine.excludedWowCouponDiscount!=null&&(!finite(mine.excludedWowCouponDiscount)||mine.excludedWowCouponDiscount<0)) fail(file,`${label}: invalid excluded coupon evidence`);

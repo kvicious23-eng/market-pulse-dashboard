@@ -139,7 +139,7 @@
     const fieldStatus = offer?.checkoutDiscountFieldStatus || {};
     const pagePolicy = offer?.priceCalculationPolicy === "product-page-v1";
     const captured = offer?.checkoutDiscountStatus === "captured"
-      && Number.isFinite(regular) && Number.isFinite(instant) && Number.isFinite(coupon)
+      && Number.isFinite(regular) && Number.isFinite(instant) && (pagePolicy || Number.isFinite(coupon))
       && Number.isFinite(couponTotal) && (pagePolicy || regular + instant + coupon === couponTotal);
     const detailStatus = isSoldOut(offer)
       ? "soldout"
@@ -155,11 +155,15 @@
       regular, instant, coupon, total:couponTotal, captured, detailStatus,
       regularStatus:statusFor("regular",regular),
       instantStatus:statusFor("wowInstant",instant),
-      couponStatus:pagePolicy ? "excluded" : statusFor("wowCoupon",coupon)
+      couponStatus:detailStatus === "soldout" ? "soldout" : pagePolicy && offer?.checkoutDiscountStatus === "captured"
+        ? offer.wowCouponTreatment === "included" || offer.wowCouponTreatment === "none" ? "captured"
+          : offer.wowCouponTreatment === "unverified" ? "comparison-unverified" : "excluded"
+        : statusFor("wowCoupon",coupon)
     };
   }
 
   function checkoutDiscountText(value, detailStatus = "missing") {
+    if (detailStatus === "comparison-unverified") return '<span class="unknown">적용 여부 미확인</span>';
     if (detailStatus === "excluded") return '<span class="unknown">계산 제외</span>';
     if (Number.isFinite(value)) return discountText(value);
     if (detailStatus === "soldout") return '<span class="unknown">주문서 미확인(품절)</span>';
@@ -170,6 +174,7 @@
   }
 
   function checkoutDiscountExportValue(value, detailStatus = "missing") {
+    if (detailStatus === "comparison-unverified") return "적용 여부 미확인";
     if (Number.isFinite(value)) return value;
     if (detailStatus === "soldout") return "주문서 미확인(품절)";
     if (detailStatus === "unverified") return "금액 판독 실패";
@@ -672,7 +677,7 @@
       <div class="evidence__item"><span>와우 전용 즉시할인</span><strong>${checkoutDiscountText(checkout.instant, checkout.instantStatus)}</strong></div>
       <div class="evidence__item"><span>와우 전용 쿠폰할인</span><strong>${checkoutDiscountText(checkout.coupon, checkout.couponStatus)}</strong></div>
       <div class="evidence__item"><span>쿠폰할인 총금액</span><strong>${discountText(breakdown.couponDiscount)}</strong></div>
-      ${offer.priceCalculationPolicy === 'product-page-v1' ? `<div class="evidence__item"><span>가격 기준</span><strong>상품 화면 가격 · 주문서 와우 쿠폰 추가 차감 제외</strong></div>${Number.isFinite(offer.excludedWowCouponDiscount) ? `<div class="evidence__item"><span>제외된 와우 쿠폰 · 주문서 참고</span><strong>${formatWon(offer.excludedWowCouponDiscount)}</strong></div>` : ''}` : ''}
+      ${offer.priceCalculationPolicy === 'product-page-v1' ? `<div class="evidence__item"><span>가격 기준</span><strong>상품 화면 가격 · 와우 쿠폰은 주문서 가격 비교로 표시</strong></div>${Number.isFinite(offer.checkoutPreCardItemPrice) ? `<div class="evidence__item"><span>주문서 할인 반영 상품금액 · 카드·배송비 제외</span><strong>${formatWon(offer.checkoutPreCardItemPrice)}</strong></div>` : ''}${Number.isFinite(offer.observedWowCouponDiscount) && ['excluded','unverified'].includes(offer.wowCouponTreatment) ? `<div class="evidence__item"><span>주문서 와우 쿠폰 · ${offer.wowCouponTreatment === 'excluded' ? '계산 제외' : '적용 여부 미확인'}</span><strong>${formatWon(offer.observedWowCouponDiscount)}</strong></div>` : ''}` : ''}
       <div class="evidence__item"><span>카드할인 전 가격</span><strong>${formatWon(breakdown.preCardPrice)}</strong></div>
       <div class="evidence__item"><span>카드할인 상태</span><strong>${escapeHtml(cardStatusText(offer.cardBenefitStatus))}</strong></div>
       <div class="evidence__item"><span>${isSoldOut(offer) ? "카드 혜택 · 조건" : "카드할인 금액"}</span><strong>${cardDiscountText(offer)}</strong></div>

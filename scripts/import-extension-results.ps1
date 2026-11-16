@@ -300,6 +300,19 @@ function Resolve-CheckoutDiscounts($result) {
   }
   return [pscustomobject]@{Status='unverified';Reason='checkout-three-fields-invalid';Regular=$null;Instant=$null;Coupon=$null;Total=$null}
 }
+function Resolve-WowCouponDisplay($Basis,$Page,$Regular,$Instant,$Observed) {
+  $raw=if(Test-MarketPulseMoney $Observed){$Observed}else{$null}
+  $answer=[pscustomobject]@{Observed=$raw;Checkout=$null;Treatment='unverified';Applied=$null;Excluded=$null}
+  foreach($value in @($Basis,$Page,$Regular,$Instant,$Observed)){if(-not(Test-MarketPulseMoney $value)){return $answer}}
+  if($Page -gt $Basis){return $answer}
+  $checkout=[long]$Basis-[long]$Regular-[long]$Instant-[long]$Observed
+  if($checkout -lt 0 -or $checkout -gt $Basis){return $answer}
+  $answer.Checkout=$checkout
+  $answer.Treatment=if($Observed -eq 0){'none'}elseif($checkout -eq $Page){'included'}elseif($checkout -lt $Page){'excluded'}else{'unverified'}
+  if($answer.Treatment -in @('included','none')){$answer.Applied=$Observed}
+  elseif($answer.Treatment -eq 'excluded'){$answer.Applied=0;$answer.Excluded=$Observed}
+  return $answer
+}
 $text = @{
   Current = Decode-Utf8 '7ZiE7J6s6rCAIOyngeygkSDtmZXsnbg='
   CurrentDetail = Decode-Utf8 '64+Z7J28IEl0ZW0gSUTsnZgg7J2867CYIENocm9tZSDtmZTrqbTsl5DshJwg6rCA6rKpIO2ZleyduA=='
@@ -769,8 +782,12 @@ foreach ($spec in $specs) {
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
       $samePricePolicy=[string]$mine.priceCalculationPolicy -eq 'product-page-v1'
       $mine | Add-Member -NotePropertyName priceCalculationPolicy -NotePropertyValue 'product-page-v1' -Force
-      $mine | Add-Member -NotePropertyName excludedWowCouponDiscount -NotePropertyValue $wowCoupon -Force
-      $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $(if($soldOut){$null}else{0}) -Force
+      $wowDisplay=Resolve-WowCouponDisplay $strike $productPagePrice $checkoutCoupon $wowInstant $wowCoupon
+      $mine | Add-Member -NotePropertyName observedWowCouponDiscount -NotePropertyValue $wowDisplay.Observed -Force
+      $mine | Add-Member -NotePropertyName checkoutPreCardItemPrice -NotePropertyValue $wowDisplay.Checkout -Force
+      $mine | Add-Member -NotePropertyName wowCouponTreatment -NotePropertyValue $wowDisplay.Treatment -Force
+      $mine | Add-Member -NotePropertyName excludedWowCouponDiscount -NotePropertyValue $wowDisplay.Excluded -Force
+      $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowDisplay.Applied -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
       $mine | Add-Member -NotePropertyName checkoutUnparsedFields -NotePropertyValue @($result.checkoutUnparsedFields | Where-Object { $_ }) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountFieldStatus -NotePropertyValue $result.checkoutDiscountFieldStatus -Force

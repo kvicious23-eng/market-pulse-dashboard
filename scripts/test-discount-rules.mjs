@@ -588,3 +588,13 @@ cardDisplayContext.renderCards();
 assert.match(cardDisplayContext.refs.productGrid.innerHTML,/계산 제외/);
 cardDisplayContext.exportMyProducts();
 assert.equal(cardDisplayContext.exported.rows[0][cardDisplayContext.exported.headers.indexOf('와우 전용 쿠폰할인')],0);
+
+for(const [treatment,coupon,text] of [['included',80000,'−80,000원'],['excluded',0,'계산 제외'],['unverified',null,'적용 여부 미확인'],['none',0,'없음']]){
+ const offer={...pageOffer,wowCouponTreatment:treatment,wowCouponDiscount:coupon,observedWowCouponDiscount:80000};
+ cardDisplayContext.data.products=[{mtm:'TEST',offers:[offer]}];cardDisplayContext.renderCards();
+ assert.ok(cardDisplayContext.refs.productGrid.innerHTML.includes(text),treatment);
+ cardDisplayContext.exportMyProducts();
+ assert.equal(cardDisplayContext.exported.rows[0][cardDisplayContext.exported.headers.indexOf('와우 전용 쿠폰할인')],treatment==='unverified'?'적용 여부 미확인':coupon);
+}
+
+assert.notEqual(cardDisplayContext.checkoutDiscounts({...pageOffer,wowCouponTreatment:'included',wowCouponDiscount:null,checkoutDiscountStatus:'stale'},100000).couponStatus,'captured');
