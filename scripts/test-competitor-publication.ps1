@@ -5,6 +5,7 @@ try{
  New-Item -ItemType Directory (Join-Path $repo 'scripts'),(Join-Path $repo 'chrome-extension'),(Join-Path $repo 'brand\test'),(Join-Path $repo 'dist'),$folder -Force|Out-Null
  Copy-Item (Join-Path $PSScriptRoot '*.ps1') (Join-Path $repo 'scripts')
  Copy-Item (Join-Path $PSScriptRoot 'competitor-data.mjs') (Join-Path $repo 'scripts')
+ Copy-Item (Join-Path $PSScriptRoot 'wow-coupon-policy.mjs') (Join-Path $repo 'scripts')
  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\competitor-models.js') (Join-Path $repo 'chrome-extension')
  Copy-Item (Join-Path $PSScriptRoot '..\chrome-extension\scan-policy.js') (Join-Path $repo 'chrome-extension')
  . (Join-Path $repo 'scripts\scan-recovery.ps1');. (Join-Path $repo 'scripts\git-timeout.ps1');. (Join-Path $repo 'scripts\brand-lifecycle.ps1');. (Join-Path $repo 'scripts\competitor-phase.ps1')
