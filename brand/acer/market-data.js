@@ -42,7 +42,9 @@ window.MARKET_DATA = {
       "Acer"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "priceCalculationPolicy": "product-page-v1",
+    "pricePolicyAppliedAt": "2026-11-16T05:25:29.445Z"
   },
   "products": [
     {
@@ -220,12 +222,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -140,000원 와우 전용 즉시할인 -140,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:08",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 1289000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:08",
-          "priceCheckedAt": "2026-11-16 12:08"
+          "priceCheckedAt": "2026-11-16 12:08",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "competitorModels": [],
@@ -298,7 +302,7 @@ window.MARKET_DATA = {
           "checkoutCouponDiscount": 260000,
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 100000,
-          "wowCouponDiscount": 290000,
+          "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T03:09:06.754Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
@@ -314,12 +318,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -390,000원 와우 전용 즉시할인 -100,000원 와우 전용 쿠폰할인 변경 -290,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:08",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 2949000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:08",
-          "priceCheckedAt": "2026-11-16 12:08"
+          "priceCheckedAt": "2026-11-16 12:08",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 290000
         }
       ],
       "competitorModels": [],
@@ -445,8 +451,8 @@ window.MARKET_DATA = {
           "checkedAt": "2026-11-16 12:10",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
-          "finalPrice": 1289000,
-          "couponDiscount": 150000,
+          "finalPrice": 1409000,
+          "couponDiscount": 30000,
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
@@ -461,7 +467,7 @@ window.MARKET_DATA = {
           "srp": 1439000,
           "observedListPrice": 1439000,
           "productPagePrice": 1409000,
-          "preCardPrice": 1289000,
+          "preCardPrice": 1409000,
           "priceBasisType": "crossed-out",
           "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
@@ -476,7 +482,7 @@ window.MARKET_DATA = {
           "checkoutCouponDiscount": 0,
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 30000,
-          "wowCouponDiscount": 120000,
+          "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T03:10:21.880Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
@@ -490,12 +496,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -150,000원 와우 전용 즉시할인 -30,000원 와우 전용 쿠폰할인 변경 -120,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:09",
-          "lastVerifiedFinalPrice": 1289000,
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
+          "lastVerifiedFinalPrice": 1409000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:10",
-          "priceCheckedAt": "2026-11-16 12:10"
+          "priceCheckedAt": "2026-11-16 12:10",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 120000
         }
       ],
       "competitorModels": [],
@@ -537,8 +545,8 @@ window.MARKET_DATA = {
           "checkedAt": "2026-11-16 12:03",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 150000,
-          "finalPrice": 1829000,
-          "couponDiscount": 320000,
+          "finalPrice": 1909000,
+          "couponDiscount": 240000,
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
@@ -553,7 +561,7 @@ window.MARKET_DATA = {
           "srp": 2299000,
           "observedListPrice": 2149000,
           "productPagePrice": 1909000,
-          "preCardPrice": 1829000,
+          "preCardPrice": 1909000,
           "priceBasisType": "crossed-out",
           "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
@@ -568,7 +576,7 @@ window.MARKET_DATA = {
           "checkoutCouponDiscount": 150000,
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 90000,
-          "wowCouponDiscount": 80000,
+          "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T03:04:07.062Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
@@ -584,12 +592,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -170,000원 와우 전용 즉시할인 -90,000원 와우 전용 쿠폰할인 변경 -80,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:03",
-          "lastVerifiedFinalPrice": 1829000,
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
+          "lastVerifiedFinalPrice": 1909000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:03",
-          "priceCheckedAt": "2026-11-16 12:03"
+          "priceCheckedAt": "2026-11-16 12:03",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 80000
         }
       ],
       "competitorModels": [],
@@ -662,7 +672,7 @@ window.MARKET_DATA = {
           "checkoutCouponDiscount": 270000,
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 100000,
-          "wowCouponDiscount": 310000,
+          "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T03:03:30.723Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
@@ -678,12 +688,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -410,000원 와우 전용 즉시할인 -100,000원 와우 전용 쿠폰할인 변경 -310,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:03",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 2989000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:03",
-          "priceCheckedAt": "2026-11-16 12:03"
+          "priceCheckedAt": "2026-11-16 12:03",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 310000
         }
       ],
       "competitorModels": [],
@@ -725,8 +737,8 @@ window.MARKET_DATA = {
           "checkedAt": "2026-11-16 12:02",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 520000,
-          "finalPrice": 2909000,
-          "couponDiscount": 890000,
+          "finalPrice": 3139000,
+          "couponDiscount": 660000,
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
@@ -741,7 +753,7 @@ window.MARKET_DATA = {
           "srp": 4319000,
           "observedListPrice": 3799000,
           "productPagePrice": 3139000,
-          "preCardPrice": 2909000,
+          "preCardPrice": 3139000,
           "priceBasisType": "crossed-out",
           "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
@@ -756,7 +768,7 @@ window.MARKET_DATA = {
           "checkoutCouponDiscount": 300000,
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 280000,
-          "wowCouponDiscount": 310000,
+          "wowCouponDiscount": 0,
           "checkoutDiscountCheckedAt": "2026-11-16T03:02:52.893Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
@@ -772,12 +784,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -590,000원 와우 전용 즉시할인 -280,000원 와우 전용 쿠폰할인 변경 -310,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:02",
-          "lastVerifiedFinalPrice": 2909000,
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
+          "lastVerifiedFinalPrice": 3139000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:02",
-          "priceCheckedAt": "2026-11-16 12:02"
+          "priceCheckedAt": "2026-11-16 12:02",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 310000
         }
       ],
       "competitorModels": [],

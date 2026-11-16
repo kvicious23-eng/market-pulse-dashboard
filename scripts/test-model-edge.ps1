@@ -124,7 +124,7 @@ try {
   $discounted.price=300000;$discounted.basisPrice=1000000;$discounted.strikePrice=1000000;$discounted.wowCouponDiscount=700000
   Check (Test-ModelEdgeVerifiedRow $discounted) 'Valid large coupon was compared to the already-discounted price.'
   $discounted.wowCouponDiscount=1000001
-  Check (-not(Test-ModelEdgeVerifiedRow $discounted)) 'Coupon larger than the true basis was accepted.'
+  Check (Test-ModelEdgeVerifiedRow $discounted) 'Excluded account coupon changed recovery eligibility.'
   $discounted.wowCouponDiscount=0;$discounted.basisPrice=$null
   Check (-not(Test-ModelEdgeVerifiedRow $discounted)) 'Missing anchored basis was counted as a recovered model.'
   Check ((Get-FileHash $sourcePath).Hash -ceq $hash) 'Primary source overwritten.'

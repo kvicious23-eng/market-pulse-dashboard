@@ -242,6 +242,7 @@ jobs:
           ./scripts/test-brand-lifecycle.ps1
           ./scripts/test-history-corrections.ps1
           ./scripts/test-competitor-import.ps1
+          ./scripts/test-product-page-price.ps1
           ./scripts/test-supplier-native.ps1
           ./scripts/test-supplier-metrics.ps1
           ./scripts/test-supplier-daily.ps1

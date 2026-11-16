@@ -81,7 +81,12 @@ for(const file of [...new Set(files)]){
       if(finite(mine.observedListPrice)&&finite(mine.preCardPrice)){
         const expected=mine.observedListPrice-(mine.preCardPrice-(finite(mine.shipping)?mine.shipping:0));
         const total=layers.reduce((sum,value)=>sum+value,0);
-        if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
+        if(mine.priceCalculationPolicy==='product-page-v1'){
+          if(mine.wowCouponDiscount!==0) fail(file,`${label}: account-bound WOW coupon must be excluded`);
+          if(!finite(mine.productPagePrice)||mine.preCardPrice!==mine.productPagePrice+(finite(mine.shipping)?mine.shipping:0)) fail(file,`${label}: pre-card price must equal product-page price plus shipping`);
+          if(mine.couponDiscount!==expected||expected<0) fail(file,`${label}: product-page discount total mismatch`);
+          if(mine.excludedWowCouponDiscount!=null&&(!finite(mine.excludedWowCouponDiscount)||mine.excludedWowCouponDiscount<0)) fail(file,`${label}: invalid excluded coupon evidence`);
+        } else if(expected!==total) fail(file,`${label}: checkout layers ${total} do not equal displayed discount ${expected}`);
       }
     }
     if(soldOut(mine)&&finite(mine.observedListPrice)&&finite(mine.productPagePrice)){

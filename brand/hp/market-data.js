@@ -42,7 +42,9 @@ window.MARKET_DATA = {
       "HP"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "priceCalculationPolicy": "product-page-v1",
+    "pricePolicyAppliedAt": "2026-11-16T05:25:29.451Z"
   },
   "products": [
     {
@@ -127,12 +129,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -530,000원 와우 전용 즉시할인 -390,000원 와우 전용 카드 즉시할인 -140,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:00",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 2119000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:00",
-          "priceCheckedAt": "2026-11-16 12:00"
+          "priceCheckedAt": "2026-11-16 12:00",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "competitorModels": [],

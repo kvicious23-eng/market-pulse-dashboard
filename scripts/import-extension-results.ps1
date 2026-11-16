@@ -664,9 +664,10 @@ foreach ($spec in $specs) {
       $checkoutCoupon=$checkout.Regular
       $wowInstant=$checkout.Instant
       $wowCoupon=$checkout.Coupon
-      $preCardItemPrice=if ($checkoutStatus -eq 'captured' -and $null -ne $strike -and
-          $null -ne $checkoutCoupon -and $null -ne $wowInstant -and $null -ne $wowCoupon) {
-        [long]$strike-[long]$checkoutCoupon-[long]$wowInstant-[long]$wowCoupon
+      # Product-page current price is authoritative. Checkout coupon rows are
+      # evidence only; account-bound WOW coupons must never be subtracted again.
+      $preCardItemPrice=if ($checkoutStatus -eq 'captured' -and $null -ne $strike) {
+        $productPagePrice
       } else {$null}
       if ($null -ne $preCardItemPrice -and ($preCardItemPrice -lt 0 -or $preCardItemPrice -gt $strike)) {
         $checkoutStatus='unverified'
@@ -717,7 +718,7 @@ foreach ($spec in $specs) {
         } elseif ($null -ne $preCardItemPrice) { 0 } else { $null }
       } elseif ($cardCapturedValid) {
         # Validate the product-page observation, then calculate the applicable
-        # discount from the checkout coupon-adjusted item price when available.
+        # discount from the product-page item price when available.
          if (-not (Test-MarketPulseMoney $result.cardDiscount) -or [long]$result.cardDiscount -ne $pageBest.amount) {
           $cardBenefitStatus='unverified'
           $null
@@ -740,7 +741,7 @@ foreach ($spec in $specs) {
         $null -ne $preCardPrice -and $cardDiscount -le $preCardPrice
       $currentVerifiedFinal=if ($alertEligible){$preCardPrice-$cardDiscount}else{$null}
       $final=if ($alertEligible){$currentVerifiedFinal}elseif($cardReviewRequired){$preCardPrice}else{$previousFinalPrice}
-      $couponTotal=if ($checkoutStatus -eq 'captured') {$checkout.Total} else {$null}
+      $couponTotal=if ($null -ne $preCardItemPrice -and $null -ne $strike) {$strike-$preCardItemPrice} else {$null}
       $mine.displayPrice=$srp
       $mine.finalPrice=$final
       $mine.instantDiscount=if ($null -ne $srp -and $null -ne $strike -and $srp -ge $strike){$srp-$strike}else{$null}
@@ -766,17 +767,20 @@ foreach ($spec in $specs) {
       $checkoutSource=if($soldOut){$null}else{[string]$result.checkoutCouponSource}
       $mine | Add-Member -NotePropertyName checkoutCouponSource -NotePropertyValue $checkoutSource -Force
       $mine | Add-Member -NotePropertyName wowInstantDiscount -NotePropertyValue $wowInstant -Force
-      $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $wowCoupon -Force
+      $samePricePolicy=[string]$mine.priceCalculationPolicy -eq 'product-page-v1'
+      $mine | Add-Member -NotePropertyName priceCalculationPolicy -NotePropertyValue 'product-page-v1' -Force
+      $mine | Add-Member -NotePropertyName excludedWowCouponDiscount -NotePropertyValue $wowCoupon -Force
+      $mine | Add-Member -NotePropertyName wowCouponDiscount -NotePropertyValue $(if($soldOut){$null}else{0}) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountCheckedAt -NotePropertyValue ([string]$result.checkoutDiscountCapturedAt) -Force
       $mine | Add-Member -NotePropertyName checkoutUnparsedFields -NotePropertyValue @($result.checkoutUnparsedFields | Where-Object { $_ }) -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountFieldStatus -NotePropertyValue $result.checkoutDiscountFieldStatus -Force
       $mine | Add-Member -NotePropertyName checkoutDiscountEvidence -NotePropertyValue @(Get-SafeCheckoutEvidence $result.checkoutDiscountEvidence) -Force
       $mine | Add-Member -NotePropertyName alertEligible -NotePropertyValue $alertEligible -Force
-      $priceChange=if($alertEligible -and $null -ne $previousFinalPrice){[long]$currentVerifiedFinal-[long]$previousFinalPrice}else{$null}
+      $priceChange=if($alertEligible -and $samePricePolicy -and $null -ne $previousFinalPrice){[long]$currentVerifiedFinal-[long]$previousFinalPrice}else{$null}
       $priceTrend=if($null -eq $priceChange){'unavailable'}elseif($priceChange -lt 0){'down'}elseif($priceChange -gt 0){'up'}else{'same'}
       $mine | Add-Member -NotePropertyName priceChange -NotePropertyValue $priceChange -Force
       $mine | Add-Member -NotePropertyName priceTrend -NotePropertyValue $priceTrend -Force
-      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue $previousPriceCheckedAt -Force
+      $mine | Add-Member -NotePropertyName priceComparisonAt -NotePropertyValue $(if($samePricePolicy){$previousPriceCheckedAt}else{''}) -Force
       if ($alertEligible) {
         $mine | Add-Member -NotePropertyName lastVerifiedFinalPrice -NotePropertyValue $currentVerifiedFinal -Force
         $mine | Add-Member -NotePropertyName lastVerifiedPriceCheckedAt -NotePropertyValue $kst -Force

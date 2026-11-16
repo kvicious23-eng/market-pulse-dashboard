@@ -581,3 +581,10 @@ assert.equal(cardDisplayContext.isSoldOut({...collectionFailure,status:'품절'}
 assert.equal(cardDisplayContext.publishedPrice({...collectionFailure,lastVerifiedFinalPrice:null}),null);
 console.log('Mixed successful and blue failed models render with dated reference prices only.');
 
+
+const pageOffer={...twoCards,priceCalculationPolicy:'product-page-v1',productPagePrice:400000,excludedWowCouponDiscount:80000,wowCouponDiscount:0};
+cardDisplayContext.data.products=[{mtm:'TEST',offers:[pageOffer]}];
+cardDisplayContext.renderCards();
+assert.match(cardDisplayContext.refs.productGrid.innerHTML,/계산 제외/);
+cardDisplayContext.exportMyProducts();
+assert.equal(cardDisplayContext.exported.rows[0][cardDisplayContext.exported.headers.indexOf('와우 전용 쿠폰할인')],0);

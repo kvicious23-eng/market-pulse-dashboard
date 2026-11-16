@@ -42,7 +42,9 @@ window.MARKET_DATA = {
       "Godox"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "priceCalculationPolicy": "product-page-v1",
+    "pricePolicyAppliedAt": "2026-11-16T05:25:29.449Z"
   },
   "products": [
     {
@@ -99,12 +101,14 @@ window.MARKET_DATA = {
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:04",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 41000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:04",
-          "priceCheckedAt": "2026-11-16 12:04"
+          "priceCheckedAt": "2026-11-16 12:04",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "competitorModels": [],
@@ -183,12 +187,14 @@ window.MARKET_DATA = {
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:01",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 165000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:01",
-          "priceCheckedAt": "2026-11-16 12:01"
+          "priceCheckedAt": "2026-11-16 12:01",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "competitorModels": [],
@@ -267,12 +273,14 @@ window.MARKET_DATA = {
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:01",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 17000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:01",
-          "priceCheckedAt": "2026-11-16 12:01"
+          "priceCheckedAt": "2026-11-16 12:01",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "competitorModels": [],

@@ -43,7 +43,9 @@ window.MARKET_DATA = {
       "Lenovo"
     ],
     "lifecycleStatus": "active",
-    "renamedTo": null
+    "renamedTo": null,
+    "priceCalculationPolicy": "product-page-v1",
+    "pricePolicyAppliedAt": "2026-11-16T05:25:29.466Z"
   },
   "products": [
     {
@@ -108,12 +110,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:05",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 789000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:05",
-          "priceCheckedAt": "2026-11-16 12:05"
+          "priceCheckedAt": "2026-11-16 12:05",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "sourceSellerCount": 6,
@@ -171,7 +175,11 @@ window.MARKET_DATA = {
           "comparisonSlot": "2026-11-16T07:00+09:00",
           "phaseState": "scheduled-reference",
           "lastVerifiedFinalPrice": 1399000,
-          "lastVerifiedPriceCheckedAt": "2026-11-16 07:16:34"
+          "lastVerifiedPriceCheckedAt": "2026-11-16 07:16:34",
+          "priceCalculationPolicy": "product-page-v1",
+          "productPagePrice": 1399000,
+          "checkoutCouponSource": "checkout",
+          "excludedWowCouponDiscount": 0
         },
         {
           "role": "competitor",
@@ -229,7 +237,11 @@ window.MARKET_DATA = {
           "comparisonSlot": "2026-11-16T07:00+09:00",
           "phaseState": "scheduled-reference",
           "lastVerifiedFinalPrice": 849000,
-          "lastVerifiedPriceCheckedAt": "2026-11-16 07:17:20"
+          "lastVerifiedPriceCheckedAt": "2026-11-16 07:17:20",
+          "priceCalculationPolicy": "product-page-v1",
+          "productPagePrice": 849000,
+          "checkoutCouponSource": "checkout",
+          "excludedWowCouponDiscount": 0
         },
         {
           "role": "competitor",
@@ -355,12 +367,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:05",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 839000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:06",
-          "priceCheckedAt": "2026-11-16 12:06"
+          "priceCheckedAt": "2026-11-16 12:06",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "sourceSellerCount": 6,
@@ -449,12 +463,14 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-16 07:06",
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "",
           "lastVerifiedFinalPrice": 879000,
           "lastVerifiedPriceCheckedAt": "2026-11-16 12:06",
-          "priceCheckedAt": "2026-11-16 12:06"
+          "priceCheckedAt": "2026-11-16 12:06",
+          "priceCalculationPolicy": "product-page-v1",
+          "excludedWowCouponDiscount": 0
         }
       ],
       "sourceSellerCount": 6,

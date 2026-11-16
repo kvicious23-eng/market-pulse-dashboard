@@ -5,12 +5,12 @@ $numberEnd=$source.IndexOf('function Resolve-CheckoutDiscounts(', $numberStart)
 . ([ScriptBlock]::Create($source.Substring($numberStart,$numberEnd-$numberStart)))
 # Exercise actual importer card handling without writing real data or invoking Git.
 $cardStart=$source.IndexOf('$cardBenefitStatus=if ($result.cardBenefitStatus)')
-$cardEnd=$source.IndexOf('$couponTotal=if ($checkoutStatus', $cardStart)
+$cardEnd=$source.IndexOf('$couponTotal=if ($null -ne $preCardItemPrice', $cardStart)
 if($cardStart -lt 0 -or $cardEnd -le $cardStart){throw 'Card calculation block missing.'}
 $cardBlock=[ScriptBlock]::Create($source.Substring($cardStart,$cardEnd-$cardStart))
 function Test-CardState($state,$terms,$reason='') {
-  $result=[pscustomobject]@{cardBenefitStatus=$state;cardRate=3;cardProviders=@('Test');cardEvidenceSource='dom';cardMaxDiscount=38900;cardTerms=$terms;cardDiscount=38900;checkoutDiscountReason=$reason}
-  $preCardItemPrice=1000000;$preCardPrice=1003000;$productPagePrice=1300000
+  $result=[pscustomobject]@{cardBenefitStatus=$state;cardRate=3;cardProviders=@('Test');cardEvidenceSource='dom';cardMaxDiscount=38900;cardTerms=$terms;cardDiscount=30000;checkoutDiscountReason=$reason}
+  $preCardItemPrice=1000000;$preCardPrice=1003000;$productPagePrice=1000000
   $checkoutStatus='captured';$previousFinalPrice=900000
   . $cardBlock
   [pscustomobject]@{review=$cardReviewRequired;status=$cardBenefitStatus;eligible=$alertEligible;final=$final;discount=$cardDiscount}
@@ -37,7 +37,7 @@ $data=[pscustomobject]@{products=@()};$brandResults=@()
 foreach($i in 1..4) {
   $mine=[pscustomobject]@{role='mine';displayPrice=1000000;finalPrice=750000;instantDiscount=0;couponDiscount=250000;cardDiscount=0;
     checkedAt='2026-10-16 12:13';priceCheckedAt='2026-10-16 12:13';status='현재가 직접 확인';condition='';confidence='A';confidenceText='';
-    shipping=0;url='https://www.coupang.com/';alertEligible=$true;cardBenefitStatus='none';checkoutDiscountStatus='captured'}
+    priceCalculationPolicy='product-page-v1';shipping=0;url='https://www.coupang.com/';alertEligible=$true;cardBenefitStatus='none';checkoutDiscountStatus='captured'}
   if($i -eq 4){$mine.finalPrice=$null;$mine.alertEligible=$false;$mine.priceCheckedAt=''}
   $data.products += [pscustomobject]@{mtm="MODEL$i";productId="$i";itemId="$i";vendorItemId="$i";srp=1000000;offers=@($mine)}
   $brandResults += [pscustomobject]@{mtm="MODEL$i";productId="$i";itemId="$i";vendorItemId="$i";checkedAt='2026-10-16T07:42:00Z';ok=$true;
