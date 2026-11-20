@@ -12,3 +12,19 @@ assert.equal(ctx.parse(1000000,'5%',['BC','하나'],{before:{cardRows:rows},afte
 assert.equal(ctx.rows({strings:['https://evil.test/payments/card-benefit',...strings.slice(1)],documents:[doc]}).length,0);
 assert.equal(ctx.rows({strings,documents:[{...doc,layout:{nodeIndex:[]}}]}).length,0);
 console.log('Rendered card iframe rows: same-row alt/provider mapping, distinct caps, full provider coverage, stale/hidden/wrong-origin rejection passed.');
+
+const mixedRows=[
+  {labels:['삼성카드'],text:'1% 할인 / 최대 6,660원'},
+  {labels:['하나카드','NH농협카드'],text:'3% 할인 / 최대 3만4,450원'}
+];
+const mixed=ctx.parse(1159000,'최대 3% 카드 즉시할인',['NH농협','하나','삼성'],{before:{cardRows:[]},after:{cardRows:mixedRows}});
+assert.equal(mixed.captured,true);
+assert.equal(mixed.cardDiscount,34450);
+assert.deepEqual(Array.from(mixed.cardProviders).sort(),['NH농협','하나']);
+assert.equal(mixed.cardTerms.length,2);
+const capped=[mixedRows[0],{...mixedRows[1],text:'3% 할인 / 최대 5,000원'}];
+const bestByAmount=ctx.parse(1159000,'최대 3% 카드 즉시할인',['NH농협','하나','삼성'],{before:{cardRows:[]},after:{cardRows:capped}});
+assert.equal(bestByAmount.cardRate,1);
+assert.equal(bestByAmount.cardDiscount,6660);
+assert.equal(bestByAmount.cardProviders[0],'삼성');
+assert.equal(ctx.parse(1159000,'최대 3%',['NH농협','하나','삼성'],{after:{cardRows:mixedRows.slice(0,1)}}).captured,false);

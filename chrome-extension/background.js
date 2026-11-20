@@ -1000,15 +1000,25 @@ function parseDebuggerCardEvidence(preCardPrice,summaryText,summaryProviders,cap
   const knownCards=['와우카드(KB)','KB국민','NH농협','신한','BC','우리','롯데','하나','삼성','현대','KB'];
   const priorRows=new Set((capture?.before?.cardRows||[]).map(row=>JSON.stringify(row)));
   const frameTerms=[];
-  for(const row of capture?.after?.cardRows||[]) {
-    if(priorRows.has(JSON.stringify(row)))continue;
+  const cardName=value=>{
+    const name=value.replace(/\s/g,'').replace(/카드$/,'');
+    return ['KB','KB국민'].includes(name)?'KB국민':name;
+  };
+  for (const row of capture?.after?.cardRows||[]) {
+    if (priorRows.has(JSON.stringify(row))) continue;
     const rates=[...new Set(parseRates(row.text))],caps=parseCaps(row.text);
-    const providers=summaryProviders.filter(provider=>row.labels.some(label=>label.replace(/\s|카드/g,'').includes(provider.replace(/\s|카드/g,''))));
-    if(rates.length!==1||rates[0]!==expectedRate||caps.length!==1||providers.length!==1)continue;
-    frameTerms.push({rate:rates[0],maxDiscount:caps[0],providers});
+    const labels=new Set(row.labels.map(cardName));
+    const providers=summaryProviders.filter(provider=>labels.has(cardName(provider)));
+    const uncapped=/(?:한도|제한)\s*(?:없음|없이|없|무제한)/.test(row.text);
+    if (rates.length!==1||rates[0]>expectedRate||caps.length>1||(!caps.length&&!uncapped)||!providers.length) continue;
+    frameTerms.push({rate:rates[0],maxDiscount:caps[0]??null,providers});
   }
-  if(frameTerms.length&&summaryProviders.every(p=>frameTerms.some(t=>t.providers.includes(p)))) {
-    const best=frameTerms.map(t=>({...t,amount:Math.min(Math.floor(preCardPrice*t.rate/100),t.maxDiscount)})).sort((a,b)=>b.amount-a.amount)[0];
+  // The headline is the maximum advertised rate, while individual rows can
+  // have different rates. Only compare amounts tied to verified card labels.
+  if (frameTerms.some(t=>t.rate===expectedRate)&&summaryProviders.every(p=>frameTerms.some(t=>t.providers.includes(p)))) {
+    const best=frameTerms.map(t=>({
+      ...t,amount:Math.min(Math.floor(preCardPrice*t.rate/100),t.maxDiscount??Infinity)
+    })).sort((a,b)=>b.amount-a.amount)[0];
     return {captured:true,cardBenefitStatus:'captured',cardInteractionStatus:'captured',cardEvidenceSource:'dom-snapshot',cardTerms:frameTerms,cardRate:best.rate,cardMaxDiscount:best.maxDiscount,cardDiscount:best.amount,cardProviders:best.providers,cardBenefitText:summaryText,cardDebug:{...cardDebug,frameRows:frameTerms}};
   }
   const candidates=[];
@@ -1129,7 +1139,8 @@ async function scanCoupangTab(tabId,target) {
      if (same) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:`dom+${debuggerCard.cardEvidenceSource}`});
      else if (card.cardTerms.length>1) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
      else scan.cardInteractionStatus='card-evidence-conflict';
-   } else if (card?.reason==='card-popup-unparseable') scan.cardInteractionStatus=card.reason;
+   } else if (debuggerCard?.captured&&debuggerCard.cardDebug?.frameRows?.length) Object.assign(scan,debuggerCard);
+   else if (card?.reason==='card-popup-unparseable') scan.cardInteractionStatus=card.reason;
    else if (debuggerCard?.captured) Object.assign(scan,debuggerCard);
   else if (card?.captured) Object.assign(scan,card,{cardInteractionStatus:'captured',cardEvidenceSource:'dom'});
   else scan.cardInteractionStatus=debuggerCard?.reason||card?.reason||'card-popup-no-result';
