@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-21T15:11:04+09:00",
+    "snapshotAt": "2026-11-21T20:11:13+09:00",
     "sourceFile": "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,7 +9,7 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-11-21T15:11:04+09:00",
+      "lastAttemptAt": "2026-11-21T20:11:13+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "Lenovo 수집 결과: 검증 3, 품절 0, 일부 0 / 전체 3",
       "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
@@ -18,11 +18,11 @@ window.MARKET_DATA = {
     },
     "updatedAt": "2026-09-14T19:42:57+09:00",
     "competitorPhase": {
-      "scanSlot": "2026-11-21T15:00+09:00",
-      "state": "complete",
+      "scanSlot": "2026-11-21T20:00+09:00",
+      "state": "scheduled-skip",
       "count": 3,
-      "sourceRunId": "606f5cc8484740529232719962e2cdbe",
-      "completedAt": "2026-11-21T06:18:13.027Z"
+      "sourceRunId": null,
+      "completedAt": null
     },
     "priceCalculationPolicy": "product-page-v1",
     "pricePolicyAppliedAt": "2026-11-16T05:25:29.466Z",
@@ -32,35 +32,35 @@ window.MARKET_DATA = {
     "collectionEvidence": {
       "browser": "edge",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-21T15:00+09:00",
+      "scanSlot": "2026-11-21T20:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "606f5cc8484740529232719962e2cdbe",
-      "sourceRunId": "606f5cc8484740529232719962e2cdbe",
-      "startedAt": "2026-11-21T06:00:18.283Z",
-      "completedAt": "2026-11-21T06:11:04.897Z",
+      "runId": "abd8ed8ea3994df7820b2642e2c60593",
+      "sourceRunId": "abd8ed8ea3994df7820b2642e2c60593",
+      "startedAt": "2026-11-21T11:00:30.003Z",
+      "completedAt": "2026-11-21T11:11:13.810Z",
       "targetCount": 15,
       "resultCount": 15
     },
     "recoveryEvidence": {
-      "reason": "access-check",
+      "reason": "whale-process-exit",
       "exitCause": "unknown",
-      "primaryBrowser": "chrome",
-      "scanSlot": "2026-11-21T15:00+09:00",
-      "chromeRunId": "cf0319ebfe13403d82850d255734d64d",
-      "edgeRunId": "606f5cc8484740529232719962e2cdbe",
-      "chromeStartedAt": "2026-11-21T06:00:04.357Z",
+      "primaryBrowser": "whale",
+      "scanSlot": "2026-11-21T20:00+09:00",
+      "chromeRunId": "31da67cdbe8e410da5e7d85dc77c1879",
+      "edgeRunId": "abd8ed8ea3994df7820b2642e2c60593",
+      "chromeStartedAt": "2026-11-21T11:00:07.403Z",
       "chromeExtensionVersion": "1.9.79",
       "edgeExtensionVersion": "1.9.79",
-      "chromeCompletedAt": "2026-11-21T06:00:13.453Z",
-      "accessCheckCount": 1,
-      "processObservedAt": null,
-      "absentChecks": null,
-      "edgeStartedAt": "2026-11-21T06:00:18.283Z",
+      "chromeCompletedAt": null,
+      "accessCheckCount": null,
+      "processObservedAt": "2026-11-21T11:00:29.3248973+00:00",
+      "absentChecks": 2,
+      "edgeStartedAt": "2026-11-21T11:00:30.003Z",
       "targetCount": 15,
       "resultCount": 15,
       "listMatched": true
     },
-    "publishedAt": "2026-11-21T15:11:04+09:00",
+    "publishedAt": "2026-11-21T20:11:13+09:00",
     "historyBrands": [
       "Lenovo"
     ],
@@ -83,7 +83,7 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-21 15:05",
+          "checkedAt": "2026-11-21 20:05",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 789000,
@@ -95,10 +95,10 @@ window.MARKET_DATA = {
           "collectionEvidence": {
             "browser": "edge",
             "extensionVersion": "1.9.79",
-            "runId": "606f5cc8484740529232719962e2cdbe",
-            "checkedAt": "2026-11-21T06:05:24.227Z"
+            "runId": "abd8ed8ea3994df7820b2642e2c60593",
+            "checkedAt": "2026-11-21T11:05:35.819Z"
           },
-          "availabilityCheckedAt": "2026-11-21 15:05",
+          "availabilityCheckedAt": "2026-11-21 20:05",
           "srp": 1109000,
           "observedListPrice": 1109000,
           "productPagePrice": 789000,
@@ -123,7 +123,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-21T06:05:38.925Z",
+          "checkoutDiscountCheckedAt": "2026-11-21T11:05:50.492Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -137,10 +137,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-21 12:05",
+          "priceComparisonAt": "2026-11-21 15:05",
           "lastVerifiedFinalPrice": 789000,
-          "lastVerifiedPriceCheckedAt": "2026-11-21 15:05",
-          "priceCheckedAt": "2026-11-21 15:05"
+          "lastVerifiedPriceCheckedAt": "2026-11-21 20:05",
+          "priceCheckedAt": "2026-11-21 20:05"
         }
       ],
       "sourceSellerCount": 6,
@@ -160,10 +160,10 @@ window.MARKET_DATA = {
           "observedListPrice": 1699000,
           "preCardPrice": 1399000,
           "finalPrice": 1394000,
-          "alertEligible": true,
+          "alertEligible": false,
           "cardBenefitStatus": "captured",
           "checkoutDiscountStatus": "captured",
-          "status": "현재가 직접 확인",
+          "status": "직전 경쟁 조사 참고",
           "collectionStatus": null,
           "collectionIssue": null,
           "priceCheckedAt": "2026-11-21 15:16:37",
@@ -234,7 +234,9 @@ window.MARKET_DATA = {
           "brand": "ASUS",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-21T15:00+09:00",
-          "phaseState": "collected"
+          "phaseState": "scheduled-reference",
+          "lastVerifiedFinalPrice": 1394000,
+          "lastVerifiedPriceCheckedAt": "2026-11-21 15:16:37"
         },
         {
           "role": "competitor",
@@ -251,10 +253,10 @@ window.MARKET_DATA = {
           "observedListPrice": 1348990,
           "preCardPrice": 1149000,
           "finalPrice": 1149000,
-          "alertEligible": true,
+          "alertEligible": false,
           "cardBenefitStatus": "none",
           "checkoutDiscountStatus": "captured",
-          "status": "현재가 직접 확인",
+          "status": "직전 경쟁 조사 참고",
           "collectionStatus": null,
           "collectionIssue": null,
           "priceCheckedAt": "2026-11-21 15:17:23",
@@ -294,7 +296,9 @@ window.MARKET_DATA = {
           "brand": "HP",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-21T15:00+09:00",
-          "phaseState": "collected"
+          "phaseState": "scheduled-reference",
+          "lastVerifiedFinalPrice": 1149000,
+          "lastVerifiedPriceCheckedAt": "2026-11-21 15:17:23"
         },
         {
           "role": "competitor",
@@ -314,7 +318,7 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "soldout",
-          "status": "품절",
+          "status": "직전 경쟁 조사 참고",
           "collectionStatus": null,
           "collectionIssue": null,
           "priceCheckedAt": "2026-11-21 15:17:52",
@@ -331,7 +335,7 @@ window.MARKET_DATA = {
           "brand": "ASUS",
           "note": "비보북/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-21T15:00+09:00",
-          "phaseState": "collected",
+          "phaseState": "scheduled-reference",
           "lastVerifiedFinalPrice": 1098000,
           "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04"
         }
@@ -373,7 +377,7 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-21 15:06",
+          "checkedAt": "2026-11-21 20:06",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 839000,
@@ -385,10 +389,10 @@ window.MARKET_DATA = {
           "collectionEvidence": {
             "browser": "edge",
             "extensionVersion": "1.9.79",
-            "runId": "606f5cc8484740529232719962e2cdbe",
-            "checkedAt": "2026-11-21T06:06:08.114Z"
+            "runId": "abd8ed8ea3994df7820b2642e2c60593",
+            "checkedAt": "2026-11-21T11:06:19.653Z"
           },
-          "availabilityCheckedAt": "2026-11-21 15:06",
+          "availabilityCheckedAt": "2026-11-21 20:06",
           "srp": 1159000,
           "observedListPrice": 1159000,
           "productPagePrice": 839000,
@@ -413,7 +417,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-21T06:06:22.770Z",
+          "checkoutDiscountCheckedAt": "2026-11-21T11:06:34.819Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -427,10 +431,10 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-21 12:06",
+          "priceComparisonAt": "2026-11-21 15:06",
           "lastVerifiedFinalPrice": 839000,
-          "lastVerifiedPriceCheckedAt": "2026-11-21 15:06",
-          "priceCheckedAt": "2026-11-21 15:06"
+          "lastVerifiedPriceCheckedAt": "2026-11-21 20:06",
+          "priceCheckedAt": "2026-11-21 20:06"
         }
       ],
       "sourceSellerCount": 6,
@@ -472,66 +476,35 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-21 15:06",
+          "checkedAt": "2026-11-21 20:07",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
-          "finalPrice": 874000,
+          "finalPrice": 879000,
           "couponDiscount": 320000,
           "confidence": "A",
-          "cardDiscount": 5000,
+          "cardDiscount": 0,
           "status": "현재가 직접 확인",
           "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
           "collectionEvidence": {
             "browser": "edge",
             "extensionVersion": "1.9.79",
-            "runId": "606f5cc8484740529232719962e2cdbe",
-            "checkedAt": "2026-11-21T06:06:58.065Z"
+            "runId": "abd8ed8ea3994df7820b2642e2c60593",
+            "checkedAt": "2026-11-21T11:07:06.008Z"
           },
-          "availabilityCheckedAt": "2026-11-21 15:07",
+          "availabilityCheckedAt": "2026-11-21 20:07",
           "srp": 1199000,
           "observedListPrice": 1199000,
           "productPagePrice": 879000,
           "preCardPrice": 879000,
           "priceBasisType": "crossed-out",
-          "cardBenefitStatus": "captured",
+          "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
-          "cardEvidenceSource": "dom-snapshot",
-          "cardRate": 1,
-          "cardMaxDiscount": 5000,
-          "cardProviders": [
-            "하나"
-          ],
-          "cardTerms": [
-            {
-              "rate": 1,
-              "maxDiscount": 5000,
-              "providers": [
-                "삼성"
-              ]
-            },
-            {
-              "rate": 1,
-              "maxDiscount": 5000,
-              "providers": [
-                "신한"
-              ]
-            },
-            {
-              "rate": 1,
-              "maxDiscount": 5000,
-              "providers": [
-                "하나"
-              ]
-            },
-            {
-              "rate": 1,
-              "maxDiscount": 5000,
-              "providers": [
-                "NH농협"
-              ]
-            }
-          ],
-          "cardBenefitText": "최대 1% 카드 즉시할인 (신한, NH농협, 하나, 삼성)",
+          "cardEvidenceSource": "",
+          "cardRate": null,
+          "cardMaxDiscount": null,
+          "cardProviders": [],
+          "cardTerms": [],
+          "cardBenefitText": "",
           "checkoutDiscountStatus": "captured",
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutCouponDiscount": 160000,
@@ -543,7 +516,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-21T06:07:13.033Z",
+          "checkoutDiscountCheckedAt": "2026-11-21T11:07:20.679Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -555,12 +528,12 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": -5000,
-          "priceTrend": "down",
-          "priceComparisonAt": "2026-11-21 12:07",
-          "lastVerifiedFinalPrice": 874000,
-          "lastVerifiedPriceCheckedAt": "2026-11-21 15:06",
-          "priceCheckedAt": "2026-11-21 15:06"
+          "priceChange": 5000,
+          "priceTrend": "up",
+          "priceComparisonAt": "2026-11-21 15:06",
+          "lastVerifiedFinalPrice": 879000,
+          "lastVerifiedPriceCheckedAt": "2026-11-21 20:07",
+          "priceCheckedAt": "2026-11-21 20:07"
         }
       ],
       "sourceSellerCount": 6,
