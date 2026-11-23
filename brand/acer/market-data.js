@@ -1,991 +1,950 @@
 window.MARKET_DATA = {
-    "meta":  {
-                 "snapshotAt":  "2026-11-23T07:11:13+09:00",
-                 "sourceFile":  "아쎄르_수정.xlsx",
-                 "comparisonBasis":  "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
-                 "exclusions":  "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
-                 "monitoring":  {
-                                    "enabled":  true,
-                                    "quickWatch":  "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
-                                    "fullResearch":  "기본+정밀 동시 실행",
-                                    "dashboardSync":  "GitHub Pages 자동 반영",
-                                    "lastAttemptAt":  "2026-11-23T07:11:13+09:00",
-                                    "lastAttemptStatus":  "success",
-                                    "lastAttemptText":  "Acer 수집 결과: 검증 6, 품절 2, 일부 0 / 전체 8",
-                                    "collectionRoute":  "Windows PC · 일반 Chrome 확장프로그램",
-                                    "competitionValidationStatus":  "coupang-models",
-                                    "alertEvaluation":  ""
-                                },
-                 "competitorPhase":  {
-                                         "scanSlot":  "2026-11-23T07:00+09:00",
-                                         "state":  "complete",
-                                         "count":  0,
-                                         "sourceRunId":  "259d2574adc546c3bea4020b1aa370d2",
-                                         "completedAt":  "2026-11-22T22:19:19.078Z"
-                                     },
-                 "priceCalculationPolicy":  "product-page-v1",
-                 "pricePolicyAppliedAt":  "2026-11-16T05:25:29.445Z",
-                 "wowCouponDisplayPolicy":  "checkout-match-v1",
-                 "wowCouponPolicyAppliedAt":  "2026-11-16T06:41:54.173Z",
-                 "brand":  "Acer",
-                 "collectionEvidence":  {
-                                            "browser":  "chrome",
-                                            "extensionVersion":  "1.9.79",
-                                            "scanSlot":  "2026-11-23T07:00+09:00",
-                                            "policyId":  "chrome-07-15-whale-12-20-v1",
-                                            "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                            "sourceRunId":  "259d2574adc546c3bea4020b1aa370d2",
-                                            "startedAt":  "2026-11-22T22:00:04.043Z",
-                                            "completedAt":  "2026-11-22T22:11:13.700Z",
-                                            "targetCount":  15,
-                                            "resultCount":  15
-                                        },
-                 "recoveryEvidence":  null,
-                 "historyBrands":  [
-                                       "Acer"
-                                   ],
-                 "lifecycleStatus":  "active",
-                 "renamedTo":  null,
-                 "publishedAt":  "2026-11-23T08:00:45+09:00"
-             },
-    "products":  [
-                     {
-                         "storage":  "512GB",
-                         "display":  "Aspire Go 14",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  1419000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318769\u0026vendorItemId=95881909514",
-                                            "checkedAt":  "2026-11-23 07:07",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  0,
-                                            "finalPrice":  1124550,
-                                            "couponDiscount":  260000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  34450,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:07:42.881Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:07",
-                                            "srp":  1419000,
-                                            "observedListPrice":  1419000,
-                                            "productPagePrice":  1159000,
-                                            "preCardPrice":  1159000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  3,
-                                            "cardMaxDiscount":  34450,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  3,
-                                                                  "maxDiscount":  34450,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 3% 카드 즉시할인 (NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-confirmed-absent-discount-fields-zero",
-                                            "checkoutCouponDiscount":  120000,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  140000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  0,
-                                            "checkoutPreCardItemPrice":  1159000,
-                                            "wowCouponTreatment":  "none",
-                                            "excludedWowCouponDiscount":  null,
-                                            "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:07:57.855Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인",
-                                                                             "쿠폰할인 변경 -120,000원",
-                                                                             "와우 전용 즉시할인 -140,000원",
-                                                                             "와우회원 총 추가 혜택 -140,000원 와우 전용 즉시할인 -140,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  0,
-                                            "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-11-22 20:07",
-                                            "lastVerifiedFinalPrice":  1124550,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:07",
-                                            "priceCheckedAt":  "2026-11-23 07:07"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "AG14-I71M-972S",
-                         "productId":  "9681715061",
-                         "itemId":  "28951318769",
-                         "vendorItemId":  "95881909514",
-                         "category":  "Notebook",
-                         "srp":  1419000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  3,
-                                                 "dailySales":  0,
-                                                 "monthSales":  4,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "512GB",
-                         "display":  "Aspire Go 14",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  1559000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9681715061?itemId=28951318771\u0026vendorItemId=95881909515",
-                                            "checkedAt":  "2026-11-23 07:08",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  0,
-                                            "finalPrice":  1263220,
-                                            "couponDiscount":  270000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  25780,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:08:32.895Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:08",
-                                            "srp":  1559000,
-                                            "observedListPrice":  1559000,
-                                            "productPagePrice":  1289000,
-                                            "preCardPrice":  1289000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  2,
-                                            "cardMaxDiscount":  25840,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  25840,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 2% 카드 즉시할인 (NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-confirmed-absent-discount-fields-zero",
-                                            "checkoutCouponDiscount":  130000,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  140000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  0,
-                                            "checkoutPreCardItemPrice":  1289000,
-                                            "wowCouponTreatment":  "none",
-                                            "excludedWowCouponDiscount":  null,
-                                            "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:08:47.934Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인",
-                                                                             "쿠폰할인 변경 -130,000원",
-                                                                             "와우 전용 즉시할인 -140,000원",
-                                                                             "와우회원 총 추가 혜택 -140,000원 와우 전용 즉시할인 -140,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  0,
-                                            "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-11-22 20:08",
-                                            "lastVerifiedFinalPrice":  1263220,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:08",
-                                            "priceCheckedAt":  "2026-11-23 07:08"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "AG14-I71M-96C5",
-                         "productId":  "9681715061",
-                         "itemId":  "28951318771",
-                         "vendorItemId":  "95881909515",
-                         "category":  "Notebook",
-                         "srp":  1559000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  2,
-                                                 "dailySales":  0,
-                                                 "monthSales":  2,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "1TB",
-                         "display":  "Predator Helios Neo 16S",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  4099000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9573633117?itemId=26004597899\u0026vendorItemId=92986675922",
-                                            "checkedAt":  "2026-11-23 07:09",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  500000,
-                                            "finalPrice":  2622510,
-                                            "couponDiscount":  950000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  26490,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:09:23.375Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:09",
-                                            "srp":  4099000,
-                                            "observedListPrice":  3599000,
-                                            "productPagePrice":  2649000,
-                                            "preCardPrice":  2649000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  1,
-                                            "cardMaxDiscount":  30110,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  30110,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  30110,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 1% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-three-discount-fields-captured",
-                                            "checkoutCouponDiscount":  150000,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  580000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  290000,
-                                            "checkoutPreCardItemPrice":  2579000,
-                                            "wowCouponTreatment":  "excluded",
-                                            "excludedWowCouponDiscount":  290000,
-                                            "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:09:29.763Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인",
-                                                                             "와우 전용 쿠폰할인",
-                                                                             "와우 전용 쿠폰할인 변경",
-                                                                             "쿠폰할인 변경 -150,000원",
-                                                                             "와우 전용 즉시할인 -580,000원",
-                                                                             "와우 전용 쿠폰할인 변경 -290,000원",
-                                                                             "와우회원 총 추가 혜택 -870,000원 와우 전용 즉시할인 -580,000원 와우 전용 쿠폰할인 변경 -290,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  0,
-                                            "priceTrend":  "same",
-                                            "priceComparisonAt":  "2026-11-22 20:09",
-                                            "lastVerifiedFinalPrice":  2622510,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:09",
-                                            "priceCheckedAt":  "2026-11-23 07:09"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "PHN16S-71-949J",
-                         "productId":  "9573633117",
-                         "itemId":  "26004597899",
-                         "vendorItemId":  "92986675922",
-                         "category":  "Notebook",
-                         "srp":  4099000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  4,
-                                                 "dailySales":  3,
-                                                 "monthSales":  9,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "512GB",
-                         "display":  "Swift Go 14 AI",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  1689000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9616664363?itemId=28714706385\u0026vendorItemId=95655361667",
-                                            "checkedAt":  "2026-11-23 07:10",
-                                            "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
-                                            "instantDiscount":  0,
-                                            "finalPrice":  1529000,
-                                            "couponDiscount":  null,
-                                            "confidence":  "A",
-                                            "cardDiscount":  null,
-                                            "status":  "품절",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:10:03.057Z"
-                                                                   },
-                                            "lastVerifiedFinalPrice":  1529000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-12 12:09",
-                                            "availabilityCheckedAt":  "2026-11-23 07:10",
-                                            "srp":  1689000,
-                                            "observedListPrice":  1689000,
-                                            "productPagePrice":  1529000,
-                                            "preCardPrice":  null,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "unavailable",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  2,
-                                            "cardMaxDiscount":  20000,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 2% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "soldout",
-                                            "checkoutDiscountReason":  "buy-now-button-not-found",
-                                            "checkoutCouponDiscount":  null,
-                                            "checkoutCouponSource":  null,
-                                            "wowInstantDiscount":  null,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  null,
-                                            "checkoutPreCardItemPrice":  null,
-                                            "wowCouponTreatment":  "unverified",
-                                            "excludedWowCouponDiscount":  null,
-                                            "wowCouponDiscount":  null,
-                                            "checkoutDiscountCheckedAt":  "",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-
-                                                                         ],
-                                            "alertEligible":  false,
-                                            "priceChange":  null,
-                                            "priceTrend":  "unavailable",
-                                            "priceComparisonAt":  "2026-11-12 12:09",
-                                            "priceCheckedAt":  "2026-11-23 07:10"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "SFG14-I71-57P5",
-                         "productId":  "9616664363",
-                         "itemId":  "28714706385",
-                         "vendorItemId":  "95655361667",
-                         "category":  "Notebook",
-                         "srp":  1689000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  0,
-                                                 "dailySales":  0,
-                                                 "monthSales":  18,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "512GB",
-                         "display":  "Swift Go 16 AI",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  1439000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9573633117?itemId=28714706401\u0026vendorItemId=95655361668",
-                                            "checkedAt":  "2026-11-23 07:10",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  0,
-                                            "finalPrice":  1269000,
-                                            "couponDiscount":  150000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  20000,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:10:38.685Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:10",
-                                            "srp":  1439000,
-                                            "observedListPrice":  1439000,
-                                            "productPagePrice":  1289000,
-                                            "preCardPrice":  1289000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  2,
-                                            "cardMaxDiscount":  20000,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 2% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-confirmed-absent-discount-fields-zero",
-                                            "checkoutCouponDiscount":  0,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  30000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  120000,
-                                            "checkoutPreCardItemPrice":  1289000,
-                                            "wowCouponTreatment":  "included",
-                                            "excludedWowCouponDiscount":  null,
-                                            "wowCouponDiscount":  120000,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:10:53.641Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "와우 전용 즉시할인",
-                                                                             "와우 전용 쿠폰할인",
-                                                                             "와우 전용 쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인 -30,000원",
-                                                                             "와우 전용 쿠폰할인 변경 -120,000원",
-                                                                             "와우회원 총 추가 혜택 -150,000원 와우 전용 즉시할인 -30,000원 와우 전용 쿠폰할인 변경 -120,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  -20000,
-                                            "priceTrend":  "down",
-                                            "priceComparisonAt":  "2026-11-22 20:10",
-                                            "lastVerifiedFinalPrice":  1269000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:10",
-                                            "priceCheckedAt":  "2026-11-23 07:10"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "SFG16-74-70E9",
-                         "productId":  "9573633117",
-                         "itemId":  "28714706401",
-                         "vendorItemId":  "95655361668",
-                         "category":  "Notebook",
-                         "srp":  1439000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  33,
-                                                 "dailySales":  6,
-                                                 "monthSales":  97,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "",
-                         "display":  "SFG14-75-749N",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  2299000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/9738841025?itemId=29147260106\u0026vendorItemId=96070559959",
-                                            "checkedAt":  "2026-11-23 07:03",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  150000,
-                                            "finalPrice":  1889000,
-                                            "couponDiscount":  240000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  20000,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:03:59.308Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:04",
-                                            "srp":  2299000,
-                                            "observedListPrice":  2149000,
-                                            "productPagePrice":  1909000,
-                                            "preCardPrice":  1909000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  2,
-                                            "cardMaxDiscount":  20000,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  2,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 2% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-three-discount-fields-captured",
-                                            "checkoutCouponDiscount":  150000,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  90000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  80000,
-                                            "checkoutPreCardItemPrice":  1829000,
-                                            "wowCouponTreatment":  "excluded",
-                                            "excludedWowCouponDiscount":  80000,
-                                            "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:04:07.201Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인",
-                                                                             "와우 전용 쿠폰할인",
-                                                                             "와우 전용 쿠폰할인 변경",
-                                                                             "쿠폰할인 변경 -150,000원",
-                                                                             "와우 전용 즉시할인 -90,000원",
-                                                                             "와우 전용 쿠폰할인 변경 -80,000원",
-                                                                             "와우회원 총 추가 혜택 -170,000원 와우 전용 즉시할인 -90,000원 와우 전용 쿠폰할인 변경 -80,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  -20000,
-                                            "priceTrend":  "down",
-                                            "priceComparisonAt":  "2026-11-22 20:04",
-                                            "lastVerifiedFinalPrice":  1889000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:03",
-                                            "priceCheckedAt":  "2026-11-23 07:03"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "SFG14-75-749N",
-                         "productId":  "9738841025",
-                         "itemId":  "29147260106",
-                         "vendorItemId":  "96070559959",
-                         "category":  "Notebook",
-                         "srp":  2299000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  5,
-                                                 "dailySales":  0,
-                                                 "monthSales":  4,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "",
-                         "display":  "PHN16-73-9581",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  4129000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/8880549624?itemId=25917327376\u0026vendorItemId=92902882925",
-                                            "checkedAt":  "2026-11-23 07:03",
-                                            "condition":  "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
-                                            "instantDiscount":  460000,
-                                            "finalPrice":  2869000,
-                                            "couponDiscount":  null,
-                                            "confidence":  "A",
-                                            "cardDiscount":  null,
-                                            "status":  "품절",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:03:23.862Z"
-                                                                   },
-                                            "lastVerifiedFinalPrice":  2869000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-21 20:03",
-                                            "availabilityCheckedAt":  "2026-11-23 07:03",
-                                            "srp":  4129000,
-                                            "observedListPrice":  3669000,
-                                            "productPagePrice":  2869000,
-                                            "preCardPrice":  null,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "unavailable",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  1,
-                                            "cardMaxDiscount":  20000,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 1% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "soldout",
-                                            "checkoutDiscountReason":  "buy-now-button-not-found",
-                                            "checkoutCouponDiscount":  null,
-                                            "checkoutCouponSource":  null,
-                                            "wowInstantDiscount":  null,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  null,
-                                            "checkoutPreCardItemPrice":  null,
-                                            "wowCouponTreatment":  "unverified",
-                                            "excludedWowCouponDiscount":  null,
-                                            "wowCouponDiscount":  null,
-                                            "checkoutDiscountCheckedAt":  "",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-
-                                                                         ],
-                                            "alertEligible":  false,
-                                            "priceChange":  null,
-                                            "priceTrend":  "unavailable",
-                                            "priceComparisonAt":  "2026-11-21 20:03",
-                                            "priceCheckedAt":  "2026-11-23 07:03"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "PHN16-73-9581",
-                         "productId":  "8880549624",
-                         "itemId":  "25917327376",
-                         "vendorItemId":  "92902882925",
-                         "category":  "Notebook",
-                         "srp":  4129000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  3,
-                                                 "dailySales":  4,
-                                                 "monthSales":  34,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     },
-                     {
-                         "storage":  "",
-                         "display":  "PHN16S-71-99SN",
-                         "validation":  "identifiers-verified",
-                         "offers":  [
-                                        {
-                                            "role":  "mine",
-                                            "channel":  "쿠팡",
-                                            "seller":  "내 쿠팡 상품",
-                                            "displayPrice":  4319000,
-                                            "shipping":  0,
-                                            "sourceType":  "관리화면 등록 URL",
-                                            "url":  "https://www.coupang.com/vp/products/8906279054?itemId=26011692765\u0026vendorItemId=92993600715",
-                                            "checkedAt":  "2026-11-23 07:02",
-                                            "condition":  "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
-                                            "instantDiscount":  520000,
-                                            "finalPrice":  2869000,
-                                            "couponDiscount":  910000,
-                                            "confidence":  "A",
-                                            "cardDiscount":  20000,
-                                            "status":  "현재가 직접 확인",
-                                            "confidenceText":  "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
-                                            "collectionEvidence":  {
-                                                                       "browser":  "chrome",
-                                                                       "extensionVersion":  "1.9.79",
-                                                                       "runId":  "259d2574adc546c3bea4020b1aa370d2",
-                                                                       "checkedAt":  "2026-11-22T22:02:41.314Z"
-                                                                   },
-                                            "availabilityCheckedAt":  "2026-11-23 07:02",
-                                            "srp":  4319000,
-                                            "observedListPrice":  3799000,
-                                            "productPagePrice":  2889000,
-                                            "preCardPrice":  2889000,
-                                            "priceBasisType":  "crossed-out",
-                                            "cardBenefitStatus":  "captured",
-                                            "publishedPriceBasis":  "final",
-                                            "cardEvidenceSource":  "dom-snapshot",
-                                            "cardRate":  1,
-                                            "cardMaxDiscount":  20000,
-                                            "cardProviders":  [
-                                                                  "NH농협"
-                                                              ],
-                                            "cardTerms":  [
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "신한"
-                                                                                ]
-                                                              },
-                                                              {
-                                                                  "rate":  1,
-                                                                  "maxDiscount":  20000,
-                                                                  "providers":  [
-                                                                                    "NH농협"
-                                                                                ]
-                                                              }
-                                                          ],
-                                            "cardBenefitText":  "최대 1% 카드 즉시할인 (신한, NH농협)",
-                                            "checkoutDiscountStatus":  "captured",
-                                            "checkoutDiscountReason":  "checkout-three-discount-fields-captured",
-                                            "checkoutCouponDiscount":  150000,
-                                            "checkoutCouponSource":  "checkout",
-                                            "wowInstantDiscount":  510000,
-                                            "priceCalculationPolicy":  "product-page-v1",
-                                            "observedWowCouponDiscount":  310000,
-                                            "checkoutPreCardItemPrice":  2829000,
-                                            "wowCouponTreatment":  "excluded",
-                                            "excludedWowCouponDiscount":  310000,
-                                            "wowCouponDiscount":  0,
-                                            "checkoutDiscountCheckedAt":  "2026-11-22T22:02:48.693Z",
-                                            "checkoutUnparsedFields":  [
-
-                                                                       ],
-                                            "checkoutDiscountFieldStatus":  null,
-                                            "checkoutDiscountEvidence":  [
-                                                                             "쿠폰할인",
-                                                                             "쿠폰할인 변경",
-                                                                             "와우 전용 즉시할인",
-                                                                             "와우 전용 쿠폰할인",
-                                                                             "와우 전용 쿠폰할인 변경",
-                                                                             "쿠폰할인 변경 -150,000원",
-                                                                             "와우 전용 즉시할인 -510,000원",
-                                                                             "와우 전용 쿠폰할인 변경 -310,000원",
-                                                                             "와우회원 총 추가 혜택 -820,000원 와우 전용 즉시할인 -510,000원 와우 전용 쿠폰할인 변경 -310,000원 배송비 0원"
-                                                                         ],
-                                            "alertEligible":  true,
-                                            "priceChange":  -15000,
-                                            "priceTrend":  "down",
-                                            "priceComparisonAt":  "2026-11-22 20:03",
-                                            "lastVerifiedFinalPrice":  2869000,
-                                            "lastVerifiedPriceCheckedAt":  "2026-11-23 07:02",
-                                            "priceCheckedAt":  "2026-11-23 07:02"
-                                        }
-                                    ],
-                         "competitorModels":  [
-
-                                              ],
-                         "mtm":  "PHN16S-71-99SN",
-                         "productId":  "8906279054",
-                         "itemId":  "26011692765",
-                         "vendorItemId":  "92993600715",
-                         "category":  "Notebook",
-                         "srp":  4319000,
-                         "references":  [
-
-                                        ],
-                         "supplierMetrics":  {
-                                                 "stock":  32,
-                                                 "dailySales":  2,
-                                                 "monthSales":  9,
-                                                 "stockStatus":  "confirmed",
-                                                 "dailySalesStatus":  "confirmed",
-                                                 "monthSalesStatus":  "confirmed",
-                                                 "asOfDate":  "2026-11-22",
-                                                 "month":  "2026-11",
-                                                 "monthThrough":  "2026-11-22",
-                                                 "sourceDate":  "2026-11-22",
-                                                 "salesBasis":  "outbound",
-                                                 "source":  "Supplier Hub CSV"
-                                             }
-                     }
-                 ]
+  "meta": {
+    "snapshotAt": "2026-11-23T12:11:46+09:00",
+    "sourceFile": "아쎄르_수정.xlsx",
+    "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
+    "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
+    "monitoring": {
+      "enabled": true,
+      "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
+      "fullResearch": "기본+정밀 동시 실행",
+      "dashboardSync": "GitHub Pages 자동 반영",
+      "lastAttemptAt": "2026-11-23T12:11:46+09:00",
+      "lastAttemptStatus": "success",
+      "lastAttemptText": "Acer 수집 결과: 검증 6, 품절 2, 일부 0 / 전체 8",
+      "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
+      "competitionValidationStatus": "coupang-models",
+      "alertEvaluation": ""
+    },
+    "competitorPhase": {
+      "scanSlot": "2026-11-23T12:00+09:00",
+      "state": "scheduled-skip",
+      "count": 0,
+      "sourceRunId": null,
+      "completedAt": null
+    },
+    "priceCalculationPolicy": "product-page-v1",
+    "pricePolicyAppliedAt": "2026-11-16T05:25:29.445Z",
+    "wowCouponDisplayPolicy": "checkout-match-v1",
+    "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.173Z",
+    "brand": "Acer",
+    "collectionEvidence": {
+      "browser": "edge",
+      "extensionVersion": "1.9.79",
+      "scanSlot": "2026-11-23T12:00+09:00",
+      "policyId": "chrome-07-15-whale-12-20-v1",
+      "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+      "sourceRunId": "47f989e030924fb9b7e2d5b94d280d4c",
+      "startedAt": "2026-11-23T03:00:38.267Z",
+      "completedAt": "2026-11-23T03:11:46.387Z",
+      "targetCount": 15,
+      "resultCount": 15
+    },
+    "recoveryEvidence": {
+      "reason": "whale-process-exit",
+      "exitCause": "unknown",
+      "primaryBrowser": "whale",
+      "scanSlot": "2026-11-23T12:00+09:00",
+      "chromeRunId": "7938dd26677d482aa42ac177448d6bb7",
+      "edgeRunId": "47f989e030924fb9b7e2d5b94d280d4c",
+      "chromeStartedAt": "2026-11-23T03:00:09.632Z",
+      "chromeExtensionVersion": "1.9.79",
+      "edgeExtensionVersion": "1.9.79",
+      "chromeCompletedAt": null,
+      "accessCheckCount": null,
+      "processObservedAt": "2026-11-23T03:00:32.8160804+00:00",
+      "absentChecks": 2,
+      "edgeStartedAt": "2026-11-23T03:00:38.267Z",
+      "targetCount": 15,
+      "resultCount": 15,
+      "listMatched": true
+    },
+    "publishedAt": "2026-11-23T12:11:46+09:00",
+    "historyBrands": [
+      "Acer"
+    ],
+    "lifecycleStatus": "active",
+    "renamedTo": null
+  },
+  "products": [
+    {
+      "storage": "512GB",
+      "display": "Aspire Go 14",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 1419000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514",
+          "checkedAt": "2026-11-23 12:08",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 0,
+          "finalPrice": 1124550,
+          "couponDiscount": 260000,
+          "confidence": "A",
+          "cardDiscount": 34450,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:08:11.513Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:08",
+          "srp": 1419000,
+          "observedListPrice": 1419000,
+          "productPagePrice": 1159000,
+          "preCardPrice": 1159000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 3,
+          "cardMaxDiscount": 34450,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 3,
+              "maxDiscount": 34450,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 3% 카드 즉시할인 (NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
+          "checkoutCouponDiscount": 120000,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 140000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 1159000,
+          "wowCouponTreatment": "none",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": 0,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:08:26.997Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "쿠폰할인 변경",
+            "와우 전용 즉시할인",
+            "쿠폰할인 변경 -120,000원",
+            "와우 전용 즉시할인 -140,000원",
+            "와우회원 총 추가 혜택 -140,000원 와우 전용 즉시할인 -140,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-23 07:07",
+          "lastVerifiedFinalPrice": 1124550,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:08",
+          "priceCheckedAt": "2026-11-23 12:08"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "AG14-I71M-972S",
+      "productId": "9681715061",
+      "itemId": "28951318769",
+      "vendorItemId": "95881909514",
+      "category": "Notebook",
+      "srp": 1419000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 3,
+        "dailySales": 0,
+        "monthSales": 4,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "512GB",
+      "display": "Aspire Go 14",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 1559000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515",
+          "checkedAt": "2026-11-23 12:09",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 0,
+          "finalPrice": 1263220,
+          "couponDiscount": 270000,
+          "confidence": "A",
+          "cardDiscount": 25780,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:09:04.148Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:09",
+          "srp": 1559000,
+          "observedListPrice": 1559000,
+          "productPagePrice": 1289000,
+          "preCardPrice": 1289000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 2,
+          "cardMaxDiscount": 25840,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 2,
+              "maxDiscount": 25840,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 2% 카드 즉시할인 (NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
+          "checkoutCouponDiscount": 130000,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 140000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 0,
+          "checkoutPreCardItemPrice": 1289000,
+          "wowCouponTreatment": "none",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": 0,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:09:19.076Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "쿠폰할인 변경",
+            "와우 전용 즉시할인",
+            "쿠폰할인 변경 -130,000원",
+            "와우 전용 즉시할인 -140,000원",
+            "와우회원 총 추가 혜택 -140,000원 와우 전용 즉시할인 -140,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-23 07:08",
+          "lastVerifiedFinalPrice": 1263220,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:09",
+          "priceCheckedAt": "2026-11-23 12:09"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "AG14-I71M-96C5",
+      "productId": "9681715061",
+      "itemId": "28951318771",
+      "vendorItemId": "95881909515",
+      "category": "Notebook",
+      "srp": 1559000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 2,
+        "dailySales": 0,
+        "monthSales": 2,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "1TB",
+      "display": "Predator Helios Neo 16S",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 4099000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922",
+          "checkedAt": "2026-11-23 12:09",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 500000,
+          "finalPrice": 2629000,
+          "couponDiscount": 950000,
+          "confidence": "A",
+          "cardDiscount": 20000,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:09:55.379Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:10",
+          "srp": 4099000,
+          "observedListPrice": 3599000,
+          "productPagePrice": 2649000,
+          "preCardPrice": 2649000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 1,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 1,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 1% 카드 즉시할인 (NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-three-discount-fields-captured",
+          "checkoutCouponDiscount": 150000,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 580000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 290000,
+          "checkoutPreCardItemPrice": 2579000,
+          "wowCouponTreatment": "excluded",
+          "excludedWowCouponDiscount": 290000,
+          "wowCouponDiscount": 0,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:10:02.761Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "쿠폰할인 변경",
+            "와우 전용 즉시할인",
+            "와우 전용 쿠폰할인",
+            "와우 전용 쿠폰할인 변경",
+            "쿠폰할인 변경 -150,000원",
+            "와우 전용 즉시할인 -580,000원",
+            "와우 전용 쿠폰할인 변경 -290,000원",
+            "와우회원 총 추가 혜택 -870,000원 와우 전용 즉시할인 -580,000원 와우 전용 쿠폰할인 변경 -290,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 6490,
+          "priceTrend": "up",
+          "priceComparisonAt": "2026-11-23 07:09",
+          "lastVerifiedFinalPrice": 2629000,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:09",
+          "priceCheckedAt": "2026-11-23 12:09"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "PHN16S-71-949J",
+      "productId": "9573633117",
+      "itemId": "26004597899",
+      "vendorItemId": "92986675922",
+      "category": "Notebook",
+      "srp": 4099000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 4,
+        "dailySales": 3,
+        "monthSales": 9,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "512GB",
+      "display": "Swift Go 14 AI",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 1689000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667",
+          "checkedAt": "2026-11-23 12:10",
+          "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
+          "instantDiscount": 0,
+          "finalPrice": 1529000,
+          "couponDiscount": null,
+          "confidence": "A",
+          "cardDiscount": null,
+          "status": "품절",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:10:36.263Z"
+          },
+          "lastVerifiedFinalPrice": 1529000,
+          "lastVerifiedPriceCheckedAt": "2026-11-12 12:09",
+          "availabilityCheckedAt": "2026-11-23 12:10",
+          "srp": 1689000,
+          "observedListPrice": 1689000,
+          "productPagePrice": 1529000,
+          "preCardPrice": null,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "unavailable",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 2,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "신한"
+              ]
+            },
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협)",
+          "checkoutDiscountStatus": "soldout",
+          "checkoutDiscountReason": "buy-now-button-not-found",
+          "checkoutCouponDiscount": null,
+          "checkoutCouponSource": null,
+          "wowInstantDiscount": null,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": null,
+          "checkoutPreCardItemPrice": null,
+          "wowCouponTreatment": "unverified",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": null,
+          "checkoutDiscountCheckedAt": "",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [],
+          "alertEligible": false,
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "2026-11-12 12:09",
+          "priceCheckedAt": "2026-11-23 12:10"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "SFG14-I71-57P5",
+      "productId": "9616664363",
+      "itemId": "28714706385",
+      "vendorItemId": "95655361667",
+      "category": "Notebook",
+      "srp": 1689000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 0,
+        "dailySales": 0,
+        "monthSales": 18,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "512GB",
+      "display": "Swift Go 16 AI",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 1439000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668",
+          "checkedAt": "2026-11-23 12:11",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 0,
+          "finalPrice": 1269000,
+          "couponDiscount": 150000,
+          "confidence": "A",
+          "cardDiscount": 20000,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:11:11.382Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:11",
+          "srp": 1439000,
+          "observedListPrice": 1439000,
+          "productPagePrice": 1289000,
+          "preCardPrice": 1289000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 2,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "신한"
+              ]
+            },
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
+          "checkoutCouponDiscount": 0,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 30000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 120000,
+          "checkoutPreCardItemPrice": 1289000,
+          "wowCouponTreatment": "included",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": 120000,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:11:26.338Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "와우 전용 즉시할인",
+            "와우 전용 쿠폰할인",
+            "와우 전용 쿠폰할인 변경",
+            "와우 전용 즉시할인 -30,000원",
+            "와우 전용 쿠폰할인 변경 -120,000원",
+            "와우회원 총 추가 혜택 -150,000원 와우 전용 즉시할인 -30,000원 와우 전용 쿠폰할인 변경 -120,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-23 07:10",
+          "lastVerifiedFinalPrice": 1269000,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:11",
+          "priceCheckedAt": "2026-11-23 12:11"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "SFG16-74-70E9",
+      "productId": "9573633117",
+      "itemId": "28714706401",
+      "vendorItemId": "95655361668",
+      "category": "Notebook",
+      "srp": 1439000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 33,
+        "dailySales": 6,
+        "monthSales": 97,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "",
+      "display": "SFG14-75-749N",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 2299000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/9738841025?itemId=29147260106&vendorItemId=96070559959",
+          "checkedAt": "2026-11-23 12:04",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 150000,
+          "finalPrice": 1889000,
+          "couponDiscount": 240000,
+          "confidence": "A",
+          "cardDiscount": 20000,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:04:26.632Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:04",
+          "srp": 2299000,
+          "observedListPrice": 2149000,
+          "productPagePrice": 1909000,
+          "preCardPrice": 1909000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 2,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "신한"
+              ]
+            },
+            {
+              "rate": 2,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-three-discount-fields-captured",
+          "checkoutCouponDiscount": 150000,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 90000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 80000,
+          "checkoutPreCardItemPrice": 1829000,
+          "wowCouponTreatment": "excluded",
+          "excludedWowCouponDiscount": 80000,
+          "wowCouponDiscount": 0,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:04:34.008Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "쿠폰할인 변경",
+            "와우 전용 즉시할인",
+            "와우 전용 쿠폰할인",
+            "와우 전용 쿠폰할인 변경",
+            "쿠폰할인 변경 -150,000원",
+            "와우 전용 즉시할인 -90,000원",
+            "와우 전용 쿠폰할인 변경 -80,000원",
+            "와우회원 총 추가 혜택 -170,000원 와우 전용 즉시할인 -90,000원 와우 전용 쿠폰할인 변경 -80,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-23 07:03",
+          "lastVerifiedFinalPrice": 1889000,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:04",
+          "priceCheckedAt": "2026-11-23 12:04"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "SFG14-75-749N",
+      "productId": "9738841025",
+      "itemId": "29147260106",
+      "vendorItemId": "96070559959",
+      "category": "Notebook",
+      "srp": 2299000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 5,
+        "dailySales": 0,
+        "monthSales": 4,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "",
+      "display": "PHN16-73-9581",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 4129000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/8880549624?itemId=25917327376&vendorItemId=92902882925",
+          "checkedAt": "2026-11-23 12:03",
+          "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
+          "instantDiscount": 460000,
+          "finalPrice": 2869000,
+          "couponDiscount": null,
+          "confidence": "A",
+          "cardDiscount": null,
+          "status": "품절",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:03:53.212Z"
+          },
+          "lastVerifiedFinalPrice": 2869000,
+          "lastVerifiedPriceCheckedAt": "2026-11-21 20:03",
+          "availabilityCheckedAt": "2026-11-23 12:03",
+          "srp": 4129000,
+          "observedListPrice": 3669000,
+          "productPagePrice": 2869000,
+          "preCardPrice": null,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "unavailable",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 1,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 1,
+              "maxDiscount": 20000,
+              "providers": [
+                "신한"
+              ]
+            },
+            {
+              "rate": 1,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 1% 카드 즉시할인 (신한, NH농협)",
+          "checkoutDiscountStatus": "soldout",
+          "checkoutDiscountReason": "buy-now-button-not-found",
+          "checkoutCouponDiscount": null,
+          "checkoutCouponSource": null,
+          "wowInstantDiscount": null,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": null,
+          "checkoutPreCardItemPrice": null,
+          "wowCouponTreatment": "unverified",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": null,
+          "checkoutDiscountCheckedAt": "",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [],
+          "alertEligible": false,
+          "priceChange": null,
+          "priceTrend": "unavailable",
+          "priceComparisonAt": "2026-11-21 20:03",
+          "priceCheckedAt": "2026-11-23 12:03"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "PHN16-73-9581",
+      "productId": "8880549624",
+      "itemId": "25917327376",
+      "vendorItemId": "92902882925",
+      "category": "Notebook",
+      "srp": 4129000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 3,
+        "dailySales": 4,
+        "monthSales": 34,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    },
+    {
+      "storage": "",
+      "display": "PHN16S-71-99SN",
+      "validation": "identifiers-verified",
+      "offers": [
+        {
+          "role": "mine",
+          "channel": "쿠팡",
+          "seller": "내 쿠팡 상품",
+          "displayPrice": 4319000,
+          "shipping": 0,
+          "sourceType": "관리화면 등록 URL",
+          "url": "https://www.coupang.com/vp/products/8906279054?itemId=26011692765&vendorItemId=92993600715",
+          "checkedAt": "2026-11-23 12:03",
+          "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
+          "instantDiscount": 520000,
+          "finalPrice": 2869000,
+          "couponDiscount": 910000,
+          "confidence": "A",
+          "cardDiscount": 20000,
+          "status": "현재가 직접 확인",
+          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "collectionEvidence": {
+            "browser": "edge",
+            "extensionVersion": "1.9.79",
+            "runId": "47f989e030924fb9b7e2d5b94d280d4c",
+            "checkedAt": "2026-11-23T03:03:11.276Z"
+          },
+          "availabilityCheckedAt": "2026-11-23 12:03",
+          "srp": 4319000,
+          "observedListPrice": 3799000,
+          "productPagePrice": 2889000,
+          "preCardPrice": 2889000,
+          "priceBasisType": "crossed-out",
+          "cardBenefitStatus": "captured",
+          "publishedPriceBasis": "final",
+          "cardEvidenceSource": "dom-snapshot",
+          "cardRate": 1,
+          "cardMaxDiscount": 20000,
+          "cardProviders": [
+            "NH농협"
+          ],
+          "cardTerms": [
+            {
+              "rate": 1,
+              "maxDiscount": 20000,
+              "providers": [
+                "신한"
+              ]
+            },
+            {
+              "rate": 1,
+              "maxDiscount": 20000,
+              "providers": [
+                "NH농협"
+              ]
+            }
+          ],
+          "cardBenefitText": "최대 1% 카드 즉시할인 (신한, NH농협)",
+          "checkoutDiscountStatus": "captured",
+          "checkoutDiscountReason": "checkout-three-discount-fields-captured",
+          "checkoutCouponDiscount": 150000,
+          "checkoutCouponSource": "checkout",
+          "wowInstantDiscount": 510000,
+          "priceCalculationPolicy": "product-page-v1",
+          "observedWowCouponDiscount": 310000,
+          "checkoutPreCardItemPrice": 2829000,
+          "wowCouponTreatment": "excluded",
+          "excludedWowCouponDiscount": 310000,
+          "wowCouponDiscount": 0,
+          "checkoutDiscountCheckedAt": "2026-11-23T03:03:18.674Z",
+          "checkoutUnparsedFields": [],
+          "checkoutDiscountFieldStatus": null,
+          "checkoutDiscountEvidence": [
+            "쿠폰할인",
+            "쿠폰할인 변경",
+            "와우 전용 즉시할인",
+            "와우 전용 쿠폰할인",
+            "와우 전용 쿠폰할인 변경",
+            "쿠폰할인 변경 -150,000원",
+            "와우 전용 즉시할인 -510,000원",
+            "와우 전용 쿠폰할인 변경 -310,000원",
+            "와우회원 총 추가 혜택 -820,000원 와우 전용 즉시할인 -510,000원 와우 전용 쿠폰할인 변경 -310,000원 배송비 0원"
+          ],
+          "alertEligible": true,
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-23 07:02",
+          "lastVerifiedFinalPrice": 2869000,
+          "lastVerifiedPriceCheckedAt": "2026-11-23 12:03",
+          "priceCheckedAt": "2026-11-23 12:03"
+        }
+      ],
+      "competitorModels": [],
+      "mtm": "PHN16S-71-99SN",
+      "productId": "8906279054",
+      "itemId": "26011692765",
+      "vendorItemId": "92993600715",
+      "category": "Notebook",
+      "srp": 4319000,
+      "references": [],
+      "supplierMetrics": {
+        "stock": 32,
+        "dailySales": 2,
+        "monthSales": 9,
+        "stockStatus": "confirmed",
+        "dailySalesStatus": "confirmed",
+        "monthSalesStatus": "confirmed",
+        "asOfDate": "2026-11-22",
+        "month": "2026-11",
+        "monthThrough": "2026-11-22",
+        "sourceDate": "2026-11-22",
+        "salesBasis": "outbound",
+        "source": "Supplier Hub CSV"
+      }
+    }
+  ]
 };
