@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-23T20:11:13+09:00",
+    "snapshotAt": "2026-11-24T07:10:30+09:00",
     "sourceFile": "Lenovo_Slim3x_3MTM_온라인시장_가격조사_20260910_v4_마켓확장(1).xlsx",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,17 +9,17 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-11-23T20:11:13+09:00",
+      "lastAttemptAt": "2026-11-24T07:10:30+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "Lenovo 수집 결과: 검증 2, 품절 1, 일부 0 / 전체 3",
-      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "updatedAt": "2026-09-14T19:42:57+09:00",
     "competitorPhase": {
-      "scanSlot": "2026-11-23T20:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-24T07:00+09:00",
+      "state": "waiting",
       "count": 3,
       "sourceRunId": null,
       "completedAt": null
@@ -30,19 +30,19 @@ window.MARKET_DATA = {
     "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.182Z",
     "brand": "Lenovo",
     "collectionEvidence": {
-      "browser": "whale",
+      "browser": "chrome",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-23T20:00+09:00",
+      "scanSlot": "2026-11-24T07:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "025aba3183e44e39be6e1b4bbc10dfe5",
-      "sourceRunId": "025aba3183e44e39be6e1b4bbc10dfe5",
-      "startedAt": "2026-11-23T11:00:07.588Z",
-      "completedAt": "2026-11-23T11:11:13.271Z",
+      "runId": "675481f06dfe44778b8255460cbf98e2",
+      "sourceRunId": "675481f06dfe44778b8255460cbf98e2",
+      "startedAt": "2026-11-23T22:00:03.257Z",
+      "completedAt": "2026-11-23T22:10:30.781Z",
       "targetCount": 15,
       "resultCount": 15
     },
     "recoveryEvidence": null,
-    "publishedAt": "2026-11-23T20:11:13+09:00",
+    "publishedAt": "2026-11-24T07:10:30+09:00",
     "historyBrands": [
       "Lenovo"
     ],
@@ -65,7 +65,7 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-23 20:05",
+          "checkedAt": "2026-11-24 07:04",
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "instantDiscount": 0,
           "finalPrice": 789000,
@@ -73,46 +73,29 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": null,
           "status": "품절",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "025aba3183e44e39be6e1b4bbc10dfe5",
-            "checkedAt": "2026-11-23T11:05:24.264Z"
+            "runId": "675481f06dfe44778b8255460cbf98e2",
+            "checkedAt": "2026-11-23T22:04:59.070Z"
           },
           "lastVerifiedFinalPrice": 789000,
           "lastVerifiedPriceCheckedAt": "2026-11-22 12:05",
-          "availabilityCheckedAt": "2026-11-23 20:05",
+          "availabilityCheckedAt": "2026-11-24 07:04",
           "srp": 1109000,
           "observedListPrice": 1109000,
           "productPagePrice": 789000,
           "preCardPrice": null,
           "priceBasisType": "crossed-out",
-          "cardBenefitStatus": "captured",
+          "cardBenefitStatus": "none",
           "publishedPriceBasis": "unavailable",
-          "cardEvidenceSource": "dom-snapshot",
-          "cardRate": 3,
-          "cardMaxDiscount": 20000,
-          "cardProviders": [
-            "NH농협"
-          ],
-          "cardTerms": [
-            {
-              "rate": 3,
-              "maxDiscount": 20000,
-              "providers": [
-                "신한"
-              ]
-            },
-            {
-              "rate": 3,
-              "maxDiscount": 20000,
-              "providers": [
-                "NH농협"
-              ]
-            }
-          ],
-          "cardBenefitText": "최대 3% 카드 즉시할인 (신한, NH농협)",
+          "cardEvidenceSource": "",
+          "cardRate": null,
+          "cardMaxDiscount": null,
+          "cardProviders": [],
+          "cardTerms": [],
+          "cardBenefitText": "",
           "checkoutDiscountStatus": "soldout",
           "checkoutDiscountReason": "buy-now-button-not-found",
           "checkoutCouponDiscount": null,
@@ -132,7 +115,7 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-11-22 12:05",
-          "priceCheckedAt": "2026-11-23 20:05"
+          "priceCheckedAt": "2026-11-24 07:04"
         }
       ],
       "sourceSellerCount": 6,
@@ -149,15 +132,15 @@ window.MARKET_DATA = {
           "confidence": "A",
           "srp": null,
           "shipping": 0,
-          "observedListPrice": 1699000,
-          "preCardPrice": 1399000,
-          "finalPrice": 1379000,
+          "observedListPrice": null,
+          "preCardPrice": null,
+          "finalPrice": null,
           "alertEligible": false,
-          "cardBenefitStatus": "captured",
-          "checkoutDiscountStatus": "captured",
-          "status": "직전 경쟁 조사 참고",
-          "collectionStatus": null,
-          "collectionIssue": null,
+          "cardBenefitStatus": "unverified",
+          "checkoutDiscountStatus": "missing",
+          "status": "경쟁모델 업데이트 중",
+          "collectionStatus": "review-needed",
+          "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-23 15:17:36",
           "checkedAt": "2026-11-23 15:17:36",
           "priceBasisType": "crossed-out",
@@ -167,11 +150,11 @@ window.MARKET_DATA = {
           "observedWowCouponDiscount": 0,
           "checkoutPreCardItemPrice": 1399000,
           "wowCouponTreatment": "none",
-          "wowCouponDiscount": 0,
+          "wowCouponDiscount": null,
           "excludedWowCouponDiscount": null,
-          "couponDiscount": 300000,
-          "checkoutCouponDiscount": 300000,
-          "wowInstantDiscount": 0,
+          "couponDiscount": null,
+          "checkoutCouponDiscount": null,
+          "wowInstantDiscount": null,
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -194,7 +177,7 @@ window.MARKET_DATA = {
           "cardRate": 2,
           "cardMaxDiscount": 20000,
           "cardBenefitText": "최대 2% 카드 즉시할인 (NH농협) - 와우 전용",
-          "cardDiscount": 20000,
+          "cardDiscount": null,
           "collectionEvidence": {
             "browser": "edge",
             "extensionVersion": "1.9.79",
@@ -204,8 +187,8 @@ window.MARKET_DATA = {
           },
           "brand": "ASUS",
           "note": "16GB/512GB/W11 Home",
-          "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "scheduled-reference",
+          "comparisonSlot": "2026-11-24T07:00+09:00",
+          "phaseState": "pending",
           "lastVerifiedFinalPrice": 1379000,
           "lastVerifiedPriceCheckedAt": "2026-11-23 15:17:36"
         },
@@ -221,15 +204,15 @@ window.MARKET_DATA = {
           "confidence": "A",
           "srp": null,
           "shipping": 0,
-          "observedListPrice": 1348990,
-          "preCardPrice": 849000,
-          "finalPrice": 832020,
+          "observedListPrice": null,
+          "preCardPrice": null,
+          "finalPrice": null,
           "alertEligible": false,
-          "cardBenefitStatus": "captured",
-          "checkoutDiscountStatus": "captured",
-          "status": "직전 경쟁 조사 참고",
-          "collectionStatus": null,
-          "collectionIssue": null,
+          "cardBenefitStatus": "unverified",
+          "checkoutDiscountStatus": "missing",
+          "status": "경쟁모델 업데이트 중",
+          "collectionStatus": "review-needed",
+          "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-23 15:18:24",
           "checkedAt": "2026-11-23 15:18:24",
           "priceBasisType": "crossed-out",
@@ -239,11 +222,11 @@ window.MARKET_DATA = {
           "observedWowCouponDiscount": 0,
           "checkoutPreCardItemPrice": 849000,
           "wowCouponTreatment": "none",
-          "wowCouponDiscount": 0,
+          "wowCouponDiscount": null,
           "excludedWowCouponDiscount": null,
-          "couponDiscount": 499990,
-          "checkoutCouponDiscount": 199990,
-          "wowInstantDiscount": 300000,
+          "couponDiscount": null,
+          "checkoutCouponDiscount": null,
+          "wowInstantDiscount": null,
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -269,7 +252,7 @@ window.MARKET_DATA = {
           "cardRate": 2,
           "cardMaxDiscount": 20000,
           "cardBenefitText": "최대 2% 카드 즉시할인 (NH농협) - 와우 전용",
-          "cardDiscount": 16980,
+          "cardDiscount": null,
           "collectionEvidence": {
             "browser": "edge",
             "extensionVersion": "1.9.79",
@@ -279,8 +262,8 @@ window.MARKET_DATA = {
           },
           "brand": "HP",
           "note": "16GB/512GB/W11 Home",
-          "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "scheduled-reference",
+          "comparisonSlot": "2026-11-24T07:00+09:00",
+          "phaseState": "pending",
           "lastVerifiedFinalPrice": 832020,
           "lastVerifiedPriceCheckedAt": "2026-11-23 15:18:24"
         },
@@ -302,9 +285,9 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "missing",
-          "status": "직전 경쟁 조사 참고",
-          "collectionStatus": null,
-          "collectionIssue": null,
+          "status": "경쟁모델 업데이트 중",
+          "collectionStatus": "review-needed",
+          "collectionIssue": "competitor-pending",
           "priceCheckedAt": "2026-11-23 15:18:52",
           "checkedAt": "2026-11-23 15:18:52",
           "collectionEvidence": {
@@ -316,19 +299,17 @@ window.MARKET_DATA = {
           },
           "brand": "ASUS",
           "note": "비보북/16GB/512GB/W11 Home",
-          "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "scheduled-reference",
+          "comparisonSlot": "2026-11-24T07:00+09:00",
+          "phaseState": "pending",
           "lastVerifiedFinalPrice": 1098000,
-          "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04"
+          "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04",
+          "couponDiscount": null,
+          "checkoutCouponDiscount": null,
+          "wowInstantDiscount": null,
+          "wowCouponDiscount": null,
+          "cardDiscount": null
         }
       ],
-      "mtm": "83N30037KR",
-      "productId": "9235110727",
-      "itemId": "27303279355",
-      "vendorItemId": "95415897534",
-      "category": "Notebook",
-      "srp": 1109000,
-      "references": [],
       "supplierMetrics": {
         "stock": null,
         "dailySales": null,
@@ -342,7 +323,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-22",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "83N30037KR",
+      "productId": "9235110727",
+      "itemId": "27303279355",
+      "vendorItemId": "95415897534",
+      "category": "Notebook",
+      "srp": 1109000,
+      "references": []
     },
     {
       "storage": "1TB",
@@ -359,52 +347,35 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-23 20:06",
+          "checkedAt": "2026-11-24 07:05",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
-          "finalPrice": 819000,
+          "finalPrice": 839000,
           "couponDiscount": 320000,
           "confidence": "A",
-          "cardDiscount": 20000,
+          "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "025aba3183e44e39be6e1b4bbc10dfe5",
-            "checkedAt": "2026-11-23T11:06:00.143Z"
+            "runId": "675481f06dfe44778b8255460cbf98e2",
+            "checkedAt": "2026-11-23T22:05:29.251Z"
           },
-          "availabilityCheckedAt": "2026-11-23 20:06",
+          "availabilityCheckedAt": "2026-11-24 07:05",
           "srp": 1159000,
           "observedListPrice": 1159000,
           "productPagePrice": 839000,
           "preCardPrice": 839000,
           "priceBasisType": "crossed-out",
-          "cardBenefitStatus": "captured",
+          "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
-          "cardEvidenceSource": "dom-snapshot",
-          "cardRate": 3,
-          "cardMaxDiscount": 20000,
-          "cardProviders": [
-            "NH농협"
-          ],
-          "cardTerms": [
-            {
-              "rate": 3,
-              "maxDiscount": 20000,
-              "providers": [
-                "신한"
-              ]
-            },
-            {
-              "rate": 3,
-              "maxDiscount": 20000,
-              "providers": [
-                "NH농협"
-              ]
-            }
-          ],
-          "cardBenefitText": "최대 3% 카드 즉시할인 (신한, NH농협)",
+          "cardEvidenceSource": "",
+          "cardRate": null,
+          "cardMaxDiscount": null,
+          "cardProviders": [],
+          "cardTerms": [],
+          "cardBenefitText": "",
           "checkoutDiscountStatus": "captured",
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutCouponDiscount": 160000,
@@ -416,7 +387,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-23T11:06:15.678Z",
+          "checkoutDiscountCheckedAt": "2026-11-23T22:05:43.933Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -428,23 +399,16 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-23 15:06",
-          "lastVerifiedFinalPrice": 819000,
-          "lastVerifiedPriceCheckedAt": "2026-11-23 20:06",
-          "priceCheckedAt": "2026-11-23 20:06"
+          "priceChange": 20000,
+          "priceTrend": "up",
+          "priceComparisonAt": "2026-11-23 20:06",
+          "lastVerifiedFinalPrice": 839000,
+          "lastVerifiedPriceCheckedAt": "2026-11-24 07:05",
+          "priceCheckedAt": "2026-11-24 07:05"
         }
       ],
       "sourceSellerCount": 6,
       "competitorModels": [],
-      "mtm": "83N3003DKR",
-      "productId": "9235110727",
-      "itemId": "27303268765",
-      "vendorItemId": "95415897535",
-      "category": "Notebook",
-      "srp": 1159000,
-      "references": [],
       "supplierMetrics": {
         "stock": null,
         "dailySales": null,
@@ -458,7 +422,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-22",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "83N3003DKR",
+      "productId": "9235110727",
+      "itemId": "27303268765",
+      "vendorItemId": "95415897535",
+      "category": "Notebook",
+      "srp": 1159000,
+      "references": []
     },
     {
       "storage": "512GB",
@@ -475,52 +446,35 @@ window.MARKET_DATA = {
           "wowPrice": null,
           "wowStatus": "현재 미확인",
           "membershipCondition": "현재 공개 WOW 가격 미확인",
-          "checkedAt": "2026-11-23 20:06",
+          "checkedAt": "2026-11-24 07:06",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
-          "finalPrice": 861420,
+          "finalPrice": 879000,
           "couponDiscount": 320000,
           "confidence": "A",
-          "cardDiscount": 17580,
+          "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "025aba3183e44e39be6e1b4bbc10dfe5",
-            "checkedAt": "2026-11-23T11:06:51.106Z"
+            "runId": "675481f06dfe44778b8255460cbf98e2",
+            "checkedAt": "2026-11-23T22:06:15.108Z"
           },
-          "availabilityCheckedAt": "2026-11-23 20:07",
+          "availabilityCheckedAt": "2026-11-24 07:06",
           "srp": 1199000,
           "observedListPrice": 1199000,
           "productPagePrice": 879000,
           "preCardPrice": 879000,
           "priceBasisType": "crossed-out",
-          "cardBenefitStatus": "captured",
+          "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
-          "cardEvidenceSource": "dom-snapshot",
-          "cardRate": 2,
-          "cardMaxDiscount": 20000,
-          "cardProviders": [
-            "NH농협"
-          ],
-          "cardTerms": [
-            {
-              "rate": 2,
-              "maxDiscount": 20000,
-              "providers": [
-                "신한"
-              ]
-            },
-            {
-              "rate": 2,
-              "maxDiscount": 20000,
-              "providers": [
-                "NH농협"
-              ]
-            }
-          ],
-          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협)",
+          "cardEvidenceSource": "",
+          "cardRate": null,
+          "cardMaxDiscount": null,
+          "cardProviders": [],
+          "cardTerms": [],
+          "cardBenefitText": "",
           "checkoutDiscountStatus": "captured",
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutCouponDiscount": 160000,
@@ -532,7 +486,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-23T11:07:06.150Z",
+          "checkoutDiscountCheckedAt": "2026-11-23T22:06:30.272Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -544,23 +498,16 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -160,000원 와우 전용 즉시할인 -160,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-23 15:06",
-          "lastVerifiedFinalPrice": 861420,
-          "lastVerifiedPriceCheckedAt": "2026-11-23 20:06",
-          "priceCheckedAt": "2026-11-23 20:06"
+          "priceChange": 17580,
+          "priceTrend": "up",
+          "priceComparisonAt": "2026-11-23 20:06",
+          "lastVerifiedFinalPrice": 879000,
+          "lastVerifiedPriceCheckedAt": "2026-11-24 07:06",
+          "priceCheckedAt": "2026-11-24 07:06"
         }
       ],
       "sourceSellerCount": 6,
       "competitorModels": [],
-      "mtm": "83N30046KR",
-      "productId": "8708708250",
-      "itemId": "25515648568",
-      "vendorItemId": "95415897536",
-      "category": "Notebook",
-      "srp": 1199000,
-      "references": [],
       "supplierMetrics": {
         "stock": null,
         "dailySales": null,
@@ -574,7 +521,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-22",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "83N30046KR",
+      "productId": "8708708250",
+      "itemId": "25515648568",
+      "vendorItemId": "95415897536",
+      "category": "Notebook",
+      "srp": 1199000,
+      "references": []
     }
   ],
   "history": [
