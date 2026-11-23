@@ -19,10 +19,10 @@ window.MARKET_DATA = {
     "updatedAt": "2026-09-14T19:42:57+09:00",
     "competitorPhase": {
       "scanSlot": "2026-11-23T15:00+09:00",
-      "state": "waiting",
+      "state": "complete",
       "count": 3,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "36f138d16b26432c99568b11974be49e",
+      "completedAt": "2026-11-23T06:19:12.386Z"
     },
     "priceCalculationPolicy": "product-page-v1",
     "pricePolicyAppliedAt": "2026-11-16T05:25:29.466Z",
@@ -167,17 +167,17 @@ window.MARKET_DATA = {
           "confidence": "A",
           "srp": null,
           "shipping": 0,
-          "observedListPrice": null,
-          "preCardPrice": null,
-          "finalPrice": null,
-          "alertEligible": false,
-          "cardBenefitStatus": "unverified",
-          "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
-          "collectionStatus": "review-needed",
-          "collectionIssue": "competitor-pending",
-          "priceCheckedAt": "2026-11-23 07:17:38",
-          "checkedAt": "2026-11-23 07:17:38",
+          "observedListPrice": 1699000,
+          "preCardPrice": 1399000,
+          "finalPrice": 1379000,
+          "alertEligible": true,
+          "cardBenefitStatus": "captured",
+          "checkoutDiscountStatus": "captured",
+          "status": "현재가 직접 확인",
+          "collectionStatus": null,
+          "collectionIssue": null,
+          "priceCheckedAt": "2026-11-23 15:17:36",
+          "checkedAt": "2026-11-23 15:17:36",
           "priceBasisType": "crossed-out",
           "priceCalculationPolicy": "product-page-v1",
           "productPagePrice": 1399000,
@@ -185,11 +185,11 @@ window.MARKET_DATA = {
           "observedWowCouponDiscount": 0,
           "checkoutPreCardItemPrice": 1399000,
           "wowCouponTreatment": "none",
-          "wowCouponDiscount": null,
+          "wowCouponDiscount": 0,
           "excludedWowCouponDiscount": null,
-          "couponDiscount": null,
-          "checkoutCouponDiscount": null,
-          "wowInstantDiscount": null,
+          "couponDiscount": 300000,
+          "checkoutCouponDiscount": 300000,
+          "wowInstantDiscount": 0,
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -198,16 +198,9 @@ window.MARKET_DATA = {
             "쿠폰할인 변경 -300,000원"
           ],
           "cardProviders": [
-            "신한"
+            "NH농협"
           ],
           "cardTerms": [
-            {
-              "rate": 2,
-              "maxDiscount": 20000,
-              "providers": [
-                "신한"
-              ]
-            },
             {
               "rate": 2,
               "maxDiscount": 20000,
@@ -218,21 +211,19 @@ window.MARKET_DATA = {
           ],
           "cardRate": 2,
           "cardMaxDiscount": 20000,
-          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협) - 와우 전용",
-          "cardDiscount": null,
+          "cardBenefitText": "최대 2% 카드 즉시할인 (NH농협) - 와우 전용",
+          "cardDiscount": 20000,
           "collectionEvidence": {
-            "browser": "chrome",
+            "browser": "edge",
             "extensionVersion": "1.9.79",
-            "requestId": "cef7b7dd1ee64f76a4aedb4cb97663b6",
-            "sourceRunId": "259d2574adc546c3bea4020b1aa370d2",
-            "checkedAt": "2026-11-22T22:17:38.763Z"
+            "requestId": "7730cd8a20d5408fab7108dfdb077674",
+            "sourceRunId": "36f138d16b26432c99568b11974be49e",
+            "checkedAt": "2026-11-23T06:17:36.184Z"
           },
           "brand": "ASUS",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "pending",
-          "lastVerifiedFinalPrice": 1379000,
-          "lastVerifiedPriceCheckedAt": "2026-11-23 07:17:38"
+          "phaseState": "collected"
         },
         {
           "role": "competitor",
@@ -246,17 +237,17 @@ window.MARKET_DATA = {
           "confidence": "A",
           "srp": null,
           "shipping": 0,
-          "observedListPrice": null,
-          "preCardPrice": null,
-          "finalPrice": null,
-          "alertEligible": false,
-          "cardBenefitStatus": "unverified",
-          "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
-          "collectionStatus": "review-needed",
-          "collectionIssue": "competitor-pending",
-          "priceCheckedAt": "2026-11-23 07:18:28",
-          "checkedAt": "2026-11-23 07:18:28",
+          "observedListPrice": 1348990,
+          "preCardPrice": 849000,
+          "finalPrice": 832020,
+          "alertEligible": true,
+          "cardBenefitStatus": "captured",
+          "checkoutDiscountStatus": "captured",
+          "status": "현재가 직접 확인",
+          "collectionStatus": null,
+          "collectionIssue": null,
+          "priceCheckedAt": "2026-11-23 15:18:24",
+          "checkedAt": "2026-11-23 15:18:24",
           "priceBasisType": "crossed-out",
           "priceCalculationPolicy": "product-page-v1",
           "productPagePrice": 849000,
@@ -264,11 +255,11 @@ window.MARKET_DATA = {
           "observedWowCouponDiscount": 0,
           "checkoutPreCardItemPrice": 849000,
           "wowCouponTreatment": "none",
-          "wowCouponDiscount": null,
+          "wowCouponDiscount": 0,
           "excludedWowCouponDiscount": null,
-          "couponDiscount": null,
-          "checkoutCouponDiscount": null,
-          "wowInstantDiscount": null,
+          "couponDiscount": 499990,
+          "checkoutCouponDiscount": 199990,
+          "wowInstantDiscount": 300000,
           "checkoutDiscountReason": "checkout-confirmed-absent-discount-fields-zero",
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -280,16 +271,9 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -300,000원 와우 전용 즉시할인 -300,000원 배송비 0원"
           ],
           "cardProviders": [
-            "신한"
+            "NH농협"
           ],
           "cardTerms": [
-            {
-              "rate": 2,
-              "maxDiscount": 20000,
-              "providers": [
-                "신한"
-              ]
-            },
             {
               "rate": 2,
               "maxDiscount": 20000,
@@ -300,21 +284,19 @@ window.MARKET_DATA = {
           ],
           "cardRate": 2,
           "cardMaxDiscount": 20000,
-          "cardBenefitText": "최대 2% 카드 즉시할인 (신한, NH농협) - 와우 전용",
-          "cardDiscount": null,
+          "cardBenefitText": "최대 2% 카드 즉시할인 (NH농협) - 와우 전용",
+          "cardDiscount": 16980,
           "collectionEvidence": {
-            "browser": "chrome",
+            "browser": "edge",
             "extensionVersion": "1.9.79",
-            "requestId": "cef7b7dd1ee64f76a4aedb4cb97663b6",
-            "sourceRunId": "259d2574adc546c3bea4020b1aa370d2",
-            "checkedAt": "2026-11-22T22:18:28.813Z"
+            "requestId": "7730cd8a20d5408fab7108dfdb077674",
+            "sourceRunId": "36f138d16b26432c99568b11974be49e",
+            "checkedAt": "2026-11-23T06:18:24.240Z"
           },
           "brand": "HP",
           "note": "16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "pending",
-          "lastVerifiedFinalPrice": 832020,
-          "lastVerifiedPriceCheckedAt": "2026-11-23 07:18:28"
+          "phaseState": "collected"
         },
         {
           "role": "competitor",
@@ -325,7 +307,7 @@ window.MARKET_DATA = {
           "channel": "쿠팡 경쟁모델",
           "url": "https://www.coupang.com/vp/products/8670248055?itemId=25168808686&vendorItemId=92166282004",
           "sourceType": "쿠팡 상품페이지·주문서",
-          "confidence": "A",
+          "confidence": "C",
           "srp": null,
           "shipping": null,
           "observedListPrice": null,
@@ -334,31 +316,24 @@ window.MARKET_DATA = {
           "alertEligible": false,
           "cardBenefitStatus": "unverified",
           "checkoutDiscountStatus": "missing",
-          "status": "경쟁모델 업데이트 중",
+          "status": "수집 미확인",
           "collectionStatus": "review-needed",
-          "collectionIssue": "competitor-pending",
-          "priceCheckedAt": "2026-11-23 07:18:59",
-          "checkedAt": "2026-11-23 07:18:59",
-          "priceBasisType": "top-visible",
-          "checkoutDiscountReason": "buy-now-button-not-found",
+          "collectionIssue": "product-unavailable",
+          "priceCheckedAt": "2026-11-23 15:18:52",
+          "checkedAt": "2026-11-23 15:18:52",
           "collectionEvidence": {
-            "browser": "chrome",
+            "browser": "edge",
             "extensionVersion": "1.9.79",
-            "requestId": "cef7b7dd1ee64f76a4aedb4cb97663b6",
-            "sourceRunId": "259d2574adc546c3bea4020b1aa370d2",
-            "checkedAt": "2026-11-22T22:18:59.014Z"
+            "requestId": "7730cd8a20d5408fab7108dfdb077674",
+            "sourceRunId": "36f138d16b26432c99568b11974be49e",
+            "checkedAt": "2026-11-23T06:18:52.346Z"
           },
           "brand": "ASUS",
           "note": "비보북/16GB/512GB/W11 Home",
           "comparisonSlot": "2026-11-23T15:00+09:00",
-          "phaseState": "pending",
+          "phaseState": "collected",
           "lastVerifiedFinalPrice": 1098000,
-          "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04",
-          "couponDiscount": null,
-          "checkoutCouponDiscount": null,
-          "wowInstantDiscount": null,
-          "wowCouponDiscount": null,
-          "cardDiscount": null
+          "lastVerifiedPriceCheckedAt": "2026-11-05 20:36:04"
         }
       ],
       "mtm": "83N30037KR",
