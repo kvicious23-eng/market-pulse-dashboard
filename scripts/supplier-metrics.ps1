@@ -155,11 +155,14 @@ function Get-SupplierMetricBatch {
   } catch { return Get-SupplierRowMetrics $Catalog @() $AsOfDay 'csv-invalid' }
 }
 function Set-BrandSupplierMetrics {
-  param($Data,$Batch,[string]$PublishedAt)
+  param($Data,$Batch,[string]$PublishedAt,[switch]$PreserveExistingOnSourceFailure)
   $changed=$false
   foreach ($product in @($Data.products)) {
     $metric=$Batch.ByItemId[[string]$product.itemId]
     if (-not $metric) { continue }
+    if ($PreserveExistingOnSourceFailure -and $Batch.SourceStatus -ne 'available' -and $product.supplierMetrics) {
+      continue
+    }
     $before=if ($product.PSObject.Properties['supplierMetrics']) { $product.supplierMetrics | ConvertTo-Json -Depth 4 -Compress } else { '' }
     $after=$metric | ConvertTo-Json -Depth 4 -Compress
     if ($before -cne $after) { $changed=$true }

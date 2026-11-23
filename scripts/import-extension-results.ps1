@@ -549,7 +549,7 @@ if ($alreadyImported) {
   foreach ($spec in $specs) {
     $existingPath=Join-Path $RepoPath $spec.Path
     $existingData=Read-Data $existingPath
-    if (Set-BrandSupplierMetrics -Data $existingData -Batch $supplierBatch -PublishedAt $metricPublishedAt) { Write-Data $existingPath $existingData }
+    if (Set-BrandSupplierMetrics -Data $existingData -Batch $supplierBatch -PublishedAt $metricPublishedAt -PreserveExistingOnSourceFailure) { Write-Data $existingPath $existingData }
   }
   Invoke-Git -Arguments @('add','--','brand') | Out-Null
   $metricDiff=Invoke-Git -Arguments @('diff','--cached','--quiet') -AcceptedExitCodes @(0,1)
@@ -880,7 +880,7 @@ foreach ($spec in $specs) {
   $data.meta.monitoring.quickWatch=$text.Schedule
   $data.meta.monitoring.collectionRoute=$text.Route
   Set-BrandLifecycle -Data $data -Spec $spec -Catalog $catalog
-  [void](Set-BrandSupplierMetrics -Data $data -Batch $supplierBatch -PublishedAt $metricPublishedAt)
+  [void](Set-BrandSupplierMetrics -Data $data -Batch $supplierBatch -PublishedAt $metricPublishedAt -PreserveExistingOnSourceFailure)
   Write-Data $path $data
 }
 if($competitorEnabled){Invoke-CompetitorData $RepoPath 'prepare' $catalogPath}

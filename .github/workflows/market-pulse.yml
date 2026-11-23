@@ -252,6 +252,11 @@ jobs:
 
   deploy:
     needs: [update, windows_history]
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
     if: always() && github.event_name != 'pull_request' && needs.update.result == 'success' && needs.windows_history.result == 'success'
     runs-on: ubuntu-24.04
     environment:
@@ -267,6 +272,23 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: .
+      - name: Wait for Pages artifact to become visible
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..8}; do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+              -f name=github-pages --method GET --jq '.artifacts[] | select(.expired == false) | .id' \
+              | awk 'NF { found=1 } END { exit !found }'; then
+              exit 0
+            fi
+            echo "Waiting for the Pages artifact (attempt $attempt/8)"
+            if [[ $attempt -lt 8 ]]; then sleep 5; fi
+          done
+          echo "::error::The uploaded Pages artifact did not become visible"
+          exit 1
       - name: Deploy dashboard
         id: deployment
         uses: actions/deploy-pages@v5

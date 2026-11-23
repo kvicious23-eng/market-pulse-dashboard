@@ -14,6 +14,15 @@ $rows=@((Row '20261001' '0001' 'FC' '90' '2'),(Row '20261002' '0001' 'FC' '80' '
 $day=[datetime]'2026-10-04'
 $batch=Get-SupplierRowMetrics $catalog $rows $day
 $m=$batch.ByItemId['1']
+$existing=[pscustomobject]@{itemId='1';supplierMetrics=$m}
+$new=[pscustomobject]@{itemId='2'}
+$dashboard=[pscustomobject]@{products=@($existing,$new);meta=[pscustomobject]@{}}
+$failed=Get-SupplierRowMetrics $catalog @() $day.AddDays(1) 'csv-invalid'
+[void](Set-BrandSupplierMetrics $dashboard $failed 'fixture' -PreserveExistingOnSourceFailure)
+Check ($existing.supplierMetrics.stock -eq 14 -and $existing.supplierMetrics.asOfDate -eq '2026-10-03') 'Price publication erased dated inventory before a fresh CSV arrived.'
+Check ($new.supplierMetrics.stockStatus -eq 'csv-invalid') 'New product lost its source status.'
+[void](Set-BrandSupplierMetrics $dashboard $batch 'fixture' -PreserveExistingOnSourceFailure)
+Check ($new.supplierMetrics.stockStatus -eq 'confirmed') 'Validated inventory did not replace source error.'
 Check ($m.stock -eq 14 -and $m.dailySales -eq 5 -and $m.monthSales -eq 8) 'All centers or period boundaries were summed incorrectly.'
 Check ($m.stockStatus -eq 'confirmed' -and $m.asOfDate -eq '2026-10-03' -and $m.month -eq '2026-10') 'Period evidence missing.'
 Check ($batch.ByItemId['2'].stock -eq 0 -and $batch.ByItemId['2'].dailySales -eq 0 -and $batch.ByItemId['2'].monthSales -eq 9 -and $batch.ByItemId['2'].stockStatus -eq 'confirmed') 'A SKU present in this CSV must use zero for a day with no rows and preserve monthly sales.'
