@@ -259,7 +259,7 @@ function Read-ScanRoutingPolicy {
   if($policy.version -ne 1 -or ($policy.slots -join ',') -cne '08:00,12:00,16:00,20:00'){throw 'Invalid routing policy.'}
   return $policy
 }
-function Get-ScanSlotPolicy([string]$Slot) {
+function Get-ScanSlotPolicy([string]$Slot,[switch]$AllowUnscheduled) {
   if($Slot -cnotmatch '^\d{4}-\d{2}-\d{2}T\d{2}:00\+09:00$'){throw 'Invalid scan slot.'}
   $at=[DateTimeOffset]::ParseExact($Slot,'yyyy-MM-ddTHH:mmzzz',[Globalization.CultureInfo]::InvariantCulture)
   $policy=Read-ScanRoutingPolicy
@@ -271,7 +271,11 @@ function Get-ScanSlotPolicy([string]$Slot) {
   }
   if(-not $selected){throw 'Missing routing policy.'}
   $slots=if($selected.slots){@($selected.slots)}else{@($policy.slots)}
-  $index=[array]::IndexOf($slots,$Slot.Substring(11,5));if($index -lt 0){throw 'Invalid scan slot.'}
+  $index=[array]::IndexOf($slots,$Slot.Substring(11,5))
+  if($index -lt 0){
+    if($AllowUnscheduled){return}
+    throw 'Invalid scan slot.'
+  }
   [pscustomobject]@{id=$selected.id;browser=$selected.owners[$index]}
 }
 function Get-ScheduledSlotsForDay([string]$Day) {
@@ -279,7 +283,7 @@ function Get-ScheduledSlotsForDay([string]$Day) {
   $times=@($policy.slots)+@($policy.changes | ForEach-Object {$_.slots})
   foreach($time in @($times | Where-Object {$_} | Sort-Object -Unique)){
     $slot=$Day+'T'+$time+'+09:00'
-    try{Get-ScanSlotPolicy $slot|Out-Null;$slot}catch{if($_.Exception.Message -cne 'Invalid scan slot.'){throw}}
+    if(Get-ScanSlotPolicy $slot -AllowUnscheduled){$slot}
   }
 }
 function Test-CompetitorScanDue([string]$Slot) {

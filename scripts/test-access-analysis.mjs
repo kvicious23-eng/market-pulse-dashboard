@@ -47,6 +47,15 @@ try {
   write('latest-coupang-scan.json',{...input,results:input.results.map(({attempts,...r})=>({...r,accessDiagnostics:attempts}))});
   const edge={...input,browser:'edge',runId:'b'.repeat(32),chromeRunId:input.runId,
     startedAt:'2026-10-18T03:30:00Z',completedAt:'2026-10-18T03:40:00Z',results:[row('normal',true,[attempt('initial','ok','2026-10-18T03:31:00Z')])]};
+  const edgeName=`edge-recovery-${edge.runId}.json`;
+  write(edgeName,{...edge,results:edge.results.map(({attempts,...r})=>({...r,accessDiagnostics:attempts}))});
+  assert.equal(analyzeFolder(folder).runs.find(r=>r.runId===edge.runId)?.resultCount,1,'Clean Edge recovery has diagnostics in the completed result');
+  const forbiddenEdgeOutput=spawnSync(process.execPath,['scripts/analyze-access-diagnostics.mjs','--folder',folder,'--output',path.join(folder,edgeName)],{encoding:'utf8'});
+  assert.equal(forbiddenEdgeOutput.status,1,'The report must never overwrite a completed Edge result');
+  const wrongName=`edge-recovery-${'0'.repeat(32)}.json`;
+  write(wrongName,edge);
+  assert.ok(analyzeFolder(folder).errors.some(e=>e.file===wrongName));
+  fs.unlinkSync(path.join(folder,wrongName));
   write(`access-diagnostic-${edge.runId}.json`,edge);
   // A missing historical archive must not be counted as a zero-denial run.
   let report=analyzeFolder(folder,{uploadLog:'-ExpectedSlotStart 2026-10-18T08:00:00+09:00\n-ExpectedSlotStart 2026-10-18T12:00:00+09:00'});
@@ -60,6 +69,7 @@ try {
   const cli=spawnSync(process.execPath,['scripts/analyze-access-diagnostics.mjs','--folder',folder,'--slot',slot,'--output',output],{encoding:'utf8'});
   assert.equal(cli.status,0,cli.stderr);
   assert.match(cli.stdout,/initial=3; recovered=1; final=1; other-unresolved=1/);
+  assert.match(cli.stdout,/Access summary: browser=edge/);
   assert.equal(JSON.parse(fs.readFileSync(output,'utf8')).runs.length,2);
   const forbidden=spawnSync(process.execPath,['scripts/analyze-access-diagnostics.mjs','--folder',folder,'--output',path.join(folder,'latest-coupang-scan.json')],{encoding:'utf8'});
   assert.equal(forbidden.status,1);

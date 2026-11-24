@@ -3,6 +3,10 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'git-timeout.ps1')
 function Check($Value,[string]$Message){if(-not $Value){throw $Message}}
 $hours=@(7,12,15,20)
+$errorCount=$Error.Count
+$todaySlots=@(Get-ScheduledSlotsForDay '2026-11-24')
+Check ($Error.Count -eq $errorCount) 'Normal enumeration recorded retired slots as exceptions'
+Check (($todaySlots -join ',') -ceq '2026-11-24T07:00+09:00,2026-11-24T12:00+09:00,2026-11-24T15:00+09:00,2026-11-24T20:00+09:00') 'Wrong daily slot enumeration'
 foreach($day in @('2026-11-07','2026-11-08')){
  foreach($hour in 0..23){
   $now=[DateTimeOffset]::Parse(('{0}T{1:00}:00:00+09:00' -f $day,$hour));$slot=Get-ScanRecoverySlot $now
