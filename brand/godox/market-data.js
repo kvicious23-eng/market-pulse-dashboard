@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-26T20:10:06+09:00",
+    "snapshotAt": "2026-11-27T07:09:55+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,16 +9,16 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-26T20:10:06+09:00",
+      "lastAttemptAt": "2026-11-27T07:09:55+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "Godox 수집 결과: 검증 3, 품절 0, 일부 0 / 전체 3",
-      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-26T20:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-27T07:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
@@ -29,19 +29,19 @@ window.MARKET_DATA = {
     "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.177Z",
     "brand": "Godox",
     "collectionEvidence": {
-      "browser": "whale",
+      "browser": "chrome",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-26T20:00+09:00",
+      "scanSlot": "2026-11-27T07:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
-      "sourceRunId": "10c76ec75726463e963a0cfc0c5b0cd8",
-      "startedAt": "2026-11-26T11:00:08.830Z",
-      "completedAt": "2026-11-26T11:10:06.462Z",
+      "runId": "a24477b4a49749049844619d2001dca1",
+      "sourceRunId": "a24477b4a49749049844619d2001dca1",
+      "startedAt": "2026-11-26T22:00:04.989Z",
+      "completedAt": "2026-11-26T22:09:55.132Z",
       "targetCount": 15,
       "resultCount": 15
     },
     "recoveryEvidence": null,
-    "publishedAt": "2026-11-26T20:10:06+09:00",
+    "publishedAt": "2026-11-27T07:09:55+09:00",
     "historyBrands": [
       "Godox"
     ],
@@ -63,7 +63,7 @@ window.MARKET_DATA = {
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9738958594?itemId=29147698397&vendorItemId=96070924334",
           "checkoutInferredZeroFields": [],
-          "checkedAt": "2026-11-26 20:04",
+          "checkedAt": "2026-11-27 07:04",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 1000,
           "finalPrice": 41000,
@@ -71,14 +71,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
-            "checkedAt": "2026-11-26T11:04:18.402Z"
+            "runId": "a24477b4a49749049844619d2001dca1",
+            "checkedAt": "2026-11-26T22:04:15.092Z"
           },
-          "availabilityCheckedAt": "2026-11-26 20:04",
+          "availabilityCheckedAt": "2026-11-27 07:04",
           "srp": 42000,
           "observedListPrice": 41000,
           "productPagePrice": 41000,
@@ -103,27 +103,20 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-26T11:04:32.610Z",
+          "checkoutDiscountCheckedAt": "2026-11-26T22:04:29.779Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-26 15:04",
+          "priceComparisonAt": "2026-11-26 20:04",
           "lastVerifiedFinalPrice": 41000,
-          "lastVerifiedPriceCheckedAt": "2026-11-26 20:04",
-          "priceCheckedAt": "2026-11-26 20:04"
+          "lastVerifiedPriceCheckedAt": "2026-11-27 07:04",
+          "priceCheckedAt": "2026-11-27 07:04"
         }
       ],
       "competitorModels": [],
-      "mtm": "C100",
-      "productId": "9738958594",
-      "itemId": "29147698397",
-      "vendorItemId": "96070924334",
-      "category": "Camera",
-      "srp": 42000,
-      "references": [],
       "supplierMetrics": {
         "stock": 302,
         "dailySales": 7,
@@ -137,7 +130,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-25",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "C100",
+      "productId": "9738958594",
+      "itemId": "29147698397",
+      "vendorItemId": "96070924334",
+      "category": "Camera",
+      "srp": 42000,
+      "references": []
     },
     {
       "storage": "",
@@ -152,7 +152,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9792771317?itemId=29320396361&vendorItemId=96234989566",
-          "checkedAt": "2026-11-26 20:01",
+          "checkedAt": "2026-11-27 07:01",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 4210,
           "finalPrice": 160790,
@@ -160,14 +160,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
-            "checkedAt": "2026-11-26T11:01:03.981Z"
+            "runId": "a24477b4a49749049844619d2001dca1",
+            "checkedAt": "2026-11-26T22:01:00.656Z"
           },
-          "availabilityCheckedAt": "2026-11-26 20:01",
+          "availabilityCheckedAt": "2026-11-27 07:01",
           "srp": 165000,
           "observedListPrice": 160790,
           "productPagePrice": 160790,
@@ -192,27 +192,20 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-26T11:01:17.654Z",
+          "checkoutDiscountCheckedAt": "2026-11-26T22:01:14.300Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-26 15:01",
+          "priceComparisonAt": "2026-11-26 20:01",
           "lastVerifiedFinalPrice": 160790,
-          "lastVerifiedPriceCheckedAt": "2026-11-26 20:01",
-          "priceCheckedAt": "2026-11-26 20:01"
+          "lastVerifiedPriceCheckedAt": "2026-11-27 07:01",
+          "priceCheckedAt": "2026-11-27 07:01"
         }
       ],
       "competitorModels": [],
-      "mtm": "P100",
-      "productId": "9792771317",
-      "itemId": "29320396361",
-      "vendorItemId": "96234989566",
-      "category": "Camera",
-      "srp": 165000,
-      "references": [],
       "supplierMetrics": {
         "stock": 32,
         "dailySales": 0,
@@ -226,7 +219,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-25",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "P100",
+      "productId": "9792771317",
+      "itemId": "29320396361",
+      "vendorItemId": "96234989566",
+      "category": "Camera",
+      "srp": 165000,
+      "references": []
     },
     {
       "storage": "",
@@ -241,7 +241,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9792744152?itemId=29320288864&vendorItemId=96234888229",
-          "checkedAt": "2026-11-26 20:01",
+          "checkedAt": "2026-11-27 07:01",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": null,
           "finalPrice": 18420,
@@ -249,14 +249,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
-            "checkedAt": "2026-11-26T11:01:47.847Z"
+            "runId": "a24477b4a49749049844619d2001dca1",
+            "checkedAt": "2026-11-26T22:01:43.468Z"
           },
-          "availabilityCheckedAt": "2026-11-26 20:02",
+          "availabilityCheckedAt": "2026-11-27 07:01",
           "srp": 17000,
           "observedListPrice": 18420,
           "productPagePrice": 18420,
@@ -281,27 +281,20 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-26T11:02:02.573Z",
+          "checkoutDiscountCheckedAt": "2026-11-26T22:01:58.149Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [],
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-26 15:01",
+          "priceComparisonAt": "2026-11-26 20:01",
           "lastVerifiedFinalPrice": 18420,
-          "lastVerifiedPriceCheckedAt": "2026-11-26 20:01",
-          "priceCheckedAt": "2026-11-26 20:01"
+          "lastVerifiedPriceCheckedAt": "2026-11-27 07:01",
+          "priceCheckedAt": "2026-11-27 07:01"
         }
       ],
       "competitorModels": [],
-      "mtm": "CP220",
-      "productId": "9792744152",
-      "itemId": "29320288864",
-      "vendorItemId": "96234888229",
-      "category": "Camera",
-      "srp": 17000,
-      "references": [],
       "supplierMetrics": {
         "stock": 2,
         "dailySales": 0,
@@ -315,7 +308,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-25",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "CP220",
+      "productId": "9792744152",
+      "itemId": "29320288864",
+      "vendorItemId": "96234888229",
+      "category": "Camera",
+      "srp": 17000,
+      "references": []
     }
   ]
 };
