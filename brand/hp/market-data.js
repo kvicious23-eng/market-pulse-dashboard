@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-26T15:10:08+09:00",
+    "snapshotAt": "2026-11-26T20:10:06+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,19 +9,19 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-26T15:10:08+09:00",
+      "lastAttemptAt": "2026-11-26T20:10:06+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 1, 품절 0, 일부 0 / 전체 1",
-      "collectionRoute": "Windows PC · 일반 Edge 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-26T15:00+09:00",
-      "state": "complete",
+      "scanSlot": "2026-11-26T20:00+09:00",
+      "state": "scheduled-skip",
       "count": 0,
-      "sourceRunId": "0d79edeb79494612bb27b2509ce5549f",
-      "completedAt": "2026-11-26T06:17:06.118Z"
+      "sourceRunId": null,
+      "completedAt": null
     },
     "priceCalculationPolicy": "product-page-v1",
     "pricePolicyAppliedAt": "2026-11-16T05:25:29.451Z",
@@ -29,37 +29,19 @@ window.MARKET_DATA = {
     "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.179Z",
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "edge",
+      "browser": "whale",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-26T15:00+09:00",
+      "scanSlot": "2026-11-26T20:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "0d79edeb79494612bb27b2509ce5549f",
-      "sourceRunId": "0d79edeb79494612bb27b2509ce5549f",
-      "startedAt": "2026-11-26T06:00:18.961Z",
-      "completedAt": "2026-11-26T06:10:08.918Z",
+      "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
+      "sourceRunId": "10c76ec75726463e963a0cfc0c5b0cd8",
+      "startedAt": "2026-11-26T11:00:08.830Z",
+      "completedAt": "2026-11-26T11:10:06.462Z",
       "targetCount": 15,
       "resultCount": 15
     },
-    "recoveryEvidence": {
-      "reason": "access-check",
-      "exitCause": "unknown",
-      "primaryBrowser": "chrome",
-      "scanSlot": "2026-11-26T15:00+09:00",
-      "chromeRunId": "27986f84a2a84b7c9ff64de26f13a094",
-      "edgeRunId": "0d79edeb79494612bb27b2509ce5549f",
-      "chromeStartedAt": "2026-11-26T06:00:04.319Z",
-      "chromeExtensionVersion": "1.9.79",
-      "edgeExtensionVersion": "1.9.79",
-      "chromeCompletedAt": "2026-11-26T06:00:13.407Z",
-      "accessCheckCount": 1,
-      "processObservedAt": null,
-      "absentChecks": null,
-      "edgeStartedAt": "2026-11-26T06:00:18.961Z",
-      "targetCount": 15,
-      "resultCount": 15,
-      "listMatched": true
-    },
-    "publishedAt": "2026-11-26T15:10:08+09:00",
+    "recoveryEvidence": null,
+    "publishedAt": "2026-11-26T20:10:06+09:00",
     "historyBrands": [
       "HP"
     ],
@@ -85,17 +67,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-26 15:00",
+          "checkedAt": "2026-11-26 20:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Edge 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "edge",
+            "browser": "whale",
             "extensionVersion": "1.9.79",
-            "runId": "0d79edeb79494612bb27b2509ce5549f",
-            "checkedAt": "2026-11-26T06:00:27.076Z"
+            "runId": "10c76ec75726463e963a0cfc0c5b0cd8",
+            "checkedAt": "2026-11-26T11:00:18.514Z"
           },
-          "availabilityCheckedAt": "2026-11-26 15:00",
+          "availabilityCheckedAt": "2026-11-26 20:00",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2309000,
@@ -120,7 +102,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-26T06:00:42.419Z",
+          "checkoutDiscountCheckedAt": "2026-11-26T11:00:32.752Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -129,12 +111,12 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -390,000원 와우 전용 즉시할인 -390,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 184720,
-          "priceTrend": "up",
-          "priceComparisonAt": "2026-11-26 12:00",
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-26 15:00",
           "lastVerifiedFinalPrice": 2309000,
-          "lastVerifiedPriceCheckedAt": "2026-11-26 15:00",
-          "priceCheckedAt": "2026-11-26 15:00"
+          "lastVerifiedPriceCheckedAt": "2026-11-26 20:00",
+          "priceCheckedAt": "2026-11-26 20:00"
         }
       ],
       "competitorModels": [],
