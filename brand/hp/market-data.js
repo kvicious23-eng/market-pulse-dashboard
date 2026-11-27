@@ -20,8 +20,8 @@ window.MARKET_DATA = {
       "scanSlot": "2026-11-28T07:00+09:00",
       "state": "complete",
       "count": 0,
-      "sourceRunId": null,
-      "completedAt": null
+      "sourceRunId": "ac291b7397704a9fbf69a3bba5541a96",
+      "completedAt": "2026-11-27T22:18:14.147Z"
     },
     "priceCalculationPolicy": "product-page-v1",
     "pricePolicyAppliedAt": "2026-11-16T05:25:29.451Z",
