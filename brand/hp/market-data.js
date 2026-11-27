@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-27T20:10:47+09:00",
+    "snapshotAt": "2026-11-28T07:10:48+09:00",
     "sourceFile": "product-catalog.json",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,16 +9,16 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "Basic and precision scan",
       "dashboardSync": "GitHub Pages automatic deployment",
-      "lastAttemptAt": "2026-11-27T20:10:47+09:00",
+      "lastAttemptAt": "2026-11-28T07:10:48+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "HP 수집 결과: 검증 2, 품절 0, 일부 0 / 전체 2",
-      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-27T20:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-28T07:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
@@ -29,19 +29,19 @@ window.MARKET_DATA = {
     "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.179Z",
     "brand": "HP",
     "collectionEvidence": {
-      "browser": "whale",
+      "browser": "chrome",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-27T20:00+09:00",
+      "scanSlot": "2026-11-28T07:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "bd9e3b916f9a40ab9597595cad26620a",
-      "sourceRunId": "bd9e3b916f9a40ab9597595cad26620a",
-      "startedAt": "2026-11-27T11:00:08.968Z",
-      "completedAt": "2026-11-27T11:10:47.928Z",
+      "runId": "ac291b7397704a9fbf69a3bba5541a96",
+      "sourceRunId": "ac291b7397704a9fbf69a3bba5541a96",
+      "startedAt": "2026-11-27T22:00:06.130Z",
+      "completedAt": "2026-11-27T22:10:48.267Z",
       "targetCount": 16,
       "resultCount": 16
     },
     "recoveryEvidence": null,
-    "publishedAt": "2026-11-27T20:10:47+09:00",
+    "publishedAt": "2026-11-28T07:10:48+09:00",
     "historyBrands": [
       "HP"
     ],
@@ -67,17 +67,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-27 20:01",
+          "checkedAt": "2026-11-28 07:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9641812639?itemId=28810435903&vendorItemId=95745501474",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:01:06.360Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:00:59.829Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:01",
+          "availabilityCheckedAt": "2026-11-28 07:01",
           "srp": 2699000,
           "observedListPrice": 2699000,
           "productPagePrice": 2309000,
@@ -102,7 +102,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:01:20.064Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:01:13.472Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -113,20 +113,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:01",
+          "priceComparisonAt": "2026-11-27 20:01",
           "lastVerifiedFinalPrice": 2309000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:01",
-          "priceCheckedAt": "2026-11-27 20:01"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:00",
+          "priceCheckedAt": "2026-11-28 07:00"
         }
       ],
       "competitorModels": [],
-      "mtm": "15-GB0139AX",
-      "productId": "9641812639",
-      "itemId": "28810435903",
-      "vendorItemId": "95745501474",
-      "category": "Notebook",
-      "srp": 2699000,
-      "references": [],
       "supplierMetrics": {
         "stock": 150,
         "dailySales": 0,
@@ -140,7 +133,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "15-GB0139AX",
+      "productId": "9641812639",
+      "itemId": "28810435903",
+      "vendorItemId": "95745501474",
+      "category": "Notebook",
+      "srp": 2699000,
+      "references": []
     },
     {
       "storage": "",
@@ -160,17 +160,17 @@ window.MARKET_DATA = {
           "shipping": 0,
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "sourceType": "관리화면 등록 URL",
-          "checkedAt": "2026-11-27 20:00",
+          "checkedAt": "2026-11-28 07:00",
           "confidence": "A",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "url": "https://www.coupang.com/vp/products/9724920050?itemId=29102163402&vendorItemId=96027226300",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:00:19.353Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:00:15.442Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:00",
+          "availabilityCheckedAt": "2026-11-28 07:00",
           "srp": 1549000,
           "observedListPrice": 1549000,
           "productPagePrice": 1229000,
@@ -195,7 +195,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:00:35.116Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:00:28.595Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -209,20 +209,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:00",
+          "priceComparisonAt": "2026-11-27 20:00",
           "lastVerifiedFinalPrice": 1229000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:00",
-          "priceCheckedAt": "2026-11-27 20:00"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:00",
+          "priceCheckedAt": "2026-11-28 07:00"
         }
       ],
       "competitorModels": [],
-      "mtm": "15-FB3420AX",
-      "productId": "9724920050",
-      "itemId": "29102163402",
-      "vendorItemId": "96027226300",
-      "category": "Notebook",
-      "srp": 1549000,
-      "references": [],
       "supplierMetrics": {
         "stock": null,
         "dailySales": null,
@@ -236,7 +229,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "15-FB3420AX",
+      "productId": "9724920050",
+      "itemId": "29102163402",
+      "vendorItemId": "96027226300",
+      "category": "Notebook",
+      "srp": 1549000,
+      "references": []
     }
   ]
 };

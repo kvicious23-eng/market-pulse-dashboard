@@ -1,6 +1,6 @@
 window.MARKET_DATA = {
   "meta": {
-    "snapshotAt": "2026-11-27T20:10:47+09:00",
+    "snapshotAt": "2026-11-28T07:10:48+09:00",
     "sourceFile": "아쎄르_수정.xlsx",
     "comparisonBasis": "사용자가 지정한 쿠팡 경쟁모델의 가격 구성과 실제 확인시각 비교",
     "exclusions": "품절·수집 오류·이전 회차 가격은 현재 순위와 차액에서 제외. 카드사별 조건은 개별 확인.",
@@ -9,16 +9,16 @@ window.MARKET_DATA = {
       "quickWatch": "매일 07:00 · 12:00 · 15:00 · 20:00 KST",
       "fullResearch": "기본+정밀 동시 실행",
       "dashboardSync": "GitHub Pages 자동 반영",
-      "lastAttemptAt": "2026-11-27T20:10:47+09:00",
+      "lastAttemptAt": "2026-11-28T07:10:48+09:00",
       "lastAttemptStatus": "success",
       "lastAttemptText": "Acer 수집 결과: 검증 6, 품절 2, 일부 0 / 전체 8",
-      "collectionRoute": "Windows PC · 일반 Whale 확장프로그램",
+      "collectionRoute": "Windows PC · 일반 Chrome 확장프로그램",
       "competitionValidationStatus": "coupang-models",
       "alertEvaluation": ""
     },
     "competitorPhase": {
-      "scanSlot": "2026-11-27T20:00+09:00",
-      "state": "scheduled-skip",
+      "scanSlot": "2026-11-28T07:00+09:00",
+      "state": "complete",
       "count": 0,
       "sourceRunId": null,
       "completedAt": null
@@ -29,19 +29,19 @@ window.MARKET_DATA = {
     "wowCouponPolicyAppliedAt": "2026-11-16T06:41:54.173Z",
     "brand": "Acer",
     "collectionEvidence": {
-      "browser": "whale",
+      "browser": "chrome",
       "extensionVersion": "1.9.79",
-      "scanSlot": "2026-11-27T20:00+09:00",
+      "scanSlot": "2026-11-28T07:00+09:00",
       "policyId": "chrome-07-15-whale-12-20-v1",
-      "runId": "bd9e3b916f9a40ab9597595cad26620a",
-      "sourceRunId": "bd9e3b916f9a40ab9597595cad26620a",
-      "startedAt": "2026-11-27T11:00:08.968Z",
-      "completedAt": "2026-11-27T11:10:47.928Z",
+      "runId": "ac291b7397704a9fbf69a3bba5541a96",
+      "sourceRunId": "ac291b7397704a9fbf69a3bba5541a96",
+      "startedAt": "2026-11-27T22:00:06.130Z",
+      "completedAt": "2026-11-27T22:10:48.267Z",
       "targetCount": 16,
       "resultCount": 16
     },
     "recoveryEvidence": null,
-    "publishedAt": "2026-11-27T20:10:47+09:00",
+    "publishedAt": "2026-11-28T07:10:48+09:00",
     "historyBrands": [
       "Acer"
     ],
@@ -62,7 +62,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318769&vendorItemId=95881909514",
-          "checkedAt": "2026-11-27 20:07",
+          "checkedAt": "2026-11-28 07:07",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 1159000,
@@ -70,14 +70,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:07:36.812Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:07:33.342Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:07",
+          "availabilityCheckedAt": "2026-11-28 07:07",
           "srp": 1419000,
           "observedListPrice": 1419000,
           "productPagePrice": 1159000,
@@ -102,7 +102,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:07:51.546Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:07:48.018Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -116,20 +116,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:07",
+          "priceComparisonAt": "2026-11-27 20:07",
           "lastVerifiedFinalPrice": 1159000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:07",
-          "priceCheckedAt": "2026-11-27 20:07"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:07",
+          "priceCheckedAt": "2026-11-28 07:07"
         }
       ],
       "competitorModels": [],
-      "mtm": "AG14-I71M-972S",
-      "productId": "9681715061",
-      "itemId": "28951318769",
-      "vendorItemId": "95881909514",
-      "category": "Notebook",
-      "srp": 1419000,
-      "references": [],
       "supplierMetrics": {
         "stock": 3,
         "dailySales": 0,
@@ -143,7 +136,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "AG14-I71M-972S",
+      "productId": "9681715061",
+      "itemId": "28951318769",
+      "vendorItemId": "95881909514",
+      "category": "Notebook",
+      "srp": 1419000,
+      "references": []
     },
     {
       "storage": "512GB",
@@ -158,7 +158,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9681715061?itemId=28951318771&vendorItemId=95881909515",
-          "checkedAt": "2026-11-27 20:08",
+          "checkedAt": "2026-11-28 07:08",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 1289000,
@@ -166,14 +166,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:08:20.727Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:08:19.208Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:08",
+          "availabilityCheckedAt": "2026-11-28 07:08",
           "srp": 1559000,
           "observedListPrice": 1559000,
           "productPagePrice": 1289000,
@@ -198,7 +198,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "none",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:08:35.417Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:08:32.850Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -212,20 +212,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:08",
+          "priceComparisonAt": "2026-11-27 20:08",
           "lastVerifiedFinalPrice": 1289000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:08",
-          "priceCheckedAt": "2026-11-27 20:08"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:08",
+          "priceCheckedAt": "2026-11-28 07:08"
         }
       ],
       "competitorModels": [],
-      "mtm": "AG14-I71M-96C5",
-      "productId": "9681715061",
-      "itemId": "28951318771",
-      "vendorItemId": "95881909515",
-      "category": "Notebook",
-      "srp": 1559000,
-      "references": [],
       "supplierMetrics": {
         "stock": 3,
         "dailySales": 0,
@@ -239,7 +232,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "AG14-I71M-96C5",
+      "productId": "9681715061",
+      "itemId": "28951318771",
+      "vendorItemId": "95881909515",
+      "category": "Notebook",
+      "srp": 1559000,
+      "references": []
     },
     {
       "storage": "1TB",
@@ -254,7 +254,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=26004597899&vendorItemId=92986675922",
-          "checkedAt": "2026-11-27 20:09",
+          "checkedAt": "2026-11-28 07:09",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 500000,
           "finalPrice": 2649000,
@@ -262,14 +262,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:09:04.601Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:09:04.035Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:09",
+          "availabilityCheckedAt": "2026-11-28 07:09",
           "srp": 4099000,
           "observedListPrice": 3599000,
           "productPagePrice": 2649000,
@@ -294,7 +294,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "excluded",
           "excludedWowCouponDiscount": 290000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:09:12.233Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:09:10.125Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -309,22 +309,15 @@ window.MARKET_DATA = {
             "와우회원 총 추가 혜택 -870,000원 와우 전용 즉시할인 -580,000원 와우 전용 쿠폰할인 변경 -290,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 20000,
-          "priceTrend": "up",
-          "priceComparisonAt": "2026-11-24 15:10",
+          "priceChange": 0,
+          "priceTrend": "same",
+          "priceComparisonAt": "2026-11-27 20:09",
           "lastVerifiedFinalPrice": 2649000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:09",
-          "priceCheckedAt": "2026-11-27 20:09"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:09",
+          "priceCheckedAt": "2026-11-28 07:09"
         }
       ],
       "competitorModels": [],
-      "mtm": "PHN16S-71-949J",
-      "productId": "9573633117",
-      "itemId": "26004597899",
-      "vendorItemId": "92986675922",
-      "category": "Notebook",
-      "srp": 4099000,
-      "references": [],
       "supplierMetrics": {
         "stock": 0,
         "dailySales": 0,
@@ -338,7 +331,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "PHN16S-71-949J",
+      "productId": "9573633117",
+      "itemId": "26004597899",
+      "vendorItemId": "92986675922",
+      "category": "Notebook",
+      "srp": 4099000,
+      "references": []
     },
     {
       "storage": "512GB",
@@ -353,7 +353,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9616664363?itemId=28714706385&vendorItemId=95655361667",
-          "checkedAt": "2026-11-27 20:09",
+          "checkedAt": "2026-11-28 07:09",
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "instantDiscount": 32780,
           "finalPrice": 1529000,
@@ -361,16 +361,16 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": null,
           "status": "품절",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:09:41.422Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:09:41.308Z"
           },
           "lastVerifiedFinalPrice": 1529000,
           "lastVerifiedPriceCheckedAt": "2026-11-12 12:09",
-          "availabilityCheckedAt": "2026-11-27 20:09",
+          "availabilityCheckedAt": "2026-11-28 07:09",
           "srp": 1689000,
           "observedListPrice": 1656220,
           "productPagePrice": 1626220,
@@ -403,17 +403,10 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-11-12 12:09",
-          "priceCheckedAt": "2026-11-27 20:09"
+          "priceCheckedAt": "2026-11-28 07:09"
         }
       ],
       "competitorModels": [],
-      "mtm": "SFG14-I71-57P5",
-      "productId": "9616664363",
-      "itemId": "28714706385",
-      "vendorItemId": "95655361667",
-      "category": "Notebook",
-      "srp": 1689000,
-      "references": [],
       "supplierMetrics": {
         "stock": 0,
         "dailySales": 0,
@@ -427,7 +420,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "SFG14-I71-57P5",
+      "productId": "9616664363",
+      "itemId": "28714706385",
+      "vendorItemId": "95655361667",
+      "category": "Notebook",
+      "srp": 1689000,
+      "references": []
     },
     {
       "storage": "512GB",
@@ -442,7 +442,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9573633117?itemId=28714706401&vendorItemId=95655361668",
-          "checkedAt": "2026-11-27 20:10",
+          "checkedAt": "2026-11-28 07:10",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 0,
           "finalPrice": 1289000,
@@ -450,14 +450,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:10:12.659Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:10:13.538Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:10",
+          "availabilityCheckedAt": "2026-11-28 07:10",
           "srp": 1439000,
           "observedListPrice": 1439000,
           "productPagePrice": 1289000,
@@ -482,7 +482,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "included",
           "excludedWowCouponDiscount": null,
           "wowCouponDiscount": 120000,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:10:27.862Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:10:28.213Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -497,20 +497,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:10",
+          "priceComparisonAt": "2026-11-27 20:10",
           "lastVerifiedFinalPrice": 1289000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:10",
-          "priceCheckedAt": "2026-11-27 20:10"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:10",
+          "priceCheckedAt": "2026-11-28 07:10"
         }
       ],
       "competitorModels": [],
-      "mtm": "SFG16-74-70E9",
-      "productId": "9573633117",
-      "itemId": "28714706401",
-      "vendorItemId": "95655361668",
-      "category": "Notebook",
-      "srp": 1439000,
-      "references": [],
       "supplierMetrics": {
         "stock": 61,
         "dailySales": 9,
@@ -524,7 +517,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "SFG16-74-70E9",
+      "productId": "9573633117",
+      "itemId": "28714706401",
+      "vendorItemId": "95655361668",
+      "category": "Notebook",
+      "srp": 1439000,
+      "references": []
     },
     {
       "storage": "",
@@ -539,7 +539,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/9738841025?itemId=29147260106&vendorItemId=96070559959",
-          "checkedAt": "2026-11-27 20:04",
+          "checkedAt": "2026-11-28 07:04",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 150000,
           "finalPrice": 1909000,
@@ -547,14 +547,14 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:04:29.667Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:04:21.352Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:04",
+          "availabilityCheckedAt": "2026-11-28 07:04",
           "srp": 2299000,
           "observedListPrice": 2149000,
           "productPagePrice": 1909000,
@@ -579,7 +579,7 @@ window.MARKET_DATA = {
           "wowCouponTreatment": "excluded",
           "excludedWowCouponDiscount": 80000,
           "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:04:36.790Z",
+          "checkoutDiscountCheckedAt": "2026-11-27T22:04:28.480Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -596,20 +596,13 @@ window.MARKET_DATA = {
           "alertEligible": true,
           "priceChange": 0,
           "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:04",
+          "priceComparisonAt": "2026-11-27 20:04",
           "lastVerifiedFinalPrice": 1909000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:04",
-          "priceCheckedAt": "2026-11-27 20:04"
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:04",
+          "priceCheckedAt": "2026-11-28 07:04"
         }
       ],
       "competitorModels": [],
-      "mtm": "SFG14-75-749N",
-      "productId": "9738841025",
-      "itemId": "29147260106",
-      "vendorItemId": "96070559959",
-      "category": "Notebook",
-      "srp": 2299000,
-      "references": [],
       "supplierMetrics": {
         "stock": 6,
         "dailySales": 0,
@@ -623,7 +616,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "SFG14-75-749N",
+      "productId": "9738841025",
+      "itemId": "29147260106",
+      "vendorItemId": "96070559959",
+      "category": "Notebook",
+      "srp": 2299000,
+      "references": []
     },
     {
       "storage": "",
@@ -638,7 +638,7 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/8880549624?itemId=25917327376&vendorItemId=92902882925",
-          "checkedAt": "2026-11-27 20:03",
+          "checkedAt": "2026-11-28 07:03",
           "condition": "정확한 Item ID 확인. 품절 상품의 주문서 쿠폰은 미확인.",
           "instantDiscount": 460000,
           "finalPrice": 2869000,
@@ -646,16 +646,16 @@ window.MARKET_DATA = {
           "confidence": "A",
           "cardDiscount": null,
           "status": "품절",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:03:59.445Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:03:50.145Z"
           },
           "lastVerifiedFinalPrice": 2869000,
           "lastVerifiedPriceCheckedAt": "2026-11-25 15:03",
-          "availabilityCheckedAt": "2026-11-27 20:03",
+          "availabilityCheckedAt": "2026-11-28 07:03",
           "srp": 4129000,
           "observedListPrice": 3669000,
           "productPagePrice": 2599000,
@@ -688,17 +688,10 @@ window.MARKET_DATA = {
           "priceChange": null,
           "priceTrend": "unavailable",
           "priceComparisonAt": "2026-11-25 15:03",
-          "priceCheckedAt": "2026-11-27 20:03"
+          "priceCheckedAt": "2026-11-28 07:03"
         }
       ],
       "competitorModels": [],
-      "mtm": "PHN16-73-9581",
-      "productId": "8880549624",
-      "itemId": "25917327376",
-      "vendorItemId": "92902882925",
-      "category": "Notebook",
-      "srp": 4129000,
-      "references": [],
       "supplierMetrics": {
         "stock": 1,
         "dailySales": 3,
@@ -712,7 +705,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "PHN16-73-9581",
+      "productId": "8880549624",
+      "itemId": "25917327376",
+      "vendorItemId": "92902882925",
+      "category": "Notebook",
+      "srp": 4129000,
+      "references": []
     },
     {
       "storage": "",
@@ -727,26 +727,26 @@ window.MARKET_DATA = {
           "shipping": 0,
           "sourceType": "관리화면 등록 URL",
           "url": "https://www.coupang.com/vp/products/8906279054?itemId=26011692765&vendorItemId=92993600715",
-          "checkedAt": "2026-11-27 20:03",
+          "checkedAt": "2026-11-28 07:03",
           "condition": "정확한 Item ID와 상품페이지·주문서 할인을 직접 확인.",
           "instantDiscount": 520000,
-          "finalPrice": 2889000,
-          "couponDiscount": 910000,
+          "finalPrice": 2789000,
+          "couponDiscount": 1010000,
           "confidence": "A",
           "cardDiscount": 0,
           "status": "현재가 직접 확인",
-          "confidenceText": "동일 Item ID의 일반 Whale 화면에서 가격 확인",
+          "confidenceText": "동일 Item ID의 일반 Chrome 화면에서 가격 확인",
           "collectionEvidence": {
-            "browser": "whale",
+            "browser": "chrome",
             "extensionVersion": "1.9.79",
-            "runId": "bd9e3b916f9a40ab9597595cad26620a",
-            "checkedAt": "2026-11-27T11:03:21.581Z"
+            "runId": "ac291b7397704a9fbf69a3bba5541a96",
+            "checkedAt": "2026-11-27T22:03:12.350Z"
           },
-          "availabilityCheckedAt": "2026-11-27 20:03",
+          "availabilityCheckedAt": "2026-11-28 07:03",
           "srp": 4319000,
           "observedListPrice": 3799000,
-          "productPagePrice": 2889000,
-          "preCardPrice": 2889000,
+          "productPagePrice": 2789000,
+          "preCardPrice": 2789000,
           "priceBasisType": "crossed-out",
           "cardBenefitStatus": "none",
           "publishedPriceBasis": "final",
@@ -762,12 +762,12 @@ window.MARKET_DATA = {
           "checkoutCouponSource": "checkout",
           "wowInstantDiscount": 510000,
           "priceCalculationPolicy": "product-page-v1",
-          "observedWowCouponDiscount": 310000,
-          "checkoutPreCardItemPrice": 2829000,
-          "wowCouponTreatment": "excluded",
-          "excludedWowCouponDiscount": 310000,
-          "wowCouponDiscount": 0,
-          "checkoutDiscountCheckedAt": "2026-11-27T11:03:29.226Z",
+          "observedWowCouponDiscount": 350000,
+          "checkoutPreCardItemPrice": 2789000,
+          "wowCouponTreatment": "included",
+          "excludedWowCouponDiscount": null,
+          "wowCouponDiscount": 350000,
+          "checkoutDiscountCheckedAt": "2026-11-27T22:03:18.952Z",
           "checkoutUnparsedFields": [],
           "checkoutDiscountFieldStatus": null,
           "checkoutDiscountEvidence": [
@@ -778,26 +778,19 @@ window.MARKET_DATA = {
             "와우 전용 쿠폰할인 변경",
             "쿠폰할인 변경 -150,000원",
             "와우 전용 즉시할인 -510,000원",
-            "와우 전용 쿠폰할인 변경 -310,000원",
-            "와우회원 총 추가 혜택 -820,000원 와우 전용 즉시할인 -510,000원 와우 전용 쿠폰할인 변경 -310,000원 배송비 0원"
+            "와우 전용 쿠폰할인 변경 -350,000원",
+            "와우회원 총 추가 혜택 -860,000원 와우 전용 즉시할인 -510,000원 와우 전용 쿠폰할인 변경 -350,000원 배송비 0원"
           ],
           "alertEligible": true,
-          "priceChange": 0,
-          "priceTrend": "same",
-          "priceComparisonAt": "2026-11-27 15:03",
-          "lastVerifiedFinalPrice": 2889000,
-          "lastVerifiedPriceCheckedAt": "2026-11-27 20:03",
-          "priceCheckedAt": "2026-11-27 20:03"
+          "priceChange": -100000,
+          "priceTrend": "down",
+          "priceComparisonAt": "2026-11-27 20:03",
+          "lastVerifiedFinalPrice": 2789000,
+          "lastVerifiedPriceCheckedAt": "2026-11-28 07:03",
+          "priceCheckedAt": "2026-11-28 07:03"
         }
       ],
       "competitorModels": [],
-      "mtm": "PHN16S-71-99SN",
-      "productId": "8906279054",
-      "itemId": "26011692765",
-      "vendorItemId": "92993600715",
-      "category": "Notebook",
-      "srp": 4319000,
-      "references": [],
       "supplierMetrics": {
         "stock": 31,
         "dailySales": 7,
@@ -811,7 +804,14 @@ window.MARKET_DATA = {
         "sourceDate": "2026-11-26",
         "salesBasis": "outbound",
         "source": "Supplier Hub CSV"
-      }
+      },
+      "mtm": "PHN16S-71-99SN",
+      "productId": "8906279054",
+      "itemId": "26011692765",
+      "vendorItemId": "92993600715",
+      "category": "Notebook",
+      "srp": 4319000,
+      "references": []
     }
   ]
 };
